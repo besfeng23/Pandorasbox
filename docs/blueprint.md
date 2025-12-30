@@ -1,0 +1,71 @@
+# **App Name**: PandorasBox
+
+## Core Features:
+
+- Message Input: Text input for the user to enter messages. Messages are saved to Firestore associated with the hardcoded user ID 'dev_user_1'.
+- runMemoryLane: Function to process messages, fetch context, call AI for updates, and write updates to Firestore. Uses hardcoded user ID 'dev_user_1'.
+- runAnswerLane: Function to perform vector search on Firestore, call AI for final answer generation (tool based implementation), and save the conversation history.
+- Message Display: Display chat messages with clear distinction between user and AI responses.
+- API Endpoint: An open POST endpoint at /api/memory-chat to receive messages, call runMemoryLane and runAnswerLane, and return responses without API key checks.
+- Initial State Fetch: On app load, fetch initial chat history and state for the hardcoded user ID 'dev_user_1' from Firestore.
+- Vector Search Index Creation: Set up Firestore indexes for efficient vector searches.
+
+## Style Guidelines:
+
+- background: #FFFFFF (White)
+- surface: #FAFAFA (Zinc-50) -> For sidebars/secondary areas.
+- border: #E4E4E7 (Zinc-200) -> Subtle, crisp borders.
+- text-primary: #18181B (Zinc-900) -> Almost black, softer than #000.
+- text-secondary: #71717A (Zinc-500) -> For timestamps and labels.
+- primary: #4F46E5 (Indigo-600) -> Main buttons, active states.
+- primary-hover: #4338CA (Indigo-700)
+- primary-light: #EEF2FF (Indigo-50) -> For backgrounds of active items (ghost buttons).
+- success: #10B981 (Emerald-500) -> "Memory Saved"
+- error: #F43F5E (Rose-500) -> "Firestore Error"
+- warning: #F59E0B (Amber-500)
+- Font Family: Inter, system-ui, sans-serif. (The industry standard).
+- Scale: Use tight line-heights for headings (leading-tight) and relaxed for chat text (leading-relaxed).
+- Border: 1px solid border (#E4E4E7).
+- Shadow: shadow-sm (very subtle, almost invisible).
+- Radius: rounded-lg (8px). Not fully square, not pill-shaped.
+- Primary Button: bg-primary text-white rounded-md px-4 py-2 font-medium shadow-sm hover:bg-primary-hover.
+- Secondary/Ghost: bg-transparent text-text-secondary hover:bg-surface hover:text-text-primary.
+- User Bubble: bg-surface (#FAFAFA) text-primary border border (#E4E4E7). Reason: Don't make the user bubble blue; keep it neutral so the content stands out.
+- AI Bubble: Transparent background. No border. Just clean text aligned left.
+- Input Area: Fixed at bottom. backdrop-blur-md (frosted glass) bg-white/80 border-t border.
+- Background: #09090B (Zinc-950) -> Deep space gray, not pure black.
+- Surface: #18181B (Zinc-900).
+- Border: #27272A (Zinc-800).
+- Text: #FAFAFA (Zinc-50).
+- Font Setup: Use next/font/google with variable definitions for Inter and JetBrains Mono.
+- Tailwind Configuration: Extend the default theme to map CSS variables for fonts and font sizes.
+- Headings: text-lg font-semibold tracking-tight text-primary.
+- Chat Message: text-base font-normal leading-relaxed text-zinc-800.
+- Sidebar & UI Elements: text-sm font-medium text-text-secondary hover:text-text-primary transition-colors.
+- Memory Inspector: font-mono text-xs text-zinc-600.
+- Labels & Micro-copy: text-xs font-semibold uppercase tracking-wider text-zinc-500.
+- Use precise, technical iconography from lucide-react.
+- All icons must use a 1.5px stroke width (stroke-width={1.5}).
+- Chat Icon: <MessageSquare />
+- Memory/Data Icon: <Database /> or <BrainCircuit />
+- Settings Icon: <Settings2 />
+- Send Button Icon: <ArrowUp /> (Inside a rounded square or circle container).
+- Attach/Add Icon: <Plus /> (Thin, simple).
+- Search Icon: <Search />.
+- Context Section Icon: <Activity />
+- Pins Section Icon: <Pin />
+- Decisions/History Icon: <ScrollText /> or <History />
+- Vector Index Status Icon: <Zap />
+- Saving Icon: <Loader2 /> (Animate with animate-spin).
+- Success Icon: <CheckCircle2 />
+- Error Icon: <AlertCircle />
+- Container: h-screen w-full flex overflow-hidden bg-background text-text-primary antialiased font-sans.
+- Command Rail (Left Sidebar): Fixed width (w-16 on mobile, w-64 on desktop). h-full. border-r border-border bg-surface/50 flex flex-col justify-between py-4.
+- Focus Area (Chat Feed): flex-1 (Takes remaining space). h-full. relative.
+- Live Inspector (Right Sidebar - Memory): Fixed width (w-80 to w-96). h-full. Hidden on mobile (hidden lg:flex).
+- Mobile Responsiveness: Bottom Tab Bar for Sidebar, Slide-over Drawer for Memory Pane.
+- Constant: Use Spring Physics. stiffness: 350, damping: 30
+- Enter effect: Messages stack, sliding up with a fade-in.
+- Highlight flashes for memory updates.
+- Morph content, do not squish.
+- Buttons scale down slightly on tap

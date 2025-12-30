@@ -1,0 +1,27 @@
+
+{
+  "name": "functions",
+  "scripts": {
+    "build": "tsc",
+    "serve": "firebase emulators:start --only functions",
+    "shell": "firebase functions:shell",
+    "start": "npm run shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log",
+    "predeploy": "npm run build"
+  },
+  "engines": {
+    "node": "20"
+  },
+  "main": "lib/index.js",
+  "dependencies": {
+    "firebase-admin": "^12.1.0",
+    "firebase-functions": "^5.0.1",
+    "openai": "^4.52.7"
+  },
+  "devDependencies": {
+    "typescript": "^5",
+    "firebase-functions-test": "^3.1.0"
+  },
+  "private": true
+}
