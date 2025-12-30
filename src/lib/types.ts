@@ -14,6 +14,8 @@ export type Message = {
   status?: 'processing' | 'complete' | 'error';
   progress_log?: string[];
   source_filename?: string;
+  userId?: string;
+  editedAt?: Timestamp | Date;
 };
 
 export type Memory = {

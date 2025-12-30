@@ -80,6 +80,8 @@ export async function submitUserMessage(formData: FormData) {
     });
     imageUrl = await getDownloadURL(file);
   }
+  
+  const embedding = await generateEmbedding(messageContent || 'image');
 
   // Save user message to Firestore.
   await userMessageRef.set({
@@ -90,10 +92,11 @@ export async function submitUserMessage(formData: FormData) {
     userId: userId,
     imageUrl: imageUrl ?? null,
     source: source,
+    embedding: embedding,
   });
 
   // Trigger the unified chat lane flow.
-  runChatLane({ 
+  await runChatLane({ 
     userId, 
     message: messageContent,
     imageBase64: imageBase64,
@@ -291,6 +294,7 @@ export async function uploadKnowledge(formData: FormData): Promise<{ success: bo
                 content: chunk,
                 embedding: embedding,
                 timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                userId: userId,
             });
         }
         

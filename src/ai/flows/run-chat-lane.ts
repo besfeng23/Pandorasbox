@@ -1,12 +1,11 @@
 'use server';
 
 import { ai } from '@/ai/genkit';
-import { firestoreAdmin } from '@/lib/firebase-admin';
+import { firestoreAdmin, admin } from '@/lib/firebase-admin';
 import { z } from 'zod';
 import { runMemoryLane } from './run-memory-lane';
 import { runAnswerLane } from './run-answer-lane';
 import { suggestFollowUpQuestions } from './suggest-follow-up-questions';
-import { generateEmbedding } from '@/lib/vector';
 
 const ChatLaneInputSchema = z.object({
   userId: z.string(),
@@ -33,7 +32,7 @@ export async function runChatLane(
         content: '',
         status: 'processing',
         progress_log: ['Initializing agent...'],
-        timestamp: new Date(),
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
         userId: userId,
       });
 
@@ -45,33 +44,20 @@ export async function runChatLane(
         source,
       });
 
-      // 3. Save the user's message with the image description from memory lane.
-      const userMessageEmbedding = await generateEmbedding(memoryResult.image_description || message);
-      await firestoreAdmin.collection('users').doc(userId).collection('history').where('role', '==', 'user').orderBy('timestamp', 'desc').limit(1).get().then(snapshot => {
-        if (!snapshot.empty) {
-          const userMessageDoc = snapshot.docs[0];
-          userMessageDoc.ref.update({
-            embedding: userMessageEmbedding,
-            imageDescription: memoryResult.image_description ?? null,
-          });
-        }
-      });
-      
-
-      // 4. Run the answer lane to generate a response.
+      // 3. Run the answer lane to generate a response.
       const answerResult = await runAnswerLane({
         userId,
         message: message || memoryResult.image_description || 'Describe the image.',
         assistantMessageId: assistantRef.id,
       });
 
-      // 5. Suggest follow-up questions.
+      // 4. Suggest follow-up questions.
       const suggestions = await suggestFollowUpQuestions({
         userMessage: message,
         aiResponse: answerResult.answer,
       });
 
-      // 6. Save suggestions to Firestore.
+      // 5. Save suggestions to Firestore.
       const suggestionsDocRef = firestoreAdmin.collection('users').doc(userId).collection('state').doc('suggestions');
       await suggestionsDocRef.set({
         id: suggestionsDocRef.id,

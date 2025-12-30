@@ -2,9 +2,9 @@
 
 import { ai } from '@/ai/genkit';
 import { firestoreAdmin } from '@/lib/firebase-admin';
-import { embed, Part } from 'genkit';
+import { Part } from 'genkit';
 import { z } from 'zod';
-import { MessageContent } from 'openai/resources/chat/completions';
+import { generateEmbedding } from '@/lib/vector';
 
 const MemoryLaneInputSchema = z.object({
   userId: z.string(),
@@ -38,13 +38,9 @@ export async function runMemoryLane(
 
       const settings = { active_model: 'gpt-4o', ...settingsDoc.data() };
       const currentContext = contextDoc.exists ? contextDoc.data()?.note : 'No context yet.';
-
-      let systemPrompt = `You are a memory manager. Read the current context note and the new user message. Return a JSON object containing: "new_context_note" (string) and "search_queries" (array of strings).`;
-      if (source === 'voice') {
-        systemPrompt += ` The user message is a voice transcript. It may be rambling. Clean it up, summarize the intent, and incorporate it into the new context note.`
-      }
-
-      const userMessage: Part[] = [{ text: `Current Context: "${currentContext}"\n\nUser Message: "${message}"` }];
+      
+      let systemPrompt: string;
+      const userMessage: Part[] = [];
 
       if (imageBase64) {
           systemPrompt = `You are a memory manager. The user has uploaded an image. Analyze it in extreme detail. Describe all text, diagrams, and visual elements so they can be retrieved by search later. The user may have also provided a text message.
@@ -53,8 +49,16 @@ Return a JSON object containing:
 - "search_queries" (array of strings): Keywords and questions related to the image content.
 - "image_description" (string): A detailed description of the image.`;
           
+          userMessage.push({text: `Current Context: "${currentContext}"\n\nUser Message: "${message}"`});
           userMessage.push({ media: { url: imageBase64, contentType: 'image/jpeg' } });
+      } else {
+        systemPrompt = `You are a memory manager. Read the current context note and the new user message. Return a JSON object containing: "new_context_note" (string) and "search_queries" (array of strings).`;
+        if (source === 'voice') {
+            systemPrompt += ` The user message is a voice transcript. It may be rambling. Clean it up, summarize the intent, and incorporate it into the new context note.`
+        }
+        userMessage.push({ text: `Current Context: "${currentContext}"\n\nUser Message: "${message}"` });
       }
+
 
       const completion = await ai.generate({
         model: `googleai/${settings.active_model}`,
@@ -71,6 +75,17 @@ Return a JSON object containing:
       const stateCollection = firestoreAdmin.collection('users').doc(userId).collection('state');
       await stateCollection.doc('context').set({ note: responseData.new_context_note }, { merge: true });
       await stateCollection.doc('last_state').set({ last_user_message: message }, { merge: true });
+      
+      if (responseData.image_description) {
+        await firestoreAdmin.collection('users').doc(userId).collection('history').where('role', '==', 'user').orderBy('timestamp', 'desc').limit(1).get().then(snapshot => {
+          if (!snapshot.empty) {
+            const userMessageDoc = snapshot.docs[0];
+            userMessageDoc.ref.update({
+              imageDescription: responseData.image_description ?? null,
+            });
+          }
+        });
+      }
 
       // Create memories from search queries
       const searchQueries = responseData.search_queries || [];
@@ -78,16 +93,14 @@ Return a JSON object containing:
         const memoriesCollection = firestoreAdmin.collection('users').doc(userId).collection('memories');
         const batch = firestoreAdmin.batch();
         for (const query of searchQueries) {
-            const embedding = await embed({
-                embedder: 'googleai/text-embedding-004',
-                content: query,
-              });
+            const embedding = await generateEmbedding(query);
             const docRef = memoriesCollection.doc();
             batch.set(docRef, {
                 id: docRef.id,
                 content: query,
                 embedding,
                 timestamp: new Date(),
+                userId: userId,
             });
         }
         await batch.commit();
