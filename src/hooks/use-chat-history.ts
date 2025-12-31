@@ -5,6 +5,7 @@ import { useFirestore } from '@/firebase';
 import { collection, onSnapshot, orderBy, query, Timestamp } from 'firebase/firestore';
 import { useConnectionStore } from '@/store/connection';
 import type { Message } from '@/lib/types';
+import { toDate } from '@/lib/utils';
 
 export function useChatHistory(userId: string) {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -29,28 +30,10 @@ export function useChatHistory(userId: string) {
         const history = snapshot.docs.map((doc) => {
           const data = doc.data();
           
-          let timestamp: Date;
-          const ts = data.timestamp;
-
-          // Robust timestamp conversion
-          if (ts instanceof Timestamp) {
-            timestamp = ts.toDate();
-          } else if (ts && typeof ts.seconds === 'number' && typeof ts.nanoseconds === 'number') {
-            // Handle plain object representation of a Timestamp
-            timestamp = new Timestamp(ts.seconds, ts.nanoseconds).toDate();
-          } else if (ts instanceof Date) {
-            // It's already a Date object
-            timestamp = ts;
-          } else {
-            // Fallback for unexpected formats
-            console.warn(`Invalid timestamp format for message ${doc.id}:`, ts);
-            timestamp = new Date();
-          }
-
           return {
             id: doc.id,
             ...data,
-            timestamp: timestamp,
+            timestamp: toDate(data.timestamp),
           } as Message;
         });
 
