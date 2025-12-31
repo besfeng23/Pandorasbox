@@ -56,6 +56,11 @@ export async function submitUserMessage(formData: FormData) {
   const imageBase64 = formData.get('image_data') as string | null;
   const source = formData.get('source') as string || 'text';
 
+  if (!userId) {
+    console.error('submitUserMessage Error: User ID is missing.');
+    return;
+  }
+
   if ((!messageContent || !messageContent.trim()) && !imageBase64) {
     return;
   }
@@ -66,46 +71,56 @@ export async function submitUserMessage(formData: FormData) {
   const userMessageId = userMessageRef.id;
 
   let imageUrl: string | undefined = undefined;
-  if (imageBase64) {
-    const storage = getStorage();
-    const bucket = storage.bucket(); 
-    const imageBuffer = Buffer.from(imageBase64.split(',')[1], 'base64');
-    const imagePath = `uploads/${userId}/${userMessageId}.jpeg`;
-    const file = bucket.file(imagePath);
+
+  try {
+    if (imageBase64) {
+        const storage = getStorage();
+        const bucket = storage.bucket(); 
+        const imageBuffer = Buffer.from(imageBase64.split(',')[1], 'base64');
+        const imagePath = `uploads/${userId}/${userMessageId}.jpeg`;
+        const file = bucket.file(imagePath);
+        
+        await file.save(imageBuffer, {
+            metadata: {
+                contentType: 'image/jpeg'
+            }
+        });
+        imageUrl = await getDownloadURL(file);
+    }
     
-    await file.save(imageBuffer, {
-        metadata: {
-            contentType: 'image/jpeg'
-        }
+    const embedding = await generateEmbedding(messageContent || 'image');
+
+    // Save user message to Firestore.
+    await userMessageRef.set({
+        id: userMessageId,
+        role: 'user',
+        content: messageContent,
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        userId: userId,
+        imageUrl: imageUrl ?? null,
+        source: source,
+        embedding: embedding,
     });
-    imageUrl = await getDownloadURL(file);
+    console.log('Successfully wrote user message to history for user:', userId);
+
+    // Trigger the unified chat lane flow.
+    await runChatLane({ 
+      userId, 
+      message: messageContent,
+      imageBase64: imageBase64,
+      source: source
+    });
+    
+    revalidatePath('/');
+
+    return { messageId: userMessageId };
+
+  } catch (error) {
+      console.error('Firestore Write Failed in submitUserMessage:', error);
+      // We are not returning an error to the client to avoid an error popup,
+      // but we are logging it for debugging.
+      return { messageId: undefined };
   }
-  
-  const embedding = await generateEmbedding(messageContent || 'image');
-
-  // Save user message to Firestore.
-  await userMessageRef.set({
-    id: userMessageId,
-    role: 'user',
-    content: messageContent,
-    timestamp: new Date(),
-    userId: userId,
-    imageUrl: imageUrl ?? null,
-    source: source,
-    embedding: embedding,
-  });
-
-  // Trigger the unified chat lane flow.
-  await runChatLane({ 
-    userId, 
-    message: messageContent,
-    imageBase64: imageBase64,
-    source: source
-  });
-
-  revalidatePath('/');
-
-  return { messageId: userMessageId };
 }
 
 export async function searchMemoryAction(query: string, userId: string): Promise<SearchResult[]> {
