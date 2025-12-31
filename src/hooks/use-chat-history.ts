@@ -5,6 +5,7 @@ import { useFirestore } from '@/firebase';
 import { collection, onSnapshot, orderBy, query, Timestamp } from 'firebase/firestore';
 import { useConnectionStore } from '@/store/connection';
 import type { Message } from '@/lib/types';
+import { formatTime } from '@/lib/utils'; // We can use the existing utility
 
 export function useChatHistory(userId: string) {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -28,9 +29,18 @@ export function useChatHistory(userId: string) {
       (snapshot) => {
         const history = snapshot.docs.map((doc) => {
           const data = doc.data();
-          const timestamp = data.timestamp instanceof Timestamp 
-            ? data.timestamp.toDate() 
-            : new Date();
+          
+          let timestamp: Date;
+          const ts = data.timestamp;
+
+          if (ts instanceof Timestamp) {
+            timestamp = ts.toDate();
+          } else if (ts && typeof ts.seconds === 'number' && typeof ts.nanoseconds === 'number') {
+            timestamp = new Timestamp(ts.seconds, ts.nanoseconds).toDate();
+          } else {
+            timestamp = new Date(); // Fallback for safety
+          }
+
           return {
             id: doc.id,
             ...data,
