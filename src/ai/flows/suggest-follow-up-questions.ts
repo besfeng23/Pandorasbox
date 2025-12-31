@@ -1,9 +1,12 @@
-// This file implements the SuggestFollowUpQuestions flow, which suggests follow-up questions to help users explore a topic further.
-
 'use server';
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { ai } from '@/ai/genkit';
+import { z } from 'zod';
+import OpenAI from 'openai';
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 const SuggestFollowUpQuestionsInputSchema = z.object({
   userMessage: z.string().describe('The user message.'),
@@ -26,27 +29,48 @@ export async function suggestFollowUpQuestions(
   return suggestFollowUpQuestionsFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'suggestFollowUpQuestionsPrompt',
-  input: {schema: SuggestFollowUpQuestionsInputSchema},
-  output: {schema: SuggestFollowUpQuestionsOutputSchema},
-  prompt: `Given the following user message and AI response, suggest three follow-up questions that the user could ask to explore the topic further and refine the AI's understanding of their needs.
-
-User Message: {{{userMessage}}}
-AI Response: {{{aiResponse}}}
-
-Follow-up Questions:
-1.`,
-});
-
 const suggestFollowUpQuestionsFlow = ai.defineFlow(
   {
     name: 'suggestFollowUpQuestionsFlow',
     inputSchema: SuggestFollowUpQuestionsInputSchema,
     outputSchema: SuggestFollowUpQuestionsOutputSchema,
   },
-  async input => {
-    const {output} = await prompt(input);
-    return output!;
+  async ({ userMessage, aiResponse }) => {
+    const prompt = `Given the following user message and AI response, suggest three follow-up questions that the user could ask to explore the topic further and refine the AI's understanding of their needs.
+
+User Message: ${userMessage}
+AI Response: ${aiResponse}
+
+Return a JSON array of 3 strings. e.g. ["question 1", "question 2", "question 3"]`;
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [{ role: 'user', content: prompt }],
+      response_format: { type: 'json_object' },
+    });
+
+    const content = completion.choices[0].message.content;
+    if (!content) {
+      return [];
+    }
+
+    try {
+      // The prompt asks for an array, but the model might wrap it in an object.
+      // We handle both cases.
+      const result = JSON.parse(content);
+      if (Array.isArray(result)) {
+        return result.slice(0, 3);
+      }
+      if (typeof result === 'object' && result !== null) {
+          const key = Object.keys(result)[0];
+          if (key && Array.isArray(result[key])) {
+              return result[key].slice(0,3);
+          }
+      }
+      return [];
+    } catch (e) {
+      console.error('Failed to parse suggestions:', e);
+      return [];
+    }
   }
 );
