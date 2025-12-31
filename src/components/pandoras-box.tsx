@@ -27,7 +27,7 @@ interface PandorasBoxProps {
 }
 
 export function PandorasBox({ user }: PandorasBoxProps) {
-  const { messages, isLoading, error } = useChatHistory(user.uid);
+  const { messages, isLoading, error, userId } = useChatHistory(user.uid);
   const activeArtifactId = useArtifactStore(state => state.activeArtifactId);
   const isSplitView = !!activeArtifactId;
 
@@ -50,7 +50,7 @@ export function PandorasBox({ user }: PandorasBoxProps) {
             </header>
             
             <div className="flex-1 overflow-y-auto relative chat-container">
-                {isLoading && (
+                {isLoading && messages.length === 0 && (
                 <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-sm z-10">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
@@ -61,7 +61,7 @@ export function PandorasBox({ user }: PandorasBoxProps) {
                     <p className="text-center text-destructive">{error}</p>
                 </div>
                 )}
-                <ChatMessages messages={messages} />
+                <ChatMessages messages={messages} userId={userId} />
             </div>
             
             <div className="w-full p-4 bg-background/80 dark:bg-zinc-950/80 backdrop-blur-md border-t pb-[calc(1rem+env(safe-area-inset-bottom))]">
