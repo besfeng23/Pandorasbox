@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useFirestore } from '@/firebase';
-import { collection, doc, onSnapshot, orderBy, query, Timestamp } from 'firebase/firestore';
+import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestore';
 import { useConnectionStore } from '@/store/connection';
 import type { Message } from '@/lib/types';
 import { toDate } from '@/lib/utils';
@@ -22,10 +22,9 @@ export function useChatHistory(userId: string) {
       return;
     }
 
-    console.log(`Setting up snapshot listener for userId: ${userId}`);
-    const userDocRef = doc(firestore, 'users', userId);
-    const historyCollectionRef = collection(userDocRef, 'history');
-    const q = query(historyCollectionRef, orderBy('timestamp', 'asc'));
+    console.log(`Setting up snapshot listener for history collection with userId: ${userId}`);
+    const historyCollectionRef = collection(firestore, 'history');
+    const q = query(historyCollectionRef, where('userId', '==', userId), orderBy('timestamp', 'asc'));
 
     const unsubscribe = onSnapshot(
       q,
@@ -38,11 +37,11 @@ export function useChatHistory(userId: string) {
             id: doc.id,
             ...data,
             timestamp: toDate(data.timestamp),
+            content: data.content,
+            role: data.role
           } as Message;
         });
 
-        // After getting the latest history, check for any pending messages
-        // that have now been confirmed.
         history.forEach(message => {
             if (pendingMessages.has(message.id)) {
                 calculateLatency(message.id);

@@ -26,14 +26,12 @@ export function ChatMessages({ messages, userId }: ChatMessagesProps) {
   return (
     <div
       ref={scrollAreaRef}
-      className="h-full w-full overflow-y-auto px-4 pt-4 pb-8"
+      className="h-full w-full overflow-y-auto px-4 pt-20 pb-8"
     >
       {messages.length === 0 && (
         <div className="flex h-full items-center justify-center">
             <div className="text-center text-gray-500 bg-gray-900/50 p-4 rounded-lg">
                 <p>No messages yet.</p>
-                <p className="text-xs mt-1">Awaiting connection to database...</p>
-                <p className="text-xs mt-2 font-mono">User ID: {userId}</p>
             </div>
         </div>
       )}

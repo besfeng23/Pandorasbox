@@ -51,76 +51,79 @@ export async function transcribeAndProcessMessage(formData: FormData) {
 
 
 export async function submitUserMessage(formData: FormData) {
-  const messageContent = formData.get('message') as string;
-  const userId = formData.get('userId') as string;
-  const imageBase64 = formData.get('image_data') as string | null;
-  const source = formData.get('source') as string || 'text';
-
-  if (!userId) {
-    console.error('submitUserMessage Error: User ID is missing.');
-    return;
-  }
-
-  if ((!messageContent || !messageContent.trim()) && !imageBase64) {
-    return;
-  }
-
-  const historyCollection = firestoreAdmin.collection('users').doc(userId).collection('history');
+    const messageContent = formData.get('message') as string;
+    const userId = formData.get('userId') as string;
+    const imageBase64 = formData.get('image_data') as string | null;
+    const source = formData.get('source') as string || 'text';
   
-  const userMessageRef = historyCollection.doc();
-  const userMessageId = userMessageRef.id;
-
-  let imageUrl: string | undefined = undefined;
-
-  try {
-    if (imageBase64) {
-        const storage = getStorage();
-        const bucket = storage.bucket(); 
-        const imageBuffer = Buffer.from(imageBase64.split(',')[1], 'base64');
-        const imagePath = `uploads/${userId}/${userMessageId}.jpeg`;
-        const file = bucket.file(imagePath);
-        
-        await file.save(imageBuffer, {
-            metadata: {
-                contentType: 'image/jpeg'
-            }
-        });
-        imageUrl = await getDownloadURL(file);
+    if (!userId) {
+      console.error('submitUserMessage Error: User ID is missing.');
+      throw new Error('User not authenticated');
     }
-    
-    const embedding = await generateEmbedding(messageContent || 'image');
-
-    // Save user message to Firestore.
-    await userMessageRef.set({
-        id: userMessageId,
+  
+    if ((!messageContent || !messageContent.trim()) && !imageBase64) {
+      return;
+    }
+  
+    const historyCollection = firestoreAdmin.collection('history');
+    let userMessageId: string;
+  
+    try {
+      const embedding = await generateEmbedding(messageContent || 'image');
+  
+      // Save user message to Firestore.
+      const userMessageRef = await historyCollection.add({
         role: 'user',
         content: messageContent,
         timestamp: admin.firestore.FieldValue.serverTimestamp(),
         userId: userId,
-        imageUrl: imageUrl ?? null,
+        imageUrl: null, // Will be updated if an image is processed
         source: source,
         embedding: embedding,
-    });
-    console.log('Successfully wrote user message to history for user:', userId);
+      });
 
-    // Trigger the unified chat lane flow.
-    await runChatLane({ 
-      userId, 
-      message: messageContent,
-      imageBase64: imageBase64,
-      source: source
-    });
-    
-    revalidatePath('/');
-
-    return { messageId: userMessageId };
-
-  } catch (error) {
-      console.error('Firestore Write Failed in submitUserMessage:', error);
-      // We are not returning an error to the client to avoid an error popup,
-      // but we are logging it for debugging.
-      return { messageId: undefined };
-  }
+      userMessageId = userMessageRef.id;
+      await userMessageRef.update({ id: userMessageId });
+  
+      console.log('Successfully wrote user message to history for user:', userId);
+  
+      let imageUrl: string | undefined = undefined;
+      if (imageBase64) {
+          const storage = getStorage();
+          const bucket = storage.bucket(); 
+          const imageBuffer = Buffer.from(imageBase64.split(',')[1], 'base64');
+          const imagePath = `uploads/${userId}/${userMessageId}.jpeg`;
+          const file = bucket.file(imagePath);
+          
+          await file.save(imageBuffer, {
+              metadata: {
+                  contentType: 'image/jpeg'
+              }
+          });
+          imageUrl = await getDownloadURL(file);
+          await userMessageRef.update({ imageUrl: imageUrl });
+      }
+  
+      // Trigger the unified chat lane flow, but don't wait for it to complete
+       runChatLane({ 
+        userId, 
+        message: messageContent,
+        imageBase64: imageBase64,
+        source: source
+      }).catch(err => {
+        console.error("Error in background chat lane processing:", err);
+      });
+      
+      revalidatePath('/');
+  
+      return { messageId: userMessageId };
+  
+    } catch (error) {
+        console.error('Firestore Write Failed in submitUserMessage:', error);
+        // We are not returning an error to the client to avoid an error popup,
+        // but we are logging it for debugging.
+        return { messageId: undefined };
+    }
 }
 
 export async function searchMemoryAction(query: string, userId: string): Promise<SearchResult[]> {
@@ -164,19 +167,19 @@ export async function clearMemory(userId: string) {
     if (!userId) {
         return { success: false, message: 'User not authenticated.' };
     }
-    const historyCollectionRef = firestoreAdmin.collection('users').doc(userId).collection('history');
-    const memoriesCollectionRef = firestoreAdmin.collection('users').doc(userId).collection('memories');
+    const historyQuery = firestoreAdmin.collection('history').where('userId', '==', userId);
+    const memoriesQuery = firestoreAdmin.collection('memories').where('userId', '==', userId);
     const stateCollectionRef = firestoreAdmin.collection('users').doc(userId).collection('state');
 
     try {
-        const historySnapshot = await historyCollectionRef.get();
+        const historySnapshot = await historyQuery.get();
         const historyBatch = firestoreAdmin.batch();
         historySnapshot.docs.forEach(doc => {
             historyBatch.delete(doc.ref);
         });
         await historyBatch.commit();
 
-        const memoriesSnapshot = await memoriesCollectionRef.get();
+        const memoriesSnapshot = await memoriesQuery.get();
         const memoriesBatch = firestoreAdmin.batch();
         memoriesSnapshot.docs.forEach(doc => {
             memoriesBatch.delete(doc.ref);
@@ -205,20 +208,18 @@ export async function getMemories(userId: string, query?: string) {
       throw new Error('User not authenticated');
     }
   
-    const historyCollection = firestoreAdmin
-      .collection('users')
-      .doc(userId)
-      .collection('history');
+    const historyCollection = firestoreAdmin.collection('history');
   
     if (query && query.trim()) {
       const searchResults = await searchHistory(query, userId);
-      // We need to fetch the full documents
       if (searchResults.length === 0) return [];
       const docIds = searchResults.map(r => r.id);
       const memoryDocs = await historyCollection.where(admin.firestore.FieldPath.documentId(), 'in', docIds).get();
-      return memoryDocs.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const userFilteredDocs = memoryDocs.docs.filter(doc => doc.data().userId === userId);
+      return userFilteredDocs.map(doc => ({ id: doc.id, ...doc.data() }));
     } else {
       const snapshot = await historyCollection
+        .where('userId', '==', userId)
         .orderBy('timestamp', 'desc')
         .limit(50)
         .get();
@@ -233,8 +234,6 @@ export async function deleteMemory(id: string, userId: string) {
     }
     try {
       await firestoreAdmin
-        .collection('users')
-        .doc(userId)
         .collection('history')
         .doc(id)
         .delete();
@@ -252,13 +251,14 @@ export async function updateMemory(id: string, newText: string, userId: string) 
         return { success: false, message: 'User not authenticated.' };
     }
     try {
+        const docRef = firestoreAdmin.collection('history').doc(id);
+        const docSnap = await docRef.get();
+        if (!docSnap.exists || docSnap.data()?.userId !== userId) {
+            return { success: false, message: 'Permission denied.' };
+        }
+        
         const newEmbedding = await generateEmbedding(newText);
-        await firestoreAdmin
-        .collection('users')
-        .doc(userId)
-        .collection('history')
-        .doc(id)
-        .update({
+        await docRef.update({
             content: newText,
             embedding: newEmbedding,
             editedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -293,7 +293,7 @@ export async function uploadKnowledge(formData: FormData): Promise<{ success: bo
         }
 
         const chunks = chunkText(rawContent);
-        const historyCollection = firestoreAdmin.collection('users').doc(userId).collection('history');
+        const historyCollection = firestoreAdmin.collection('history');
         const batch = firestoreAdmin.batch();
 
         for (let i = 0; i < chunks.length; i++) {
