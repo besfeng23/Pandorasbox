@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useFirestore } from '@/firebase';
-import { collection, onSnapshot, orderBy, query, Timestamp } from 'firebase/firestore';
+import { collection, doc, onSnapshot, orderBy, query, Timestamp } from 'firebase/firestore';
 import { useConnectionStore } from '@/store/connection';
 import type { Message } from '@/lib/types';
 import { toDate } from '@/lib/utils';
@@ -23,8 +23,9 @@ export function useChatHistory(userId: string) {
     }
 
     console.log(`Setting up snapshot listener for userId: ${userId}`);
-    const historyCollection = collection(firestore, `users/${userId}/history`);
-    const q = query(historyCollection, orderBy('timestamp', 'asc'));
+    const userDocRef = doc(firestore, 'users', userId);
+    const historyCollectionRef = collection(userDocRef, 'history');
+    const q = query(historyCollectionRef, orderBy('timestamp', 'asc'));
 
     const unsubscribe = onSnapshot(
       q,
