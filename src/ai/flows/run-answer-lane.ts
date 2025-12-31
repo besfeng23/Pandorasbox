@@ -3,10 +3,14 @@
 import { ai } from '@/ai/genkit';
 import { firestoreAdmin, admin } from '@/lib/firebase-admin';
 import { searchHistory } from '@/lib/vector';
-import { MessageContent } from 'openai/resources/chat/completions';
 import { z } from 'zod';
 import { Artifact } from '@/lib/types';
 import { generateEmbedding } from '@/lib/vector';
+import OpenAI from 'openai';
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 const AnswerLaneInputSchema = z.object({
   userId: z.string(),
@@ -84,11 +88,14 @@ export async function runAnswerLane(
             const systemPrompt = settings.system_prompt_override || `You are a helpful assistant. Use the following History to answer the user. Reply style must be: ${settings.reply_style}. **Rule:** If the answer is not in the history, say 'I cannot find that in our history'. Do not hallucinate. If the user asks for a substantial standalone output (like a code file, a blog post, or a project plan), you must output it inside XML tags: <artifact title="Filename.ext" type="code|markdown">... content ...</artifact>`;
             
             await logProgress('Drafting response...');
-            const completion = await ai.generate({
-                model: `googleai/${settings.active_model}`,
-                prompt: `${systemPrompt}\n\nHistory:\n${retrievedHistory}\n\nUser Question: "${message}"`,
+            const completion = await openai.chat.completions.create({
+                model: settings.active_model as any,
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: `History:\n${retrievedHistory}\n\nUser Question: "${message}"` }
+                ],
             });
-            const rawAIResponse = completion.text;
+            const rawAIResponse = completion.choices[0].message.content || '';
 
             await logProgress('Finalizing and saving...');
             const { cleanResponse } = await extractAndSaveArtifact(rawAIResponse, userId);

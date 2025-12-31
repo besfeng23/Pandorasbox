@@ -1,10 +1,14 @@
 
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
-import { ai } from "./genkit-local";
+import OpenAI from "openai";
 
 admin.initializeApp();
 const firestore = admin.firestore();
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 export const dailyBriefingAgent = functions
   .runWith({
@@ -40,13 +44,21 @@ export const dailyBriefingAgent = functions
 
         const userContext = contextDoc.data()?.note || "No context available.";
 
-        const completion = await ai.generate({
-          model: 'googleai/gpt-4o',
-          system: "You are an Executive Assistant. Review the user's Current Context. Identify 'Open Loops', 'Pending Decisions', or 'Focus Areas'. Generate a concise, 3-bullet Morning Briefing to help them start the day.",
-          prompt: `User's Current Context: "${userContext}"`,
+        const completion = await openai.chat.completions.create({
+          model: 'gpt-4o',
+          messages: [
+            {
+              role: "system",
+              content: "You are an Executive Assistant. Review the user's Current Context. Identify 'Open Loops', 'Pending Decisions', or 'Focus Areas'. Generate a concise, 3-bullet Morning Briefing to help them start the day."
+            },
+            {
+              role: "user",
+              content: `User's Current Context: "${userContext}"`
+            }
+          ]
         });
 
-        const briefing = completion.text;
+        const briefing = completion.choices[0].message.content;
 
         if (briefing) {
           await firestore
@@ -70,4 +82,3 @@ export const dailyBriefingAgent = functions
 
     return null;
   });
-

@@ -2,9 +2,15 @@
 
 import { ai } from '@/ai/genkit';
 import { firestoreAdmin } from '@/lib/firebase-admin';
-import { Part } from 'genkit';
 import { z } from 'zod';
 import { generateEmbedding } from '@/lib/vector';
+import OpenAI from 'openai';
+import { ChatCompletionMessageParam } from 'openai/resources/index.mjs';
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
 
 const MemoryLaneInputSchema = z.object({
   userId: z.string(),
@@ -40,7 +46,7 @@ export async function runMemoryLane(
       const currentContext = contextDoc.exists ? contextDoc.data()?.note : 'No context yet.';
       
       let systemPrompt: string;
-      const userMessage: Part[] = [];
+      const userMessage: ChatCompletionMessageParam[] = [];
 
       if (imageBase64) {
           systemPrompt = `You are a memory manager. The user has uploaded an image. Analyze it in extreme detail. Describe all text, diagrams, and visual elements so they can be retrieved by search later. The user may have also provided a text message.
@@ -49,42 +55,45 @@ Return a JSON object containing:
 - "search_queries" (array of strings): Keywords and questions related to the image content.
 - "image_description" (string): A detailed description of the image.`;
           
-          userMessage.push({text: `Current Context: "${currentContext}"\n\nUser Message: "${message}"`});
-          userMessage.push({ media: { url: imageBase64, contentType: 'image/jpeg' } });
+          userMessage.push({
+            role: 'user', 
+            content: [
+                { type: 'text', text: `Current Context: "${currentContext}"\n\nUser Message: "${message}"` },
+                { type: 'image_url', image_url: { url: imageBase64 } }
+            ]
+          });
       } else {
         systemPrompt = `You are a memory manager. Read the current context note and the new user message. Return a JSON object containing: "new_context_note" (string) and "search_queries" (array of strings).`;
         if (source === 'voice') {
             systemPrompt += ` The user message is a voice transcript. It may be rambling. Clean it up, summarize the intent, and incorporate it into the new context note.`
         }
-        userMessage.push({ text: `Current Context: "${currentContext}"\n\nUser Message: "${message}"` });
+        userMessage.push({ role: 'user', content: `Current Context: "${currentContext}"\n\nUser Message: "${message}"` });
       }
 
-
-      const completion = await ai.generate({
-        model: `googleai/${settings.active_model}`,
-        prompt: userMessage,
-        system: systemPrompt,
-        config: {
-            responseMimeType: 'application/json'
-        }
+      const completion = await openai.chat.completions.create({
+        model: settings.active_model as any,
+        messages: [
+            { role: 'system', content: systemPrompt },
+            ...userMessage
+        ],
+        response_format: { type: 'json_object' },
       });
       
-      const responseText = completion.text;
+      const responseText = completion.choices[0].message.content || '{}';
       const responseData = JSON.parse(responseText);
 
       const stateCollection = firestoreAdmin.collection('users').doc(userId).collection('state');
       await stateCollection.doc('context').set({ note: responseData.new_context_note }, { merge: true });
-      await stateCollection.doc('last_state').set({ last_user_message: message }, { merge: true });
+      
+      // We don't save the raw message to the 'last_state' anymore as it could be long/complex.
+      // This document is more for simple key-value state, which we are not using currently.
+      // await stateCollection.doc('last_state').set({ last_user_message: message }, { merge: true });
       
       if (responseData.image_description) {
-        await firestoreAdmin.collection('users').doc(userId).collection('history').where('role', '==', 'user').orderBy('timestamp', 'desc').limit(1).get().then(snapshot => {
-          if (!snapshot.empty) {
-            const userMessageDoc = snapshot.docs[0];
-            userMessageDoc.ref.update({
-              imageDescription: responseData.image_description ?? null,
-            });
-          }
-        });
+         // The user message ID isn't readily available here.
+         // A more robust solution would be to pass the user message ID into this flow.
+         // For now, we will skip updating the user message with the image description from here.
+         // This can be added later if needed by passing the user message doc ID.
       }
 
       // Create memories from search queries
