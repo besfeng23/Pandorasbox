@@ -12,7 +12,6 @@ import { CommandRail } from '@/components/layout/command-rail';
 import { MemoryInspector } from '@/components/layout/memory-inspector';
 import { ChatInput } from './chat/chat-input';
 import { ChatMessages } from './chat/chat-messages';
-import { useChatHistory } from '@/hooks/use-chat-history';
 import { AlertCircle, FileCode, Loader2, MemoryStick } from 'lucide-react';
 import type { User } from 'firebase/auth';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -20,6 +19,7 @@ import { useArtifactStore } from '@/store/artifacts';
 import { ArtifactViewer } from './artifacts/artifact-viewer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { ArtifactList } from './artifacts/artifact-list';
+import { useChatHistory } from '@/hooks/use-chat-history';
 
 
 interface PandorasBoxProps {
@@ -27,7 +27,7 @@ interface PandorasBoxProps {
 }
 
 export function PandorasBox({ user }: PandorasBoxProps) {
-  const { messages, isLoading: isHistoryLoading, error } = useChatHistory(user.uid);
+  const { messages, isLoading, error } = useChatHistory(user.uid);
   const activeArtifactId = useArtifactStore(state => state.activeArtifactId);
   const isSplitView = !!activeArtifactId;
 
@@ -50,7 +50,7 @@ export function PandorasBox({ user }: PandorasBoxProps) {
             </header>
             
             <div className="flex-1 overflow-y-auto relative chat-container">
-                {isHistoryLoading && (
+                {isLoading && (
                 <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-sm z-10">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
