@@ -56,7 +56,7 @@ export function Message({ message }: MessageProps) {
   };
 
   const handleDelete = async () => {
-    if (!user) return;
+    if (!user || !message.id) return;
     const result = await deleteMemory(message.id, user.uid);
     if (result.success) {
       toast({ title: 'Memory forgotten.' });

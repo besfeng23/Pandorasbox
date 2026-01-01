@@ -25,8 +25,8 @@ export async function runChatLane(
       outputSchema: z.void(),
     },
     async ({ userId, message, imageBase64, source }) => {
-      // 1. Create a placeholder for the assistant's response.
-      const assistantRef = firestoreAdmin.collection('history').doc();
+      // 1. Create a placeholder for the assistant's response in the correct subcollection.
+      const assistantRef = firestoreAdmin.collection('users').doc(userId).collection('history').doc();
       await assistantRef.set({
         id: assistantRef.id,
         role: 'assistant',

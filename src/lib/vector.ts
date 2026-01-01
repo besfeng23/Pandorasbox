@@ -44,14 +44,14 @@ export async function searchHistory(
   }
   const queryEmbedding = await generateEmbedding(queryText);
 
-  const historyCollection = firestoreAdmin.collection('history');
+  const historyCollection = firestoreAdmin.collection('users').doc(userId).collection('history');
 
   const vectorQuery = historyCollection.findNearest('embedding', queryEmbedding, {
     limit: 10,
     distanceMeasure: 'COSINE',
   });
 
-  const snapshot = await vectorQuery.where('userId', '==', userId).get();
+  const snapshot = await vectorQuery.get();
 
   return snapshot.docs.map(doc => {
     const data = doc.data();

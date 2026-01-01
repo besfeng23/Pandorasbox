@@ -61,7 +61,7 @@ export async function runAnswerLane(
       outputSchema: AnswerLaneOutputSchema,
     },
     async ({ userId, message, assistantMessageId }) => {
-        const assistantMessageRef = firestoreAdmin.collection('history').doc(assistantMessageId);
+        const assistantMessageRef = firestoreAdmin.collection('users').doc(userId).collection('history').doc(assistantMessageId);
 
         const logProgress = async (step: string) => {
             try {

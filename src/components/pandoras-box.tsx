@@ -49,13 +49,6 @@ export function PandorasBox({ user }: PandorasBoxProps) {
                 <h1 className="text-lg font-semibold tracking-tight">PandorasBox</h1>
             </header>
             
-            <div className="absolute top-0 left-0 p-4 bg-gray-800 text-white text-xs font-mono z-50 rounded-br-lg">
-                DEBUG STATUS:
-                <br />User ID: {userId || 'None'}
-                <br />Messages Count: {messages.length}
-                <br />Raw First Message: {JSON.stringify(messages[0] || 'No Data')}
-            </div>
-            
             <div className="flex-1 overflow-y-auto relative chat-container">
                 {isLoading && messages.length === 0 && (
                 <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-sm z-10">

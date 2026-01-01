@@ -66,7 +66,7 @@ export async function submitUserMessage(formData: FormData) {
       return;
     }
   
-    const historyCollection = firestoreAdmin.collection('history');
+    const historyCollection = firestoreAdmin.collection('users').doc(userId).collection('history');
     let userMessageId: string;
   
     try {
@@ -169,7 +169,7 @@ export async function clearMemory(userId: string) {
     if (!userId) {
         return { success: false, message: 'User not authenticated.' };
     }
-    const historyQuery = firestoreAdmin.collection('history').where('userId', '==', userId);
+    const historyQuery = firestoreAdmin.collection('users').doc(userId).collection('history');
     const memoriesQuery = firestoreAdmin.collection('users').doc(userId).collection('memories');
     const stateCollectionRef = firestoreAdmin.collection('users').doc(userId).collection('state');
     const artifactsQuery = firestoreAdmin.collection('artifacts').where('userId', '==', userId);
@@ -218,7 +218,7 @@ export async function getMemories(userId: string, query?: string) {
       throw new Error('User not authenticated');
     }
   
-    const historyCollection = firestoreAdmin.collection('history');
+    const historyCollection = firestoreAdmin.collection('users').doc(userId).collection('history');
   
     if (query && query.trim()) {
       const searchResults = await searchHistory(query, userId);
@@ -229,7 +229,6 @@ export async function getMemories(userId: string, query?: string) {
       return userFilteredDocs.map(doc => ({ id: doc.id, ...doc.data() }));
     } else {
       const snapshot = await historyCollection
-        .where('userId', '==', userId)
         .orderBy('timestamp', 'desc')
         .limit(50)
         .get();
@@ -243,9 +242,9 @@ export async function deleteMemory(id: string, userId: string) {
       return { success: false, message: 'User not authenticated.' };
     }
     try {
-      const docRef = firestoreAdmin.collection('history').doc(id);
+      const docRef = firestoreAdmin.collection('users').doc(userId).collection('history').doc(id);
       const docSnap = await docRef.get();
-      if (docSnap.exists && docSnap.data()?.userId === userId) {
+      if (docSnap.exists) {
         await docRef.delete();
         revalidatePath('/settings');
         revalidatePath('/');
@@ -264,9 +263,9 @@ export async function updateMemory(id: string, newText: string, userId: string) 
         return { success: false, message: 'User not authenticated.' };
     }
     try {
-        const docRef = firestoreAdmin.collection('history').doc(id);
+        const docRef = firestoreAdmin.collection('users').doc(userId).collection('history').doc(id);
         const docSnap = await docRef.get();
-        if (!docSnap.exists || docSnap.data()?.userId !== userId) {
+        if (!docSnap.exists) {
             return { success: false, message: 'Permission denied.' };
         }
         
@@ -307,7 +306,7 @@ export async function uploadKnowledge(formData: FormData): Promise<{ success: bo
         }
 
         const chunks = chunkText(rawContent);
-        const historyCollection = firestoreAdmin.collection('history');
+        const historyCollection = firestoreAdmin.collection('users').doc(userId).collection('history');
         const batch = firestoreAdmin.batch();
 
         for (let i = 0; i < chunks.length; i++) {

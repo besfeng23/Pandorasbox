@@ -22,9 +22,9 @@ export function useChatHistory(userId: string) {
       return;
     }
 
-    console.log(`Setting up snapshot listener for history collection with userId: ${userId}`);
-    const historyCollectionRef = collection(firestore, 'history');
-    const q = query(historyCollectionRef, where('userId', '==', userId), orderBy('timestamp', 'asc'));
+    console.log(`Setting up snapshot listener for users/${userId}/history`);
+    const historyCollectionRef = collection(firestore, 'users', userId, 'history');
+    const q = query(historyCollectionRef, orderBy('timestamp', 'asc'));
 
     const unsubscribe = onSnapshot(
       q,
