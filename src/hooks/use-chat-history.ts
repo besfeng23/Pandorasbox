@@ -21,18 +21,15 @@ export function useChatHistory(userId: string | null) {
       return;
     }
 
-    console.log(`Setting up snapshot listener for root history collection with userId: ${userId}`);
-    const historyCollectionRef = collection(firestore, 'history');
+    const historyCollectionRef = collection(firestore, 'users', userId, 'history');
     const q = query(
         historyCollectionRef, 
-        where('userId', '==', userId),
         orderBy('timestamp', 'asc')
     );
 
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        console.log('Snapshot received. Docs:', snapshot.docs.length);
         const history = snapshot.docs.map((doc) => {
           const data = doc.data();
           
@@ -65,7 +62,6 @@ export function useChatHistory(userId: string | null) {
     );
 
     return () => {
-        console.log(`Tearing down snapshot listener for userId: ${userId}`);
         unsubscribe();
     }
   }, [userId, firestore, setConnectionStatus, pendingMessages, calculateLatency]);
