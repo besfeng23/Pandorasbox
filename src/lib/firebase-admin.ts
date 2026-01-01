@@ -2,13 +2,13 @@ import { initializeApp, getApps, getApp, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import * as admin from 'firebase-admin';
 
-// 1. robustCredentialHelper: Try to parse the key, but don't crash if it fails.
+// Helper to safely load credentials or fall back to auto-auth
 const getFirebaseCredential = () => {
   const privateKey = process.env.FIREBASE_PRIVATE_KEY;
   
   if (privateKey) {
     try {
-      // Fix common formatting issues with newlines
+      // Fix newlines if they are escaped (common env var issue)
       const formattedKey = privateKey.replace(/\\n/g, '\n');
       return cert({
         projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
@@ -16,13 +16,12 @@ const getFirebaseCredential = () => {
         privateKey: formattedKey,
       });
     } catch (error) {
-      console.warn("⚠️ Private Key is malformed. Falling back to Default Credentials.", error);
+      console.warn("⚠️ Private Key is malformed. Switching to Default Credentials.", error);
     }
   }
-  // If key is missing or broken, return undefined to use Google's Auto-Auth
+  // Returning undefined forces Firebase to use Cloud Run's auto-login
   return undefined;
 };
-
 
 // The singleton pattern is essential to prevent re-initialization errors
 // in a Next.js hot-reloading environment.
