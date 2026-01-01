@@ -337,3 +337,5 @@ export async function uploadKnowledge(formData: FormData): Promise<{ success: bo
         return { success: false, message: `Failed to index ${file.name}.` };
     }
 }
+
+    

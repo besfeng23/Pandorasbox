@@ -33,7 +33,7 @@ export async function runChatLane(
         status: 'processing',
         progress_log: ['Initializing agent...'],
         timestamp: admin.firestore.FieldValue.serverTimestamp(),
-        userId: userId,
+        userId: userId, // CRITICAL: Ensure userId is set here
       });
 
       // 2. Run memory lane to process the input and get search queries.
@@ -69,3 +69,5 @@ export async function runChatLane(
 
   await chatFlow(input);
 }
+
+    
