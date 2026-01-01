@@ -1,6 +1,7 @@
 
 import * as admin from 'firebase-admin';
-import serviceAccount from '../../service-account.json';
+import * as fs from 'fs';
+import * as path from 'path';
 
 // This will use the service account credentials from the imported json file.
 // The singleton pattern (`if (!admin.apps.length)`) is essential to prevent
@@ -8,27 +9,24 @@ import serviceAccount from '../../service-account.json';
 
 if (!admin.apps.length) {
   try {
-    // Type assertion to ensure serviceAccount has the expected properties
-    const typedServiceAccount = serviceAccount as {
-      project_id: string;
-      client_email: string;
-      private_key: string;
-    };
+    const serviceAccountPath = path.resolve(process.cwd(), 'service-account.json');
+    
+    if (!fs.existsSync(serviceAccountPath)) {
+        throw new Error('service-account.json not found at the root of the project.');
+    }
+
+    const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
 
     if (
-      !typedServiceAccount.project_id ||
-      !typedServiceAccount.client_email ||
-      !typedServiceAccount.private_key
+      !serviceAccount.project_id ||
+      !serviceAccount.client_email ||
+      !serviceAccount.private_key
     ) {
       throw new Error('Service account file is missing required fields.');
     }
     
     admin.initializeApp({
-      credential: admin.credential.cert({
-        projectId: typedServiceAccount.project_id,
-        clientEmail: typedServiceAccount.client_email,
-        privateKey: typedServiceAccount.private_key,
-      }),
+      credential: admin.credential.cert(serviceAccount),
       // The storage bucket is needed for certain admin operations.
       // It's good practice to include it during initialization.
       storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
