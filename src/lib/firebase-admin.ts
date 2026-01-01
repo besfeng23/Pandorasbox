@@ -1,5 +1,6 @@
-'use server';
 
+import { initializeApp, getApps, getApp, cert, ServiceAccount } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
 import * as admin from 'firebase-admin';
 
 // The singleton pattern is essential to prevent re-initialization errors
