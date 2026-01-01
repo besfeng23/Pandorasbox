@@ -1,5 +1,4 @@
-
-import { initializeApp, getApps, getApp, cert, ServiceAccount } from 'firebase-admin/app';
+import { initializeApp, getApps, getApp, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import * as admin from 'firebase-admin';
 
