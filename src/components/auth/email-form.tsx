@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
   createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
 } from 'firebase/auth';
 import { useAuth } from '@/firebase';
@@ -21,6 +22,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle, Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email.' }),
@@ -35,7 +37,9 @@ export function EmailForm() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isResetting, startResetTransition] = useTransition();
   const auth = useAuth();
+  const { toast } = useToast();
 
   const form = useForm<UserFormValue>({
     resolver: zodResolver(formSchema),
@@ -60,6 +64,30 @@ export function EmailForm() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handlePasswordReset = () => {
+    const email = form.getValues('email');
+    if (!email) {
+      form.trigger('email');
+      return;
+    }
+
+    startResetTransition(async () => {
+      try {
+        await sendPasswordResetEmail(auth, email);
+        toast({
+          title: 'Password Reset Email Sent',
+          description: `An email has been sent to ${email} with instructions to reset your password.`,
+        });
+      } catch (firebaseError: any) {
+        toast({
+          variant: 'destructive',
+          title: 'Error Sending Reset Email',
+          description: firebaseError.message,
+        });
+      }
+    });
   };
 
   return (
@@ -90,6 +118,22 @@ export function EmailForm() {
               </FormItem>
             )}
           />
+          {!isSignUp && (
+            <div className="flex justify-end -mb-2">
+                <Button
+                    type="button"
+                    variant="link"
+                    className="p-0 h-auto text-xs"
+                    onClick={handlePasswordReset}
+                    disabled={isResetting}
+                >
+                    {isResetting ? (
+                        <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                    ) : null}
+                    Forgot password?
+                </Button>
+            </div>
+          )}
           <FormField
             control={form.control}
             name="password"
@@ -103,7 +147,7 @@ export function EmailForm() {
               </FormItem>
             )}
           />
-          <Button type="submit" className="w-full" disabled={isLoading}>
+          <Button type="submit" className="w-full" disabled={isLoading || isResetting}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {isSignUp ? 'Create Account' : 'Sign In'}
           </Button>
@@ -127,7 +171,7 @@ export function EmailForm() {
           setError(null);
           form.reset();
         }}
-        disabled={isLoading}
+        disabled={isLoading || isResetting}
       >
         {isSignUp
           ? 'Already have an account? Sign In'
