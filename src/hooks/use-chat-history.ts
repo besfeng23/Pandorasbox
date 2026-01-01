@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { useFirestore } from '@/firebase';
-import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestore';
+import { collection, onSnapshot, orderBy, query, where, Timestamp } from 'firebase/firestore';
 import { useConnectionStore } from '@/store/connection';
 import type { Message } from '@/lib/types';
 import { toDate } from '@/lib/utils';
 
-export function useChatHistory(userId: string) {
+export function useChatHistory(userId: string | null) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -16,15 +16,18 @@ export function useChatHistory(userId: string) {
 
   useEffect(() => {
     if (!userId) {
+      setMessages([]);
       setIsLoading(false);
-      setError("User ID is required to fetch chat history.");
-      console.error("useChatHistory: No userId provided.");
       return;
     }
 
-    console.log(`Setting up snapshot listener for users/${userId}/history`);
-    const historyCollectionRef = collection(firestore, 'users', userId, 'history');
-    const q = query(historyCollectionRef, orderBy('timestamp', 'asc'));
+    console.log(`Setting up snapshot listener for root history collection with userId: ${userId}`);
+    const historyCollectionRef = collection(firestore, 'history');
+    const q = query(
+        historyCollectionRef, 
+        where('userId', '==', userId),
+        orderBy('timestamp', 'asc')
+    );
 
     const unsubscribe = onSnapshot(
       q,
