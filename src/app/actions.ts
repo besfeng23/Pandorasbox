@@ -72,16 +72,17 @@ export async function submitUserMessage(formData: FormData) {
       const embedding = await generateEmbedding(messageContent || 'image');
   
       // Save user message to Firestore.
-      const userMessageRef = await historyCollection.add({
+      const userMessageData = {
         role: 'user',
         content: messageContent,
         timestamp: admin.firestore.FieldValue.serverTimestamp(),
-        userId: userId,
-        imageUrl: null, // Will be updated if an image is processed
+        userId: userId, // CRITICAL: Ensure userId is saved
+        imageUrl: null,
         source: source,
         embedding: embedding,
-      });
+      };
 
+      const userMessageRef = await historyCollection.add(userMessageData);
       userMessageId = userMessageRef.id;
       await userMessageRef.update({ id: userMessageId });
   
@@ -168,8 +169,9 @@ export async function clearMemory(userId: string) {
         return { success: false, message: 'User not authenticated.' };
     }
     const historyQuery = firestoreAdmin.collection('history').where('userId', '==', userId);
-    const memoriesQuery = firestoreAdmin.collection('memories').where('userId', '==', userId);
+    const memoriesQuery = firestoreAdmin.collection('users').doc(userId).collection('memories');
     const stateCollectionRef = firestoreAdmin.collection('users').doc(userId).collection('state');
+    const artifactsQuery = firestoreAdmin.collection('artifacts').where('userId', '==', userId);
 
     try {
         const historySnapshot = await historyQuery.get();
@@ -185,6 +187,13 @@ export async function clearMemory(userId: string) {
             memoriesBatch.delete(doc.ref);
         });
         await memoriesBatch.commit();
+        
+        const artifactsSnapshot = await artifactsQuery.get();
+        const artifactsBatch = firestoreAdmin.batch();
+        artifactsSnapshot.docs.forEach(doc => {
+            artifactsBatch.delete(doc.ref);
+        });
+        await artifactsBatch.commit();
 
         const stateSnapshot = await stateCollectionRef.get();
         const stateBatch = firestoreAdmin.batch();
@@ -233,12 +242,15 @@ export async function deleteMemory(id: string, userId: string) {
       return { success: false, message: 'User not authenticated.' };
     }
     try {
-      await firestoreAdmin
-        .collection('history')
-        .doc(id)
-        .delete();
-      revalidatePath('/settings');
-      return { success: true };
+      const docRef = firestoreAdmin.collection('history').doc(id);
+      const docSnap = await docRef.get();
+      if (docSnap.exists && docSnap.data()?.userId === userId) {
+        await docRef.delete();
+        revalidatePath('/settings');
+        revalidatePath('/');
+        return { success: true };
+      }
+      return { success: false, message: 'Permission denied or document not found.'}
     } catch (error) {
       console.error('Error deleting memory:', error);
       return { success: false, message: 'Failed to delete memory.' };
@@ -264,6 +276,7 @@ export async function updateMemory(id: string, newText: string, userId: string) 
             editedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
         revalidatePath('/settings');
+        revalidatePath('/');
         return { success: true };
     } catch (error) {
         console.error('Error updating memory:', error);
@@ -316,6 +329,7 @@ export async function uploadKnowledge(formData: FormData): Promise<{ success: bo
         await batch.commit();
 
         revalidatePath('/settings');
+        revalidatePath('/');
 
         return { success: true, message: `Successfully indexed ${file.name}.`, chunks: chunks.length };
     } catch (error) {

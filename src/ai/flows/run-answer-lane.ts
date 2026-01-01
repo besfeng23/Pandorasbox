@@ -100,13 +100,14 @@ export async function runAnswerLane(
             await logProgress('Finalizing and saving...');
             const { cleanResponse } = await extractAndSaveArtifact(rawAIResponse, userId);
             
-            // Also save the AI response as a memory
             const embedding = await generateEmbedding(cleanResponse);
             
+            // CRITICAL: Ensure userId is stamped on the AI's message
             await assistantMessageRef.update({
                 content: cleanResponse,
                 embedding: embedding,
                 status: 'complete',
+                userId: userId, // Ensure userId is present
                 progress_log: admin.firestore.FieldValue.arrayUnion('Done.'),
             });
     
@@ -117,6 +118,7 @@ export async function runAnswerLane(
             await assistantMessageRef.update({
                 content: "Sorry, I encountered an error while processing your request.",
                 status: 'error',
+                userId: userId, // Also stamp userId on errors
                 progress_log: admin.firestore.FieldValue.arrayUnion('Error.'),
             });
             return { answer: "Sorry, an error occurred." };
