@@ -86,7 +86,7 @@ export async function runAnswerLane(
               ? searchResults.map(r => `- [ID: ${r.id}] ${r.text}`).join('\n')
               : "No relevant history found.";
 
-            const systemPrompt = settings.system_prompt_override || `You are a helpful assistant. Use the following History to answer the user. Reply style must be: ${settings.reply_style}. **Rule:** If the answer is not in the history, say 'I cannot find that in our history'. Do not hallucinate. If the user asks for a substantial standalone output (like a code file, a blog post, or a project plan), you must output it inside XML tags: <artifact title="Filename.ext" type="code|markdown">... content ...</artifact>`;
+            const systemPrompt = settings.system_prompt_override || `You are a helpful AI assistant. Use the provided context to answer questions about the user's past. If the context is empty or irrelevant, ignore it and use your general knowledge to answer the question helpfully. Do not say 'I cannot find that' unless the user specifically asks to search for a missing record. If the user asks for a substantial standalone output (like a code file, a blog post, or a project plan), you must output it inside XML tags: <artifact title="Filename.ext" type="code|markdown">... content ...</artifact>`;
             
             await logProgress('Drafting response...');
             const completion = await openai.chat.completions.create({

@@ -1,8 +1,9 @@
+
 'server-only';
 
 import OpenAI from 'openai';
 import { firestoreAdmin } from './firebase-admin';
-import { Timestamp } from 'firebase-admin/firestore';
+import { Timestamp, FieldValue } from 'firebase-admin/firestore';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -39,16 +40,19 @@ export async function searchHistory(
   queryText: string,
   userId: string
 ): Promise<{ text: string; id: string; score: number, timestamp: Date }[]> {
-  if (!queryText) {
+  if (!queryText || !userId) {
     return [];
   }
   const queryEmbedding = await generateEmbedding(queryText);
 
-  const historyCollection = firestoreAdmin.collection('users').doc(userId).collection('history');
+  // CORRECT: Query the root 'history' collection and filter by userId
+  const historyCollection = firestoreAdmin.collection('history');
 
-  const vectorQuery = historyCollection.findNearest('embedding', queryEmbedding, {
-    limit: 10,
-    distanceMeasure: 'COSINE',
+  const vectorQuery = historyCollection
+    .where('userId', '==', userId)
+    .findNearest('embedding', queryEmbedding, {
+      limit: 10,
+      distanceMeasure: 'COSINE',
   });
 
   const snapshot = await vectorQuery.get();
