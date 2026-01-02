@@ -18,6 +18,7 @@ const AnswerLaneInputSchema = z.object({
   userId: z.string(),
   message: z.string(),
   assistantMessageId: z.string(),
+  threadId: z.string(), // Pass threadId for context
 });
 
 const AnswerLaneOutputSchema = z.object({
@@ -61,7 +62,7 @@ export async function runAnswerLane(
       inputSchema: AnswerLaneInputSchema,
       outputSchema: AnswerLaneOutputSchema,
     },
-    async ({ userId, message, assistantMessageId }) => {
+    async ({ userId, message, assistantMessageId, threadId }) => {
         const assistantMessageRef = firestoreAdmin.collection('users').doc(userId).collection('history').doc(assistantMessageId);
 
         const logProgress = async (step: string) => {
@@ -79,6 +80,24 @@ export async function runAnswerLane(
             const settingsDoc = await firestoreAdmin.collection('settings').doc(userId).get();
             const settings = { active_model: 'gpt-4o', reply_style: 'detailed', system_prompt_override: '', ...settingsDoc.data() };
             
+            // --- SHORT-TERM MEMORY: Fetch recent conversation ---
+            await logProgress('Recalling conversation...');
+            const historySnapshot = await firestoreAdmin
+                .collection('users').doc(userId).collection('history')
+                .where('threadId', '==', threadId)
+                .orderBy('timestamp', 'desc')
+                .limit(6) // Get last 6 messages (incl. current user message)
+                .get();
+
+            const recentHistory = historySnapshot.docs
+                .reverse() // Correct chronological order
+                .map(doc => {
+                    const data = doc.data();
+                    return `${data.role === 'user' ? 'User' : 'Assistant'}: ${data.content}`;
+                })
+                .join('\n');
+
+            // --- LONG-TERM MEMORY: Vector Search ---
             await logProgress('Searching memory...');
             const searchResults = await searchHistory(message, userId);
             await logProgress(`Found ${searchResults.length} relevant memories.`);
@@ -86,15 +105,27 @@ export async function runAnswerLane(
             const retrievedHistory = searchResults.length > 0 
               ? searchResults.map(r => `- [ID: ${r.id}] ${r.text}`).join('\n')
               : "No relevant history found.";
+            
+            // --- PROMPT CONSTRUCTION ---
+            const finalSystemPrompt = settings.system_prompt_override || `You are a helpful AI assistant. Use the provided context to answer questions. If the context is empty or irrelevant, use your general knowledge.
 
-            const systemPrompt = settings.system_prompt_override || `You are a helpful AI assistant. Use the provided context to answer questions about the user's past. If the context is empty or irrelevant, ignore it and use your general knowledge to answer the question helpfully. Do not say 'I cannot find that' unless the user specifically asks to search for a missing record. If the user asks for a substantial standalone output (like a code file, a blog post, or a project plan), you must output it inside XML tags: <artifact title="Filename.ext" type="code|markdown">... content ...</artifact>`;
+--- LONG TERM MEMORY (User's Past) ---
+${retrievedHistory}
+
+--- SHORT TERM MEMORY (Current Conversation) ---
+${recentHistory}
+
+--- INSTRUCTION ---
+Based on ALL the context above, answer the User's last message. If the answer is in the Short Term Memory, use that directly.
+`;
             
             await logProgress('Drafting response...');
             const completion = await openai.chat.completions.create({
                 model: settings.active_model as any,
                 messages: [
-                    { role: 'system', content: systemPrompt },
-                    { role: 'user', content: `History:\n${retrievedHistory}\n\nUser Question: "${message}"` }
+                    { role: 'system', content: finalSystemPrompt },
+                    // The user's last message is already in the 'recentHistory'
+                    { role: 'user', content: message } 
                 ],
             });
             const rawAIResponse = completion.choices[0].message.content || '';
@@ -104,12 +135,11 @@ export async function runAnswerLane(
             
             const embedding = await generateEmbedding(cleanResponse);
             
-            // CRITICAL: Ensure userId is stamped on the AI's message
             await assistantMessageRef.update({
                 content: cleanResponse,
                 embedding: embedding,
                 status: 'complete',
-                userId: userId, // Ensure userId is present
+                userId: userId,
                 progress_log: FieldValue.arrayUnion('Done.'),
             });
     
@@ -120,7 +150,7 @@ export async function runAnswerLane(
             await assistantMessageRef.update({
                 content: "Sorry, I encountered an error while processing your request.",
                 status: 'error',
-                userId: userId, // Also stamp userId on errors
+                userId: userId,
                 progress_log: FieldValue.arrayUnion('Error.'),
             });
             return { answer: "Sorry, an error occurred." };

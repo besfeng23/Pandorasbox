@@ -53,6 +53,7 @@ export async function runChatLane(
         userId,
         message: message || memoryResult.image_description || 'Describe the image.',
         assistantMessageId: assistantRef.id,
+        threadId, // Pass threadId to answer lane
       });
 
       // 4. Suggest follow-up questions.
