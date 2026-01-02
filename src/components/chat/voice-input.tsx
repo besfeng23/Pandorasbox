@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useRef, useTransition } from 'react';
@@ -12,15 +13,14 @@ interface VoiceInputProps {
   userId: string;
   onTranscriptionStatusChange: (isTranscribing: boolean) => void;
   disabled?: boolean;
+  onAudioSubmit: (formData: FormData) => void;
 }
 
-export function VoiceInput({ userId, onTranscriptionStatusChange, disabled }: VoiceInputProps) {
+export function VoiceInput({ userId, onTranscriptionStatusChange, disabled, onAudioSubmit }: VoiceInputProps) {
   const [isRecording, setIsRecording] = useState(false);
-  const [isPending, startTransition] = useTransition();
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const { toast } = useToast();
-  const { addPendingMessage } = useConnectionStore();
 
   const handleStartRecording = async () => {
     if (isRecording) return;
@@ -60,28 +60,15 @@ export function VoiceInput({ userId, onTranscriptionStatusChange, disabled }: Vo
     const formData = new FormData();
     formData.append('audio_file', audioBlob, 'voice-note.webm');
     formData.append('userId', userId);
+    formData.append('source', 'voice');
 
-    startTransition(async () => {
-      const result = await transcribeAndProcessMessage(formData);
-      onTranscriptionStatusChange(false);
-      if (result.success && result.messageId) {
-        addPendingMessage(result.messageId);
-      } else if (!result.success) {
-        toast({
-            variant: 'destructive',
-            title: 'Transcription Error',
-            description: result.message || 'Could not process the audio note.',
-        });
-      }
-    });
+    onAudioSubmit(formData);
+    onTranscriptionStatusChange(false);
 
-    // Stop all media tracks to turn off the microphone indicator
     if (mediaRecorderRef.current?.stream) {
       mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
     }
   };
-
-  const isProcessing = isPending || disabled;
 
   return (
     <Button
@@ -89,11 +76,14 @@ export function VoiceInput({ userId, onTranscriptionStatusChange, disabled }: Vo
       variant="ghost"
       size="icon"
       className={cn('h-8 w-8 text-muted-foreground', isRecording && 'text-red-500 animate-pulse')}
-      onClick={isRecording ? handleStopRecording : handleStopRecording}
-      disabled={isProcessing}
+      onMouseDown={handleStartRecording}
+      onMouseUp={handleStopRecording}
+      onTouchStart={handleStartRecording}
+      onTouchEnd={handleStopRecording}
+      disabled={disabled}
       aria-label={isRecording ? 'Stop recording' : 'Start recording'}
     >
-      {isPending ? (
+      {disabled ? (
         <Loader2 className="h-4 w-4 animate-spin" />
       ) : (
         <Mic className="h-4 w-4" strokeWidth={1.5} />

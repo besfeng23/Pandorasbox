@@ -6,6 +6,7 @@ export type Message = {
   role: 'user' | 'assistant' | 'system';
   content: string;
   timestamp: Timestamp | Date;
+  threadId?: string; // Added for multi-chat
   embedding?: number[];
   imageUrl?: string;
   imageDescription?: string;
@@ -16,6 +17,13 @@ export type Message = {
   source_filename?: string;
   userId?: string;
   editedAt?: Timestamp | Date;
+};
+
+export type Thread = {
+  id: string;
+  userId: string;
+  title: string;
+  createdAt: Timestamp | Date;
 };
 
 export type Memory = {

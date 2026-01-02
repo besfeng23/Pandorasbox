@@ -1,34 +1,48 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
 import { useFirestore } from '@/firebase';
-import { collection, onSnapshot, orderBy, query, where, Timestamp } from 'firebase/firestore';
+import { collection, onSnapshot, orderBy, query, where, Timestamp, queryEqual } from 'firebase/firestore';
 import { useConnectionStore } from '@/store/connection';
 import type { Message } from '@/lib/types';
 import { toDate } from '@/lib/utils';
+import { useRef } from 'react';
 
-export function useChatHistory(userId: string | null) {
+export function useChatHistory(userId: string | null, threadId: string | null) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const firestore = useFirestore();
   const { setConnectionStatus, pendingMessages, calculateLatency } = useConnectionStore();
+  const queryRef = useRef<any>(null);
 
   useEffect(() => {
-    if (!userId) {
+    if (!userId || !threadId) {
       setMessages([]);
       setIsLoading(false);
       return;
     }
 
+    setIsLoading(true);
+
     const historyCollectionRef = collection(firestore, 'users', userId, 'history');
-    const q = query(
+    const newQuery = query(
         historyCollectionRef, 
+        where('threadId', '==', threadId),
         orderBy('timestamp', 'asc')
     );
 
+    // Only resubscribe if the query has changed
+    if (queryRef.current && queryEqual(queryRef.current, newQuery)) {
+        setIsLoading(false);
+        return;
+    }
+    
+    queryRef.current = newQuery;
+
     const unsubscribe = onSnapshot(
-      q,
+      newQuery,
       (snapshot) => {
         const history = snapshot.docs.map((doc) => {
           const data = doc.data();
@@ -64,7 +78,7 @@ export function useChatHistory(userId: string | null) {
     return () => {
         unsubscribe();
     }
-  }, [userId, firestore, setConnectionStatus, pendingMessages, calculateLatency]);
+  }, [userId, threadId, firestore, setConnectionStatus, pendingMessages, calculateLatency]);
 
-  return { messages, isLoading, error, userId };
+  return { messages, isLoading, error };
 }

@@ -1,3 +1,4 @@
+
 'use server';
 
 import { admin } from '@/lib/firebase-admin';
@@ -5,21 +6,42 @@ import { firestoreAdmin } from '@/lib/firebase-admin';
 import { revalidatePath } from 'next/cache';
 import { runChatLane } from '@/ai/flows/run-chat-lane';
 import { generateEmbedding, searchHistory } from '@/lib/vector';
-import { SearchResult } from '@/lib/types';
+import { SearchResult, Thread } from '@/lib/types';
 import { getStorage } from 'firebase-admin/storage';
 import { getDownloadURL } from 'firebase-admin/storage';
 import OpenAI from 'openai';
 import pdf from 'pdf-parse';
 import { chunkText } from '@/lib/chunking';
 
-
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 });
 
+export async function createThread(userId: string): Promise<string> {
+    const threadRef = firestoreAdmin.collection('threads').doc();
+    await threadRef.set({
+        id: threadRef.id,
+        userId: userId,
+        title: 'New Chat',
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    return threadRef.id;
+}
+
+export async function getUserThreads(userId: string): Promise<Thread[]> {
+    const threadsSnapshot = await firestoreAdmin
+        .collection('threads')
+        .where('userId', '==', userId)
+        .orderBy('createdAt', 'desc')
+        .get();
+
+    return threadsSnapshot.docs.map(doc => doc.data() as Thread);
+}
+
 export async function transcribeAndProcessMessage(formData: FormData) {
     const audioFile = formData.get('audio_file') as File;
     const userId = formData.get('userId') as string;
+    const threadId = formData.get('threadId') as string | null;
 
     if (!audioFile || !userId) {
         return { success: false, message: 'Audio file or user ID missing.' };
@@ -34,17 +56,22 @@ export async function transcribeAndProcessMessage(formData: FormData) {
         const transcribedText = transcription.text;
         
         let messageId: string | undefined;
+        let newThreadId: string | undefined;
 
         if (transcribedText) {
             const messageFormData = new FormData();
             messageFormData.append('message', transcribedText);
             messageFormData.append('userId', userId);
-            messageFormData.append('source', 'voice'); // Add source
+            if (threadId) {
+                messageFormData.append('threadId', threadId);
+            }
+            messageFormData.append('source', 'voice');
             const result = await submitUserMessage(messageFormData);
             messageId = result?.messageId;
+            newThreadId = result?.threadId;
         }
 
-        return { success: true, messageId };
+        return { success: true, messageId, threadId: newThreadId };
     } catch (error) {
         console.error('Error transcribing audio:', error);
         return { success: false, message: 'Failed to transcribe audio.' };
@@ -55,6 +82,7 @@ export async function transcribeAndProcessMessage(formData: FormData) {
 export async function submitUserMessage(formData: FormData) {
     const messageContent = formData.get('message') as string;
     const userId = formData.get('userId') as string;
+    let threadId = formData.get('threadId') as string | null;
     const imageBase64 = formData.get('image_data') as string | null;
     const source = formData.get('source') as string || 'text';
   
@@ -66,6 +94,14 @@ export async function submitUserMessage(formData: FormData) {
     if ((!messageContent || !messageContent.trim()) && !imageBase64) {
       return;
     }
+
+    // If no threadId is provided, create a new thread.
+    if (!threadId) {
+        threadId = await createThread(userId);
+        // Auto-generate title for the new thread
+        const newTitle = messageContent.substring(0, 40) + (messageContent.length > 40 ? '...' : '');
+        await firestoreAdmin.collection('threads').doc(threadId).update({ title: newTitle });
+    }
   
     const historyCollection = firestoreAdmin.collection('users').doc(userId).collection('history');
     let userMessageId: string;
@@ -73,12 +109,12 @@ export async function submitUserMessage(formData: FormData) {
     try {
       const embedding = await generateEmbedding(messageContent || 'image');
   
-      // Save user message to Firestore.
       const userMessageData = {
         role: 'user',
         content: messageContent,
         timestamp: admin.firestore.FieldValue.serverTimestamp(),
-        userId: userId, // CRITICAL: Ensure userId is saved
+        userId: userId,
+        threadId: threadId,
         imageUrl: null,
         source: source,
         embedding: embedding,
@@ -88,7 +124,7 @@ export async function submitUserMessage(formData: FormData) {
       userMessageId = userMessageRef.id;
       await userMessageRef.update({ id: userMessageId });
   
-      console.log('Successfully wrote user message to history for user:', userId);
+      console.log(`Successfully wrote message to thread ${threadId} for user: ${userId}`);
   
       let imageUrl: string | undefined = undefined;
       if (imageBase64) {
@@ -107,22 +143,22 @@ export async function submitUserMessage(formData: FormData) {
           await userMessageRef.update({ imageUrl: imageUrl });
       }
   
+      // Pass the threadId to the AI lane
       await runChatLane({
           userId,
           message: messageContent,
           imageBase64,
           source,
+          threadId,
       });
       
       revalidatePath('/');
   
-      return { messageId: userMessageId };
+      return { messageId: userMessageId, threadId: threadId };
   
     } catch (error) {
         console.error('Firestore Write Failed in submitUserMessage:', error);
-        // We are not returning an error to the client to avoid an error popup,
-        // but we are logging it for debugging.
-        return { messageId: undefined };
+        return { messageId: undefined, threadId: undefined };
     }
 }
 
@@ -201,6 +237,14 @@ export async function clearMemory(userId: string) {
         });
         await stateBatch.commit();
 
+        // Also delete threads
+        const threadsSnapshot = await firestoreAdmin.collection('threads').where('userId', '==', userId).get();
+        const threadsBatch = firestoreAdmin.batch();
+        threadsSnapshot.docs.forEach(doc => {
+            threadsBatch.delete(doc.ref);
+        });
+        await threadsBatch.commit();
+
         revalidatePath('/');
         revalidatePath('/settings');
         return { success: true, message: 'Memory cleared successfully.' };
@@ -224,7 +268,7 @@ export async function getMemories(userId: string, query?: string) {
       const docIds = searchResults.map(r => r.id);
       
       const memoryDocs = await historyCollection.where(admin.firestore.FieldPath.documentId(), 'in', docIds).get();
-      const userFilteredDocs = memoryDocs.docs; // No need to filter by userId again
+      const userFilteredDocs = memoryDocs.docs; 
       return userFilteredDocs.map(doc => ({ id: doc.id, ...doc.data() }));
 
     } else {

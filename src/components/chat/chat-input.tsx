@@ -1,10 +1,10 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ArrowUp, Loader2, Paperclip, X, Sparkles } from 'lucide-react';
 import React, { useRef, useState, useTransition } from 'react';
-import { submitUserMessage } from '@/app/actions';
 import Image from 'next/image';
 import { VoiceInput } from './voice-input';
 import { useConnectionStore } from '@/store/connection';
@@ -13,61 +13,47 @@ import { AnimatePresence, motion } from 'framer-motion';
 
 interface ChatInputProps {
   userId: string;
+  onMessageSubmit: (formData: FormData) => boolean;
+  isSending: boolean;
 }
 
-function FollowUpSuggestions({ userId }: { userId: string }) {
-  const { suggestions } = useSuggestions(userId);
-  const [isPending, startTransition] = useTransition();
-
-  const handleSuggestionClick = (suggestion: string) => {
-    const formData = new FormData();
-    formData.append('message', suggestion);
-    formData.append('userId', userId);
-    
-    startTransition(async () => {
-      await submitUserMessage(formData);
-    });
-  };
-
-  if (suggestions.length === 0) {
-    return null;
-  }
-
-  return (
-    <div className="flex flex-wrap items-center gap-2 mb-2">
-      <Sparkles className="h-4 w-4 text-yellow-500 shrink-0" />
-      {suggestions.map((suggestion, index) => (
-        <motion.div
-          key={index}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: index * 0.1 }}
-        >
-          <Button
-            size="sm"
-            variant="outline"
-            className="text-xs h-7"
-            onClick={() => handleSuggestionClick(suggestion)}
-            disabled={isPending}
+function FollowUpSuggestions({ userId, onSuggestionClick }: { userId: string, onSuggestionClick: (suggestion: string) => void }) {
+    const { suggestions } = useSuggestions(userId);
+  
+    if (suggestions.length === 0) {
+      return null;
+    }
+  
+    return (
+      <div className="flex flex-wrap items-center gap-2 mb-2">
+        <Sparkles className="h-4 w-4 text-yellow-500 shrink-0" />
+        {suggestions.map((suggestion, index) => (
+          <motion.div
+            key={index}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.1 }}
           >
-            {suggestion}
-          </Button>
-        </motion.div>
-      ))}
-    </div>
-  );
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-xs h-7"
+              onClick={() => onSuggestionClick(suggestion)}
+            >
+              {suggestion}
+            </Button>
+          </motion.div>
+        ))}
+      </div>
+    );
 }
 
-
-export function ChatInput({ userId }: ChatInputProps) {
-  const [isPending, startTransition] = useTransition();
+export function ChatInput({ userId, onMessageSubmit, isSending }: ChatInputProps) {
   const [isTranscribing, setIsTranscribing] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const { addPendingMessage } = useConnectionStore();
-  
 
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     e.target.style.height = 'auto';
@@ -103,18 +89,22 @@ export function ChatInput({ userId }: ChatInputProps) {
         formData.append('image_data', imagePreview);
     }
 
-    startTransition(async () => {
-      const result = await submitUserMessage(formData);
-      if (result?.messageId) {
-        addPendingMessage(result.messageId);
-      }
-    });
+    const isProcessing = onMessageSubmit(formData);
 
-    formRef.current?.reset();
-    setImagePreview(null);
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
+    if (!isProcessing) {
+        formRef.current?.reset();
+        setImagePreview(null);
+        if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+        }
     }
+  };
+
+  const handleSuggestionClick = (suggestion: string) => {
+    const formData = new FormData();
+    formData.append('message', suggestion);
+    formData.append('userId', userId);
+    onMessageSubmit(formData);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -124,12 +114,12 @@ export function ChatInput({ userId }: ChatInputProps) {
     }
   };
 
-  const isProcessing = isPending || isTranscribing;
+  const isProcessing = isSending || isTranscribing;
 
   return (
     <div className="flex flex-col gap-2">
        <AnimatePresence>
-        <FollowUpSuggestions userId={userId} />
+        <FollowUpSuggestions userId={userId} onSuggestionClick={handleSuggestionClick} />
       </AnimatePresence>
       <form
         ref={formRef}
@@ -179,7 +169,7 @@ export function ChatInput({ userId }: ChatInputProps) {
             name="message"
             onChange={handleTextareaChange}
             onKeyDown={handleKeyDown}
-            placeholder={isTranscribing ? "Transcribing audio..." : "Ask Pandora anything, or attach an image..."}
+            placeholder={isTranscribing ? "Transcribing audio..." : "Ask Pandora anything..."}
             className="w-full resize-none max-h-48 pr-24 pl-12 text-base leading-relaxed"
             rows={1}
             disabled={isProcessing}
@@ -187,7 +177,12 @@ export function ChatInput({ userId }: ChatInputProps) {
           />
 
           <div className="absolute bottom-2 right-2 flex items-center gap-1">
-            <VoiceInput userId={userId} onTranscriptionStatusChange={setIsTranscribing} disabled={isProcessing} />
+            <VoiceInput 
+                userId={userId} 
+                onTranscriptionStatusChange={setIsTranscribing} 
+                disabled={isProcessing} 
+                onAudioSubmit={onMessageSubmit}
+            />
             <Button
               type="submit"
               size="icon"
@@ -195,7 +190,7 @@ export function ChatInput({ userId }: ChatInputProps) {
               disabled={isProcessing}
               aria-label="Send message"
             >
-              {isPending ? (
+              {isSending ? (
                 <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.5} />
               ) : (
                 <ArrowUp className="h-4 w-4" strokeWidth={1.5} />

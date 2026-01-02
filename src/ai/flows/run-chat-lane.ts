@@ -13,6 +13,7 @@ const ChatLaneInputSchema = z.object({
   message: z.string(),
   imageBase64: z.string().nullable(),
   source: z.string(),
+  threadId: z.string(), // Added threadId
 });
 
 export async function runChatLane(
@@ -24,7 +25,7 @@ export async function runChatLane(
       inputSchema: ChatLaneInputSchema,
       outputSchema: z.void(),
     },
-    async ({ userId, message, imageBase64, source }) => {
+    async ({ userId, message, imageBase64, source, threadId }) => {
       // 1. Create a placeholder for the assistant's response in the correct subcollection.
       const assistantRef = firestoreAdmin.collection('users').doc(userId).collection('history').doc();
       await assistantRef.set({
@@ -34,10 +35,11 @@ export async function runChatLane(
         status: 'processing',
         progress_log: ['Initializing agent...'],
         timestamp: admin.firestore.FieldValue.serverTimestamp(),
-        userId: userId, // CRITICAL: Ensure userId is set here
+        userId: userId, 
+        threadId: threadId, // Save threadId to the AI's message
       });
 
-      // 2. Run memory lane to process the input and get search queries.
+      // 2. Run memory lane to process the input.
       const memoryResult = await runMemoryLane({
         userId,
         message,
