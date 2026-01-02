@@ -38,7 +38,7 @@ export function Message({ message }: MessageProps) {
   const { user } = useUser();
   const { toast } = useToast();
   const isUser = message.role === 'user';
-  const timestamp = formatTime(message.timestamp);
+  const timestamp = formatTime(message.createdAt);
   const setActiveArtifactId = useArtifactStore(state => state.setActiveArtifactId);
 
   const artifactRegex = /\[Artifact Created: (.*?)\]/g;

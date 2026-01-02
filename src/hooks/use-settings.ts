@@ -1,19 +1,22 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
-import { firestore } from '@/lib/firebase';
+import { useFirestore } from '@/firebase';
 import type { AppSettings } from '@/lib/types';
 
 const defaultSettings: AppSettings = {
     active_model: 'gpt-4o',
     reply_style: 'detailed',
     system_prompt_override: '',
+    personal_api_key: '',
 };
 
 export function useSettings(userId?: string) {
   const [settings, setSettings] = useState<AppSettings>(defaultSettings);
   const [isLoading, setIsLoading] = useState(true);
+  const firestore = useFirestore();
 
   useEffect(() => {
     if (!userId) {
@@ -42,7 +45,7 @@ export function useSettings(userId?: string) {
     );
 
     return () => unsubscribe();
-  }, [userId]);
+  }, [userId, firestore]);
 
   return { settings, isLoading };
 }

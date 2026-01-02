@@ -28,14 +28,14 @@ export async function runChatLane(
     },
     async ({ userId, message, imageBase64, source, threadId }) => {
       // 1. Create a placeholder for the assistant's response in the correct subcollection.
-      const assistantRef = firestoreAdmin.collection('users').doc(userId).collection('history').doc();
+      const assistantRef = firestoreAdmin.collection('history').doc();
       await assistantRef.set({
         id: assistantRef.id,
         role: 'assistant',
         content: '',
         status: 'processing',
         progress_log: ['Initializing agent...'],
-        timestamp: FieldValue.serverTimestamp(),
+        createdAt: FieldValue.serverTimestamp(),
         userId: userId, 
         threadId: threadId, // Save threadId to the AI's message
       });

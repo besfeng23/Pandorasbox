@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useTransition, useCallback } from 'react';
@@ -159,7 +160,7 @@ export function MemoryTable({ userId }: MemoryTableProps) {
                       )}
                     </TableCell>
                     <TableCell className="align-top capitalize">{memory.role}</TableCell>
-                    <TableCell className="align-top">{formatTimestamp(memory.timestamp)}</TableCell>
+                    <TableCell className="align-top">{formatTimestamp(memory.createdAt)}</TableCell>
                     <TableCell className="text-right align-top">
                       {editingId === memory.id ? (
                         <div className="flex gap-2 justify-end">

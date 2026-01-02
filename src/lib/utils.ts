@@ -1,3 +1,4 @@
+
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { Timestamp } from "firebase/firestore";
@@ -25,6 +26,13 @@ export function toDate(timestamp: any): Date {
   // Handle server-side rendered timestamps (often plain objects)
   if (timestamp && typeof timestamp.seconds === 'number' && typeof timestamp.nanoseconds === 'number') {
     return new Timestamp(timestamp.seconds, timestamp.nanoseconds).toDate();
+  }
+  // Handle ISO string dates from serialization
+  if (typeof timestamp === 'string') {
+    const date = new Date(timestamp);
+    if (!isNaN(date.getTime())) {
+      return date;
+    }
   }
   // Fallback for unexpected formats
   return new Date();

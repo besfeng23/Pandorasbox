@@ -1,5 +1,6 @@
+
 // This file is deprecated. Please use `src/firebase/index.ts` instead.
-import { initializeApp, getApps, getApp } from 'firebase/app';
+import { initializeApp, getApps } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 

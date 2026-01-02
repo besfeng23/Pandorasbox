@@ -11,7 +11,8 @@ import { getDownloadURL } from 'firebase-admin/storage';
 import OpenAI from 'openai';
 import pdf from 'pdf-parse';
 import { chunkText } from '@/lib/chunking';
-import { FieldValue } from 'firebase-admin/firestore';
+import { FieldValue }from 'firebase-admin/firestore';
+import { randomBytes } from 'crypto';
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
@@ -118,7 +119,7 @@ export async function submitUserMessage(formData: FormData) {
         await firestoreAdmin.collection('threads').doc(threadId).update({ title: newTitle });
     }
   
-    const historyCollection = firestoreAdmin.collection('users').doc(userId).collection('history');
+    const historyCollection = firestoreAdmin.collection('history');
     let userMessageId: string;
   
     try {
@@ -127,7 +128,7 @@ export async function submitUserMessage(formData: FormData) {
       const userMessageData = {
         role: 'user',
         content: messageContent,
-        timestamp: FieldValue.serverTimestamp(),
+        createdAt: FieldValue.serverTimestamp(),
         userId: userId,
         threadId: threadId,
         imageUrl: null,
@@ -218,8 +219,8 @@ export async function clearMemory(userId: string) {
     if (!userId) {
         return { success: false, message: 'User not authenticated.' };
     }
-    const historyQuery = firestoreAdmin.collection('users').doc(userId).collection('history');
-    const memoriesQuery = firestoreAdmin.collection('users').doc(userId).collection('memories');
+    const historyQuery = firestoreAdmin.collection('history').where('userId', '==', userId);
+    const memoriesQuery = firestoreAdmin.collection('memories').where('userId', '==', userId);
     const stateCollectionRef = firestoreAdmin.collection('users').doc(userId).collection('state');
     const artifactsQuery = firestoreAdmin.collection('artifacts').where('userId', '==', userId);
 
@@ -275,7 +276,7 @@ export async function getMemories(userId: string, query?: string) {
       throw new Error('User not authenticated');
     }
   
-    const historyCollection = firestoreAdmin.collection('users').doc(userId).collection('history');
+    const historyCollection = firestoreAdmin.collection('history');
   
     if (query && query.trim()) {
       const searchResults = await searchHistory(query, userId);
@@ -283,12 +284,13 @@ export async function getMemories(userId: string, query?: string) {
       const docIds = searchResults.map(r => r.id);
       
       const memoryDocs = await historyCollection.where(FieldValue.documentId(), 'in', docIds).get();
-      const userFilteredDocs = memoryDocs.docs; 
+      const userFilteredDocs = memoryDocs.docs.filter(doc => doc.data().userId === userId);
       return userFilteredDocs.map(doc => ({ id: doc.id, ...doc.data() }));
 
     } else {
       const snapshot = await historyCollection
-        .orderBy('timestamp', 'desc')
+        .where('userId', '==', userId)
+        .orderBy('createdAt', 'desc')
         .limit(50)
         .get();
       return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -301,7 +303,12 @@ export async function deleteMemory(id: string, userId: string) {
       return { success: false, message: 'User not authenticated.' };
     }
     try {
-      const docRef = firestoreAdmin.collection('users').doc(userId).collection('history').doc(id);
+      const docRef = firestoreAdmin.collection('history').doc(id);
+      // Add a check to ensure user owns the document before deleting
+      const docSnap = await docRef.get();
+      if (!docSnap.exists || docSnap.data()?.userId !== userId) {
+        return { success: false, message: 'Permission denied.' };
+      }
       await docRef.delete();
       revalidatePath('/settings');
       revalidatePath('/');
@@ -318,7 +325,11 @@ export async function updateMemory(id: string, newText: string, userId: string) 
         return { success: false, message: 'User not authenticated.' };
     }
     try {
-        const docRef = firestoreAdmin.collection('users').doc(userId).collection('history').doc(id);
+        const docRef = firestoreAdmin.collection('history').doc(id);
+        const docSnap = await docRef.get();
+        if (!docSnap.exists || docSnap.data()?.userId !== userId) {
+            return { success: false, message: 'Permission denied.' };
+        }
         const newEmbedding = await generateEmbedding(newText);
         await docRef.update({
             content: newText,
@@ -356,7 +367,7 @@ export async function uploadKnowledge(formData: FormData): Promise<{ success: bo
         }
 
         const chunks = chunkText(rawContent);
-        const historyCollection = firestoreAdmin.collection('users').doc(userId).collection('history');
+        const historyCollection = firestoreAdmin.collection('history');
         const batch = firestoreAdmin.batch();
 
         for (let i = 0; i < chunks.length; i++) {
@@ -371,7 +382,7 @@ export async function uploadKnowledge(formData: FormData): Promise<{ success: bo
                 source_filename: file.name,
                 content: chunk,
                 embedding: embedding,
-                timestamp: FieldValue.serverTimestamp(),
+                createdAt: FieldValue.serverTimestamp(),
                 userId: userId,
             });
         }
@@ -385,5 +396,25 @@ export async function uploadKnowledge(formData: FormData): Promise<{ success: bo
     } catch (error) {
         console.error('Error uploading knowledge:', error);
         return { success: false, message: `Failed to index ${file.name}.` };
+    }
+}
+
+export async function generateUserApiKey(userId: string): Promise<{ success: boolean, apiKey?: string, message?: string }> {
+    if (!userId) {
+      return { success: false, message: 'User not authenticated.' };
+    }
+  
+    try {
+      const apiKey = `sk-pandora-${randomBytes(24).toString('hex')}`;
+      
+      const settingsRef = firestoreAdmin.collection('settings').doc(userId);
+      await settingsRef.set({ personal_api_key: apiKey }, { merge: true });
+      
+      revalidatePath('/settings');
+      return { success: true, apiKey: apiKey };
+  
+    } catch (error) {
+      console.error('Error generating API key:', error);
+      return { success: false, message: 'Failed to generate API key.' };
     }
 }

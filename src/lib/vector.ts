@@ -64,11 +64,11 @@ export async function searchHistory(
     const score = 1 - doc.distance; 
     
     let timestamp: Date;
-    if (data.timestamp instanceof Timestamp) {
-        timestamp = data.timestamp.toDate();
+    if (data.createdAt instanceof Timestamp) {
+        timestamp = data.createdAt.toDate();
     } else {
         // Fallback for any other format, though less likely with Firestore Admin SDK
-        timestamp = new Date(data.timestamp);
+        timestamp = new Date(data.createdAt);
     }
     
     return {

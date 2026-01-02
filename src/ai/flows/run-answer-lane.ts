@@ -63,7 +63,7 @@ export async function runAnswerLane(
       outputSchema: AnswerLaneOutputSchema,
     },
     async ({ userId, message, assistantMessageId, threadId }) => {
-        const assistantMessageRef = firestoreAdmin.collection('users').doc(userId).collection('history').doc(assistantMessageId);
+        const assistantMessageRef = firestoreAdmin.collection('history').doc(assistantMessageId);
 
         const logProgress = async (step: string) => {
             try {
@@ -83,9 +83,9 @@ export async function runAnswerLane(
             // --- SHORT-TERM MEMORY: Fetch recent conversation ---
             await logProgress('Recalling conversation...');
             const historySnapshot = await firestoreAdmin
-                .collection('users').doc(userId).collection('history')
+                .collection('history')
                 .where('threadId', '==', threadId)
-                .orderBy('timestamp', 'desc')
+                .orderBy('createdAt', 'desc')
                 .limit(6) // Get last 6 messages (incl. current user message)
                 .get();
 

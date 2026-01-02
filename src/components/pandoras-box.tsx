@@ -128,7 +128,7 @@ export function PandorasBox({ user }: PandorasBoxProps) {
                 exit={{ width: '0%', opacity: 0 }}
                 transition={{ type: 'spring', stiffness: 350, damping: 30 }}
              >
-                <ArtifactViewer artifactId={activeArtifactId} />
+                <ArtifactViewer artifactId={activeArtifactId!} />
              </motion.div>
         ) : (
             <Sidebar side="right" collapsible="offcanvas" className="hidden lg:flex w-96 border-l bg-surface/50 dark:bg-card">

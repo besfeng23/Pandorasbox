@@ -24,7 +24,7 @@ export function ChatSidebar({ userId, activeThreadId, onSelectThread }: ChatSide
       const userThreads = await getUserThreads(userId);
       setThreads(userThreads);
     });
-  }, [userId]);
+  }, [userId, activeThreadId]); // Re-fetch when activeThreadId changes to get new titles
 
   return (
     <ScrollArea className="flex-1">

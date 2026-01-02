@@ -1,10 +1,11 @@
+
 'use client';
 
-import React, { useEffect, useTransition } from 'react';
+import React, { useEffect, useTransition, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { updateSettings, clearMemory } from '@/app/actions';
+import { updateSettings, clearMemory, generateUserApiKey } from '@/app/actions';
 import { useSettings } from '@/hooks/use-settings';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, KeyRound, Copy, Check } from 'lucide-react';
 import { AppSettings } from '@/lib/types';
 import {
   AlertDialog,
@@ -30,12 +31,14 @@ import { useUser } from '@/firebase';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MemoryTable } from '@/components/settings/memory-table';
 import { KnowledgeUpload } from '@/components/settings/knowledge-upload';
+import { Input } from '../ui/input';
 
 
 const settingsSchema = z.object({
   active_model: z.enum(['gpt-4o', 'gpt-4-turbo', 'gpt-3.5-turbo']),
   reply_style: z.enum(['concise', 'detailed']),
   system_prompt_override: z.string().optional(),
+  personal_api_key: z.string().optional(),
 });
 
 export default function SettingsPage() {
@@ -43,6 +46,8 @@ export default function SettingsPage() {
   const { settings, isLoading: isLoadingSettings } = useSettings(user?.uid);
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
+  const [isKeyGenerating, startKeyGeneration] = useTransition();
+  const [hasCopied, setHasCopied] = useState(false);
 
   const form = useForm<AppSettings>({
     resolver: zodResolver(settingsSchema),
@@ -58,8 +63,8 @@ export default function SettingsPage() {
   const onSubmit = (data: AppSettings) => {
     const formData = new FormData();
     Object.entries(data).forEach(([key, value]) => {
-        if (value !== undefined) {
-            formData.append(key, value);
+        if (value !== undefined && key !== 'personal_api_key') { // Don't submit API key via this form
+            formData.append(key, String(value));
         }
     });
     if (user) {
@@ -88,6 +93,28 @@ export default function SettingsPage() {
       });
   }
 
+  const handleGenerateKey = () => {
+    if (!user) return;
+    startKeyGeneration(async () => {
+      const result = await generateUserApiKey(user.uid);
+      if (result.success && result.apiKey) {
+        toast({ title: 'API Key Generated', description: 'Your new personal API key is ready.' });
+        form.setValue('personal_api_key', result.apiKey);
+      } else {
+        toast({ variant: 'destructive', title: 'Error', description: result.message });
+      }
+    });
+  }
+
+  const handleCopyKey = () => {
+    const apiKey = form.getValues('personal_api_key');
+    if (apiKey) {
+      navigator.clipboard.writeText(apiKey);
+      setHasCopied(true);
+      setTimeout(() => setHasCopied(false), 2000);
+    }
+  };
+
   if (isLoadingSettings || isUserLoading) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -106,6 +133,7 @@ export default function SettingsPage() {
             <TabsList className="mb-4">
                 <TabsTrigger value="general">General</TabsTrigger>
                 <TabsTrigger value="memory">Memory Database</TabsTrigger>
+                <TabsTrigger value="api">API</TabsTrigger>
             </TabsList>
             <TabsContent value="general" className="space-y-8">
                 <Form {...form}>
@@ -205,29 +233,7 @@ export default function SettingsPage() {
                             </CardContent>
                         </Card>
 
-
-                        <div className="flex justify-between items-start">
-                            <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <Button variant="destructive" type="button" disabled={isPending || !user}>Clear All Memory</Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        This will permanently delete the entire chat history and learned memories. This action cannot be undone.
-                                    </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={handleClearMemory} disabled={isPending}>
-                                    {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    Continue
-                                    </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
-
+                        <div className="flex justify-end items-start">
                             <Button type="submit" disabled={isPending || !user}>
                                 {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 Save Settings
@@ -239,6 +245,74 @@ export default function SettingsPage() {
             <TabsContent value="memory" className="space-y-4">
                 {user && <KnowledgeUpload userId={user.uid} />}
                 {user && <MemoryTable userId={user.uid} />}
+                 <Card>
+                    <CardHeader>
+                        <CardTitle className='text-destructive'>Danger Zone</CardTitle>
+                        <CardDescription>
+                            These actions are permanent and cannot be undone.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                         <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="destructive" type="button" disabled={isPending || !user}>Clear All Memory</Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    This will permanently delete the entire chat history and learned memories. This action cannot be undone.
+                                </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleClearMemory} disabled={isPending}>
+                                {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Continue
+                                </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    </CardContent>
+                 </Card>
+            </TabsContent>
+            <TabsContent value="api" className="space-y-4">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Personal API Key</CardTitle>
+                        <CardDescription>Connect Pandora to external services like a custom GPT.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        {settings.personal_api_key ? (
+                            <div className="relative">
+                                <Input
+                                    readOnly
+                                    type="password"
+                                    value={settings.personal_api_key}
+                                    className="pr-10 font-code"
+                                />
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
+                                    onClick={handleCopyKey}
+                                >
+                                    {hasCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                                </Button>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col items-start gap-4 p-6 border rounded-lg bg-muted/50">
+                                 <KeyRound className="h-8 w-8 text-muted-foreground" />
+                                 <p className="text-muted-foreground">You have not generated an API key yet.</p>
+                                 <Button onClick={handleGenerateKey} disabled={isKeyGenerating}>
+                                    {isKeyGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    Generate Personal API Key
+                                 </Button>
+                            </div>
+                        )}
+                        <p className="text-xs text-muted-foreground">Use this key to allow external applications to access and interact with your Pandora memory.</p>
+                    </CardContent>
+                </Card>
             </TabsContent>
         </Tabs>
     </div>

@@ -1,13 +1,12 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useFirestore } from '@/firebase';
-import { collection, onSnapshot, orderBy, query, where, Timestamp, queryEqual } from 'firebase/firestore';
+import { collection, onSnapshot, orderBy, query, where, queryEqual } from 'firebase/firestore';
 import { useConnectionStore } from '@/store/connection';
 import type { Message } from '@/lib/types';
 import { toDate } from '@/lib/utils';
-import { useRef } from 'react';
 
 export function useChatHistory(userId: string | null, threadId: string | null) {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -26,11 +25,12 @@ export function useChatHistory(userId: string | null, threadId: string | null) {
 
     setIsLoading(true);
 
-    const historyCollectionRef = collection(firestore, 'users', userId, 'history');
+    const historyCollectionRef = collection(firestore, 'history');
     const newQuery = query(
         historyCollectionRef, 
+        where('userId', '==', userId),
         where('threadId', '==', threadId),
-        orderBy('timestamp', 'asc')
+        orderBy('createdAt', 'asc')
     );
 
     // Only resubscribe if the query has changed
@@ -50,7 +50,7 @@ export function useChatHistory(userId: string | null, threadId: string | null) {
           return {
             id: doc.id,
             ...data,
-            timestamp: toDate(data.timestamp),
+            createdAt: toDate(data.createdAt),
             content: data.content,
             role: data.role
           } as Message;

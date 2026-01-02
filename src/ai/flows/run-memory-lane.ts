@@ -1,3 +1,4 @@
+
 'use server';
 
 import { ai } from '@/ai/genkit';
@@ -85,21 +86,10 @@ Return a JSON object containing:
       const stateCollection = firestoreAdmin.collection('users').doc(userId).collection('state');
       await stateCollection.doc('context').set({ note: responseData.new_context_note }, { merge: true });
       
-      // We don't save the raw message to the 'last_state' anymore as it could be long/complex.
-      // This document is more for simple key-value state, which we are not using currently.
-      // await stateCollection.doc('last_state').set({ last_user_message: message }, { merge: true });
-      
-      if (responseData.image_description) {
-         // The user message ID isn't readily available here.
-         // A more robust solution would be to pass the user message ID into this flow.
-         // For now, we will skip updating the user message with the image description from here.
-         // This can be added later if needed by passing the user message doc ID.
-      }
-
       // Create memories from search queries
       const searchQueries = responseData.search_queries || [];
       if (searchQueries.length > 0) {
-        const memoriesCollection = firestoreAdmin.collection('users').doc(userId).collection('memories');
+        const memoriesCollection = firestoreAdmin.collection('memories');
         const batch = firestoreAdmin.batch();
         for (const query of searchQueries) {
             const embedding = await generateEmbedding(query);
@@ -108,7 +98,7 @@ Return a JSON object containing:
                 id: docRef.id,
                 content: query,
                 embedding,
-                timestamp: new Date(),
+                createdAt: new Date(),
                 userId: userId,
             });
         }
