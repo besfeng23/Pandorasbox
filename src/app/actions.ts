@@ -29,13 +29,28 @@ export async function createThread(userId: string): Promise<string> {
 }
 
 export async function getUserThreads(userId: string): Promise<Thread[]> {
-    const threadsSnapshot = await firestoreAdmin
-        .collection('threads')
+    try {
+      const threadsRef = firestoreAdmin.collection('threads');
+      const snapshot = await threadsRef
         .where('userId', '==', userId)
         .orderBy('createdAt', 'desc')
         .get();
-
-    return threadsSnapshot.docs.map(doc => doc.data() as Thread);
+  
+      // MAP & SERIALIZE: Convert Firestore Docs to Plain JSON
+      return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          userId: data.userId,
+          title: data.title || 'New Chat',
+          // CRITICAL FIX: Convert Firestore Timestamp to a plain String
+          createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : new Date().toISOString() 
+        } as Thread;
+      });
+    } catch (error) {
+      console.error("Error fetching threads:", error);
+      return [];
+    }
 }
 
 export async function transcribeAndProcessMessage(formData: FormData) {
@@ -68,7 +83,7 @@ export async function transcribeAndProcessMessage(formData: FormData) {
             messageFormData.append('source', 'voice');
             const result = await submitUserMessage(messageFormData);
             messageId = result?.messageId;
-            newThreadid = result?.threadId;
+            newThreadId = result?.threadId;
         }
 
         return { success: true, messageId, threadId: newThreadId };

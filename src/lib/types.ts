@@ -23,7 +23,7 @@ export type Thread = {
   id: string;
   userId: string;
   title: string;
-  createdAt: Timestamp | Date;
+  createdAt: Timestamp | Date | string;
 };
 
 export type Memory = {
