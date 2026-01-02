@@ -1,35 +1,12 @@
 import 'server-only';
-import { initializeApp, getApps, getApp, cert, ServiceAccount } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
+import admin from 'firebase-admin';
 
-// 1. SAFE INITIALIZATION
-function getFirebaseAdminApp() {
-  // If an app is already initialized, use that one (Prevents "App already exists" error)
-  if (getApps().length > 0) {
-    return getApp();
-  }
-
-  // Otherwise, create a new connection
-  if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-    try {
-      const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY) as ServiceAccount;
-      return initializeApp({
-        credential: cert(serviceAccount),
-      });
-    } catch (error) {
-      console.error("❌ Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY:", error);
-    }
-  }
-
-  // Fallback for Cloud Hosting (uses internal identity)
-  return initializeApp();
+// Check if firebase is already initialized to prevent "already exists" errors
+if (!admin.apps.length) {
+  // ⚠️ LOOK: No arguments! No JSON file! 
+  // Google automatically finds the credentials on App Hosting.
+  admin.initializeApp(); 
 }
 
-const app = getFirebaseAdminApp();
-
-// 2. EXPORT FIRESTORE
-export const firestoreAdmin = getFirestore(app);
-
-// 3. SETTINGS REMOVED
-// We removed the .settings() call because it crashes Next.js during development reloads.
-// Firestore works perfectly fine with default settings.
+export const firestoreAdmin = admin.firestore();
+export const authAdmin = admin.auth();
