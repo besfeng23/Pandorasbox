@@ -1,52 +1,52 @@
-import * as admin from 'firebase-admin';
+'use server';
+import { initializeApp, getApps, getApp, cert, ServiceAccount } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
-import { cert } from 'firebase-admin/app';
+import { admin } from 'firebase-admin';
 
-// This file is server-side only.
+// 1. SAFE INITIALIZATION
+// This prevents the "App already exists" crash and the "No credentials" crash
+function getFirebaseAdminApp() {
+  if (getApps().length > 0) {
+    return getApp();
+  }
 
-// Singleton Pattern: Initialize the app only if it hasn't been already.
-// This is crucial for Next.js hot-reloading environments to avoid errors.
-if (!admin.apps.length) {
-  try {
-    const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
-    if (!projectId) {
-      throw new Error('Firebase project ID is not defined in environment variables.');
-    }
-    
-    const privateKey = process.env.FIREBASE_PRIVATE_KEY;
-    const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+  const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+  if (!projectId) {
+    throw new Error('Firebase project ID is not defined in environment variables.');
+  }
 
-    let credential;
-    if (privateKey && clientEmail) {
-      try {
-        const formattedKey = privateKey.replace(/\\n/g, '\n');
-        credential = cert({
+  // Check if we have a specific Private Key (Local Dev / Manual Setup)
+  if (process.env.FIREBASE_PRIVATE_KEY && process.env.FIREBASE_CLIENT_EMAIL) {
+    try {
+        const formattedKey = (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n');
+        const credential = cert({
           projectId,
-          clientEmail,
+          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
           privateKey: formattedKey,
         });
-      } catch (e) {
-        console.warn("⚠️  Could not parse FIREBASE_PRIVATE_KEY. Falling back to default credentials.", e);
-        credential = admin.credential.applicationDefault();
-      }
-    } else {
-        console.log("🚀 Initializing Firebase Admin with Application Default Credentials.");
-        credential = admin.credential.applicationDefault();
+        console.log('🚀 Initializing Firebase Admin with service account credentials.');
+        return initializeApp({ credential, projectId });
+    } catch (error) {
+      console.error("❌ Failed to parse FIREBASE_PRIVATE_KEY:", error);
+      // Fallback to default if parsing fails
     }
-    
-    admin.initializeApp({
-      credential,
-      projectId,
-    });
-    console.log('Firebase Admin SDK initialized successfully.');
-  } catch (error: any) {
-    console.error("🔥 Firebase Admin SDK initialization failed:", error.message);
-    // Throwing the error here will halt the app if Firebase is essential,
-    // which is useful for debugging configuration issues.
-    // In a production scenario, you might handle this differently.
   }
+
+  // Default: Use Google Cloud's built-in "Application Default Credentials"
+  // This works automatically on App Hosting / Cloud Run
+  console.log("🚀 Initializing Firebase Admin with Application Default Credentials.");
+  return initializeApp({ projectId });
 }
 
-// Export the initialized firestore instance and the admin namespace.
-export const firestoreAdmin = getFirestore();
-export { admin };
+const app = getFirebaseAdminApp();
+
+// 2. EXPORT FIRESTORE
+// We export the db instance to be used everywhere
+export const firestoreAdmin = getFirestore(app);
+
+// Optional: specific settings to avoid gRPC errors in some environments
+firestoreAdmin.settings({
+  ignoreUndefinedProperties: true,
+});
+
+export { app as adminApp };

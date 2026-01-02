@@ -1,7 +1,6 @@
 
 'use server';
 
-import { admin } from '@/lib/firebase-admin';
 import { firestoreAdmin } from '@/lib/firebase-admin';
 import { revalidatePath } from 'next/cache';
 import { runChatLane } from '@/ai/flows/run-chat-lane';
@@ -12,6 +11,7 @@ import { getDownloadURL } from 'firebase-admin/storage';
 import OpenAI from 'openai';
 import pdf from 'pdf-parse';
 import { chunkText } from '@/lib/chunking';
+import { FieldValue } from 'firebase-admin/firestore';
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
@@ -23,7 +23,7 @@ export async function createThread(userId: string): Promise<string> {
         id: threadRef.id,
         userId: userId,
         title: 'New Chat',
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        createdAt: FieldValue.serverTimestamp(),
     });
     return threadRef.id;
 }
@@ -68,7 +68,7 @@ export async function transcribeAndProcessMessage(formData: FormData) {
             messageFormData.append('source', 'voice');
             const result = await submitUserMessage(messageFormData);
             messageId = result?.messageId;
-            newThreadId = result?.threadId;
+            newThreadid = result?.threadId;
         }
 
         return { success: true, messageId, threadId: newThreadId };
@@ -112,7 +112,7 @@ export async function submitUserMessage(formData: FormData) {
       const userMessageData = {
         role: 'user',
         content: messageContent,
-        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        timestamp: FieldValue.serverTimestamp(),
         userId: userId,
         threadId: threadId,
         imageUrl: null,
@@ -267,7 +267,7 @@ export async function getMemories(userId: string, query?: string) {
       if (searchResults.length === 0) return [];
       const docIds = searchResults.map(r => r.id);
       
-      const memoryDocs = await historyCollection.where(admin.firestore.FieldPath.documentId(), 'in', docIds).get();
+      const memoryDocs = await historyCollection.where(FieldValue.documentId(), 'in', docIds).get();
       const userFilteredDocs = memoryDocs.docs; 
       return userFilteredDocs.map(doc => ({ id: doc.id, ...doc.data() }));
 
@@ -308,7 +308,7 @@ export async function updateMemory(id: string, newText: string, userId: string) 
         await docRef.update({
             content: newText,
             embedding: newEmbedding,
-            editedAt: admin.firestore.FieldValue.serverTimestamp(),
+            editedAt: FieldValue.serverTimestamp(),
         });
         revalidatePath('/settings');
         revalidatePath('/');
@@ -356,7 +356,7 @@ export async function uploadKnowledge(formData: FormData): Promise<{ success: bo
                 source_filename: file.name,
                 content: chunk,
                 embedding: embedding,
-                timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                timestamp: FieldValue.serverTimestamp(),
                 userId: userId,
             });
         }

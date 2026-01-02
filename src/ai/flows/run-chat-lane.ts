@@ -2,11 +2,12 @@
 'use server';
 
 import { ai } from '@/ai/genkit';
-import { firestoreAdmin, admin } from '@/lib/firebase-admin';
+import { firestoreAdmin } from '@/lib/firebase-admin';
 import { z } from 'zod';
 import { runMemoryLane } from './run-memory-lane';
 import { runAnswerLane } from './run-answer-lane';
 import { suggestFollowUpQuestions } from './suggest-follow-up-questions';
+import { FieldValue } from 'firebase-admin/firestore';
 
 const ChatLaneInputSchema = z.object({
   userId: z.string(),
@@ -34,7 +35,7 @@ export async function runChatLane(
         content: '',
         status: 'processing',
         progress_log: ['Initializing agent...'],
-        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        timestamp: FieldValue.serverTimestamp(),
         userId: userId, 
         threadId: threadId, // Save threadId to the AI's message
       });

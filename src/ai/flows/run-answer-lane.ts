@@ -2,12 +2,13 @@
 'use server';
 
 import { ai } from '@/ai/genkit';
-import { firestoreAdmin, admin } from '@/lib/firebase-admin';
+import { firestoreAdmin } from '@/lib/firebase-admin';
 import { searchHistory } from '@/lib/vector';
 import { z } from 'zod';
 import { Artifact } from '@/lib/types';
 import { generateEmbedding } from '@/lib/vector';
 import OpenAI from 'openai';
+import { FieldValue } from 'firebase-admin/firestore';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -40,7 +41,7 @@ async function extractAndSaveArtifact(rawResponse: string, userId: string): Prom
         type: artifactType,
         content: content.trim(),
         version: 1,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        createdAt: FieldValue.serverTimestamp(),
     };
   
     const artifactRef = await firestoreAdmin.collection('artifacts').add(artifactData);
@@ -66,7 +67,7 @@ export async function runAnswerLane(
         const logProgress = async (step: string) => {
             try {
                 await assistantMessageRef.update({
-                    progress_log: admin.firestore.FieldValue.arrayUnion(step)
+                    progress_log: FieldValue.arrayUnion(step)
                 });
             } catch (e) {
                 console.warn("Could not log progress.", e);
@@ -109,7 +110,7 @@ export async function runAnswerLane(
                 embedding: embedding,
                 status: 'complete',
                 userId: userId, // Ensure userId is present
-                progress_log: admin.firestore.FieldValue.arrayUnion('Done.'),
+                progress_log: FieldValue.arrayUnion('Done.'),
             });
     
             return { answer: cleanResponse };
@@ -120,7 +121,7 @@ export async function runAnswerLane(
                 content: "Sorry, I encountered an error while processing your request.",
                 status: 'error',
                 userId: userId, // Also stamp userId on errors
-                progress_log: admin.firestore.FieldValue.arrayUnion('Error.'),
+                progress_log: FieldValue.arrayUnion('Error.'),
             });
             return { answer: "Sorry, an error occurred." };
         }
