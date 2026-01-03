@@ -1,11 +1,17 @@
 
+'use server';
+
 import 'server-only';
 import admin from 'firebase-admin';
 
 let firestoreAdmin: admin.firestore.Firestore;
 let authAdmin: admin.auth.Auth;
 
-if (!admin.apps.length) {
+function initializeAdmin() {
+  if (admin.apps.length > 0) {
+    return;
+  }
+
   try {
     const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
 
@@ -22,6 +28,7 @@ if (!admin.apps.length) {
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
       });
+
     } else {
       console.log("No Service Account Key found. Using Application Default Credentials.");
       admin.initializeApp({
@@ -30,11 +37,15 @@ if (!admin.apps.length) {
     }
   } catch (error) {
     console.error('❌ Firebase Admin Initialization Failed:', error);
+    // Re-throw the error so it's not silent
+    throw error;
   }
 }
 
+
 // Use a getter to ensure the app is initialized before accessing services
 function getFirestoreAdmin() {
+  initializeAdmin();
   if (!firestoreAdmin) {
     firestoreAdmin = admin.firestore();
   }
@@ -42,6 +53,7 @@ function getFirestoreAdmin() {
 }
 
 function getAuthAdmin() {
+    initializeAdmin();
     if (!authAdmin) {
         authAdmin = admin.auth();
     }
