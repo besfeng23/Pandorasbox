@@ -14,7 +14,7 @@ function initializeAdmin() {
   try {
     // Directly require the service account file.
     // This bypasses all environment variable parsing issues.
-    const serviceAccount = require('../../../service-account.json');
+    const serviceAccount = require('../../service-account.json');
     
     console.log("Initializing Firebase Admin with local service-account.json...");
     admin.initializeApp({
