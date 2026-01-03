@@ -14,6 +14,8 @@ import { chunkText } from '@/lib/chunking';
 import { FieldValue }from 'firebase-admin/firestore';
 import { randomBytes } from 'crypto';
 import { summarizeLongChat } from '@/ai/flows/summarize-long-chat';
+import * as Sentry from '@sentry/nextjs';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
@@ -63,11 +65,13 @@ export async function getUserThreads(userId: string) {
 
     } catch (queryError) {
       console.warn("Could not fetch threads (likely missing index or collection). Returning empty list.");
+      Sentry.captureException(queryError, { tags: { function: 'getUserThreads', errorType: 'queryError' } });
       return []; // <--- SAFETY VALVE: Return empty list instead of crashing
     }
 
   } catch (error) {
     console.error("Fatal error in getUserThreads:", error);
+    Sentry.captureException(error, { tags: { function: 'getUserThreads', errorType: 'fatal' } });
     return []; // <--- DOUBLE SAFETY: Ensure the UI never crashes
   }
 }
@@ -108,6 +112,7 @@ export async function transcribeAndProcessMessage(formData: FormData) {
         return { success: true, messageId, threadId: newThreadId };
     } catch (error) {
         console.error('Error transcribing audio:', error);
+        Sentry.captureException(error, { tags: { function: 'transcribeAndProcessMessage' } });
         return { success: false, message: 'Failed to transcribe audio.' };
     }
 }
@@ -123,6 +128,16 @@ export async function submitUserMessage(formData: FormData) {
     if (!userId) {
       console.error('submitUserMessage Error: User ID is missing.');
       throw new Error('User not authenticated');
+    }
+
+    // Check rate limit for messages
+    const rateLimitCheck = await checkRateLimit(userId, 'messages');
+    if (!rateLimitCheck.success) {
+      return { 
+        messageId: undefined, 
+        threadId: undefined,
+        error: rateLimitCheck.message || 'Rate limit exceeded. Please try again later.'
+      };
     }
   
     if ((!messageContent || !messageContent.trim()) && !imageBase64) {
@@ -189,9 +204,10 @@ export async function submitUserMessage(formData: FormData) {
       
   
       return { messageId: userMessageId, threadId: threadId };
-  
+
     } catch (error) {
         console.error('Firestore Write Failed in submitUserMessage:', error);
+        Sentry.captureException(error, { tags: { function: 'submitUserMessage', userId } });
         return { messageId: undefined, threadId: undefined };
     }
 }
@@ -224,6 +240,7 @@ export async function summarizeThread(threadId: string, userId: string): Promise
         }
     } catch (error) {
         console.error('Failed to summarize thread:', error);
+        Sentry.captureException(error, { tags: { function: 'summarizeThread', threadId, userId } });
     }
 }
 
@@ -260,6 +277,7 @@ export async function updateSettings(formData: FormData) {
         return { success: true, message: 'Settings updated successfully.' };
     } catch (error) {
         console.error('Error updating settings:', error);
+        Sentry.captureException(error, { tags: { function: 'updateSettings', userId } });
         return { success: false, message: 'Failed to update settings.' };
     }
 }
@@ -315,6 +333,7 @@ export async function clearMemory(userId: string) {
         return { success: true, message: 'Memory cleared successfully.' };
     } catch (error) {
         console.error('Error clearing memory:', error);
+        Sentry.captureException(error, { tags: { function: 'clearMemory', userId } });
         return { success: false, message: 'Failed to clear memory.' };
     }
 }
@@ -365,6 +384,7 @@ export async function deleteMemory(id: string, userId: string) {
       return { success: true };
     } catch (error) {
       console.error('Error deleting memory:', error);
+      Sentry.captureException(error, { tags: { function: 'deleteMemory', userId, memoryId: id } });
       return { success: false, message: 'Failed to delete memory.' };
     }
 }
@@ -391,6 +411,7 @@ export async function updateMemory(id: string, newText: string, userId: string) 
         return { success: true };
     } catch (error) {
         console.error('Error updating memory:', error);
+        Sentry.captureException(error, { tags: { function: 'updateMemory', userId, memoryId: id } });
         return { success: false, message: 'Failed to update memory.' };
     }
 }
@@ -402,6 +423,16 @@ export async function uploadKnowledge(formData: FormData): Promise<{ success: bo
     if (!file || !userId) {
         return { success: false, message: 'File or user ID missing.' };
     }
+
+    // Check rate limit for uploads
+    const rateLimitCheck = await checkRateLimit(userId, 'uploads');
+    if (!rateLimitCheck.success) {
+        return { 
+            success: false, 
+            message: rateLimitCheck.message || 'Upload rate limit exceeded. Please try again later.' 
+        };
+    }
+
     const firestoreAdmin = getFirestoreAdmin();
     try {
         let rawContent = '';
@@ -444,6 +475,7 @@ export async function uploadKnowledge(formData: FormData): Promise<{ success: bo
         return { success: true, message: `Successfully indexed ${file.name}.`, chunks: chunks.length };
     } catch (error) {
         console.error('Error uploading knowledge:', error);
+        Sentry.captureException(error, { tags: { function: 'uploadKnowledge', userId, fileName: file.name } });
         return { success: false, message: `Failed to index ${file.name}.` };
     }
 }
@@ -462,9 +494,10 @@ export async function generateUserApiKey(userId: string): Promise<{ success: boo
       
       revalidatePath('/settings');
       return { success: true, apiKey: apiKey };
-  
+
     } catch (error) {
       console.error('Error generating API key:', error);
+      Sentry.captureException(error, { tags: { function: 'generateUserApiKey', userId } });
       return { success: false, message: 'Failed to generate API key.' };
     }
 }
