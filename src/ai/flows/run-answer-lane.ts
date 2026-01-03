@@ -6,6 +6,7 @@ import { searchHistory } from '@/lib/vector';
 import { z } from 'zod';
 import { Artifact } from '@/lib/types';
 import { generateEmbedding } from '@/lib/vector';
+import { defineFirestoreRetriever } from '@genkit-ai/firebase';
 import OpenAI from 'openai';
 import { FieldValue } from 'firebase-admin/firestore';
 
