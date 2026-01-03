@@ -12,32 +12,25 @@ function initializeAdmin() {
   }
 
   try {
-    const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+    // Directly require the service account file.
+    // This bypasses all environment variable parsing issues.
+    const serviceAccount = require('../../../service-account.json');
+    
+    console.log("Initializing Firebase Admin with local service-account.json...");
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+    });
 
-    if (serviceAccountKey) {
-      // Handle potential newline escaping issues in the secret
-      let serviceAccount;
-      try {
-        serviceAccount = JSON.parse(serviceAccountKey);
-      } catch (e) {
-        console.log("Parsing JSON key failed, attempting to fix newlines...");
-        serviceAccount = JSON.parse(serviceAccountKey.replace(/\\n/g, '\n'));
-      }
-
-      console.log("Initializing Firebase Admin with Service Account Key...");
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-      });
-    } else {
-      console.log("No Service Account Key found. Using Application Default Credentials.");
-      admin.initializeApp({
-        credential: admin.credential.applicationDefault()
-      });
-    }
   } catch (error) {
     console.error('❌ Firebase Admin Initialization Failed:', error);
-    // Re-throw the error so it's not silent
-    throw error;
+    // Fallback for deployed environments where the file may not exist
+    // and Application Default Credentials should be used.
+    if (!admin.apps.length) {
+        console.log("Local service account file not found or failed, trying Application Default Credentials.");
+        admin.initializeApp({
+            credential: admin.credential.applicationDefault()
+        });
+    }
   }
 }
 
