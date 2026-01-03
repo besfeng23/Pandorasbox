@@ -8,16 +8,69 @@ runConfig:
   # memoryMiB: 512
 
 # Environment variables and secrets.
-# env:
-  # Configure environment variables.
-  # See https://firebase.google.com/docs/app-hosting/configure#user-defined-environment
-  # - variable: MESSAGE
-  #   value: Hello world!
+env:
+  # Public Firebase configuration (needed at BUILD time for Next.js)
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    value: AIzaSyBd6iZ2jEx1jmniBLD35no5gu1J4D4tSCM
+    availability:
+      - BUILD
+      - RUNTIME
+  
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: seismic-vista-480710-q5.firebaseapp.com
+    availability:
+      - BUILD
+      - RUNTIME
+  
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: seismic-vista-480710-q5
+    availability:
+      - BUILD
+      - RUNTIME
+  
+  - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    value: seismic-vista-480710-q5.firebasestorage.app
+    availability:
+      - BUILD
+      - RUNTIME
+  
+  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    value: "536979070288"
+    availability:
+      - BUILD
+      - RUNTIME
+  
+  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    value: 1:536979070288:web:57b05547304f0056526055
+    availability:
+      - BUILD
+      - RUNTIME
+
+  # API Keys - Use Cloud Secret Manager for secrets
+  # See https://firebase.google.com/docs/app-hosting/configure#secret-parameters
+  # To set up secrets:
+  # 1. Create secrets in Google Cloud Secret Manager
+  # 2. Grant the App Hosting service account access to the secrets
+  # 3. Uncomment and update the secret references below:
+  #
+  # - variable: OPENAI_API_KEY
+  #   secret: openai-api-key  # Secret name in Secret Manager
+  #   availability:
+  #     - RUNTIME
+  #
+  # - variable: GEMINI_API_KEY
+  #   secret: gemini-api-key  # Secret name in Secret Manager
+  #   availability:
+  #     - RUNTIME
+  #
+  # - variable: MEMORY_API_KEY
+  #   secret: memory-api-key  # Secret name in Secret Manager
+  #   availability:
+  #     - RUNTIME
+
+  # Sentry (optional - add when configured)
+  # - variable: NEXT_PUBLIC_SENTRY_DSN
+  #   value: YOUR_SENTRY_DSN_HERE
   #   availability:
   #     - BUILD
   #     - RUNTIME
-
-  # Grant access to secrets in Cloud Secret Manager.
-  # See https://firebase.google.com/docs/app-hosting/configure#secret-parameters
-  # - variable: MY_SECRET
-  #   secret: mySecretRef
