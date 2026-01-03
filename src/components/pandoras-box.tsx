@@ -34,7 +34,7 @@ interface PandorasBoxProps {
 
 export function PandorasBox({ user }: PandorasBoxProps) {
   const [currentThreadId, setCurrentThreadId] = useState<string | null>(null);
-  const { messages, isLoading, error } = useChatHistory(user.uid, currentThreadId);
+  const { messages, thread, isLoading, error } = useChatHistory(user.uid, currentThreadId);
   const activeArtifactId = useArtifactStore(state => state.activeArtifactId);
   const isSplitView = !!activeArtifactId;
   const [isPending, startTransition] = useTransition();
@@ -109,7 +109,7 @@ export function PandorasBox({ user }: PandorasBoxProps) {
                         <p>Your chat history will be saved in threads.</p>
                     </div>
                 ) : (
-                    <ChatMessages messages={messages} userId={user.uid} />
+                    <ChatMessages messages={messages} thread={thread} userId={user.uid} />
                 )}
             </div>
             

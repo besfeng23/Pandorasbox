@@ -1,3 +1,4 @@
+
 'use server';
 
 import { ai } from '@/ai/genkit';
@@ -7,6 +8,7 @@ import { runMemoryLane } from './run-memory-lane';
 import { runAnswerLane } from './run-answer-lane';
 import { suggestFollowUpQuestions } from './suggest-follow-up-questions';
 import { FieldValue } from 'firebase-admin/firestore';
+import { summarizeThread } from '@/app/actions';
 
 const ChatLaneInputSchema = z.object({
   userId: z.string(),
@@ -69,6 +71,9 @@ export async function runChatLane(
         suggestions: suggestions,
         timestamp: new Date(),
       });
+      
+      // 6. Summarize the thread if it's long enough (non-blocking)
+      summarizeThread(threadId, userId).catch(err => console.error("Summarization failed:", err));
     }
   );
 

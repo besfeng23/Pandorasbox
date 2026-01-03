@@ -1,3 +1,4 @@
+
 'use server';
 
 import { getFirestoreAdmin } from '@/lib/firebase-admin';
@@ -12,6 +13,7 @@ import pdf from 'pdf-parse';
 import { chunkText } from '@/lib/chunking';
 import { FieldValue }from 'firebase-admin/firestore';
 import { randomBytes } from 'crypto';
+import { summarizeLongChat } from '@/ai/flows/summarize-long-chat';
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
@@ -191,6 +193,37 @@ export async function submitUserMessage(formData: FormData) {
     } catch (error) {
         console.error('Firestore Write Failed in submitUserMessage:', error);
         return { messageId: undefined, threadId: undefined };
+    }
+}
+
+export async function summarizeThread(threadId: string, userId: string): Promise<void> {
+    const firestoreAdmin = getFirestoreAdmin();
+    const historyCollection = firestoreAdmin.collection('history');
+    const threadRef = firestoreAdmin.collection('threads').doc(threadId);
+
+    const snapshot = await historyCollection
+        .where('threadId', '==', threadId)
+        .where('userId', '==', userId)
+        .orderBy('createdAt', 'asc')
+        .get();
+
+    // Only summarize if there are more than 10 messages
+    if (snapshot.docs.length < 10) {
+        return;
+    }
+
+    const chatHistory = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return `${data.role}: ${data.content}`;
+    }).join('\n');
+
+    try {
+        const { summary } = await summarizeLongChat({ chatHistory });
+        if (summary) {
+            await threadRef.update({ summary });
+        }
+    } catch (error) {
+        console.error('Failed to summarize thread:', error);
     }
 }
 

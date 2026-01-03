@@ -24,6 +24,7 @@ export type Thread = {
   userId: string;
   title: string;
   createdAt: Timestamp | Date | string;
+  summary?: string;
 };
 
 export type Memory = {
