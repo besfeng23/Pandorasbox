@@ -18,7 +18,7 @@ import * as Sentry from '@sentry/nextjs';
 import { checkRateLimit } from '@/lib/rate-limit';
 
 const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
+    apiKey: process.env.OPENAI_API_KEY?.trim(),
 });
 
 export async function createThread(userId: string): Promise<string> {

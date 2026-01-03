@@ -11,7 +11,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { textEmbedding3Small } from '@genkit-ai/google-genai';
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_API_KEY?.trim(),
 });
 
 const AnswerLaneInputSchema = z.object({

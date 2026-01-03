@@ -5,7 +5,7 @@ import { z } from 'zod';
 import OpenAI from 'openai';
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_API_KEY?.trim(),
 });
 
 const SuggestFollowUpQuestionsInputSchema = z.object({

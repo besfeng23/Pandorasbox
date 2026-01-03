@@ -5,7 +5,7 @@ import { getFirestoreAdmin } from './firebase-admin';
 import { Timestamp, FieldValue } from 'firebase-admin/firestore';
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_API_KEY?.trim(),
 });
 
 
