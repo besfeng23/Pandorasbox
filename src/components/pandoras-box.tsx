@@ -11,8 +11,7 @@ import {
 } from '@/components/ui/sidebar';
 import { CommandRail } from '@/components/layout/command-rail';
 import { MemoryInspector } from '@/components/layout/memory-inspector';
-import { ChatInput } from './chat/chat-input';
-import { ChatMessages } from './chat/chat-messages';
+import { ChatCanvas } from './canvas/ChatCanvas';
 import { AlertCircle, FileCode, Loader2, MemoryStick, MessageSquare, Plus } from 'lucide-react';
 import type { User } from 'firebase/auth';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -89,7 +88,7 @@ export function PandorasBox({ user }: PandorasBoxProps) {
                 <h1 className="text-lg font-semibold tracking-tight">PandorasBox</h1>
             </header>
             
-            <div className="flex-1 overflow-y-auto relative chat-container">
+            <div className="flex-1 overflow-hidden relative">
                 {isLoading && (
                 <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-sm z-10">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -109,12 +108,14 @@ export function PandorasBox({ user }: PandorasBoxProps) {
                         <p>Your chat history will be saved in threads.</p>
                     </div>
                 ) : (
-                    <ChatMessages messages={messages} thread={thread} userId={user.uid} />
+                    <ChatCanvas 
+                        messages={messages} 
+                        thread={thread} 
+                        userId={user.uid}
+                        onMessageSubmit={handleMessageSubmit}
+                        isSending={isPending}
+                    />
                 )}
-            </div>
-            
-            <div className="w-full p-4 bg-background/80 dark:bg-zinc-950/80 backdrop-blur-md border-t pb-[calc(1rem+env(safe-area-inset-bottom))]">
-                <ChatInput userId={user.uid} onMessageSubmit={handleMessageSubmit} isSending={isPending} />
             </div>
             </SidebarInset>
         </motion.div>
