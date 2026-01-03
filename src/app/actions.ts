@@ -29,43 +29,45 @@ export async function createThread(userId: string): Promise<string> {
     return threadRef.id;
 }
 
-export async function getUserThreads(userId: string): Promise<Thread[]> {
+export async function getUserThreads(userId: string) {
+  try {
+    if (!userId) return [];
+
+    // 1. Try to find threads (Safely)
+    const threadsRef = firestoreAdmin.collection('threads');
+    
+    // 2. Wrap the query in a try/catch to handle "Missing Index" or "Empty Collection"
     try {
-      if (!userId) return [];
-  
-      const threadsRef = firestoreAdmin.collection('threads');
-      
-      try {
-        const snapshot = await threadsRef
-          .where('userId', '==', userId)
-          .orderBy('createdAt', 'desc')
-          .get();
-  
-        if (snapshot.empty) {
-          return [];
-        }
-  
-        // MAP & SERIALIZE: Convert Firestore Docs to Plain JSON
-        return snapshot.docs.map(doc => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            userId: data.userId,
-            title: data.title || 'New Chat',
-            // CRITICAL FIX: Convert Firestore Timestamp to a plain String
-            createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : new Date().toISOString() 
-          } as Thread;
-        });
-  
-      } catch (queryError) {
-        console.warn("Could not fetch threads (likely missing index or collection). Returning empty list.");
-        return []; // <--- SAFETY VALVE: Return empty list instead of crashing
+      const snapshot = await threadsRef
+        .where('userId', '==', userId)
+        .orderBy('createdAt', 'desc') 
+        .get();
+
+      if (snapshot.empty) {
+        return [];
       }
-  
-    } catch (error) {
-      console.error("Fatal error in getUserThreads:", error);
-      return []; // <--- DOUBLE SAFETY: Ensure the UI never crashes
+
+      // MAP & SERIALIZE: Convert Firestore Docs to Plain JSON
+      return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          userId: data.userId,
+          title: data.title || 'New Chat',
+          // CRITICAL FIX: Convert Firestore Timestamp to a plain String
+          createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : new Date().toISOString() 
+        } as Thread;
+      });
+
+    } catch (queryError) {
+      console.warn("Could not fetch threads (likely missing index or collection). Returning empty list.");
+      return []; // <--- SAFETY VALVE: Return empty list instead of crashing
     }
+
+  } catch (error) {
+    console.error("Fatal error in getUserThreads:", error);
+    return []; // <--- DOUBLE SAFETY: Ensure the UI never crashes
+  }
 }
 
 export async function transcribeAndProcessMessage(formData: FormData) {
@@ -432,3 +434,5 @@ export async function generateUserApiKey(userId: string): Promise<{ success: boo
       return { success: false, message: 'Failed to generate API key.' };
     }
 }
+
+    
