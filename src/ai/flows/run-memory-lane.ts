@@ -1,4 +1,3 @@
-
 'use server';
 
 import { ai } from '@/ai/genkit';
@@ -26,8 +25,6 @@ const MemoryLaneOutputSchema = z.object({
   image_description: z.string().optional(),
 });
 
-const firestoreAdmin = getFirestoreAdmin();
-
 export async function runMemoryLane(
   input: z.infer<typeof MemoryLaneInputSchema>
 ): Promise<z.infer<typeof MemoryLaneOutputSchema>> {
@@ -39,6 +36,7 @@ export async function runMemoryLane(
       outputSchema: MemoryLaneOutputSchema,
     },
     async ({ userId, message, imageBase64, source }) => {
+      const firestoreAdmin = getFirestoreAdmin();
       const [settingsDoc, contextDoc] = await Promise.all([
         firestoreAdmin.collection('settings').doc(userId).get(),
         firestoreAdmin.collection('users').doc(userId).collection('state').doc('context').get(),

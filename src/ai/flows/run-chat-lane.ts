@@ -1,4 +1,3 @@
-
 'use server';
 
 import { ai } from '@/ai/genkit';
@@ -17,8 +16,6 @@ const ChatLaneInputSchema = z.object({
   threadId: z.string(), // Added threadId
 });
 
-const firestoreAdmin = getFirestoreAdmin();
-
 export async function runChatLane(
   input: z.infer<typeof ChatLaneInputSchema>
 ): Promise<void> {
@@ -29,6 +26,7 @@ export async function runChatLane(
       outputSchema: z.void(),
     },
     async ({ userId, message, imageBase64, source, threadId }) => {
+      const firestoreAdmin = getFirestoreAdmin();
       // 1. Create a placeholder for the assistant's response in the correct subcollection.
       const assistantRef = firestoreAdmin.collection('history').doc();
       await assistantRef.set({

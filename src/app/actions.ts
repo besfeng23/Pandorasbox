@@ -1,4 +1,3 @@
-
 'use server';
 
 import { getFirestoreAdmin } from '@/lib/firebase-admin';
@@ -18,9 +17,8 @@ const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 });
 
-const firestoreAdmin = getFirestoreAdmin();
-
 export async function createThread(userId: string): Promise<string> {
+    const firestoreAdmin = getFirestoreAdmin();
     const threadRef = firestoreAdmin.collection('threads').doc();
     await threadRef.set({
         id: threadRef.id,
@@ -34,7 +32,7 @@ export async function createThread(userId: string): Promise<string> {
 export async function getUserThreads(userId: string) {
   try {
     if (!userId) return [];
-
+    const firestoreAdmin = getFirestoreAdmin();
     // 1. Try to find threads (Safely)
     const threadsRef = firestoreAdmin.collection('threads');
     
@@ -128,7 +126,8 @@ export async function submitUserMessage(formData: FormData) {
     if ((!messageContent || !messageContent.trim()) && !imageBase64) {
       return;
     }
-
+    
+    const firestoreAdmin = getFirestoreAdmin();
     // If no threadId is provided, create a new thread.
     if (!threadId) {
         threadId = await createThread(userId);
@@ -221,7 +220,7 @@ export async function updateSettings(formData: FormData) {
     if (!userId) {
       return { success: false, message: 'User not authenticated.' };
     }
-
+    const firestoreAdmin = getFirestoreAdmin();
     try {
         await firestoreAdmin.collection('settings').doc(userId).set(settingsData, { merge: true });
         revalidatePath('/settings');
@@ -236,6 +235,7 @@ export async function clearMemory(userId: string) {
     if (!userId) {
         return { success: false, message: 'User not authenticated.' };
     }
+    const firestoreAdmin = getFirestoreAdmin();
     const historyQuery = firestoreAdmin.collection('history').where('userId', '==', userId);
     const memoriesQuery = firestoreAdmin.collection('memories').where('userId', '==', userId);
     const stateCollectionRef = firestoreAdmin.collection('users').doc(userId).collection('state');
@@ -292,6 +292,7 @@ export async function getMemories(userId: string, query?: string) {
       throw new Error('User not authenticated');
     }
   
+    const firestoreAdmin = getFirestoreAdmin();
     const historyCollection = firestoreAdmin.collection('history');
   
     if (query && query.trim()) {
@@ -318,6 +319,7 @@ export async function deleteMemory(id: string, userId: string) {
     if (!userId) {
       return { success: false, message: 'User not authenticated.' };
     }
+    const firestoreAdmin = getFirestoreAdmin();
     try {
       const docRef = firestoreAdmin.collection('history').doc(id);
       // Add a check to ensure user owns the document before deleting
@@ -339,6 +341,7 @@ export async function updateMemory(id: string, newText: string, userId: string) 
     if (!userId) {
         return { success: false, message: 'User not authenticated.' };
     }
+    const firestoreAdmin = getFirestoreAdmin();
     try {
         const docRef = firestoreAdmin.collection('history').doc(id);
         const docSnap = await docRef.get();
@@ -366,7 +369,7 @@ export async function uploadKnowledge(formData: FormData): Promise<{ success: bo
     if (!file || !userId) {
         return { success: false, message: 'File or user ID missing.' };
     }
-
+    const firestoreAdmin = getFirestoreAdmin();
     try {
         let rawContent = '';
         const fileBuffer = Buffer.from(await file.arrayBuffer());
@@ -417,6 +420,7 @@ export async function generateUserApiKey(userId: string): Promise<{ success: boo
       return { success: false, message: 'User not authenticated.' };
     }
   
+    const firestoreAdmin = getFirestoreAdmin();
     try {
       const apiKey = `sk-pandora-${randomBytes(24).toString('hex')}`;
       

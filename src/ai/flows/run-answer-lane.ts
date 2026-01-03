@@ -1,4 +1,3 @@
-
 'use server';
 
 import { ai } from '@/ai/genkit';
@@ -25,9 +24,8 @@ const AnswerLaneOutputSchema = z.object({
   answer: z.string(),
 });
 
-const firestoreAdmin = getFirestoreAdmin();
-
 async function extractAndSaveArtifact(rawResponse: string, userId: string): Promise<{ cleanResponse: string; artifactId?: string }> {
+    const firestoreAdmin = getFirestoreAdmin();
     const artifactRegex = /<artifact\s+title="([^"]+)"\s+type="([^"]+)">([\s\S]*?)<\/artifact>/;
     const match = rawResponse.match(artifactRegex);
   
@@ -65,6 +63,7 @@ export async function runAnswerLane(
       outputSchema: AnswerLaneOutputSchema,
     },
     async ({ userId, message, assistantMessageId, threadId }) => {
+        const firestoreAdmin = getFirestoreAdmin();
         const assistantMessageRef = firestoreAdmin.collection('history').doc(assistantMessageId);
 
         const logProgress = async (step: string) => {

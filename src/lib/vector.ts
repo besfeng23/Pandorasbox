@@ -1,4 +1,3 @@
-
 'server-only';
 
 import OpenAI from 'openai';
@@ -9,7 +8,6 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const firestoreAdmin = getFirestoreAdmin();
 
 /**
  * Generates an embedding for the given text using OpenAI's embedding model.
@@ -45,6 +43,7 @@ export async function searchHistory(
   if (!queryText || !userId) {
     return [];
   }
+  const firestoreAdmin = getFirestoreAdmin();
   const queryEmbedding = await generateEmbedding(queryText);
 
   // CORRECT: Query the root 'history' collection and filter by userId
