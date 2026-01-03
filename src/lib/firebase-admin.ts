@@ -16,19 +16,11 @@ function initializeAdmin() {
     const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
 
     if (serviceAccountKey) {
-      let serviceAccount;
-      try {
-        serviceAccount = JSON.parse(serviceAccountKey);
-      } catch (e) {
-        console.log("Parsing raw JSON failed, attempting to fix newlines...");
-        serviceAccount = JSON.parse(serviceAccountKey.replace(/\\n/g, '\n'));
-      }
-
+      const serviceAccount = JSON.parse(serviceAccountKey);
       console.log("Initializing Firebase Admin with Service Account Key...");
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
       });
-
     } else {
       console.log("No Service Account Key found. Using Application Default Credentials.");
       admin.initializeApp({
