@@ -1,4 +1,3 @@
-
 'use server';
 
 import 'server-only';
@@ -16,7 +15,15 @@ function initializeAdmin() {
     const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
 
     if (serviceAccountKey) {
-      const serviceAccount = JSON.parse(serviceAccountKey);
+      // Handle potential newline escaping issues in the secret
+      let serviceAccount;
+      try {
+        serviceAccount = JSON.parse(serviceAccountKey);
+      } catch (e) {
+        console.log("Parsing JSON key failed, attempting to fix newlines...");
+        serviceAccount = JSON.parse(serviceAccountKey.replace(/\\n/g, '\n'));
+      }
+
       console.log("Initializing Firebase Admin with Service Account Key...");
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),

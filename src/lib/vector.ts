@@ -40,43 +40,48 @@ export async function searchHistory(
   queryText: string,
   userId: string
 ): Promise<{ text: string; id: string; score: number, timestamp: Date }[]> {
-  if (!queryText || !userId) {
-    return [];
-  }
-  const firestoreAdmin = getFirestoreAdmin();
-  const queryEmbedding = await generateEmbedding(queryText);
-
-  // CORRECT: Query the root 'history' collection and filter by userId
-  const historyCollection = firestoreAdmin.collection('history');
-
-  const vectorQuery = historyCollection
-    .where('userId', '==', userId)
-    .findNearest('embedding', queryEmbedding, {
-      limit: 10,
-      distanceMeasure: 'COSINE',
-  });
-
-  const snapshot = await vectorQuery.get();
-
-  return snapshot.docs.map(doc => {
-    const data = doc.data();
-    // The distance is a value between 0 and 2, where 0 is most similar.
-    // We can convert it to a "score" from 0 to 1, where 1 is most similar.
-    const score = 1 - doc.distance; 
-    
-    let timestamp: Date;
-    if (data.createdAt instanceof Timestamp) {
-        timestamp = data.createdAt.toDate();
-    } else {
-        // Fallback for any other format, though less likely with Firestore Admin SDK
-        timestamp = new Date(data.createdAt);
+    if (!queryText || !userId) {
+        return [];
     }
-    
-    return {
-      text: data.content,
-      id: doc.id,
-      score: score,
-      timestamp: timestamp,
-    };
-  });
+    const firestoreAdmin = getFirestoreAdmin();
+    try {
+        const queryEmbedding = await generateEmbedding(queryText);
+
+        // CORRECT: Query the root 'history' collection and filter by userId
+        const historyCollection = firestoreAdmin.collection('history');
+      
+        const vectorQuery = historyCollection
+          .where('userId', '==', userId)
+          .findNearest('embedding', queryEmbedding, {
+            limit: 10,
+            distanceMeasure: 'COSINE',
+        });
+      
+        const snapshot = await vectorQuery.get();
+      
+        return snapshot.docs.map(doc => {
+          const data = doc.data();
+          // The distance is a value between 0 and 2, where 0 is most similar.
+          // We can convert it to a "score" from 0 to 1, where 1 is most similar.
+          const score = 1 - doc.distance; 
+          
+          let timestamp: Date;
+          if (data.createdAt instanceof Timestamp) {
+              timestamp = data.createdAt.toDate();
+          } else {
+              // Fallback for any other format, though less likely with Firestore Admin SDK
+              timestamp = new Date(data.createdAt);
+          }
+          
+          return {
+            text: data.content,
+            id: doc.id,
+            score: score,
+            timestamp: timestamp,
+          };
+        });
+    } catch (error) {
+        console.warn(`Vector search failed for user ${userId}. This might be because the vector index is still building.`, error);
+        return [];
+    }
 }
