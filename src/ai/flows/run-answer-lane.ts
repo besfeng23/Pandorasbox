@@ -8,8 +8,8 @@ import { Artifact } from '@/lib/types';
 import { generateEmbedding } from '@/lib/vector';
 import OpenAI from 'openai';
 import { FieldValue } from 'firebase-admin/firestore';
-import { defineFirestoreRetriever } from '@genkit-ai/firebase';
-import { retrieve } from 'genkit/ai';
+import { defineFirestoreRetriever } from '@genkit-ai/firebase/retriever';
+import { retrieve } from 'genkit/ai/retriever';
 import { textEmbedding3Small } from '@genkit-ai/google-genai';
 
 const openai = new OpenAI({
