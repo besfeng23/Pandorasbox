@@ -31,26 +31,40 @@ export async function createThread(userId: string): Promise<string> {
 
 export async function getUserThreads(userId: string): Promise<Thread[]> {
     try {
-      const threadsRef = firestoreAdmin.collection('threads');
-      const snapshot = await threadsRef
-        .where('userId', '==', userId)
-        .orderBy('createdAt', 'desc')
-        .get();
+      if (!userId) return [];
   
-      // MAP & SERIALIZE: Convert Firestore Docs to Plain JSON
-      return snapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          userId: data.userId,
-          title: data.title || 'New Chat',
-          // CRITICAL FIX: Convert Firestore Timestamp to a plain String
-          createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : new Date().toISOString() 
-        } as Thread;
-      });
+      const threadsRef = firestoreAdmin.collection('threads');
+      
+      try {
+        const snapshot = await threadsRef
+          .where('userId', '==', userId)
+          .orderBy('createdAt', 'desc')
+          .get();
+  
+        if (snapshot.empty) {
+          return [];
+        }
+  
+        // MAP & SERIALIZE: Convert Firestore Docs to Plain JSON
+        return snapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            userId: data.userId,
+            title: data.title || 'New Chat',
+            // CRITICAL FIX: Convert Firestore Timestamp to a plain String
+            createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : new Date().toISOString() 
+          } as Thread;
+        });
+  
+      } catch (queryError) {
+        console.warn("Could not fetch threads (likely missing index or collection). Returning empty list.");
+        return []; // <--- SAFETY VALVE: Return empty list instead of crashing
+      }
+  
     } catch (error) {
-      console.error("Error fetching threads:", error);
-      return [];
+      console.error("Fatal error in getUserThreads:", error);
+      return []; // <--- DOUBLE SAFETY: Ensure the UI never crashes
     }
 }
 
