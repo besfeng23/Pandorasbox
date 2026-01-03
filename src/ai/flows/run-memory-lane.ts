@@ -2,7 +2,7 @@
 'use server';
 
 import { ai } from '@/ai/genkit';
-import { firestoreAdmin } from '@/lib/firebase-admin';
+import { getFirestoreAdmin } from '@/lib/firebase-admin';
 import { z } from 'zod';
 import { generateEmbedding } from '@/lib/vector';
 import OpenAI from 'openai';
@@ -26,6 +26,7 @@ const MemoryLaneOutputSchema = z.object({
   image_description: z.string().optional(),
 });
 
+const firestoreAdmin = getFirestoreAdmin();
 
 export async function runMemoryLane(
   input: z.infer<typeof MemoryLaneInputSchema>

@@ -2,12 +2,14 @@
 'server-only';
 
 import OpenAI from 'openai';
-import { firestoreAdmin } from './firebase-admin';
+import { getFirestoreAdmin } from './firebase-admin';
 import { Timestamp, FieldValue } from 'firebase-admin/firestore';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
+
+const firestoreAdmin = getFirestoreAdmin();
 
 /**
  * Generates an embedding for the given text using OpenAI's embedding model.

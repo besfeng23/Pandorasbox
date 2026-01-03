@@ -2,7 +2,7 @@
 'use server';
 
 import { ai } from '@/ai/genkit';
-import { firestoreAdmin } from '@/lib/firebase-admin';
+import { getFirestoreAdmin } from '@/lib/firebase-admin';
 import { z } from 'zod';
 import { runMemoryLane } from './run-memory-lane';
 import { runAnswerLane } from './run-answer-lane';
@@ -16,6 +16,8 @@ const ChatLaneInputSchema = z.object({
   source: z.string(),
   threadId: z.string(), // Added threadId
 });
+
+const firestoreAdmin = getFirestoreAdmin();
 
 export async function runChatLane(
   input: z.infer<typeof ChatLaneInputSchema>

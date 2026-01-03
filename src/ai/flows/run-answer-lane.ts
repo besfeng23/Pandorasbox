@@ -2,7 +2,7 @@
 'use server';
 
 import { ai } from '@/ai/genkit';
-import { firestoreAdmin } from '@/lib/firebase-admin';
+import { getFirestoreAdmin } from '@/lib/firebase-admin';
 import { searchHistory } from '@/lib/vector';
 import { z } from 'zod';
 import { Artifact } from '@/lib/types';
@@ -24,6 +24,8 @@ const AnswerLaneInputSchema = z.object({
 const AnswerLaneOutputSchema = z.object({
   answer: z.string(),
 });
+
+const firestoreAdmin = getFirestoreAdmin();
 
 async function extractAndSaveArtifact(rawResponse: string, userId: string): Promise<{ cleanResponse: string; artifactId?: string }> {
     const artifactRegex = /<artifact\s+title="([^"]+)"\s+type="([^"]+)">([\s\S]*?)<\/artifact>/;

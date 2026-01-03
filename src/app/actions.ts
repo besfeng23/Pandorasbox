@@ -1,7 +1,7 @@
 
 'use server';
 
-import { firestoreAdmin } from '@/lib/firebase-admin';
+import { getFirestoreAdmin } from '@/lib/firebase-admin';
 import { revalidatePath } from 'next/cache';
 import { runChatLane } from '@/ai/flows/run-chat-lane';
 import { generateEmbedding, searchHistory } from '@/lib/vector';
@@ -17,6 +17,8 @@ import { randomBytes } from 'crypto';
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 });
+
+const firestoreAdmin = getFirestoreAdmin();
 
 export async function createThread(userId: string): Promise<string> {
     const threadRef = firestoreAdmin.collection('threads').doc();
@@ -184,7 +186,6 @@ export async function submitUserMessage(formData: FormData) {
           threadId,
       });
       
-      revalidatePath('/');
   
       return { messageId: userMessageId, threadId: threadId };
   
@@ -277,7 +278,6 @@ export async function clearMemory(userId: string) {
         });
         await threadsBatch.commit();
 
-        revalidatePath('/');
         revalidatePath('/settings');
         return { success: true, message: 'Memory cleared successfully.' };
     } catch (error) {
@@ -327,7 +327,6 @@ export async function deleteMemory(id: string, userId: string) {
       }
       await docRef.delete();
       revalidatePath('/settings');
-      revalidatePath('/');
       return { success: true };
     } catch (error) {
       console.error('Error deleting memory:', error);
@@ -353,7 +352,6 @@ export async function updateMemory(id: string, newText: string, userId: string) 
             editedAt: FieldValue.serverTimestamp(),
         });
         revalidatePath('/settings');
-        revalidatePath('/');
         return { success: true };
     } catch (error) {
         console.error('Error updating memory:', error);
@@ -406,7 +404,6 @@ export async function uploadKnowledge(formData: FormData): Promise<{ success: bo
         await batch.commit();
 
         revalidatePath('/settings');
-        revalidatePath('/');
 
         return { success: true, message: `Successfully indexed ${file.name}.`, chunks: chunks.length };
     } catch (error) {
