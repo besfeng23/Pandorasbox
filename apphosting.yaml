@@ -46,27 +46,22 @@ env:
       - BUILD
       - RUNTIME
 
-  # API Keys - Use Cloud Secret Manager for secrets
+  # API Keys - Using Cloud Secret Manager
   # See https://firebase.google.com/docs/app-hosting/configure#secret-parameters
-  # To set up secrets:
-  # 1. Create secrets in Google Cloud Secret Manager
-  # 2. Grant the App Hosting service account access to the secrets
-  # 3. Uncomment and update the secret references below:
-  #
-  # - variable: OPENAI_API_KEY
-  #   secret: openai-api-key  # Secret name in Secret Manager
-  #   availability:
-  #     - RUNTIME
-  #
-  # - variable: GEMINI_API_KEY
-  #   secret: gemini-api-key  # Secret name in Secret Manager
-  #   availability:
-  #     - RUNTIME
-  #
-  # - variable: MEMORY_API_KEY
-  #   secret: memory-api-key  # Secret name in Secret Manager
-  #   availability:
-  #     - RUNTIME
+  - variable: OPENAI_API_KEY
+    secret: openai-api-key
+    availability:
+      - RUNTIME
+  
+  - variable: GEMINI_API_KEY
+    secret: gemini-api-key
+    availability:
+      - RUNTIME
+  
+  - variable: MEMORY_API_KEY
+    secret: memory-api-key
+    availability:
+      - RUNTIME
 
   # Sentry (optional - add when configured)
   # - variable: NEXT_PUBLIC_SENTRY_DSN
