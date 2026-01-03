@@ -1,13 +1,16 @@
+
 'use server';
 
 import { ai } from '@/ai/genkit';
 import { getFirestoreAdmin } from '@/lib/firebase-admin';
-import { searchHistory } from '@/lib/vector';
 import { z } from 'zod';
 import { Artifact } from '@/lib/types';
 import { generateEmbedding } from '@/lib/vector';
 import OpenAI from 'openai';
 import { FieldValue } from 'firebase-admin/firestore';
+import { defineFirestoreRetriever } from '@genkit-ai/firebase';
+import { retrieve } from 'genkit/ai';
+import { textEmbedding3Small } from '@genkit-ai/google-genai';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -23,6 +26,18 @@ const AnswerLaneInputSchema = z.object({
 const AnswerLaneOutputSchema = z.object({
   answer: z.string(),
 });
+
+// 1. Define the Retriever (The "Searcher")
+const historyRetriever = defineFirestoreRetriever({
+  name: 'historyRetriever',
+  firestore: getFirestoreAdmin(),
+  collection: 'history',
+  contentField: 'content',      // The text field in your 'history' documents
+  vectorField: 'embedding',  // The vector field
+  embedder: textEmbedding3Small,
+  distanceMeasure: 'COSINE',
+});
+
 
 async function extractAndSaveArtifact(rawResponse: string, userId: string): Promise<{ cleanResponse: string; artifactId?: string }> {
     const firestoreAdmin = getFirestoreAdmin();
@@ -98,13 +113,20 @@ export async function runAnswerLane(
                 })
                 .join('\n');
 
-            // --- LONG-TERM MEMORY: Vector Search ---
+            // --- LONG-TERM MEMORY: Vector Search using the Genkit Retriever ---
             await logProgress('Searching memory...');
-            const searchResults = await searchHistory(message, userId);
-            await logProgress(`Found ${searchResults.length} relevant memories.`);
+            const docs = await retrieve({
+                retriever: historyRetriever,
+                query: message,
+                options: { 
+                    limit: 5,
+                    where: [['userId', '==', userId]]
+                }
+            });
+            await logProgress(`Found ${docs.length} relevant memories.`);
             
-            const retrievedHistory = searchResults.length > 0 
-              ? searchResults.map(r => `- [ID: ${r.id}] ${r.text}`).join('\n')
+            const retrievedHistory = docs.length > 0 
+              ? docs.map(d => `- ${d.content[0].text}`).join("\n")
               : "No relevant history found.";
             
             // --- PROMPT CONSTRUCTION ---
@@ -125,7 +147,6 @@ Based on ALL the context above, answer the User's last message. If the answer is
                 model: settings.active_model as any,
                 messages: [
                     { role: 'system', content: finalSystemPrompt },
-                    // The user's last message is already in the 'recentHistory'
                     { role: 'user', content: message } 
                 ],
             });
