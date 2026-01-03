@@ -101,21 +101,13 @@ export function PandorasBox({ user }: PandorasBoxProps) {
                 </div>
                 )}
 
-                {!currentThreadId && !isLoading ? (
-                    <div className="flex h-full flex-col items-center justify-center text-muted-foreground">
-                        <MessageSquare className="h-12 w-12 mb-4" strokeWidth={1.5}/>
-                        <h2 className="text-xl font-semibold">Start a new conversation</h2>
-                        <p>Your chat history will be saved in threads.</p>
-                    </div>
-                ) : (
-                    <ChatCanvas 
-                        messages={messages} 
-                        thread={thread} 
-                        userId={user.uid}
-                        onMessageSubmit={handleMessageSubmit}
-                        isSending={isPending}
-                    />
-                )}
+                <ChatCanvas 
+                    messages={messages} 
+                    thread={thread} 
+                    userId={user.uid}
+                    onMessageSubmit={handleMessageSubmit}
+                    isSending={isPending}
+                />
             </div>
             </SidebarInset>
         </motion.div>
