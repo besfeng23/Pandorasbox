@@ -130,8 +130,8 @@ export function Message({ message }: MessageProps) {
         className={cn(
           'p-3 rounded-lg flex flex-col relative',
           isUser
-            ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50'
-            : 'bg-transparent'
+            ? 'bg-primary text-primary-foreground'
+            : 'bg-muted'
         )}
       >
         <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
