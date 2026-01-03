@@ -31,7 +31,7 @@ import { useUser } from '@/firebase';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MemoryTable } from '@/components/settings/memory-table';
 import { KnowledgeUpload } from '@/components/settings/knowledge-upload';
-import { Input } from '../ui/input';
+import { Input } from '@/components/ui/input';
 
 
 const settingsSchema = z.object({
