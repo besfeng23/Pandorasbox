@@ -8,8 +8,6 @@ import { Artifact } from '@/lib/types';
 import { generateEmbedding } from '@/lib/vector';
 import OpenAI from 'openai';
 import { FieldValue } from 'firebase-admin/firestore';
-import { defineFirestoreRetriever } from '@genkit-ai/firebase/retriever';
-import { retrieve } from 'genkit/ai/retriever';
 import { textEmbedding3Small } from '@genkit-ai/google-genai';
 
 const openai = new OpenAI({
@@ -26,18 +24,6 @@ const AnswerLaneInputSchema = z.object({
 const AnswerLaneOutputSchema = z.object({
   answer: z.string(),
 });
-
-// 1. Define the Retriever (The "Searcher")
-const historyRetriever = defineFirestoreRetriever({
-  name: 'historyRetriever',
-  firestore: getFirestoreAdmin(),
-  collection: 'history',
-  contentField: 'content',      // The text field in your 'history' documents
-  vectorField: 'embedding',  // The vector field
-  embedder: textEmbedding3Small,
-  distanceMeasure: 'COSINE',
-});
-
 
 async function extractAndSaveArtifact(rawResponse: string, userId: string): Promise<{ cleanResponse: string; artifactId?: string }> {
     const firestoreAdmin = getFirestoreAdmin();
@@ -113,20 +99,23 @@ export async function runAnswerLane(
                 })
                 .join('\n');
 
-            // --- LONG-TERM MEMORY: Vector Search using the Genkit Retriever ---
+            // --- LONG-TERM MEMORY: Vector Search using Firestore Admin SDK ---
             await logProgress('Searching memory...');
-            const docs = await retrieve({
-                retriever: historyRetriever,
-                query: message,
-                options: { 
+            const queryEmbedding = await generateEmbedding(message);
+            const historyCollection = firestoreAdmin.collection('history');
+            const vectorQuery = historyCollection
+                .where('userId', '==', userId)
+                .findNearest('embedding', queryEmbedding, {
                     limit: 5,
-                    where: [['userId', '==', userId]]
-                }
-            });
+                    distanceMeasure: 'COSINE'
+                });
+            const relevantDocsSnapshot = await vectorQuery.get();
+            const docs = relevantDocsSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id, distance: doc.distance }));
+
             await logProgress(`Found ${docs.length} relevant memories.`);
             
             const retrievedHistory = docs.length > 0 
-              ? docs.map(d => `- ${d.content[0].text}`).join("\n")
+              ? docs.map(d => `- ${d.content}`).join("\n")
               : "No relevant history found.";
             
             // --- PROMPT CONSTRUCTION ---
