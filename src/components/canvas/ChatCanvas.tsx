@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useEffect, useRef } from 'react';
+import React, { useMemo, useEffect, useRef, useCallback } from 'react';
 import ReactFlow, {
   Node,
   Edge,
@@ -29,6 +29,10 @@ interface ChatCanvasProps {
 
 const nodeWidth = 400;
 const nodeHeight = 200;
+
+// Stable edge style references
+const USER_EDGE_STYLE = { stroke: '#a855f7', strokeWidth: 2 };
+const ASSISTANT_EDGE_STYLE = { stroke: '#06b6d4', strokeWidth: 2 };
 
 // Convert linear messages array to ReactFlow nodes and edges with dagre layout
 function convertMessagesToFlow(messages: Message[]): { nodes: Node[]; edges: Edge[] } {
@@ -60,10 +64,7 @@ function convertMessagesToFlow(messages: Message[]): { nodes: Node[]; edges: Edg
         target: nodeId,
         type: 'smoothstep',
         animated: true,
-        style: { 
-          stroke: message.role === 'user' ? '#a855f7' : '#06b6d4',
-          strokeWidth: 2,
-        },
+        style: message.role === 'user' ? USER_EDGE_STYLE : ASSISTANT_EDGE_STYLE,
       });
     }
   });
@@ -110,15 +111,27 @@ function ChatCanvasInner({
   onMessageSubmit, 
   isSending 
 }: ChatCanvasProps) {
-  const { nodes, edges } = useMemo(() => convertMessagesToFlow(messages), [messages]);
+  // Memoize nodes/edges conversion - use message IDs as dependency for stability
+  const messagesKey = useMemo(() => messages.map(m => m.id).join(','), [messages]);
+  const { nodes, edges } = useMemo(
+    () => convertMessagesToFlow(messages),
+    [messagesKey]
+  );
+
   const { fitView } = useReactFlow();
   const hasScrolledToLatest = useRef(false);
+  const fitViewTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Scroll to latest message when messages change
-  useEffect(() => {
-    if (nodes.length > 0) {
+  // Memoized fitView callback
+  const scrollToLatest = useCallback(() => {
+    if (nodes.length > 0 && !hasScrolledToLatest.current) {
+      // Clear any pending fitView calls
+      if (fitViewTimeoutRef.current) {
+        clearTimeout(fitViewTimeoutRef.current);
+      }
+      
       // Small delay to ensure nodes are rendered
-      setTimeout(() => {
+      fitViewTimeoutRef.current = setTimeout(() => {
         const latestNode = nodes[nodes.length - 1];
         if (latestNode) {
           fitView({ 
@@ -128,16 +141,37 @@ function ChatCanvasInner({
           });
         }
         hasScrolledToLatest.current = true;
-      }, 100);
+      }, 150);
     }
-  }, [nodes.length, fitView, nodes]);
+  }, [nodes, fitView]);
+
+  // Scroll to latest message when messages change
+  useEffect(() => {
+    scrollToLatest();
+    return () => {
+      if (fitViewTimeoutRef.current) {
+        clearTimeout(fitViewTimeoutRef.current);
+      }
+    };
+  }, [scrollToLatest]);
 
   // Reset scroll flag when thread changes
   useEffect(() => {
     hasScrolledToLatest.current = false;
+    if (fitViewTimeoutRef.current) {
+      clearTimeout(fitViewTimeoutRef.current);
+    }
   }, [thread?.id]);
 
-  const hasSummary = thread?.summary && thread.summary.length > 0;
+  const hasSummary = useMemo(
+    () => thread?.summary && thread.summary.length > 0,
+    [thread?.summary]
+  );
+
+  // Memoize MiniMap nodeColor function
+  const getNodeColor = useCallback((node: Node) => {
+    return node.type === 'user' ? '#a855f7' : '#06b6d4';
+  }, []);
 
   return (
     <div className="relative w-full h-full bg-[#0A0A0A]">
@@ -172,7 +206,6 @@ function ChatCanvasInner({
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
-        fitView
         minZoom={0.1}
         maxZoom={2}
         defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
@@ -181,6 +214,10 @@ function ChatCanvasInner({
         nodesDraggable={true}
         nodesConnectable={false}
         selectNodesOnDrag={false}
+        nodesFocusable={false}
+        edgesFocusable={false}
+        onlyRenderVisibleElements={true}
+        proOptions={{ hideAttribution: true }}
       >
         <Background 
           color="rgba(147, 197, 253, 0.05)" 
@@ -193,9 +230,7 @@ function ChatCanvasInner({
         />
         <MiniMap 
           className="bg-black/60 backdrop-blur-md border border-cyan-500/30 rounded-lg"
-          nodeColor={(node) => {
-            return node.type === 'user' ? '#a855f7' : '#06b6d4';
-          }}
+          nodeColor={getNodeColor}
           maskColor="rgba(0, 0, 0, 0.6)"
         />
         

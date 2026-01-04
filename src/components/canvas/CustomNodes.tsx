@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { Message as MessageType } from '@/lib/types';
 import { formatTime } from '@/lib/utils';
@@ -15,7 +15,7 @@ interface CustomNodeData {
 }
 
 // User Node - Purple borders, glassmorphism
-export function UserNode({ data }: NodeProps<CustomNodeData>) {
+const UserNode = React.memo(function UserNode({ data }: NodeProps<CustomNodeData>) {
   const { message } = data;
   const timestamp = formatTime(message.createdAt);
 
@@ -51,18 +51,18 @@ export function UserNode({ data }: NodeProps<CustomNodeData>) {
       <Handle type="source" position={Position.Bottom} className="!bg-purple-500" />
     </div>
   );
-}
+});
 
 // Assistant Node - Cyan borders, larger, supports markdown
-export function AssistantNode({ data }: NodeProps<CustomNodeData>) {
+const ARTIFACT_REGEX = /\[Artifact Created: (.*?)\]/g;
+
+const AssistantNode = React.memo(function AssistantNode({ data }: NodeProps<CustomNodeData>) {
   const { message } = data;
   const timestamp = formatTime(message.createdAt);
   const isProcessing = message.status === 'processing';
-
-  const artifactRegex = /\[Artifact Created: (.*?)\]/g;
   
-  const renderContent = (content: string) => {
-    const parts = content.split(artifactRegex);
+  const renderContent = useMemo(() => {
+    const parts = message.content.split(ARTIFACT_REGEX);
     return parts.map((part, index) => {
       if (index % 2 === 1) {
         return (
@@ -76,7 +76,7 @@ export function AssistantNode({ data }: NodeProps<CustomNodeData>) {
       }
       return <ReactMarkdown key={index} remarkPlugins={[remarkGfm]} className="prose prose-sm prose-invert max-w-none">{part}</ReactMarkdown>;
     });
-  };
+  }, [message.content]);
 
   return (
     <div className={cn(
@@ -97,7 +97,7 @@ export function AssistantNode({ data }: NodeProps<CustomNodeData>) {
         <ThinkingIndicator logs={message.progress_log || []} />
       ) : (
         <article className="prose prose-sm prose-invert max-w-none text-white/90">
-          {renderContent(message.content)}
+          {renderContent}
         </article>
       )}
       
@@ -114,11 +114,11 @@ export function AssistantNode({ data }: NodeProps<CustomNodeData>) {
       <Handle type="source" position={Position.Bottom} className="!bg-cyan-500" />
     </div>
   );
-}
+});
 
-// Node types mapping for ReactFlow
+// Node types mapping for ReactFlow (stable reference)
 export const nodeTypes = {
   user: UserNode,
   assistant: AssistantNode,
-};
+} as const;
 
