@@ -15,6 +15,16 @@ export default {
         code: ['"JetBrains Mono"', 'monospace'],
       },
       colors: {
+        // Digital Void Theme
+        void: '#02040A',
+        glass: 'rgba(255, 255, 255, 0.05)',
+        'neon-cyan': '#00E5FF',
+        'neon-purple': '#6200EA',
+        'neon-purple-light': '#7C3AED',
+        'void-blue': '#0A0E27',
+        'void-dark': '#010203',
+        
+        // Existing shadcn colors (kept for compatibility)
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
         card: {
@@ -62,6 +72,19 @@ export default {
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
       },
+      backgroundImage: {
+        'void-gradient': 'linear-gradient(135deg, #02040A 0%, #0A0E27 50%, #02040A 100%)',
+        'void-radial': 'radial-gradient(ellipse at center, #0A0E27 0%, #02040A 100%)',
+        'neon-glow-cyan': 'linear-gradient(135deg, rgba(0, 229, 255, 0.1) 0%, rgba(0, 229, 255, 0) 100%)',
+        'neon-glow-purple': 'linear-gradient(135deg, rgba(98, 0, 234, 0.1) 0%, rgba(98, 0, 234, 0) 100%)',
+      },
+      boxShadow: {
+        'neon-cyan': '0 0 20px rgba(0, 229, 255, 0.3), 0 0 40px rgba(0, 229, 255, 0.1)',
+        'neon-purple': '0 0 20px rgba(98, 0, 234, 0.3), 0 0 40px rgba(98, 0, 234, 0.1)',
+        'neon-cyan-sm': '0 0 10px rgba(0, 229, 255, 0.2)',
+        'neon-purple-sm': '0 0 10px rgba(98, 0, 234, 0.2)',
+        'glass': '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
+      },
       keyframes: {
         'accordion-down': {
           from: {
@@ -79,10 +102,57 @@ export default {
             height: '0',
           },
         },
+        'pulse-slow': {
+          '0%, 100%': {
+            opacity: '1',
+          },
+          '50%': {
+            opacity: '0.6',
+          },
+        },
+        'slide-up': {
+          from: {
+            opacity: '0',
+            transform: 'translateY(10px)',
+          },
+          to: {
+            opacity: '1',
+            transform: 'translateY(0)',
+          },
+        },
+        'fade-in': {
+          from: {
+            opacity: '0',
+          },
+          to: {
+            opacity: '1',
+          },
+        },
+        'glow-cyan': {
+          '0%, 100%': {
+            boxShadow: '0 0 20px rgba(0, 229, 255, 0.3), 0 0 40px rgba(0, 229, 255, 0.1)',
+          },
+          '50%': {
+            boxShadow: '0 0 30px rgba(0, 229, 255, 0.5), 0 0 60px rgba(0, 229, 255, 0.2)',
+          },
+        },
+        'glow-purple': {
+          '0%, 100%': {
+            boxShadow: '0 0 20px rgba(98, 0, 234, 0.3), 0 0 40px rgba(98, 0, 234, 0.1)',
+          },
+          '50%': {
+            boxShadow: '0 0 30px rgba(98, 0, 234, 0.5), 0 0 60px rgba(98, 0, 234, 0.2)',
+          },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'pulse-slow': 'pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'slide-up': 'slide-up 0.3s ease-out',
+        'fade-in': 'fade-in 0.3s ease-out',
+        'glow-cyan': 'glow-cyan 2s ease-in-out infinite',
+        'glow-purple': 'glow-purple 2s ease-in-out infinite',
       },
     },
   },

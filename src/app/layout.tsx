@@ -5,21 +5,43 @@ import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { CommandMenu } from '@/components/command-menu';
 
 export const metadata: Metadata = {
-  title: 'PandorasBox',
-  description: 'An AI-powered chat application with persistent memory.',
+  title: 'PandorasBox - AI-Powered Memory',
+  description: 'An AI-powered chat application with persistent long-term memory. Digital Void interface.',
   manifest: "/manifest.json",
+  keywords: ['AI', 'Chat', 'Memory', 'PandorasBox'],
+  authors: [{ name: 'PandorasBox Team' }],
+  creator: 'PandorasBox',
+  publisher: 'PandorasBox',
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
     title: "Pandora",
   },
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    title: 'PandorasBox',
+    description: 'AI-powered chat with persistent memory',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'PandorasBox',
+    description: 'AI-powered chat with persistent memory',
+  },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#09090B",
+  themeColor: "#02040A",
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({
@@ -28,14 +50,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark" style={{ height: '100%' }}>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
-      <body className="font-body antialiased">
+      <body className="font-body antialiased" style={{ height: '100%', overflow: 'hidden' }}>
         <FirebaseClientProvider>
           {children}
           <CommandMenu />

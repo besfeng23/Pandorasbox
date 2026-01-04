@@ -58,8 +58,8 @@ export function PandorasBox({ user }: PandorasBoxProps) {
 
   return (
     <SidebarProvider>
-      <div className="h-screen w-full flex overflow-hidden bg-background text-foreground font-body antialiased">
-        <Sidebar collapsible="icon" className="bg-surface/50 dark:bg-card">
+      <div className="h-screen w-full flex overflow-hidden bg-void text-foreground font-body antialiased">
+        <Sidebar collapsible="icon" variant="floating" className="glass-panel-strong border-r border-white/10">
           <CommandRail />
         </Sidebar>
 

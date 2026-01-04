@@ -14,41 +14,47 @@ interface CustomNodeData {
   message: MessageType;
 }
 
-// User Node - Purple borders, glassmorphism
+// User Node - Gradient style (Digital Void theme)
 const UserNode = React.memo(function UserNode({ data }: NodeProps<CustomNodeData>) {
   const { message } = data;
   const timestamp = formatTime(message.createdAt);
 
   return (
-    <div className="px-4 py-3 min-w-[200px] max-w-[400px] rounded-xl bg-black/40 backdrop-blur-md border-2 border-purple-500/50 shadow-lg shadow-purple-500/20">
-      <Handle type="target" position={Position.Top} className="!bg-purple-500" />
+    <div className="px-4 py-3 min-w-[200px] max-w-[400px] rounded-xl border-glow-purple relative overflow-hidden">
+      {/* Gradient Background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-neon-purple/20 via-neon-purple-light/10 to-transparent opacity-60" />
+      <div className="absolute inset-0 glass-panel" />
       
-      <div className="flex items-center gap-2 mb-2">
-        <div className="h-6 w-6 rounded-full bg-purple-500/20 flex items-center justify-center border border-purple-500/50">
-          <User className="h-3.5 w-3.5 text-purple-400" strokeWidth={2} />
+      <div className="relative z-10">
+        <Handle type="target" position={Position.Top} className="!bg-neon-purple !w-2 !h-2" />
+        
+        <div className="flex items-center gap-2 mb-2">
+          <div className="h-6 w-6 rounded-full bg-gradient-to-br from-neon-purple to-neon-purple-light flex items-center justify-center border border-neon-purple/50 shadow-neon-purple-sm">
+            <User className="h-3.5 w-3.5 text-white" strokeWidth={2} />
+          </div>
+          <span className="text-xs font-semibold neon-text-purple">You</span>
+          {message.source === 'voice' && (
+            <Mic className="h-3 w-3 text-neon-purple/70" strokeWidth={2} />
+          )}
+          <span className="text-xs text-white/50 ml-auto">{timestamp}</span>
         </div>
-        <span className="text-xs font-semibold text-purple-300">You</span>
-        {message.source === 'voice' && (
-          <Mic className="h-3 w-3 text-purple-400/70" strokeWidth={2} />
+        
+        <p className="text-sm text-white/95 leading-relaxed whitespace-pre-wrap">
+          {message.content}
+        </p>
+        
+        {message.imageUrl && (
+          <div className="mt-2 rounded-lg overflow-hidden border border-neon-purple/30">
+            <img 
+              src={message.imageUrl} 
+              alt="Uploaded content" 
+              className="w-full h-auto"
+            />
+          </div>
         )}
-        <span className="text-xs text-purple-400/60 ml-auto">{timestamp}</span>
+        
+        <Handle type="source" position={Position.Bottom} className="!bg-neon-purple !w-2 !h-2" />
       </div>
-      
-      <p className="text-sm text-white/90 leading-relaxed whitespace-pre-wrap">
-        {message.content}
-      </p>
-      
-      {message.imageUrl && (
-        <div className="mt-2 rounded-lg overflow-hidden border border-purple-500/30">
-          <img 
-            src={message.imageUrl} 
-            alt="Uploaded content" 
-            className="w-full h-auto"
-          />
-        </div>
-      )}
-      
-      <Handle type="source" position={Position.Bottom} className="!bg-purple-500" />
     </div>
   );
 });
@@ -80,18 +86,21 @@ const AssistantNode = React.memo(function AssistantNode({ data }: NodeProps<Cust
 
   return (
     <div className={cn(
-      "px-5 py-4 min-w-[300px] max-w-[600px] rounded-xl bg-black/40 backdrop-blur-md border-2 shadow-lg",
-      "border-cyan-500/50 shadow-cyan-500/20"
+      "px-5 py-4 min-w-[300px] max-w-[600px] rounded-xl border-glow-cyan relative overflow-hidden"
     )}>
-      <Handle type="target" position={Position.Top} className="!bg-cyan-500" />
+      {/* Glass Background */}
+      <div className="absolute inset-0 glass-panel-strong" />
       
-      <div className="flex items-center gap-2 mb-3">
-        <div className="h-7 w-7 rounded-full bg-cyan-500/20 flex items-center justify-center border border-cyan-500/50">
-          <BrainCircuit className="h-4 w-4 text-cyan-400" strokeWidth={2} />
+      <div className="relative z-10">
+        <Handle type="target" position={Position.Top} className="!bg-neon-cyan !w-2 !h-2" />
+        
+        <div className="flex items-center gap-2 mb-3">
+          <div className="h-7 w-7 rounded-full glass-panel border border-neon-cyan/50 flex items-center justify-center shadow-neon-cyan-sm">
+            <BrainCircuit className="h-4 w-4 neon-text-cyan" strokeWidth={2} />
+          </div>
+          <span className="text-sm font-semibold neon-text-cyan">Pandora</span>
+          <span className="text-xs text-white/50 ml-auto">{timestamp}</span>
         </div>
-        <span className="text-sm font-semibold text-cyan-300">Pandora</span>
-        <span className="text-xs text-cyan-400/60 ml-auto">{timestamp}</span>
-      </div>
       
       {isProcessing ? (
         <ThinkingIndicator logs={message.progress_log || []} />
@@ -102,7 +111,7 @@ const AssistantNode = React.memo(function AssistantNode({ data }: NodeProps<Cust
       )}
       
       {message.imageUrl && (
-        <div className="mt-3 rounded-lg overflow-hidden border border-cyan-500/30">
+        <div className="mt-3 rounded-lg overflow-hidden border border-neon-cyan/30">
           <img 
             src={message.imageUrl} 
             alt="Response image" 
@@ -111,7 +120,8 @@ const AssistantNode = React.memo(function AssistantNode({ data }: NodeProps<Cust
         </div>
       )}
       
-      <Handle type="source" position={Position.Bottom} className="!bg-cyan-500" />
+      <Handle type="source" position={Position.Bottom} className="!bg-neon-cyan !w-2 !h-2" />
+      </div>
     </div>
   );
 });

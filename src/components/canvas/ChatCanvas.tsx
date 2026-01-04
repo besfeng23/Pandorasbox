@@ -170,16 +170,16 @@ function ChatCanvasInner({
 
   // Memoize MiniMap nodeColor function
   const getNodeColor = useCallback((node: Node) => {
-    return node.type === 'user' ? '#a855f7' : '#06b6d4';
+    return node.type === 'user' ? '#7C3AED' : '#00E5FF';
   }, []);
 
   return (
-    <div className="relative w-full h-full bg-[#0A0A0A]">
-      {/* Dot pattern background */}
+    <div className="relative w-full h-full bg-void">
+      {/* Digital Void background pattern */}
       <div 
-        className="absolute inset-0 opacity-20"
+        className="absolute inset-0 opacity-30"
         style={{
-          backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px)',
+          backgroundImage: 'radial-gradient(circle, rgba(0, 229, 255, 0.1) 1px, transparent 1px)',
           backgroundSize: '20px 20px',
         }}
       />
@@ -189,13 +189,13 @@ function ChatCanvasInner({
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="absolute top-4 left-4 right-4 z-10 max-w-md p-4 rounded-xl bg-black/60 backdrop-blur-md border border-cyan-500/30 shadow-lg shadow-cyan-500/10"
+          className="absolute top-4 left-4 right-4 z-10 max-w-md p-4 rounded-xl glass-panel-strong border-glow-cyan"
         >
           <div className="flex items-center gap-2 mb-2">
-            <FileText className="h-5 w-5 text-cyan-400" strokeWidth={1.5} />
-            <h3 className="font-semibold text-base text-cyan-300">Conversation Summary</h3>
+            <FileText className="h-5 w-5 neon-text-cyan" strokeWidth={1.5} />
+            <h3 className="font-semibold text-base neon-text-cyan">Conversation Summary</h3>
           </div>
-          <p className="text-sm text-white/70 italic">
+          <p className="text-sm text-white/80 italic">
             {thread.summary}
           </p>
         </motion.div>
@@ -225,29 +225,29 @@ function ChatCanvasInner({
           size={1}
         />
         <Controls 
-          className="bg-black/60 backdrop-blur-md border border-cyan-500/30 rounded-lg"
+          className="glass-panel-strong border-glow-cyan rounded-lg"
           showInteractive={false}
         />
         <MiniMap 
-          className="bg-black/60 backdrop-blur-md border border-cyan-500/30 rounded-lg"
+          className="glass-panel-strong border-glow-cyan rounded-lg"
           nodeColor={getNodeColor}
-          maskColor="rgba(0, 0, 0, 0.6)"
+          maskColor="rgba(2, 4, 10, 0.8)"
         />
         
         {/* Empty state */}
         {nodes.length === 0 && !hasSummary && (
           <Panel position="top-center" className="mt-20">
-            <div className="text-center text-white/50 bg-black/40 backdrop-blur-md p-6 rounded-xl border border-cyan-500/20">
+            <div className="text-center text-white/60 glass-panel-strong border-glow-cyan p-6 rounded-xl">
               <p className="text-lg">No messages yet.</p>
-              <p className="text-sm mt-2">Start a conversation below.</p>
+              <p className="text-sm mt-2 text-white/50">Start a conversation below.</p>
             </div>
           </Panel>
         )}
       </ReactFlow>
 
-      {/* Floating Command Bar (Omni-Bar) */}
+      {/* Floating Command Bar (Omni-Bar) - Digital Void Style */}
       <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-20 w-full max-w-2xl px-4">
-        <div className="bg-black/60 backdrop-blur-xl border border-cyan-500/30 rounded-2xl shadow-2xl shadow-cyan-500/20 p-4">
+        <div className="glass-panel-strong border-glow-cyan rounded-2xl shadow-neon-cyan p-4">
           <ChatInput 
             userId={userId} 
             onMessageSubmit={onMessageSubmit} 
