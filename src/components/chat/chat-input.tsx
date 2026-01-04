@@ -170,7 +170,7 @@ export function ChatInput({ userId, onMessageSubmit, isSending }: ChatInputProps
             onChange={handleTextareaChange}
             onKeyDown={handleKeyDown}
             placeholder={isTranscribing ? "Transcribing audio..." : "Ask Pandora anything..."}
-            className="w-full resize-none max-h-48 pr-24 pl-12 text-base leading-relaxed"
+            className="w-full resize-none max-h-48 pr-24 pl-12 text-base leading-relaxed input-glass text-white/90 placeholder:text-white/40"
             rows={1}
             disabled={isProcessing}
             aria-label="Chat message input"
@@ -186,7 +186,7 @@ export function ChatInput({ userId, onMessageSubmit, isSending }: ChatInputProps
             <Button
               type="submit"
               size="icon"
-              className="h-8 w-8 bg-primary text-primary-foreground hover:bg-primary/90"
+              className="h-8 w-8 bg-gradient-to-r from-neon-cyan to-neon-purple text-white hover:opacity-90 border-0 shadow-neon-cyan-sm"
               disabled={isProcessing}
               aria-label="Send message"
             >

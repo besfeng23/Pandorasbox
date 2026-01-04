@@ -44,3 +44,7 @@ next-env.d.ts
 firebase-debug.log
 firestore-debug.logservice-account.json
 service-account.json
+
+# cursor
+.cursor/
+TECHNICAL_DESIGN.md

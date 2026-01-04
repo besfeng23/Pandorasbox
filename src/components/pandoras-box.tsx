@@ -63,9 +63,13 @@ export function PandorasBox({ user }: PandorasBoxProps) {
           <CommandRail />
         </Sidebar>
 
-        <div className="w-64 border-r bg-card flex-col hidden lg:flex">
-            <div className="p-2 border-b">
-                <Button variant="outline" className="w-full" onClick={handleNewChat}>
+        <div className="w-64 border-r border-white/10 glass-panel flex-col hidden lg:flex">
+            <div className="p-2 border-b border-white/10">
+                <Button 
+                    variant="outline" 
+                    className="w-full glass-panel border-glow-purple hover:bg-neon-purple/10 text-white/90" 
+                    onClick={handleNewChat}
+                >
                     <Plus className="mr-2 h-4 w-4" />
                     New Chat
                 </Button>
@@ -82,22 +86,22 @@ export function PandorasBox({ user }: PandorasBoxProps) {
             animate={{ width: isSplitView ? '40%' : '100%' }}
             transition={{ type: 'spring', stiffness: 350, damping: 30 }}
         >
-            <SidebarInset className="flex flex-col">
-            <header className="flex items-center gap-2 p-2 border-b lg:hidden">
+            <SidebarInset className="flex flex-col bg-void">
+            <header className="flex items-center gap-2 p-2 border-b border-white/10 lg:hidden glass-panel">
                 <SidebarTrigger />
-                <h1 className="text-lg font-semibold tracking-tight">PandorasBox</h1>
+                <h1 className="text-lg font-semibold tracking-tight neon-text-cyan">PandorasBox</h1>
             </header>
             
             <div className="flex-1 overflow-hidden relative">
                 {isLoading && (
-                <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-sm z-10">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <div className="absolute inset-0 flex items-center justify-center glass-panel-strong z-10">
+                    <Loader2 className="h-8 w-8 animate-spin neon-text-cyan" />
                 </div>
                 )}
                 {error && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/50 backdrop-blur-sm z-10 p-4">
-                    <AlertCircle className="h-8 w-8 text-destructive mb-2" />
-                    <p className="text-center text-destructive">{error}</p>
+                <div className="absolute inset-0 flex flex-col items-center justify-center glass-panel-strong z-10 p-4">
+                    <AlertCircle className="h-8 w-8 text-red-400 mb-2" />
+                    <p className="text-center text-red-400">{error}</p>
                 </div>
                 )}
 
@@ -124,13 +128,13 @@ export function PandorasBox({ user }: PandorasBoxProps) {
                 <ArtifactViewer artifactId={activeArtifactId!} />
              </motion.div>
         ) : (
-            <Sidebar side="right" collapsible="offcanvas" className="hidden lg:flex w-96 border-l bg-surface/50 dark:bg-card">
+            <Sidebar side="right" collapsible="offcanvas" variant="floating" className="hidden lg:flex w-96 border-l border-white/10 glass-panel-strong">
                  <Tabs defaultValue="memory" className="h-full w-full flex flex-col">
-                    <SidebarHeader className="flex-col !items-stretch">
-                        <h2 className="text-lg font-semibold tracking-tight p-2">Live Inspector</h2>
-                        <TabsList className="grid w-full grid-cols-2">
-                            <TabsTrigger value="memory"><MemoryStick className="w-4 h-4 mr-2"/> Memory</TabsTrigger>
-                            <TabsTrigger value="artifacts"><FileCode className="w-4 h-4 mr-2"/> Artifacts</TabsTrigger>
+                    <SidebarHeader className="flex-col !items-stretch border-b border-white/10">
+                        <h2 className="text-lg font-semibold tracking-tight p-2 neon-text-cyan">Live Inspector</h2>
+                        <TabsList className="grid w-full grid-cols-2 glass-panel m-2">
+                            <TabsTrigger value="memory" className="data-[state=active]:bg-neon-cyan/20 data-[state=active]:text-neon-cyan"><MemoryStick className="w-4 h-4 mr-2"/> Memory</TabsTrigger>
+                            <TabsTrigger value="artifacts" className="data-[state=active]:bg-neon-cyan/20 data-[state=active]:text-neon-cyan"><FileCode className="w-4 h-4 mr-2"/> Artifacts</TabsTrigger>
                         </TabsList>
                     </SidebarHeader>
                     <SidebarContent className="p-0">
