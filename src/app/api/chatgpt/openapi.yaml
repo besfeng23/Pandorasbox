@@ -201,6 +201,7 @@ paths:
           description: Server error
 
 components:
+  schemas: {}
   securitySchemes:
     ApiKeyAuth:
       type: apiKey
