@@ -100,8 +100,9 @@ No separate server process is needed - it's part of the Next.js application.
 
 1. Go to ChatGPT → Create GPT → Actions
 2. Import the OpenAPI schema:
-   - **URL**: `https://studio-sg--seismic-vista-480710-q5.asia-southeast1.hosted.app/public/openapi-mcp.json`
-   - Or upload the local file: `public/openapi-mcp.json`
+   - **URL**: `https://studio-sg--seismic-vista-480710-q5.asia-southeast1.hosted.app/public/openapi-mcp.yaml`
+   - Or upload the local file: `public/openapi-mcp.yaml`
+   - **Note**: ChatGPT Actions prefers YAML format over JSON
 3. Set Authentication:
    - **Type**: API Key
    - **Auth Type**: Bearer

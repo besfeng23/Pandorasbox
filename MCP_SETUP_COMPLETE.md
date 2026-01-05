@@ -43,10 +43,11 @@ npm run mcp:dev
 ### Use with ChatGPT Actions
 
 1. Go to ChatGPT → Create GPT → Actions
-2. Import schema from:
+2. Import schema from (YAML format - preferred by ChatGPT):
    ```
-   https://studio-sg--seismic-vista-480710-q5.asia-southeast1.hosted.app/public/openapi-mcp.json
+   https://studio-sg--seismic-vista-480710-q5.asia-southeast1.hosted.app/public/openapi-mcp.yaml
    ```
+   Or upload the local file: `public/openapi-mcp.yaml`
 3. Set Authentication:
    - Type: API Key
    - Auth Type: Bearer
@@ -88,8 +89,10 @@ Add to Claude Desktop settings (`%APPDATA%\Claude\claude_desktop_config.json`):
 ## 🔗 Important URLs
 
 - **MCP HTTP Bridge**: `https://studio-sg--seismic-vista-480710-q5.asia-southeast1.hosted.app/api/mcp/{tool_name}`
-- **OpenAPI Schema**: `https://studio-sg--seismic-vista-480710-q5.asia-southeast1.hosted.app/public/openapi-mcp.json`
-- **Local Schema**: `public/openapi-mcp.json`
+- **OpenAPI Schema (YAML)**: `https://studio-sg--seismic-vista-480710-q5.asia-southeast1.hosted.app/public/openapi-mcp.yaml` ⭐ **Use this for ChatGPT Actions**
+- **OpenAPI Schema (JSON)**: `https://studio-sg--seismic-vista-480710-q5.asia-southeast1.hosted.app/public/openapi-mcp.json`
+- **Local Schema (YAML)**: `public/openapi-mcp.yaml`
+- **Local Schema (JSON)**: `public/openapi-mcp.json`
 
 ## 🎯 Next Steps
 

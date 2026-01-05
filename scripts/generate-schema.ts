@@ -12,6 +12,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import * as yaml from 'js-yaml';
 
 const SERVER_URL = process.env.MCP_SERVER_URL || 'http://localhost:9002';
 
@@ -407,23 +408,36 @@ const openApiSchema = {
   },
 };
 
-// Write schema to file
-const outputPath = path.join(process.cwd(), 'public', 'openapi-mcp.json');
-const outputDir = path.dirname(outputPath);
+// Write schema to files (both JSON and YAML)
+const outputDir = path.join(process.cwd(), 'public');
 
 // Ensure directory exists
 if (!fs.existsSync(outputDir)) {
   fs.mkdirSync(outputDir, { recursive: true });
 }
 
-// Write file
-fs.writeFileSync(outputPath, JSON.stringify(openApiSchema, null, 2), 'utf-8');
+// Write JSON file
+const jsonPath = path.join(outputDir, 'openapi-mcp.json');
+fs.writeFileSync(jsonPath, JSON.stringify(openApiSchema, null, 2), 'utf-8');
+
+// Write YAML file (preferred by ChatGPT Actions)
+const yamlPath = path.join(outputDir, 'openapi-mcp.yaml');
+const yamlContent = yaml.dump(openApiSchema, {
+  indent: 2,
+  lineWidth: -1,
+  noRefs: true,
+  quotingType: '"',
+  forceQuotes: false,
+});
+fs.writeFileSync(yamlPath, yamlContent, 'utf-8');
 
 console.log(`✅ OpenAPI schema generated successfully!`);
-console.log(`   Output: ${outputPath}`);
+console.log(`   JSON Output: ${jsonPath}`);
+console.log(`   YAML Output: ${yamlPath}`);
 console.log(`   Server URL: ${SERVER_URL}`);
 console.log(`\n   To use with ChatGPT Actions:`);
-console.log(`   1. Copy the schema file to a publicly accessible URL`);
-console.log(`   2. Add it as a Custom Action in ChatGPT`);
+console.log(`   1. Import the YAML schema from:`);
+console.log(`      ${SERVER_URL}/public/openapi-mcp.yaml`);
+console.log(`   2. Or upload the local file: public/openapi-mcp.yaml`);
 console.log(`   3. Set the Authorization header to: Bearer ${process.env.MCP_API_KEY || 'YOUR_API_KEY'}`);
 
