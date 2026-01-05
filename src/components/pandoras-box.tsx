@@ -2,10 +2,12 @@
 
 import { ChatMessages } from './chat/chat-messages';
 import { ChatInput } from '@/components/chat/chat-input';
-import { AlertCircle, Loader2, Menu, X } from 'lucide-react';
+import { AlertCircle, Loader2, Menu, X, Settings, MemoryStick, FileCode } from 'lucide-react';
 import type { User } from 'firebase/auth';
 import { useArtifactStore } from '@/store/artifacts';
 import { ArtifactViewer } from './artifacts/artifact-viewer';
+import { ArtifactList } from './artifacts/artifact-list';
+import { MemoryInspector } from './layout/memory-inspector';
 import { useChatHistory } from '@/hooks/use-chat-history';
 import { useState } from 'react';
 import { ChatSidebar } from './chat/chat-sidebar';
@@ -21,6 +23,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from './ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import Link from 'next/link';
 
 interface PandorasBoxProps {
   user: User;
@@ -105,7 +109,11 @@ export function PandorasBox({ user }: PandorasBoxProps) {
               </SheetContent>
             </Sheet>
             <h1 className="text-lg font-semibold">Pandora</h1>
-            <div className="w-9" /> {/* Spacer for centering */}
+            <Link href="/settings">
+              <Button variant="ghost" size="icon" className="h-9 w-9">
+                <Settings className="h-5 w-5" />
+              </Button>
+            </Link>
           </div>
         </div>
       )}
@@ -113,6 +121,14 @@ export function PandorasBox({ user }: PandorasBoxProps) {
       {/* Desktop Left Sidebar */}
       {!isMobile && (
         <div className="w-64 border-r border-border bg-card flex-col hidden lg:flex">
+          <div className="p-3 border-b border-border flex items-center justify-between">
+            <h2 className="font-semibold text-sm">Chats</h2>
+            <Link href="/settings">
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <Settings className="h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
           {sidebarContent}
         </div>
       )}
@@ -121,7 +137,7 @@ export function PandorasBox({ user }: PandorasBoxProps) {
       <div className={cn(
         "flex flex-col flex-1 min-w-0",
         isMobile && "pt-14", // Account for mobile header
-        !isMobile && isSplitView && "border-r border-border"
+        !isMobile && !isSplitView && "border-r border-border" // Add border when right sidebar is visible
       )}>
         <div className="flex-1 overflow-hidden relative flex flex-col">
           {isLoading && (
@@ -161,11 +177,40 @@ export function PandorasBox({ user }: PandorasBoxProps) {
         </div>
       </div>
 
-      {/* Desktop Right Sidebar - Artifact Viewer */}
-      {!isMobile && isSplitView && activeArtifactId && (
-        <div className="w-96 border-l border-border bg-card hidden lg:flex flex-col">
-          <ArtifactViewer artifactId={activeArtifactId} />
-        </div>
+      {/* Desktop Right Sidebar - Memories/Artifacts or Artifact Viewer */}
+      {!isMobile && (
+        <>
+          {isSplitView && activeArtifactId ? (
+            <div className="w-96 border-l border-border bg-card hidden lg:flex flex-col">
+              <ArtifactViewer artifactId={activeArtifactId} />
+            </div>
+          ) : (
+            <div className="w-80 border-l border-border bg-card hidden lg:flex flex-col">
+              <Tabs defaultValue="memories" className="flex flex-col flex-1 h-full">
+                <TabsList className="grid w-full grid-cols-2 rounded-none border-b border-border bg-card p-0 h-12">
+                  <TabsTrigger 
+                    value="memories" 
+                    className="rounded-none border-r border-border data-[state=active]:border-b-2 data-[state=active]:border-primary flex items-center gap-2"
+                  >
+                    <MemoryStick className="h-4 w-4" /> Memories
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="artifacts" 
+                    className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary flex items-center gap-2"
+                  >
+                    <FileCode className="h-4 w-4" /> Artifacts
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="memories" className="flex-1 p-0 mt-0 overflow-hidden">
+                  <MemoryInspector userId={user.uid} />
+                </TabsContent>
+                <TabsContent value="artifacts" className="flex-1 p-0 mt-0 overflow-hidden">
+                  <ArtifactList userId={user.uid} />
+                </TabsContent>
+              </Tabs>
+            </div>
+          )}
+        </>
       )}
 
       {/* Mobile Artifact Modal */}
