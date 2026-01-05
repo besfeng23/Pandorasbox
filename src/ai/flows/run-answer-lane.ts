@@ -109,22 +109,41 @@ export async function runAnswerLane(
                 .join('\n');
 
             // --- LONG-TERM MEMORY: Vector Search using Firestore Admin SDK ---
+            // Search BOTH history and memories collections for global long-term memory
             await logProgress('Searching memory...');
             const queryEmbedding = await generateEmbedding(message);
+            
+            // Search history collection (conversations across all threads)
             const historyCollection = firestoreAdmin.collection('history');
-            const vectorQuery = historyCollection
+            const historyVectorQuery = historyCollection
                 .where('userId', '==', userId)
                 .findNearest('embedding', queryEmbedding, {
                     limit: 5,
                     distanceMeasure: 'COSINE'
                 });
-            const relevantDocsSnapshot = await vectorQuery.get();
-            const docs = relevantDocsSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id, distance: doc.distance }));
-
-            await logProgress(`Found ${docs.length} relevant memories.`);
+            const historySnapshot = await historyVectorQuery.get();
+            const historyDocs = historySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id, distance: doc.distance }));
             
-            const retrievedHistory = docs.length > 0 
-              ? docs.map(d => `- ${d.content}`).join("\n")
+            // Search memories collection (structured memories like name, preferences)
+            const memoriesCollection = firestoreAdmin.collection('memories');
+            const memoriesVectorQuery = memoriesCollection
+                .where('userId', '==', userId)
+                .findNearest('embedding', queryEmbedding, {
+                    limit: 5,
+                    distanceMeasure: 'COSINE'
+                });
+            const memoriesSnapshot = await memoriesVectorQuery.get();
+            const memoriesDocs = memoriesSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id, distance: doc.distance }));
+            
+            // Combine and deduplicate results, prioritizing by distance (lower = more relevant)
+            const allDocs = [...historyDocs, ...memoriesDocs]
+                .sort((a, b) => (a.distance || 1) - (b.distance || 1))
+                .slice(0, 5); // Take top 5 most relevant across both collections
+
+            await logProgress(`Found ${allDocs.length} relevant memories.`);
+            
+            const retrievedHistory = allDocs.length > 0 
+              ? allDocs.map(d => `- ${d.content}`).join("\n")
               : "No relevant history found.";
             
             // --- PROMPT CONSTRUCTION ---
