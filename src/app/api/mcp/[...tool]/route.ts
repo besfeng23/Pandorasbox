@@ -51,7 +51,7 @@ function validateApiKey(request: NextRequest): boolean {
 // Main handler
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ tool: string[] }> | { tool: string[] } }
+  { params }: { params: Promise<{ tool: string[] }> }
 ) {
   try {
     // Validate API key
@@ -62,11 +62,11 @@ export async function POST(
       );
     }
 
-    // Await params if it's a Promise (Next.js 15+)
-    const resolvedParams = params instanceof Promise ? await params : params;
+    // Await params (Next.js 15+)
+    const { tool } = await params;
     
     // Get tool name from route
-    const toolName = resolvedParams.tool?.[0];
+    const toolName = tool?.[0];
     
     if (!toolName) {
       return NextResponse.json(
@@ -143,8 +143,8 @@ export async function POST(
     );
 
   } catch (error: any) {
-    const resolvedParams = params instanceof Promise ? await params : params;
-    console.error(`Error in MCP HTTP bridge (${resolvedParams.tool?.[0]}):`, error);
+    const { tool } = await params;
+    console.error(`Error in MCP HTTP bridge (${tool?.[0]}):`, error);
     
     // Handle known error types
     if (error.message && typeof error.message === 'string') {
@@ -171,11 +171,11 @@ export async function POST(
 // Support GET for tool information
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ tool: string[] }> | { tool: string[] } }
+  { params }: { params: Promise<{ tool: string[] }> }
 ) {
-  // Await params if it's a Promise (Next.js 15+)
-  const resolvedParams = params instanceof Promise ? await params : params;
-  const toolName = resolvedParams.tool?.[0];
+  // Await params (Next.js 15+)
+  const { tool } = await params;
+  const toolName = tool?.[0];
 
   if (!toolName) {
     return NextResponse.json(
