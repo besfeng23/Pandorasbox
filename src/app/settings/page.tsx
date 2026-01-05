@@ -32,7 +32,8 @@ import { KnowledgeUpload } from '@/components/settings/knowledge-upload';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import { KeyboardShortcuts } from '@/components/keyboard-shortcuts';
-import { Keyboard } from 'lucide-react';
+import { Keyboard, Moon, Sun } from 'lucide-react';
+import { useTheme } from '@/hooks/use-theme';
 
 const settingsSchema = z.object({
   active_model: z.enum(['gpt-4o', 'gpt-4-turbo', 'gpt-3.5-turbo']),
@@ -45,10 +46,23 @@ export default function SettingsPage() {
   const { user, isLoading: isUserLoading } = useUser();
   const { settings, isLoading: isLoadingSettings } = useSettings(user?.uid);
   const { toast } = useToast();
+  const { theme, setTheme, toggleTheme } = useTheme();
   const [isPending, startTransition] = useTransition();
   const [isKeyGenerating, startKeyGeneration] = useTransition();
   const [hasCopied, setHasCopied] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [fontSize, setFontSize] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('fontSize') || 'medium';
+    }
+    return 'medium';
+  });
+  const [reducedMotion, setReducedMotion] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('reducedMotion') === 'true';
+    }
+    return false;
+  });
 
   const form = useForm<AppSettings>({
     resolver: zodResolver(settingsSchema),
@@ -248,6 +262,83 @@ export default function SettingsPage() {
                       </FormItem>
                     )}
                   />
+                </div>
+
+                {/* Appearance Card */}
+                <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-xl p-6 shadow-xl">
+                  <h3 className="text-lg font-semibold text-white mb-4">Appearance</h3>
+                  
+                  <div className="space-y-4">
+                    {/* Theme Toggle */}
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium text-gray-300">Theme</label>
+                        <p className="text-xs text-gray-400">Choose between dark and light mode</p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={toggleTheme}
+                        className="bg-black/40 border-white/10 text-white hover:bg-white/10"
+                      >
+                        {theme === 'dark' ? (
+                          <>
+                            <Moon className="h-4 w-4 mr-2" />
+                            Dark
+                          </>
+                        ) : (
+                          <>
+                            <Sun className="h-4 w-4 mr-2" />
+                            Light
+                          </>
+                        )}
+                      </Button>
+                    </div>
+
+                    {/* Font Size */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-300">Font Size</label>
+                      <Select value={fontSize} onValueChange={(value) => {
+                        setFontSize(value);
+                        localStorage.setItem('fontSize', value);
+                        document.documentElement.style.setProperty('--font-size-scale', value === 'small' ? '0.875' : value === 'large' ? '1.125' : '1');
+                      }}>
+                        <SelectTrigger className="bg-black/40 border-white/10 text-white">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-gray-900 border-white/10">
+                          <SelectItem value="small" className="text-white">Small</SelectItem>
+                          <SelectItem value="medium" className="text-white">Medium</SelectItem>
+                          <SelectItem value="large" className="text-white">Large</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Reduced Motion */}
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium text-gray-300">Reduced Motion</label>
+                        <p className="text-xs text-gray-400">Disable animations for better accessibility</p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          const newValue = !reducedMotion;
+                          setReducedMotion(newValue);
+                          localStorage.setItem('reducedMotion', String(newValue));
+                          if (newValue) {
+                            document.documentElement.classList.add('reduce-motion');
+                          } else {
+                            document.documentElement.classList.remove('reduce-motion');
+                          }
+                        }}
+                        className={`bg-black/40 border-white/10 text-white hover:bg-white/10 ${reducedMotion ? 'bg-cyan-500/20 border-cyan-400/30' : ''}`}
+                      >
+                        {reducedMotion ? 'On' : 'Off'}
+                      </Button>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Keyboard Shortcuts Card */}

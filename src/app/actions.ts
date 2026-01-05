@@ -463,6 +463,55 @@ export async function updateMemory(id: string, newText: string, userId: string) 
     }
 }
 
+export async function deleteMemoryFromMemories(id: string, userId: string): Promise<{ success: boolean; message?: string }> {
+    'use server';
+    if (!userId) {
+      return { success: false, message: 'User not authenticated.' };
+    }
+    const firestoreAdmin = getFirestoreAdmin();
+    try {
+      const docRef = firestoreAdmin.collection('memories').doc(id);
+      const docSnap = await docRef.get();
+      if (!docSnap.exists || docSnap.data()?.userId !== userId) {
+        return { success: false, message: 'Permission denied.' };
+      }
+      await docRef.delete();
+      revalidatePath('/');
+      return { success: true };
+    } catch (error) {
+      console.error('Error deleting memory:', error);
+      Sentry.captureException(error, { tags: { function: 'deleteMemoryFromMemories', userId, memoryId: id } });
+      return { success: false, message: 'Failed to delete memory.' };
+    }
+}
+
+export async function updateMemoryInMemories(id: string, newText: string, userId: string): Promise<{ success: boolean; message?: string }> {
+    'use server';
+    if (!userId) {
+        return { success: false, message: 'User not authenticated.' };
+    }
+    const firestoreAdmin = getFirestoreAdmin();
+    try {
+        const docRef = firestoreAdmin.collection('memories').doc(id);
+        const docSnap = await docRef.get();
+        if (!docSnap.exists || docSnap.data()?.userId !== userId) {
+            return { success: false, message: 'Permission denied.' };
+        }
+        const newEmbedding = await generateEmbedding(newText);
+        await docRef.update({
+            content: newText,
+            embedding: newEmbedding,
+            editedAt: FieldValue.serverTimestamp(),
+        });
+        revalidatePath('/');
+        return { success: true };
+    } catch (error) {
+        console.error('Error updating memory:', error);
+        Sentry.captureException(error, { tags: { function: 'updateMemoryInMemories', userId, memoryId: id } });
+        return { success: false, message: 'Failed to update memory.' };
+    }
+}
+
 export async function uploadKnowledge(formData: FormData): Promise<{ success: boolean; message: string; chunks?: number }> {
     const file = formData.get('file') as File;
     const userId = formData.get('userId') as string;

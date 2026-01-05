@@ -25,6 +25,9 @@ export type Thread = {
   title: string;
   createdAt: Timestamp | Date | string;
   summary?: string;
+  pinned?: boolean;
+  archived?: boolean;
+  updatedAt?: Timestamp | Date | string;
 };
 
 export type Memory = {

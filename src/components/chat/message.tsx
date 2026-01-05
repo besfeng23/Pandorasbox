@@ -2,8 +2,8 @@
 'use client';
 
 import { Message as MessageType } from '@/lib/types';
-import { cn, formatTime } from '@/lib/utils';
-import { AlertTriangle, Sun } from 'lucide-react';
+import { cn, formatTime, formatMessageTime, formatFullDateTime, toDate } from '@/lib/utils';
+import { AlertTriangle, Sun, CheckCircle2, Clock, XCircle } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import Image from 'next/image';
@@ -18,6 +18,7 @@ import { FileText } from 'lucide-react';
 import { CodeBlock } from './code-block';
 import { MessageMenu } from './message-menu';
 import type { Components } from 'react-markdown';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 
 interface MessageProps {
   message: MessageType;
@@ -25,11 +26,24 @@ interface MessageProps {
 
 export function Message({ message }: MessageProps) {
   const isUser = message.role === 'user';
-  const timestamp = formatTime(message.createdAt);
+  const timestamp = formatMessageTime(message.createdAt);
+  const fullTimestamp = formatFullDateTime(message.createdAt);
   const setActiveArtifactId = useArtifactStore(state => state.setActiveArtifactId);
   const { toast } = useToast();
   const { user } = useUser();
   const firestore = useFirestore();
+
+  // Determine status indicator for user messages
+  const getStatusIcon = () => {
+    if (!isUser) return null;
+    if (message.status === 'error') {
+      return <XCircle className="h-3 w-3 text-red-400" />;
+    }
+    if (message.status === 'processing') {
+      return <Clock className="h-3 w-3 text-cyan-400/70 animate-pulse" />;
+    }
+    return <CheckCircle2 className="h-3 w-3 text-cyan-400/70" />;
+  };
 
   const ARTIFACT_REGEX = /\[Artifact Created: (.*?)\]/g;
   
@@ -237,47 +251,65 @@ export function Message({ message }: MessageProps) {
   }
 
   return (
-    <div
-      className={cn(
-        'group flex items-start w-full transition-all duration-200',
-        isUser ? 'justify-end' : 'justify-start'
-      )}
-    >
+    <TooltipProvider>
       <div
         className={cn(
-          'rounded-2xl px-4 py-3 sm:px-5 sm:py-4 flex flex-col relative transition-all duration-200',
-          'max-w-[85%] sm:max-w-[75%]',
-          'hover:scale-[1.01] hover:shadow-lg',
-          isUser
-            ? 'bg-gradient-to-br from-cyan-400/80 to-cyan-500/70 text-white border border-cyan-300/25 shadow-neon-cyan-sm hover:border-cyan-300/35'
-            : 'glass-panel border border-purple-400/15 text-white/90 shadow-lg hover:border-purple-400/25'
+          'group flex items-start w-full transition-all duration-200 mb-4',
+          isUser ? 'justify-end' : 'justify-start'
         )}
       >
-        <div className="absolute top-2 right-2 z-10">
-          <MessageMenu
-            content={message.content}
-            role={message.role}
-            onRegenerate={message.role === 'assistant' ? undefined : undefined}
-          />
-        </div>
-        {isUser ? (
-          <p className="message-text whitespace-pre-wrap break-words">
-            {message.content}
-          </p>
+        <div
+          className={cn(
+            'rounded-2xl px-4 py-3 sm:px-5 sm:py-4 flex flex-col relative transition-all duration-200',
+            'max-w-[85%] sm:max-w-[75%]',
+            'hover:scale-[1.01] hover:shadow-lg',
+            isUser
+              ? 'bg-gradient-to-br from-cyan-400/80 to-cyan-500/70 text-white border border-cyan-300/25 shadow-neon-cyan-sm hover:border-cyan-300/35'
+              : 'glass-panel border border-purple-400/15 text-white/90 shadow-lg hover:border-purple-400/25'
+          )}
+        >
+          <div className="absolute top-2 right-2 z-10">
+            <MessageMenu
+              content={message.content}
+              role={message.role}
+              onRegenerate={message.role === 'assistant' ? undefined : undefined}
+            />
+          </div>
+          {isUser ? (
+            <p className="message-text whitespace-pre-wrap break-words">
+              {message.content}
+            </p>
         ) : message.status === 'processing' ? (
-          <ThinkingIndicator logs={message.progress_log || []} />
+          <ThinkingIndicator logs={message.progress_log || []} createdAt={message.createdAt} />
         ) : (
-          <div className="message-text prose prose-sm dark:prose-invert max-w-none break-words">
-            {renderContent(message.content)}
-          </div>
-        )}
+            <div className="message-text prose prose-sm dark:prose-invert max-w-none break-words">
+              {renderContent(message.content)}
+            </div>
+          )}
 
-        {message.imageUrl && (
-          <div className="relative w-full max-w-sm mt-3 rounded-lg overflow-hidden">
-            <Image src={message.imageUrl} alt="Uploaded content" width={400} height={300} className="object-cover" />
+          {message.imageUrl && (
+            <div className="relative w-full max-w-sm mt-3 rounded-lg overflow-hidden">
+              <Image src={message.imageUrl} alt="Uploaded content" width={400} height={300} className="object-cover" />
+            </div>
+          )}
+
+          {/* Timestamp and status indicator */}
+          <div className={cn(
+            "flex items-center gap-1.5 mt-2 text-xs",
+            isUser ? "justify-end text-white/70" : "justify-start text-white/50"
+          )}>
+            {isUser && getStatusIcon()}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="cursor-help">{timestamp}</span>
+              </TooltipTrigger>
+              <TooltipContent className="glass-panel-strong border border-cyan-400/30 text-white">
+                <p>{fullTimestamp}</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
-        )}
+        </div>
       </div>
-    </div>
+    </TooltipProvider>
   );
 }
