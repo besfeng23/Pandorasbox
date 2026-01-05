@@ -33,6 +33,7 @@ export type Memory = {
   embedding: number[];
   createdAt: Timestamp | Date;
   userId: string;
+  source?: string; // e.g., 'chatgpt', 'system'
 };
 
 export type AppSettings = {

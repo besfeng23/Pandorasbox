@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useFirestore } from '@/firebase';
 import type { Memory } from '@/lib/types';
-import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
+import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestore';
 import { BrainCircuit, Loader2 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
@@ -21,8 +21,12 @@ export function MemoryInspector({ userId }: MemoryInspectorProps) {
   useEffect(() => {
     if (!userId) return;
 
-    const memoriesCollection = collection(firestore, `users/${userId}/memories`);
-    const q = query(memoriesCollection, orderBy('timestamp', 'desc'));
+    const memoriesCollection = collection(firestore, 'memories');
+    const q = query(
+      memoriesCollection, 
+      where('userId', '==', userId),
+      orderBy('createdAt', 'desc')
+    );
 
     const unsubscribe = onSnapshot(
       q,
@@ -32,7 +36,7 @@ export function MemoryInspector({ userId }: MemoryInspectorProps) {
           return {
             id: doc.id,
             ...data,
-            timestamp: data.timestamp?.toDate(),
+            createdAt: data.createdAt?.toDate(),
           } as Memory;
         });
         setMemories(memoryList);
@@ -74,7 +78,7 @@ export function MemoryInspector({ userId }: MemoryInspectorProps) {
                 <div key={memory.id} className="p-3 rounded-lg bg-muted border border-border text-xs hover:bg-accent transition-colors">
                     <p className="mb-2 leading-relaxed text-foreground">{memory.content}</p>
                     <p className="text-muted-foreground text-[10px]">
-                    {memory.timestamp ? formatDistanceToNow(memory.timestamp, { addSuffix: true }) : 'just now'}
+                    {memory.createdAt ? formatDistanceToNow(memory.createdAt, { addSuffix: true }) : 'just now'}
                     </p>
                 </div>
                 ))}
