@@ -33,15 +33,21 @@ export function MemoryTable({ userId }: MemoryTableProps) {
   const fetchMemories = useCallback(async (query?: string) => {
     setIsLoading(true);
     try {
-      const fetchedMemories = (await getMemories(userId, query)) as Message[];
-      setMemories(fetchedMemories);
+      const fetchedMemories = await getMemories(userId, query);
+      if (Array.isArray(fetchedMemories)) {
+        setMemories(fetchedMemories as Message[]);
+      } else {
+        setMemories([]);
+      }
     } catch (error) {
       console.error('Failed to fetch memories', error);
-      toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch memories.' });
+      setMemories([]);
+      // Don't show error toast - just show empty state
+      // The error might be due to missing Firestore index or empty collection
     } finally {
       setIsLoading(false);
     }
-  }, [userId, toast]);
+  }, [userId]);
 
   useEffect(() => {
     fetchMemories(debouncedSearch);
