@@ -5,7 +5,7 @@ import { ai } from '@/ai/genkit';
 import { getFirestoreAdmin } from '@/lib/firebase-admin';
 import { z } from 'zod';
 import { Artifact } from '@/lib/types';
-import { generateEmbedding } from '@/lib/vector';
+import { generateEmbedding, searchHistory, searchMemories } from '@/lib/vector';
 import OpenAI from 'openai';
 import { FieldValue } from 'firebase-admin/firestore';
 import { textEmbedding3Small } from '@genkit-ai/google-genai';
@@ -108,42 +108,31 @@ export async function runAnswerLane(
                 })
                 .join('\n');
 
-            // --- LONG-TERM MEMORY: Vector Search using Firestore Admin SDK ---
+            // --- LONG-TERM MEMORY: Vector Search using existing helper functions ---
             // Search BOTH history and memories collections for global long-term memory
             await logProgress('Searching memory...');
-            const queryEmbedding = await generateEmbedding(message);
             
-            // Search history collection (conversations across all threads)
-            const historyCollection = firestoreAdmin.collection('history');
-            const historyVectorQuery = historyCollection
-                .where('userId', '==', userId)
-                .findNearest('embedding', queryEmbedding, {
-                    limit: 5,
-                    distanceMeasure: 'COSINE'
-                });
-            const longTermHistorySnapshot = await historyVectorQuery.get();
-            const historyDocs = longTermHistorySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id, distance: doc.distance }));
+            // Use existing searchHistory and searchMemories functions which have error handling
+            const [historyResults, memoriesResults] = await Promise.all([
+                searchHistory(message, userId).catch(err => {
+                    console.warn('History search failed:', err);
+                    return [];
+                }),
+                searchMemories(message, userId, 5).catch(err => {
+                    console.warn('Memories search failed:', err);
+                    return [];
+                })
+            ]);
             
-            // Search memories collection (structured memories like name, preferences)
-            const memoriesCollection = firestoreAdmin.collection('memories');
-            const memoriesVectorQuery = memoriesCollection
-                .where('userId', '==', userId)
-                .findNearest('embedding', queryEmbedding, {
-                    limit: 5,
-                    distanceMeasure: 'COSINE'
-                });
-            const memoriesSnapshot = await memoriesVectorQuery.get();
-            const memoriesDocs = memoriesSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id, distance: doc.distance }));
-            
-            // Combine and deduplicate results, prioritizing by distance (lower = more relevant)
-            const allDocs = [...historyDocs, ...memoriesDocs]
-                .sort((a, b) => (a.distance || 1) - (b.distance || 1))
+            // Combine results from both collections, prioritizing by score (higher = more relevant)
+            const allResults = [...historyResults, ...memoriesResults]
+                .sort((a, b) => (b.score || 0) - (a.score || 0))
                 .slice(0, 5); // Take top 5 most relevant across both collections
 
-            await logProgress(`Found ${allDocs.length} relevant memories.`);
+            await logProgress(`Found ${allResults.length} relevant memories.`);
             
-            const retrievedHistory = allDocs.length > 0 
-              ? allDocs.map(d => `- ${d.content}`).join("\n")
+            const retrievedHistory = allResults.length > 0 
+              ? allResults.map(d => `- ${d.text}`).join("\n")
               : "No relevant history found.";
             
             // --- PROMPT CONSTRUCTION ---
