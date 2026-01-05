@@ -1,25 +1,11 @@
-
 'use client';
 
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarHeader,
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from '@/components/ui/sidebar';
-import { CommandRail } from '@/components/layout/command-rail';
-import { MemoryInspector } from '@/components/layout/memory-inspector';
 import { ChatMessages } from './chat/chat-messages';
 import { ChatInput } from '@/components/chat/chat-input';
-import { AlertCircle, FileCode, Loader2, MemoryStick, MessageSquare, Plus } from 'lucide-react';
+import { AlertCircle, Loader2, Menu, X } from 'lucide-react';
 import type { User } from 'firebase/auth';
-import { AnimatePresence, motion } from 'framer-motion';
 import { useArtifactStore } from '@/store/artifacts';
 import { ArtifactViewer } from './artifacts/artifact-viewer';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { ArtifactList } from './artifacts/artifact-list';
 import { useChatHistory } from '@/hooks/use-chat-history';
 import { useState } from 'react';
 import { ChatSidebar } from './chat/chat-sidebar';
@@ -27,7 +13,14 @@ import { Button } from './ui/button';
 import { submitUserMessage } from '@/app/actions';
 import { useTransition } from 'react';
 import { cn } from '@/lib/utils';
-
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from './ui/dialog';
 
 interface PandorasBoxProps {
   user: User;
@@ -37,12 +30,25 @@ export function PandorasBox({ user }: PandorasBoxProps) {
   const [currentThreadId, setCurrentThreadId] = useState<string | null>(null);
   const { messages, thread, isLoading, error } = useChatHistory(user.uid, currentThreadId);
   const activeArtifactId = useArtifactStore(state => state.activeArtifactId);
+  const setActiveArtifactId = useArtifactStore(state => state.setActiveArtifactId);
   const isSplitView = !!activeArtifactId;
   const [isPending, startTransition] = useTransition();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   const handleNewChat = () => {
     setCurrentThreadId(null);
-  }
+    if (isMobile) {
+      setSidebarOpen(false);
+    }
+  };
+
+  const handleThreadSelect = (threadId: string) => {
+    setCurrentThreadId(threadId);
+    if (isMobile) {
+      setSidebarOpen(false);
+    }
+  };
 
   const handleMessageSubmit = (formData: FormData) => {
     if (currentThreadId) {
@@ -58,29 +64,65 @@ export function PandorasBox({ user }: PandorasBoxProps) {
     return isPending;
   }
 
-  return (
-    <div className="h-screen w-full flex overflow-hidden bg-background">
-      {/* Left Sidebar - ChatGPT style */}
-      <div className="w-64 border-r border-border bg-card flex-col hidden lg:flex">
-        <div className="p-3 border-b border-border">
-          <Button 
-            variant="outline" 
-            className="w-full" 
-            onClick={handleNewChat}
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            New Chat
-          </Button>
-        </div>
-        <ChatSidebar 
-          userId={user.uid}
-          activeThreadId={currentThreadId}
-          onSelectThread={setCurrentThreadId}
-        />
+  const sidebarContent = (
+    <>
+      <div className="p-3 border-b border-border">
+        <Button 
+          variant="outline" 
+          className="w-full" 
+          onClick={handleNewChat}
+        >
+          New Chat
+        </Button>
       </div>
+      <ChatSidebar 
+        userId={user.uid}
+        activeThreadId={currentThreadId}
+        onSelectThread={handleThreadSelect}
+      />
+    </>
+  );
 
-      {/* Main Chat Area - ChatGPT style */}
-      <div className={cn("flex flex-col flex-1 min-w-0", isSplitView && "border-r border-border")}>
+  return (
+    <div className="h-screen w-full flex overflow-hidden bg-background safe-area-inset">
+      {/* Mobile Menu Button */}
+      {isMobile && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border safe-area-inset-top">
+          <div className="flex items-center justify-between px-4 h-14">
+            <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-9 w-9">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-80 p-0">
+                <SheetHeader className="p-4 border-b border-border">
+                  <SheetTitle>Chats</SheetTitle>
+                </SheetHeader>
+                <div className="h-[calc(100vh-4rem)] overflow-y-auto">
+                  {sidebarContent}
+                </div>
+              </SheetContent>
+            </Sheet>
+            <h1 className="text-lg font-semibold">Pandora</h1>
+            <div className="w-9" /> {/* Spacer for centering */}
+          </div>
+        </div>
+      )}
+
+      {/* Desktop Left Sidebar */}
+      {!isMobile && (
+        <div className="w-64 border-r border-border bg-card flex-col hidden lg:flex">
+          {sidebarContent}
+        </div>
+      )}
+
+      {/* Main Chat Area */}
+      <div className={cn(
+        "flex flex-col flex-1 min-w-0",
+        isMobile && "pt-14", // Account for mobile header
+        !isMobile && isSplitView && "border-r border-border"
+      )}>
         <div className="flex-1 overflow-hidden relative flex flex-col">
           {isLoading && (
             <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-10">
@@ -95,7 +137,7 @@ export function PandorasBox({ user }: PandorasBoxProps) {
           )}
 
           {/* Messages Area */}
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto overscroll-contain">
             <ChatMessages 
               messages={messages} 
               thread={thread} 
@@ -103,9 +145,12 @@ export function PandorasBox({ user }: PandorasBoxProps) {
             />
           </div>
 
-          {/* Input Area - Fixed at bottom like ChatGPT */}
-          <div className="border-t border-border bg-background">
-            <div className="max-w-3xl mx-auto p-4">
+          {/* Input Area - Fixed at bottom */}
+          <div className="border-t border-border bg-background safe-area-inset-bottom">
+            <div className={cn(
+              "mx-auto p-3 sm:p-4",
+              isMobile ? "w-full px-3" : "max-w-3xl"
+            )}>
               <ChatInput 
                 userId={user.uid} 
                 onMessageSubmit={handleMessageSubmit} 
@@ -116,11 +161,35 @@ export function PandorasBox({ user }: PandorasBoxProps) {
         </div>
       </div>
 
-      {/* Right Sidebar - Artifact Viewer */}
-      {isSplitView && activeArtifactId && (
+      {/* Desktop Right Sidebar - Artifact Viewer */}
+      {!isMobile && isSplitView && activeArtifactId && (
         <div className="w-96 border-l border-border bg-card hidden lg:flex flex-col">
           <ArtifactViewer artifactId={activeArtifactId} />
         </div>
+      )}
+
+      {/* Mobile Artifact Modal */}
+      {isMobile && activeArtifactId && (
+        <Dialog open={!!activeArtifactId} onOpenChange={(open) => !open && setActiveArtifactId(null)}>
+          <DialogContent className="max-w-[95vw] h-[90vh] p-0 flex flex-col">
+            <DialogHeader className="px-4 py-3 border-b border-border flex-shrink-0">
+              <DialogTitle className="flex items-center justify-between">
+                <span>Artifact</span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setActiveArtifactId(null)}
+                  className="h-8 w-8"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </DialogTitle>
+            </DialogHeader>
+            <div className="flex-1 overflow-hidden">
+              <ArtifactViewer artifactId={activeArtifactId} />
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

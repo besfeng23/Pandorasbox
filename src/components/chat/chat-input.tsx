@@ -156,7 +156,7 @@ export function ChatInput({ userId, onMessageSubmit, isSending }: ChatInputProps
             type="button"
             variant="ghost"
             size="icon"
-            className="absolute bottom-2 left-2 h-8 w-8 text-muted-foreground"
+            className="absolute bottom-2 left-2 h-9 w-9 sm:h-8 sm:w-8 text-muted-foreground touch-manipulation"
             onClick={() => fileInputRef.current?.click()}
             disabled={isProcessing}
             aria-label="Attach image"
@@ -170,10 +170,11 @@ export function ChatInput({ userId, onMessageSubmit, isSending }: ChatInputProps
             onChange={handleTextareaChange}
             onKeyDown={handleKeyDown}
             placeholder={isTranscribing ? "Transcribing audio..." : "Message Pandora..."}
-            className="w-full resize-none max-h-48 pr-24 pl-12 text-base leading-relaxed rounded-2xl border-border focus-visible:ring-2 focus-visible:ring-ring"
+            className="w-full resize-none max-h-48 pr-20 sm:pr-24 pl-11 sm:pl-12 text-base sm:text-sm leading-relaxed rounded-2xl border-border focus-visible:ring-2 focus-visible:ring-ring min-h-[44px] sm:min-h-[40px] py-2.5 sm:py-2"
             rows={1}
             disabled={isProcessing}
             aria-label="Chat message input"
+            style={{ fontSize: '16px' }} // Prevents zoom on iOS
           />
 
           <div className="absolute bottom-2 right-2 flex items-center gap-1">
@@ -186,7 +187,7 @@ export function ChatInput({ userId, onMessageSubmit, isSending }: ChatInputProps
             <Button
               type="submit"
               size="icon"
-              className="h-8 w-8 bg-primary text-primary-foreground hover:bg-primary/90 rounded-full"
+              className="h-9 w-9 sm:h-8 sm:w-8 bg-primary text-primary-foreground hover:bg-primary/90 rounded-full touch-manipulation"
               disabled={isProcessing}
               aria-label="Send message"
             >

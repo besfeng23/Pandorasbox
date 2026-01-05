@@ -74,8 +74,8 @@ export function ArtifactViewer({ artifactId }: ArtifactViewerProps) {
           </Button>
         </div>
       </header>
-      <ScrollArea className="flex-1">
-        <div className="p-4 bg-background">
+      <ScrollArea className="flex-1 overscroll-contain">
+        <div className="p-3 sm:p-4 bg-background">
             {artifact.type === 'code' ? (
                 <SyntaxHighlighter language="javascript" style={vscDarkPlus} customStyle={{ background: 'transparent', margin: 0, padding: 0 }} codeTagProps={{style: {fontFamily: "var(--font-code)"}}}>
                     {artifact.content}

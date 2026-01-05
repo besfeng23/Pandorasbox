@@ -33,12 +33,12 @@ export function ChatMessages({ messages, thread, userId }: ChatMessagesProps) {
       ref={scrollAreaRef}
       className="h-full w-full overflow-y-auto"
     >
-      <div className="max-w-3xl mx-auto px-4 py-8">
+      <div className="max-w-3xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
         {messages.length === 0 && !hasSummary && (
-          <div className="flex h-full items-center justify-center min-h-[60vh]">
+          <div className="flex h-full items-center justify-center min-h-[60vh] px-4">
             <div className="text-center">
-              <h2 className="text-2xl font-semibold mb-2">How can I help you today?</h2>
-              <p className="text-muted-foreground">Start a conversation to begin.</p>
+              <h2 className="text-xl sm:text-2xl font-semibold mb-2">How can I help you today?</h2>
+              <p className="text-sm sm:text-base text-muted-foreground">Start a conversation to begin.</p>
             </div>
           </div>
         )}
@@ -55,7 +55,7 @@ export function ChatMessages({ messages, thread, userId }: ChatMessagesProps) {
           </div>
         )}
 
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-4 sm:gap-6">
           {messages.map((message) => (
             <div
               key={message.id}

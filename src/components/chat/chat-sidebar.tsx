@@ -43,10 +43,10 @@ export function ChatSidebar({ userId, activeThreadId, onSelectThread }: ChatSide
               key={thread.id}
               onClick={() => onSelectThread(thread.id)}
               className={cn(
-                'w-full text-left p-3 rounded-lg transition-colors flex flex-col gap-1',
+                'w-full text-left p-2.5 sm:p-3 rounded-lg transition-colors flex flex-col gap-1 touch-manipulation min-h-[44px] sm:min-h-0',
                 activeThreadId === thread.id 
                   ? 'bg-accent text-accent-foreground' 
-                  : 'hover:bg-accent/50'
+                  : 'hover:bg-accent/50 active:bg-accent/70'
               )}
             >
               <div className="flex items-start gap-2">

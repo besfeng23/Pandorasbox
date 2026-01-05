@@ -39,9 +39,9 @@ export const viewport: Viewport = {
   themeColor: "#ffffff",
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
-  viewportFit: 'cover',
+  maximumScale: 5,
+  userScalable: true, // Allow zoom for accessibility
+  viewportFit: 'cover', // Support notched devices
 };
 
 export default function RootLayout({
