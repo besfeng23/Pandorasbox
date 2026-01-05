@@ -75,7 +75,7 @@ export function VoiceInput({ userId, onTranscriptionStatusChange, disabled, onAu
       type="button"
       variant="ghost"
       size="icon"
-      className={cn('h-8 w-8 text-muted-foreground', isRecording && 'text-red-500 animate-pulse')}
+      className={cn('h-9 w-9 sm:h-8 sm:w-8 text-muted-foreground touch-manipulation', isRecording && 'text-red-500 animate-pulse')}
       onMouseDown={handleStartRecording}
       onMouseUp={handleStopRecording}
       onTouchStart={handleStartRecording}

@@ -132,13 +132,13 @@ export function Message({ message }: MessageProps) {
         )}
       >
         {isUser ? (
-          <p className="text-[15px] leading-relaxed whitespace-pre-wrap">
+          <p className="text-sm sm:text-[15px] leading-relaxed whitespace-pre-wrap break-words">
             {message.content}
           </p>
         ) : message.status === 'processing' ? (
           <ThinkingIndicator logs={message.progress_log || []} />
         ) : (
-          <div className="text-[15px] leading-relaxed prose prose-sm dark:prose-invert max-w-none">
+          <div className="text-sm sm:text-[15px] leading-relaxed prose prose-sm dark:prose-invert max-w-none break-words">
             {renderContent(message.content)}
           </div>
         )}

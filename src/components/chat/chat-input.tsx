@@ -25,8 +25,8 @@ function FollowUpSuggestions({ userId, onSuggestionClick }: { userId: string, on
     }
   
     return (
-      <div className="flex flex-wrap items-center gap-2 mb-2">
-        <Sparkles className="h-4 w-4 text-yellow-500 shrink-0" />
+      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-2">
+        <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-yellow-500 shrink-0" />
         {suggestions.map((suggestion, index) => (
           <motion.div
             key={index}
@@ -37,7 +37,7 @@ function FollowUpSuggestions({ userId, onSuggestionClick }: { userId: string, on
             <Button
               size="sm"
               variant="outline"
-              className="text-xs h-7"
+              className="text-xs h-8 sm:h-7 px-2 sm:px-3 touch-manipulation min-h-[36px] sm:min-h-0"
               onClick={() => onSuggestionClick(suggestion)}
             >
               {suggestion}
