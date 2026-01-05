@@ -1,0 +1,119 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getFirestoreAdmin, getAuthAdmin } from '@/lib/firebase-admin';
+import { generateEmbedding } from '@/lib/vector';
+import { FieldValue } from 'firebase-admin/firestore';
+
+// Prevent this route from being statically generated
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
+/**
+ * ChatGPT Action API: Store Memory
+ * 
+ * This endpoint allows ChatGPT to store memories in the Pandora's Box system.
+ * 
+ * Authentication: Uses API key in Authorization header
+ * User Mapping: Maps ChatGPT user email to Firebase user account
+ * 
+ * Request Body:
+ * {
+ *   "memory": "The user prefers dark mode interfaces",
+ *   "user_email": "joven.ong23@gmail.com" (optional, defaults to configured email)
+ * }
+ */
+export async function POST(request: NextRequest) {
+  try {
+    // Verify API key
+    const authHeader = request.headers.get('authorization');
+    const apiKey = authHeader?.replace('Bearer ', '') || request.headers.get('x-api-key');
+    
+    if (!apiKey || apiKey !== process.env.CHATGPT_API_KEY?.trim()) {
+      return NextResponse.json(
+        { error: 'Unauthorized. Invalid API key.' },
+        { status: 401 }
+      );
+    }
+
+    const body = await request.json();
+    const { memory, user_email } = body;
+
+    if (!memory || typeof memory !== 'string' || !memory.trim()) {
+      return NextResponse.json(
+        { error: 'Invalid request. "memory" field is required and must be a non-empty string.' },
+        { status: 400 }
+      );
+    }
+
+    // Default to configured email if not provided
+    const targetEmail = user_email || 'joven.ong23@gmail.com';
+
+    // Get Firebase user by email
+    const authAdmin = getAuthAdmin();
+    let firebaseUser;
+    try {
+      firebaseUser = await authAdmin.getUserByEmail(targetEmail);
+    } catch (error: any) {
+      if (error.code === 'auth/user-not-found') {
+        return NextResponse.json(
+          { error: `User with email ${targetEmail} not found. Please ensure the user account exists in Firebase.` },
+          { status: 404 }
+        );
+      }
+      throw error;
+    }
+
+    const userId = firebaseUser.uid;
+
+    // Generate embedding for the memory
+    const embedding = await generateEmbedding(memory);
+
+    // Store memory in Firestore
+    const firestoreAdmin = getFirestoreAdmin();
+    const memoriesCollection = firestoreAdmin.collection('memories');
+    
+    const memoryRef = await memoriesCollection.add({
+      id: '', // Will be set after creation
+      content: memory.trim(),
+      embedding: embedding,
+      createdAt: FieldValue.serverTimestamp(),
+      userId: userId,
+      source: 'chatgpt', // Mark as coming from ChatGPT
+    });
+
+    // Update with the ID
+    await memoryRef.update({ id: memoryRef.id });
+
+    return NextResponse.json({
+      success: true,
+      message: 'Memory stored successfully',
+      memory_id: memoryRef.id,
+      user_id: userId,
+    });
+
+  } catch (error: any) {
+    console.error('Error storing memory from ChatGPT:', error);
+    return NextResponse.json(
+      { error: 'Failed to store memory', details: error.message },
+      { status: 500 }
+    );
+  }
+}
+
+// Support GET for testing
+export async function GET(request: NextRequest) {
+  return NextResponse.json({
+    message: 'ChatGPT Memory Store API',
+    endpoint: '/api/chatgpt/store-memory',
+    method: 'POST',
+    description: 'Store a memory in the Pandora\'s Box system',
+    required_headers: {
+      'Authorization': 'Bearer YOUR_API_KEY',
+      'Content-Type': 'application/json',
+    },
+    request_body: {
+      memory: 'string (required) - The memory content to store',
+      user_email: 'string (optional) - User email, defaults to joven.ong23@gmail.com',
+    },
+  });
+}
+
