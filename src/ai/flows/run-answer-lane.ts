@@ -141,6 +141,7 @@ Based on ALL the context above, answer the User's last message. If the answer is
 `;
             
             await logProgress('Drafting response...');
+            const openai = getOpenAI();
             const completion = await openai.chat.completions.create({
                 model: settings.active_model as any,
                 messages: [
