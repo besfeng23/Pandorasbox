@@ -8,7 +8,6 @@ import { Artifact } from '@/lib/types';
 import { generateEmbedding, searchHistory, searchMemories } from '@/lib/vector';
 import OpenAI from 'openai';
 import { FieldValue } from 'firebase-admin/firestore';
-import { textEmbedding3Small } from '@genkit-ai/google-genai';
 import { trackEvent } from '@/lib/analytics';
 
 // Lazy initialization to avoid build-time errors
