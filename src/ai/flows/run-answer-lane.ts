@@ -93,14 +93,14 @@ export async function runAnswerLane(
             
             // --- SHORT-TERM MEMORY: Fetch recent conversation ---
             await logProgress('Recalling conversation...');
-            const historySnapshot = await firestoreAdmin
+            const recentHistorySnapshot = await firestoreAdmin
                 .collection('history')
                 .where('threadId', '==', threadId)
                 .orderBy('createdAt', 'desc')
                 .limit(6) // Get last 6 messages (incl. current user message)
                 .get();
 
-            const recentHistory = historySnapshot.docs
+            const recentHistory = recentHistorySnapshot.docs
                 .reverse() // Correct chronological order
                 .map(doc => {
                     const data = doc.data();
@@ -121,8 +121,8 @@ export async function runAnswerLane(
                     limit: 5,
                     distanceMeasure: 'COSINE'
                 });
-            const historySnapshot = await historyVectorQuery.get();
-            const historyDocs = historySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id, distance: doc.distance }));
+            const longTermHistorySnapshot = await historyVectorQuery.get();
+            const historyDocs = longTermHistorySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id, distance: doc.distance }));
             
             // Search memories collection (structured memories like name, preferences)
             const memoriesCollection = firestoreAdmin.collection('memories');
