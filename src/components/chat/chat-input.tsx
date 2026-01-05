@@ -25,25 +25,29 @@ function FollowUpSuggestions({ userId, onSuggestionClick }: { userId: string, on
     }
   
     return (
-      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-2">
-        <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-yellow-400 shrink-0" />
-        {suggestions.map((suggestion, index) => (
-          <motion.div
-            key={index}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-          >
-            <Button
-              size="sm"
-              variant="ghost"
-              className="text-xs h-8 sm:h-7 px-2 sm:px-3 touch-manipulation min-h-[36px] sm:min-h-0 glass-panel border border-purple-400/20 hover:border-purple-400/30 hover:shadow-neon-purple-sm text-white/90 hover:text-purple-400 transition-all"
-              onClick={() => onSuggestionClick(suggestion)}
+      <div className="mb-2 overflow-x-auto overflow-y-hidden">
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 min-w-max sm:min-w-0 max-w-full">
+          <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-yellow-400 shrink-0" />
+          {suggestions.map((suggestion, index) => (
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+              className="flex-shrink-0"
             >
-              {suggestion}
-            </Button>
-          </motion.div>
-        ))}
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-xs h-8 sm:h-7 px-2 sm:px-3 touch-manipulation min-h-[36px] sm:min-h-0 glass-panel border border-purple-400/20 hover:border-purple-400/30 hover:shadow-neon-purple-sm text-white/90 hover:text-purple-400 transition-all whitespace-nowrap max-w-[200px] sm:max-w-none truncate"
+                onClick={() => onSuggestionClick(suggestion)}
+                title={suggestion.length > 20 ? suggestion : undefined}
+              >
+                {suggestion}
+              </Button>
+            </motion.div>
+          ))}
+        </div>
       </div>
     );
 }
@@ -124,7 +128,7 @@ export function ChatInput({ userId, onMessageSubmit, isSending }: ChatInputProps
       <form
         ref={formRef}
         onSubmit={handleSubmit}
-        className="relative flex flex-col gap-2 glass-panel-strong rounded-2xl border border-cyan-400/20 shadow-neon-cyan"
+        className="relative flex flex-col gap-2 glass-panel-strong rounded-2xl border border-cyan-400/15 shadow-neon-cyan-sm"
       >
         {imagePreview && (
           <div className="relative w-24 h-24 rounded-md overflow-hidden border">
@@ -187,7 +191,7 @@ export function ChatInput({ userId, onMessageSubmit, isSending }: ChatInputProps
             <Button
               type="submit"
               size="icon"
-              className="h-9 w-9 sm:h-8 sm:w-8 bg-gradient-to-br from-cyan-400 to-purple-500 text-white hover:from-cyan-300 hover:to-purple-400 rounded-full touch-manipulation shadow-neon-cyan-sm"
+              className="h-9 w-9 sm:h-8 sm:w-8 bg-gradient-to-br from-cyan-400/90 to-purple-500/90 text-white hover:from-cyan-300 hover:to-purple-400 rounded-full touch-manipulation shadow-neon-cyan-sm"
               disabled={isProcessing}
               aria-label="Send message"
             >

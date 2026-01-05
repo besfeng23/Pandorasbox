@@ -181,7 +181,7 @@ export function PandorasBox({ user }: PandorasBoxProps) {
 
       {/* Main Chat Area */}
       <div className={cn(
-        "flex flex-col flex-1 min-w-0",
+        "flex flex-col flex-1 min-w-0 glass-panel",
         isMobile && "pt-14", // Account for mobile header
         !isMobile && !isSplitView && !rightSidebarCollapsed && "border-r border-cyan-400/20" // Add border when right sidebar is visible
       )}>
