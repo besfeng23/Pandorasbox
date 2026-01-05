@@ -187,13 +187,32 @@ Based on ALL the context above, answer the User's last message. If the answer is
 
         } catch(error: any) {
             console.error("Error in Answer Lane: ", error);
-            await assistantMessageRef.update({
-                content: "Sorry, I encountered an error while processing your request.",
-                status: 'error',
-                userId: userId,
-                progress_log: FieldValue.arrayUnion('Error.'),
+            const errorMessage = error?.message || String(error) || 'Unknown error';
+            console.error("Error details: ", {
+                message: errorMessage,
+                stack: error?.stack,
+                name: error?.name,
             });
-            return { answer: "Sorry, an error occurred." };
+            
+            // Try to include more helpful error information
+            let userFacingError = "Sorry, I encountered an error while processing your request.";
+            if (errorMessage.includes('OPENAI_API_KEY')) {
+                userFacingError = "Configuration error: OpenAI API key is not set. Please check your environment variables.";
+            } else if (errorMessage.includes('findNearest') || errorMessage.includes('vector')) {
+                userFacingError = "Memory search error: Vector search is not available. Please check your Firestore configuration.";
+            }
+            
+            try {
+                await assistantMessageRef.update({
+                    content: userFacingError,
+                    status: 'error',
+                    userId: userId,
+                    progress_log: FieldValue.arrayUnion(`Error: ${errorMessage.substring(0, 100)}`),
+                });
+            } catch (updateError) {
+                console.error("Failed to update error message:", updateError);
+            }
+            return { answer: userFacingError };
         }
     }
   );
