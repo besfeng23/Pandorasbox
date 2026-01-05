@@ -3,13 +3,15 @@
 
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowUp, Loader2, Paperclip, X, Sparkles } from 'lucide-react';
-import React, { useRef, useState, useTransition } from 'react';
+import { ArrowUp, Loader2, Paperclip, X, Sparkles, Pin, HelpCircle } from 'lucide-react';
+import React, { useRef, useState, useTransition, useEffect } from 'react';
 import Image from 'next/image';
 import { VoiceInput } from './voice-input';
 import { useConnectionStore } from '@/store/connection';
 import { useSuggestions } from '@/hooks/use-suggestions';
 import { AnimatePresence, motion } from 'framer-motion';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 
 interface ChatInputProps {
   userId: string;
