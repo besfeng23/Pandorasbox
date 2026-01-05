@@ -135,32 +135,32 @@
     border: 1px solid rgba(255, 255, 255, 0.15);
   }
   
-  /* Neon Text Effects */
+  /* Neon Text Effects - Softer glow */
   .neon-text-cyan {
     color: #00E5FF;
-    text-shadow: 0 0 10px rgba(0, 229, 255, 0.5),
-                 0 0 20px rgba(0, 229, 255, 0.3),
-                 0 0 30px rgba(0, 229, 255, 0.2);
+    text-shadow: 0 0 8px rgba(0, 229, 255, 0.3),
+                 0 0 16px rgba(0, 229, 255, 0.2),
+                 0 0 24px rgba(0, 229, 255, 0.15);
   }
   
   .neon-text-purple {
     color: #A78BFA;
-    text-shadow: 0 0 10px rgba(167, 139, 250, 0.5),
-                 0 0 20px rgba(167, 139, 250, 0.3),
-                 0 0 30px rgba(167, 139, 250, 0.2);
+    text-shadow: 0 0 8px rgba(167, 139, 250, 0.3),
+                 0 0 16px rgba(167, 139, 250, 0.2),
+                 0 0 24px rgba(167, 139, 250, 0.15);
   }
   
-  /* Glowing Borders */
+  /* Glowing Borders - Softer glow */
   .border-glow-cyan {
-    border: 1px solid rgba(0, 229, 255, 0.3);
-    box-shadow: 0 0 10px rgba(0, 229, 255, 0.2),
-                inset 0 0 10px rgba(0, 229, 255, 0.1);
+    border: 1px solid rgba(0, 229, 255, 0.2);
+    box-shadow: 0 0 8px rgba(0, 229, 255, 0.15),
+                inset 0 0 8px rgba(0, 229, 255, 0.08);
   }
   
   .border-glow-purple {
-    border: 1px solid rgba(167, 139, 250, 0.3);
-    box-shadow: 0 0 10px rgba(167, 139, 250, 0.2),
-                inset 0 0 10px rgba(167, 139, 250, 0.1);
+    border: 1px solid rgba(167, 139, 250, 0.2);
+    box-shadow: 0 0 8px rgba(167, 139, 250, 0.15),
+                inset 0 0 8px rgba(167, 139, 250, 0.08);
   }
   
   /* Glass Input Fields */
@@ -224,5 +224,35 @@
   .overscroll-contain {
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Typography Utilities */
+  .text-heading {
+    font-family: var(--font-body, 'Inter', system-ui, sans-serif);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+  }
+  
+  .text-subheading {
+    font-family: var(--font-body, 'Inter', system-ui, sans-serif);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.3;
+  }
+  
+  .text-body {
+    font-family: var(--font-body, 'Inter', system-ui, sans-serif);
+    font-weight: 400;
+    letter-spacing: 0;
+    line-height: 1.6;
+  }
+  
+  .text-small {
+    font-family: var(--font-body, 'Inter', system-ui, sans-serif);
+    font-weight: 400;
+    letter-spacing: 0.01em;
+    line-height: 1.5;
+    font-size: 0.875rem;
   }
 }

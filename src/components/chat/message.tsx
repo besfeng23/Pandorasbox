@@ -107,10 +107,10 @@ export function Message({ message }: MessageProps) {
     >
       <div
         className={cn(
-          'rounded-2xl px-3 py-2.5 sm:px-4 sm:py-3 flex flex-col relative max-w-[85%] sm:max-w-[80%]',
+          'rounded-2xl px-3 py-2.5 sm:px-4 sm:py-3 flex flex-col relative max-w-[85%] sm:max-w-[80%] shadow-lg',
           isUser
-            ? 'bg-primary text-primary-foreground ml-auto'
-            : 'bg-muted'
+            ? 'bg-gradient-to-br from-cyan-400/90 to-cyan-500/80 text-white ml-auto border border-cyan-300/30'
+            : 'glass-panel border border-purple-400/20 text-white/90'
         )}
       >
         {isUser ? (

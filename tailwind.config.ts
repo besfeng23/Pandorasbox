@@ -79,10 +79,10 @@ export default {
         'neon-glow-purple': 'linear-gradient(135deg, rgba(98, 0, 234, 0.1) 0%, rgba(98, 0, 234, 0) 100%)',
       },
       boxShadow: {
-        'neon-cyan': '0 0 20px rgba(0, 229, 255, 0.3), 0 0 40px rgba(0, 229, 255, 0.1)',
-        'neon-purple': '0 0 20px rgba(98, 0, 234, 0.3), 0 0 40px rgba(98, 0, 234, 0.1)',
-        'neon-cyan-sm': '0 0 10px rgba(0, 229, 255, 0.2)',
-        'neon-purple-sm': '0 0 10px rgba(98, 0, 234, 0.2)',
+        'neon-cyan': '0 0 16px rgba(0, 229, 255, 0.2), 0 0 32px rgba(0, 229, 255, 0.08)',
+        'neon-purple': '0 0 16px rgba(98, 0, 234, 0.2), 0 0 32px rgba(98, 0, 234, 0.08)',
+        'neon-cyan-sm': '0 0 8px rgba(0, 229, 255, 0.15)',
+        'neon-purple-sm': '0 0 8px rgba(98, 0, 234, 0.15)',
         'glass': '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
       },
       keyframes: {
