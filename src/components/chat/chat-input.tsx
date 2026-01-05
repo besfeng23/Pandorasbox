@@ -18,39 +18,111 @@ interface ChatInputProps {
 }
 
 function FollowUpSuggestions({ userId, onSuggestionClick }: { userId: string, onSuggestionClick: (suggestion: string) => void }) {
-    const { suggestions } = useSuggestions(userId);
+    const { suggestions, dismissSuggestion, pinSuggestion, pinnedIds } = useSuggestions(userId);
+    const [originalSuggestions, setOriginalSuggestions] = useState<string[]>([]);
+  
+    // Track original suggestions for dismiss/pin functionality
+    useEffect(() => {
+      if (suggestions.length > 0) {
+        setOriginalSuggestions(suggestions);
+      }
+    }, [suggestions.length]);
   
     if (suggestions.length === 0) {
       return null;
     }
   
+    const getSuggestionId = (suggestion: string, index: number) => {
+      const originalIndex = originalSuggestions.indexOf(suggestion);
+      return originalIndex >= 0 ? `${originalIndex}-${suggestion.substring(0, 20)}` : `${index}-${suggestion.substring(0, 20)}`;
+    };
+  
     return (
-      <div className="mb-2 overflow-x-auto overflow-y-hidden">
-        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 min-w-max sm:min-w-0 max-w-full">
-          <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-yellow-400 shrink-0" />
-          {suggestions.map((suggestion, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="flex-shrink-0"
-            >
+      <div className="mb-2 space-y-2">
+        <div className="flex items-center gap-2 text-xs text-white/60">
+          <Sparkles className="h-3.5 w-3.5 text-yellow-400" />
+          <span>Suggested questions:</span>
+          <Tooltip>
+            <TooltipTrigger asChild>
               <Button
-                size="sm"
                 variant="ghost"
-                className="text-xs h-8 sm:h-7 px-2 sm:px-3 touch-manipulation min-h-[36px] sm:min-h-0 glass-panel border border-purple-400/20 hover:border-purple-400/30 hover:shadow-neon-purple-sm text-white/90 hover:text-purple-400 transition-all whitespace-nowrap max-w-[200px] sm:max-w-none truncate"
-                onClick={() => onSuggestionClick(suggestion)}
-                title={suggestion.length > 20 ? suggestion : undefined}
+                size="sm"
+                className="h-5 w-5 p-0 text-white/40 hover:text-white/60"
+                aria-label="Why these suggestions?"
               >
-                {suggestion}
+                <HelpCircle className="h-3 w-3" />
               </Button>
-            </motion.div>
-          ))}
+            </TooltipTrigger>
+            <TooltipContent className="glass-panel-strong border border-cyan-400/30 text-white max-w-xs">
+              <p>These suggestions are AI-generated based on your conversation context to help you continue the discussion.</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 min-w-max sm:min-w-0 max-w-full">
+          {suggestions.map((suggestion, index) => {
+            const suggestionId = getSuggestionId(suggestion, index);
+            const isPinned = pinnedIds.has(suggestionId);
+            return (
+              <motion.div
+                key={`${suggestion}-${index}`}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ delay: index * 0.05 }}
+                className="flex-shrink-0 group/suggestion relative"
+              >
+                <div className="flex items-center gap-1">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className={cn(
+                      "text-xs h-8 sm:h-7 px-2 sm:px-3 touch-manipulation min-h-[36px] sm:min-h-0 glass-panel border transition-all whitespace-nowrap max-w-[200px] sm:max-w-none truncate",
+                      isPinned 
+                        ? "border-yellow-400/40 hover:border-yellow-400/60 text-yellow-400/90 hover:text-yellow-400 shadow-neon-yellow-sm"
+                        : "border-purple-400/20 hover:border-purple-400/30 hover:shadow-neon-purple-sm text-white/90 hover:text-purple-400"
+                    )}
+                    onClick={() => onSuggestionClick(suggestion)}
+                    title={suggestion.length > 20 ? suggestion : undefined}
+                  >
+                    {isPinned && <Pin className="h-3 w-3 mr-1 fill-current" />}
+                    {suggestion}
+                  </Button>
+                  <div className="flex gap-0.5 opacity-0 group-hover/suggestion:opacity-100 transition-opacity">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-white/40 hover:text-white/60"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const origIndex = originalSuggestions.indexOf(suggestion);
+                        if (origIndex >= 0) pinSuggestion(origIndex);
+                      }}
+                      title={isPinned ? "Unpin" : "Pin"}
+                    >
+                      <Pin className={cn("h-3 w-3", isPinned && "fill-current text-yellow-400")} />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-white/40 hover:text-red-400"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const origIndex = originalSuggestions.indexOf(suggestion);
+                        if (origIndex >= 0) dismissSuggestion(origIndex);
+                      }}
+                      title="Dismiss"
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })}
         </div>
       </div>
     );
-}
+  }
 
 export function ChatInput({ userId, onMessageSubmit, isSending }: ChatInputProps) {
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -121,10 +193,11 @@ export function ChatInput({ userId, onMessageSubmit, isSending }: ChatInputProps
   const isProcessing = isSending || isTranscribing;
 
   return (
-    <div className="flex flex-col gap-2">
-       <AnimatePresence>
-        <FollowUpSuggestions userId={userId} onSuggestionClick={handleSuggestionClick} />
-      </AnimatePresence>
+    <TooltipProvider>
+      <div className="flex flex-col gap-2">
+        <AnimatePresence>
+          <FollowUpSuggestions userId={userId} onSuggestionClick={handleSuggestionClick} />
+        </AnimatePresence>
       <form
         ref={formRef}
         onSubmit={handleSubmit}
@@ -204,6 +277,7 @@ export function ChatInput({ userId, onMessageSubmit, isSending }: ChatInputProps
           </div>
         </div>
       </form>
-    </div>
+      </div>
+    </TooltipProvider>
   );
 }

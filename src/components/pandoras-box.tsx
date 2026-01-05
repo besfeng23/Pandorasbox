@@ -15,6 +15,7 @@ import { Button } from './ui/button';
 import { submitUserMessage } from '@/app/actions';
 import { useTransition } from 'react';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet';
 import {
@@ -41,6 +42,7 @@ export function PandorasBox({ user }: PandorasBoxProps) {
   const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false);
   const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(false);
   const isMobile = useIsMobile();
+  const { toast } = useToast();
 
   // Load sidebar collapse state from localStorage
   useEffect(() => {
@@ -85,9 +87,36 @@ export function PandorasBox({ user }: PandorasBoxProps) {
     }
     
     startTransition(async () => {
-        const result = await submitUserMessage(formData);
-        if (result?.threadId && !currentThreadId) {
-            setCurrentThreadId(result.threadId);
+        try {
+            const result = await submitUserMessage(formData);
+            if (result?.error) {
+                // Handle rate limit or other errors
+                if (result.error.toLowerCase().includes('rate limit')) {
+                    toast({
+                        variant: 'destructive',
+                        title: 'Rate Limit Exceeded',
+                        description: result.error || 'Please wait a moment before sending another message.',
+                    });
+                } else {
+                    toast({
+                        variant: 'destructive',
+                        title: 'Error',
+                        description: result.error || 'Failed to send message. Please try again.',
+                    });
+                }
+                return;
+            }
+            if (result?.threadId && !currentThreadId) {
+                setCurrentThreadId(result.threadId);
+            }
+        } catch (error: any) {
+            console.error('Error submitting message:', error);
+            const errorMessage = error?.message || 'Failed to send message. Please check your connection and try again.';
+            toast({
+                variant: 'destructive',
+                title: 'Connection Error',
+                description: errorMessage,
+            });
         }
     });
     return isPending;
