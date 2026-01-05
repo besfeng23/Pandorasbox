@@ -325,6 +325,7 @@ paths:
                     type: string
 
 components:
+  schemas: {}
   securitySchemes:
     ApiKeyAuth:
       type: apiKey
@@ -334,4 +335,3 @@ components:
         API key authentication.
         Format: "Bearer YOUR_API_KEY"
         Use the value from the CHATGPT_API_KEY secret: OKepTRWlwBohzaEbCGQgcUZXjI34m7qL
-
