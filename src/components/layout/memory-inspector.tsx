@@ -48,41 +48,39 @@ export function MemoryInspector({ userId }: MemoryInspectorProps) {
   }, [userId, firestore]);
 
   return (
-    <div className="flex flex-col h-full p-2 gap-2">
-        <div className="p-2">
-            <h3 className="text-sm font-semibold uppercase tracking-wider neon-text-cyan">
+    <div className="flex flex-col h-full">
+        <div className="p-4 border-b border-border">
+            <h3 className="text-sm font-semibold mb-1">
                 Memory Inspector
             </h3>
-            <p className="text-xs text-white/60">
+            <p className="text-xs text-muted-foreground">
                 Live view of AI's long-term memory.
             </p>
         </div>
-        <div className="flex-1 min-h-0 rounded-lg glass-panel-strong border-glow-cyan p-2">
-            <ScrollArea className="h-full">
-                {isLoading ? (
-                <div className="flex items-center justify-center h-full">
-                    <Loader2 className="h-6 w-6 animate-spin neon-text-cyan" />
+        <ScrollArea className="flex-1">
+            {isLoading ? (
+            <div className="flex items-center justify-center h-full p-8">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+            ) : memories.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-4">
+                <BrainCircuit className="h-8 w-8 mb-2 text-muted-foreground" strokeWidth={1.5} />
+                <p className="font-medium text-sm">Memory is empty</p>
+                <p className="text-xs">Chat with Pandora to build its memory.</p>
+            </div>
+            ) : (
+            <div className="flex flex-col gap-2 p-4">
+                {memories.map(memory => (
+                <div key={memory.id} className="p-3 rounded-lg bg-muted border border-border text-xs hover:bg-accent transition-colors">
+                    <p className="mb-2 leading-relaxed text-foreground">{memory.content}</p>
+                    <p className="text-muted-foreground text-[10px]">
+                    {memory.timestamp ? formatDistanceToNow(memory.timestamp, { addSuffix: true }) : 'just now'}
+                    </p>
                 </div>
-                ) : memories.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-center text-white/60 p-4">
-                    <BrainCircuit className="h-8 w-8 mb-2 neon-text-cyan" strokeWidth={1.5} />
-                    <p className="font-medium">Memory is empty</p>
-                    <p className="text-xs">Chat with Pandora to build its memory.</p>
-                </div>
-                ) : (
-                <div className="flex flex-col gap-3 p-2">
-                    {memories.map(memory => (
-                    <div key={memory.id} className="p-3 rounded-md glass-panel border border-white/10 font-code text-xs text-white/80 hover:border-glow-cyan transition-colors">
-                        <p className="mb-2 leading-relaxed">{memory.content}</p>
-                        <p className="text-white/40 text-[10px]">
-                        {memory.timestamp ? formatDistanceToNow(memory.timestamp, { addSuffix: true }) : 'just now'}
-                        </p>
-                    </div>
-                    ))}
-                </div>
-                )}
-            </ScrollArea>
-        </div>
+                ))}
+            </div>
+            )}
+        </ScrollArea>
     </div>
   );
 }
