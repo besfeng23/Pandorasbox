@@ -351,34 +351,65 @@ export async function clearMemory(userId: string) {
 
 export async function getMemories(userId: string, query?: string) {
     'use server';
-    if (!userId) {
-      throw new Error('User not authenticated');
-    }
-  
-    const firestoreAdmin = getFirestoreAdmin();
-    const historyCollection = firestoreAdmin.collection('history');
-  
-    if (query && query.trim()) {
-      const searchResults = await searchHistory(query, userId);
-      if (searchResults.length === 0) return [];
-      const docIds = searchResults.map(r => r.id);
-      
-      // Get documents by IDs - Firestore Admin SDK doesn't support 'in' with documentId directly
-      // Instead, fetch each document individually (or use a different approach)
-      const memoryDocs = await Promise.all(
-        docIds.slice(0, 10).map(id => historyCollection.doc(id).get())
-      );
-      const memoryDocsArray = memoryDocs.filter(doc => doc.exists).map(doc => doc);
-      const userFilteredDocs = memoryDocsArray.filter(doc => doc.data()?.userId === userId);
-      return userFilteredDocs.map(doc => ({ id: doc.id, ...doc.data() }));
+    try {
+      if (!userId) {
+        console.warn('getMemories: User not authenticated');
+        return [];
+      }
+    
+      const firestoreAdmin = getFirestoreAdmin();
+      const historyCollection = firestoreAdmin.collection('history');
+    
+      if (query && query.trim()) {
+        try {
+          const searchResults = await searchHistory(query, userId);
+          if (searchResults.length === 0) return [];
+          const docIds = searchResults.map(r => r.id);
+          
+          // Get documents by IDs - Firestore Admin SDK doesn't support 'in' with documentId directly
+          // Instead, fetch each document individually (or use a different approach)
+          const memoryDocs = await Promise.all(
+            docIds.slice(0, 10).map(id => historyCollection.doc(id).get())
+          );
+          const memoryDocsArray = memoryDocs.filter(doc => doc.exists).map(doc => doc);
+          const userFilteredDocs = memoryDocsArray.filter(doc => doc.data()?.userId === userId);
+          return userFilteredDocs.map(doc => ({ id: doc.id, ...doc.data() }));
+        } catch (searchError: any) {
+          console.error('Error in semantic search for memories:', searchError);
+          // Fallback to regular query if semantic search fails
+          const snapshot = await historyCollection
+            .where('userId', '==', userId)
+            .orderBy('createdAt', 'desc')
+            .limit(50)
+            .get();
+          return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        }
 
-    } else {
-      const snapshot = await historyCollection
-        .where('userId', '==', userId)
-        .orderBy('createdAt', 'desc')
-        .limit(50)
-        .get();
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      } else {
+        try {
+          const snapshot = await historyCollection
+            .where('userId', '==', userId)
+            .orderBy('createdAt', 'desc')
+            .limit(50)
+            .get();
+          return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        } catch (queryError: any) {
+          // If orderBy fails (missing index), try without it
+          if (queryError.code === 9 || queryError.message?.includes('index')) {
+            console.warn('Firestore index missing for createdAt. Querying without orderBy.');
+            const snapshot = await historyCollection
+              .where('userId', '==', userId)
+              .limit(50)
+              .get();
+            return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          }
+          throw queryError;
+        }
+      }
+    } catch (error: any) {
+      console.error('Error fetching memories:', error);
+      // Return empty array instead of throwing to prevent server component crash
+      return [];
     }
 }
   

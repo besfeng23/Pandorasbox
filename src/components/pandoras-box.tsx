@@ -99,7 +99,7 @@ export function PandorasBox({ user }: PandorasBoxProps) {
         <Button 
           variant="ghost" 
           className={cn(
-            "w-full glass-panel border-glow-cyan hover:bg-white/10 transition-all",
+            "w-full glass-panel border-glow-cyan hover:bg-white/10 transition-all min-h-[44px] touch-manipulation",
             leftSidebarCollapsed && "px-2"
           )}
           onClick={handleNewChat}
@@ -126,7 +126,7 @@ export function PandorasBox({ user }: PandorasBoxProps) {
           <div className="flex items-center justify-between px-4 h-14">
             <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-9 w-9 text-cyan-400 hover:bg-white/10">
+                <Button variant="ghost" size="icon" className="h-11 w-11 min-h-[44px] min-w-[44px] text-cyan-400 hover:bg-white/10 touch-manipulation">
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
@@ -141,7 +141,7 @@ export function PandorasBox({ user }: PandorasBoxProps) {
             </Sheet>
             <h1 className="text-lg font-semibold neon-text-cyan">Pandora</h1>
             <Link href="/settings">
-              <Button variant="ghost" size="icon" className="h-9 w-9 text-cyan-400 hover:bg-white/10">
+              <Button variant="ghost" size="icon" className="h-11 w-11 min-h-[44px] min-w-[44px] text-cyan-400 hover:bg-white/10 touch-manipulation">
                 <Settings className="h-5 w-5" />
               </Button>
             </Link>
@@ -210,8 +210,8 @@ export function PandorasBox({ user }: PandorasBoxProps) {
           {/* Input Area - Floating at bottom */}
           <div className="safe-area-inset-bottom">
             <div className={cn(
-              "mx-auto p-3 sm:p-4 mb-4",
-              isMobile ? "w-full px-3" : "max-w-3xl"
+              "mx-auto p-4 sm:p-6 mb-6",
+              isMobile ? "w-full px-4" : "max-w-3xl"
             )}>
               <ChatInput 
                 userId={user.uid} 

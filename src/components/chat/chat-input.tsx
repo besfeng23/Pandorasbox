@@ -128,7 +128,7 @@ export function ChatInput({ userId, onMessageSubmit, isSending }: ChatInputProps
       <form
         ref={formRef}
         onSubmit={handleSubmit}
-        className="relative flex flex-col gap-2 glass-panel-strong rounded-2xl border border-cyan-400/15 shadow-neon-cyan-sm"
+        className="relative flex flex-col gap-2 glass-panel-strong rounded-2xl border border-cyan-400/10 shadow-neon-cyan-sm"
       >
         {imagePreview && (
           <div className="relative w-24 h-24 rounded-md overflow-hidden border">
@@ -160,7 +160,7 @@ export function ChatInput({ userId, onMessageSubmit, isSending }: ChatInputProps
             type="button"
             variant="ghost"
             size="icon"
-            className="absolute bottom-2 left-2 h-9 w-9 sm:h-8 sm:w-8 text-white/60 hover:text-cyan-400 hover:bg-white/10 touch-manipulation"
+            className="absolute bottom-2 left-2 h-9 w-9 sm:h-8 sm:w-8 text-white/60 hover:text-cyan-400 hover:bg-white/10 touch-manipulation hover:scale-110 active:scale-95 transition-transform duration-200"
             onClick={() => fileInputRef.current?.click()}
             disabled={isProcessing}
             aria-label="Attach image"
@@ -191,7 +191,7 @@ export function ChatInput({ userId, onMessageSubmit, isSending }: ChatInputProps
             <Button
               type="submit"
               size="icon"
-              className="h-9 w-9 sm:h-8 sm:w-8 bg-gradient-to-br from-cyan-400/90 to-purple-500/90 text-white hover:from-cyan-300 hover:to-purple-400 rounded-full touch-manipulation shadow-neon-cyan-sm"
+              className="h-9 w-9 sm:h-8 sm:w-8 bg-gradient-to-br from-cyan-400/90 to-purple-500/90 text-white hover:from-cyan-300 hover:to-purple-400 rounded-full touch-manipulation shadow-neon-cyan-sm hover:scale-110 active:scale-95 transition-transform duration-200"
               disabled={isProcessing}
               aria-label="Send message"
             >

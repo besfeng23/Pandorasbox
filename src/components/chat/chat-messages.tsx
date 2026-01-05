@@ -33,7 +33,7 @@ export function ChatMessages({ messages, thread, userId }: ChatMessagesProps) {
       ref={scrollAreaRef}
       className="h-full w-full overflow-y-auto"
     >
-      <div className="max-w-3xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
         {messages.length === 0 && !hasSummary && (
           <div className="flex h-full items-center justify-center min-h-[60vh] px-4">
             <div className="text-center">
@@ -49,13 +49,13 @@ export function ChatMessages({ messages, thread, userId }: ChatMessagesProps) {
               <FileText className="h-4 w-4 text-cyan-400" />
               <h3 className="text-sm font-medium neon-text-cyan">Conversation Summary</h3>
             </div>
-            <p className="text-sm text-white/90 leading-relaxed">
+            <p className="text-sm text-white/90 leading-loose">
               {thread.summary}
             </p>
           </div>
         )}
 
-        <div className="flex flex-col gap-4 sm:gap-6">
+        <div className="flex flex-col gap-5 sm:gap-6">
           {messages.map((message) => (
             <div
               key={message.id}
