@@ -12,6 +12,7 @@ import Image from 'next/image';
 import { useArtifactStore } from '@/store/artifacts';
 import { ThinkingIndicator } from './thinking-indicator';
 import { Button } from '../ui/button';
+import { useFirestore } from '@/firebase';
 import {
   AlertDialog,
   AlertDialogAction,

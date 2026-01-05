@@ -26,6 +26,7 @@ import { ChatSidebar } from './chat/chat-sidebar';
 import { Button } from './ui/button';
 import { submitUserMessage } from '@/app/actions';
 import { useTransition } from 'react';
+import { cn } from '@/lib/utils';
 
 
 interface PandorasBoxProps {
@@ -79,7 +80,7 @@ export function PandorasBox({ user }: PandorasBoxProps) {
       </div>
 
       {/* Main Chat Area - ChatGPT style */}
-      <div className="flex flex-col flex-1 min-w-0">
+      <div className={cn("flex flex-col flex-1 min-w-0", isSplitView && "border-r border-border")}>
         <div className="flex-1 overflow-hidden relative flex flex-col">
           {isLoading && (
             <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-10">
@@ -114,6 +115,13 @@ export function PandorasBox({ user }: PandorasBoxProps) {
           </div>
         </div>
       </div>
+
+      {/* Right Sidebar - Artifact Viewer */}
+      {isSplitView && activeArtifactId && (
+        <div className="w-96 border-l border-border bg-card hidden lg:flex flex-col">
+          <ArtifactViewer artifactId={activeArtifactId} />
+        </div>
+      )}
     </div>
   );
 }

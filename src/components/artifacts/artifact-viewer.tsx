@@ -62,26 +62,26 @@ export function ArtifactViewer({ artifactId }: ArtifactViewerProps) {
   }
 
   return (
-    <div className="flex h-full flex-col glass-panel-strong border-l border-white/10 bg-void">
-      <header className="flex h-14 items-center justify-between border-b border-white/10 px-4 glass-panel">
-        <h3 className="font-semibold truncate pr-4 neon-text-cyan">{artifact.title}</h3>
+    <div className="flex h-full flex-col bg-card border-l border-border">
+      <header className="flex h-14 items-center justify-between border-b border-border px-4 bg-background">
+        <h3 className="font-semibold truncate pr-4 text-foreground">{artifact.title}</h3>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={handleCopy} className="hover:bg-neon-cyan/10 text-white/70 hover:text-neon-cyan">
-            {hasCopied ? <Check className="h-4 w-4 text-green-400" /> : <Copy className="h-4 w-4" />}
+          <Button variant="ghost" size="icon" onClick={handleCopy} className="hover:bg-accent">
+            {hasCopied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => setActiveArtifactId(null)} className="hover:bg-red-500/10 text-white/70 hover:text-red-400">
+          <Button variant="ghost" size="icon" onClick={() => setActiveArtifactId(null)} className="hover:bg-destructive/10">
             <X className="h-4 w-4" />
           </Button>
         </div>
       </header>
       <ScrollArea className="flex-1">
-        <div className="p-4 bg-void">
+        <div className="p-4 bg-background">
             {artifact.type === 'code' ? (
                 <SyntaxHighlighter language="javascript" style={vscDarkPlus} customStyle={{ background: 'transparent', margin: 0, padding: 0 }} codeTagProps={{style: {fontFamily: "var(--font-code)"}}}>
                     {artifact.content}
                 </SyntaxHighlighter>
             ) : (
-                <article className="prose prose-zinc dark:prose-invert max-w-none prose-headings:text-white prose-p:text-white/80 prose-strong:text-white prose-code:text-neon-cyan">
+                <article className="prose prose-sm prose-zinc dark:prose-invert max-w-none">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{artifact.content}</ReactMarkdown>
                 </article>
             )}
