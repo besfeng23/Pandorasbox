@@ -4,9 +4,14 @@ import OpenAI from 'openai';
 import { getFirestoreAdmin } from './firebase-admin';
 import { Timestamp, FieldValue } from 'firebase-admin/firestore';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY?.trim(),
-});
+// Lazy initialization to avoid build-time errors
+function getOpenAI() {
+  const apiKey = process.env.OPENAI_API_KEY?.trim();
+  if (!apiKey) {
+    throw new Error('OPENAI_API_KEY is not configured. Please set it in your environment variables.');
+  }
+  return new OpenAI({ apiKey });
+}
 
 
 /**
@@ -23,6 +28,7 @@ export async function generateEmbedding(text: string): Promise<number[]> {
     return Array(1536).fill(0);
   }
 
+  const openai = getOpenAI();
   const response = await openai.embeddings.create({
     model: 'text-embedding-3-small',
     input: normalizedText,

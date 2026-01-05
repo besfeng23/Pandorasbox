@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirestoreAdmin } from '@/lib/firebase-admin';
 
+// Prevent this route from being statically generated
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 /**
  * API route for scheduled memory cleanup.
  * This should be called by Cloud Scheduler or a cron service.

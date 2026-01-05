@@ -8,9 +8,14 @@ import OpenAI from 'openai';
 import { trackEvent } from '@/lib/analytics';
 import { ChatCompletionMessageParam } from 'openai/resources/index.mjs';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY?.trim(),
-});
+// Lazy initialization to avoid build-time errors
+function getOpenAI() {
+  const apiKey = process.env.OPENAI_API_KEY?.trim();
+  if (!apiKey) {
+    throw new Error('OPENAI_API_KEY is not configured. Please set it in your environment variables.');
+  }
+  return new OpenAI({ apiKey });
+}
 
 
 const MemoryLaneInputSchema = z.object({

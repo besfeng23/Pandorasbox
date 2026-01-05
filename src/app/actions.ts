@@ -18,9 +18,14 @@ import * as Sentry from '@sentry/nextjs';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { trackEvent } from '@/lib/analytics';
 
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY?.trim(),
-});
+// Lazy initialization to avoid build-time errors
+function getOpenAI() {
+  const apiKey = process.env.OPENAI_API_KEY?.trim();
+  if (!apiKey) {
+    throw new Error('OPENAI_API_KEY is not configured. Please set it in your environment variables.');
+  }
+  return new OpenAI({ apiKey });
+}
 
 export async function createThread(userId: string): Promise<string> {
     const firestoreAdmin = getFirestoreAdmin();
@@ -87,6 +92,7 @@ export async function transcribeAndProcessMessage(formData: FormData) {
     }
 
     try {
+        const openai = getOpenAI();
         const transcription = await openai.audio.transcriptions.create({
             model: 'whisper-1',
             file: audioFile,

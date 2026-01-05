@@ -2,9 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getFirestoreAdmin } from '@/lib/firebase-admin';
 import OpenAI from 'openai';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY?.trim(),
-});
+// Lazy initialization to avoid build-time errors
+function getOpenAI() {
+  const apiKey = process.env.OPENAI_API_KEY?.trim();
+  if (!apiKey) {
+    throw new Error('OPENAI_API_KEY is not configured. Please set it in your environment variables.');
+  }
+  return new OpenAI({ apiKey });
+}
 
 /**
  * API route for daily briefing generation.
@@ -55,6 +60,7 @@ export async function POST(request: NextRequest) {
 
         const userContext = contextDoc.data()?.note || "No context available.";
 
+        const openai = getOpenAI();
         const completion = await openai.chat.completions.create({
           model: 'gpt-4o',
           messages: [
