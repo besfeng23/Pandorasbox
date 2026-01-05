@@ -42,7 +42,7 @@ async function extractAndSaveArtifact(rawResponse: string, userId: string): Prom
     const [, title, type, content] = match;
     const artifactType = type === 'code' ? 'code' : 'markdown';
     
-    const artifactData: Omit<Artifact, 'id'> = {
+    const artifactData = {
         userId: userId,
         title: title,
         type: artifactType,
