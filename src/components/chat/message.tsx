@@ -8,46 +8,76 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import Image from 'next/image';
 import { ThinkingIndicator } from './thinking-indicator';
-
+import { useArtifactStore } from '@/store/artifacts';
+import { Button } from '../ui/button';
+import { useToast } from '@/hooks/use-toast';
+import { useUser } from '@/firebase';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
+import { FileText } from 'lucide-react';
 
 interface MessageProps {
   message: MessageType;
 }
 
-const userAvatar = PlaceHolderImages.find(img => img.id === 'user-avatar');
-
 export function Message({ message }: MessageProps) {
   const isUser = message.role === 'user';
+  const timestamp = formatTime(message.createdAt);
+  const setActiveArtifactId = useArtifactStore(state => state.setActiveArtifactId);
+  const { toast } = useToast();
+  const { user } = useUser();
+  const firestore = useFirestore();
 
-  const artifactRegex = /\[Artifact Created: (.*?)\]/g;
+  const ARTIFACT_REGEX = /\[Artifact Created: (.*?)\]/g;
   
-  const handleArtifactClick = (title: string, e: React.MouseEvent) => {
+  const handleArtifactClick = async (title: string, e: React.MouseEvent) => {
     e.preventDefault();
-    console.log("Artifact clicked:", title);
+    if (!user?.uid) {
+      toast({ variant: "destructive", title: "Error", description: "User not authenticated." });
+      return;
+    }
+
+    try {
+      const q = query(collection(firestore, 'artifacts'), where('userId', '==', user.uid), where('title', '==', title));
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        const artifactDoc = querySnapshot.docs[0];
+        setActiveArtifactId(artifactDoc.id);
+      } else {
+        toast({ variant: "destructive", title: "Error", description: `Artifact "${title}" not found.` });
+      }
+    } catch (error) {
+      console.error("Error fetching artifact by title:", error);
+      toast({ variant: "destructive", title: "Error", description: "Failed to retrieve artifact." });
+    }
   };
 
   const renderContent = (content: string) => {
-    const parts = content.split(artifactRegex);
+    const parts = content.split(ARTIFACT_REGEX);
     return parts.map((part, index) => {
-      if (index % 2 === 1) { // This is the captured group (the artifact title)
+      if (index % 2 === 1) {
+        const artifactTitle = part;
         return (
-          <button 
+          <Button
             key={index}
-            onClick={(e) => handleArtifactClick(part, e)}
-            className="inline-block bg-primary/10 text-primary hover:bg-primary/20 px-2 py-1 rounded-md text-sm font-medium transition-colors"
+            variant="secondary"
+            size="sm"
+            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-md bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-800"
+            onClick={(e) => handleArtifactClick(artifactTitle, e)}
           >
-            [Artifact: {part}]
-          </button>
+            <FileText className="h-3 w-3" />
+            {artifactTitle}
+          </Button>
         );
       }
-      return <ReactMarkdown key={index} remarkPlugins={[remarkGfm]}>{part}</ReactMarkdown>;
+      return <ReactMarkdown key={index} remarkPlugins={[remarkGfm]} className="prose prose-sm prose-zinc dark:prose-invert max-w-none">{part}</ReactMarkdown>;
     });
   };
 
   if (message.role === 'system') {
     return (
-      <div className="flex items-center gap-3 my-2 text-xs text-muted-foreground font-medium justify-center w-full">
-        <AlertTriangle className="h-4 w-4 text-destructive" strokeWidth={1.5} />
+      <div className="flex items-center gap-3 my-2 text-xs text-red-400 font-medium justify-center w-full">
+        <AlertTriangle className="h-4 w-4 text-red-400" strokeWidth={1.5} />
         <span>{message.content}</span>
       </div>
     )
@@ -55,11 +85,11 @@ export function Message({ message }: MessageProps) {
 
   if (message.type === 'briefing') {
     return (
-        <div className="w-full my-4 p-4 rounded-lg bg-gradient-to-r from-indigo-50 to-white dark:from-indigo-950/50 dark:to-card border-l-4 border-indigo-500 dark:border-indigo-400 shadow-sm">
+        <div className="w-full my-4 p-4 rounded-lg glass-panel border border-cyan-400/20">
             <div className="flex items-center gap-2 mb-3">
-                <Sun className="h-5 w-5 text-indigo-500 dark:text-indigo-400" />
-                <h3 className="font-semibold text-base text-indigo-900 dark:text-indigo-200">Morning Briefing</h3>
-                <span className="text-xs text-muted-foreground ml-auto">{timestamp}</span>
+                <Sun className="h-5 w-5 text-cyan-400" />
+                <h3 className="font-semibold text-base neon-text-cyan">Morning Briefing</h3>
+                <span className="text-xs text-white/40 ml-auto">{timestamp}</span>
             </div>
              <article className="prose prose-sm prose-zinc dark:prose-invert max-w-none">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>

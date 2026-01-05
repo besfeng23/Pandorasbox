@@ -26,7 +26,7 @@ function FollowUpSuggestions({ userId, onSuggestionClick }: { userId: string, on
   
     return (
       <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-2">
-        <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-yellow-500 shrink-0" />
+        <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-yellow-400 shrink-0" />
         {suggestions.map((suggestion, index) => (
           <motion.div
             key={index}
@@ -36,8 +36,8 @@ function FollowUpSuggestions({ userId, onSuggestionClick }: { userId: string, on
           >
             <Button
               size="sm"
-              variant="outline"
-              className="text-xs h-8 sm:h-7 px-2 sm:px-3 touch-manipulation min-h-[36px] sm:min-h-0"
+              variant="ghost"
+              className="text-xs h-8 sm:h-7 px-2 sm:px-3 touch-manipulation min-h-[36px] sm:min-h-0 glass-panel border border-purple-400/20 hover:border-purple-400/30 hover:shadow-neon-purple-sm text-white/90 hover:text-purple-400 transition-all"
               onClick={() => onSuggestionClick(suggestion)}
             >
               {suggestion}
@@ -124,7 +124,7 @@ export function ChatInput({ userId, onMessageSubmit, isSending }: ChatInputProps
       <form
         ref={formRef}
         onSubmit={handleSubmit}
-        className="relative flex flex-col gap-2 bg-background rounded-2xl border border-border shadow-sm"
+        className="relative flex flex-col gap-2 glass-panel-strong rounded-2xl border border-cyan-400/20 shadow-neon-cyan"
       >
         {imagePreview && (
           <div className="relative w-24 h-24 rounded-md overflow-hidden border">
@@ -156,7 +156,7 @@ export function ChatInput({ userId, onMessageSubmit, isSending }: ChatInputProps
             type="button"
             variant="ghost"
             size="icon"
-            className="absolute bottom-2 left-2 h-9 w-9 sm:h-8 sm:w-8 text-muted-foreground touch-manipulation"
+            className="absolute bottom-2 left-2 h-9 w-9 sm:h-8 sm:w-8 text-white/60 hover:text-cyan-400 hover:bg-white/10 touch-manipulation"
             onClick={() => fileInputRef.current?.click()}
             disabled={isProcessing}
             aria-label="Attach image"
@@ -170,7 +170,7 @@ export function ChatInput({ userId, onMessageSubmit, isSending }: ChatInputProps
             onChange={handleTextareaChange}
             onKeyDown={handleKeyDown}
             placeholder={isTranscribing ? "Transcribing audio..." : "Message Pandora..."}
-            className="w-full resize-none max-h-48 pr-20 sm:pr-24 pl-11 sm:pl-12 text-base sm:text-sm leading-relaxed rounded-2xl border-border focus-visible:ring-2 focus-visible:ring-ring min-h-[44px] sm:min-h-[40px] py-2.5 sm:py-2"
+            className="w-full resize-none max-h-48 pr-20 sm:pr-24 pl-11 sm:pl-12 text-base sm:text-sm leading-relaxed rounded-2xl bg-transparent border-0 focus-visible:ring-0 focus-visible:outline-none text-white placeholder:text-white/40 min-h-[44px] sm:min-h-[40px] py-2.5 sm:py-2"
             rows={1}
             disabled={isProcessing}
             aria-label="Chat message input"
@@ -187,7 +187,7 @@ export function ChatInput({ userId, onMessageSubmit, isSending }: ChatInputProps
             <Button
               type="submit"
               size="icon"
-              className="h-9 w-9 sm:h-8 sm:w-8 bg-primary text-primary-foreground hover:bg-primary/90 rounded-full touch-manipulation"
+              className="h-9 w-9 sm:h-8 sm:w-8 bg-gradient-to-br from-cyan-400 to-purple-500 text-white hover:from-cyan-300 hover:to-purple-400 rounded-full touch-manipulation shadow-neon-cyan-sm"
               disabled={isProcessing}
               aria-label="Send message"
             >

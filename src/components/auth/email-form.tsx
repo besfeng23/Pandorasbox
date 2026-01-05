@@ -43,6 +43,7 @@ export function EmailForm() {
 
   const form = useForm<UserFormValue>({
     resolver: zodResolver(formSchema),
+    mode: 'onSubmit', // Only validate on submit, not while typing
     defaultValues: {
       email: '',
       password: '',
@@ -93,10 +94,10 @@ export function EmailForm() {
   return (
     <div className="space-y-4">
       {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Authentication Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
+        <Alert className="glass-panel border border-red-400/30 bg-red-400/10">
+          <AlertCircle className="h-4 w-4 text-red-400" />
+          <AlertTitle className="text-red-400">Authentication Error</AlertTitle>
+          <AlertDescription className="text-white/80">{error}</AlertDescription>
         </Alert>
       )}
       <Form {...form}>
@@ -106,11 +107,12 @@ export function EmailForm() {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Email</FormLabel>
+                <FormLabel className="text-white/90">Email</FormLabel>
                 <FormControl>
                   <Input
                     type="email"
                     placeholder="name@example.com"
+                    className="input-glass text-white placeholder:text-white/40"
                     {...field}
                   />
                 </FormControl>
@@ -139,17 +141,29 @@ export function EmailForm() {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Password</FormLabel>
+                <FormLabel className="text-white/90">Password</FormLabel>
                 <FormControl>
-                  <Input type="password" placeholder="••••••••" {...field} />
+                  <Input 
+                    type="password" 
+                    placeholder="••••••••" 
+                    className="input-glass text-white placeholder:text-white/40"
+                    {...field} 
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-          <Button type="submit" className="w-full bg-gradient-to-r from-neon-cyan to-neon-purple text-white hover:opacity-90 border-0" disabled={isLoading || isResetting}>
-            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isSignUp ? 'Create Account' : 'Sign In'}
+          <Button type="submit" className="w-full bg-gradient-to-r from-cyan-400 to-purple-500 text-white hover:from-cyan-300 hover:to-purple-400 border-0 shadow-neon-cyan-sm relative" disabled={isLoading || isResetting}>
+            {isLoading && (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <span className="absolute inset-0 flex items-center justify-center glass-panel rounded-md">
+                  <Loader2 className="h-4 w-4 animate-spin text-cyan-400" />
+                </span>
+              </>
+            )}
+            {!isLoading && (isSignUp ? 'Create Account' : 'Sign In')}
           </Button>
         </form>
       </Form>

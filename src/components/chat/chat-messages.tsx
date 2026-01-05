@@ -37,19 +37,19 @@ export function ChatMessages({ messages, thread, userId }: ChatMessagesProps) {
         {messages.length === 0 && !hasSummary && (
           <div className="flex h-full items-center justify-center min-h-[60vh] px-4">
             <div className="text-center">
-              <h2 className="text-xl sm:text-2xl font-semibold mb-2">How can I help you today?</h2>
-              <p className="text-sm sm:text-base text-muted-foreground">Start a conversation to begin.</p>
+              <h2 className="text-2xl sm:text-3xl font-bold mb-3 tracking-tight neon-text-cyan">How can I help you today?</h2>
+              <p className="text-sm sm:text-base text-white/60">Start a conversation to begin.</p>
             </div>
           </div>
         )}
 
         {hasSummary && (
-          <div className="mb-6 p-4 rounded-lg bg-muted/50 border border-border">
+          <div className="mb-6 p-4 rounded-lg glass-panel border border-cyan-400/20">
             <div className="flex items-center gap-2 mb-2">
-              <FileText className="h-4 w-4 text-muted-foreground" />
-              <h3 className="text-sm font-medium text-muted-foreground">Conversation Summary</h3>
+              <FileText className="h-4 w-4 text-cyan-400" />
+              <h3 className="text-sm font-medium neon-text-cyan">Conversation Summary</h3>
             </div>
-            <p className="text-sm text-foreground">
+            <p className="text-sm text-white/90 leading-relaxed">
               {thread.summary}
             </p>
           </div>
