@@ -110,76 +110,55 @@ export function Message({ message }: MessageProps) {
   return (
     <div
       className={cn(
-        'group flex items-start gap-3 max-w-[80%]',
-        isUser && 'flex-row-reverse'
+        'group flex items-start gap-4 w-full',
+        isUser ? 'flex-row-reverse' : ''
       )}
     >
-      <Avatar className="h-8 w-8 border shrink-0">
-        {isUser && userAvatar ? (
-            <AvatarImage src={userAvatar.imageUrl} alt="User" data-ai-hint={userAvatar.imageHint} />
-        ) : null }
-        <AvatarFallback className={cn(!isUser ? "bg-transparent text-foreground" : "bg-muted")}>
-          {isUser ? (
-            <User className="h-4 w-4" strokeWidth={1.5} />
-          ) : (
-            <BrainCircuit className="h-5 w-5" strokeWidth={1.5} />
-          )}
-        </AvatarFallback>
-      </Avatar>
+      {!isUser && (
+        <Avatar className="h-8 w-8 shrink-0">
+          <AvatarFallback className="bg-muted">
+            <BrainCircuit className="h-4 w-4" strokeWidth={1.5} />
+          </AvatarFallback>
+        </Avatar>
+      )}
+      
       <div
         className={cn(
-          'p-3 rounded-lg flex flex-col relative',
+          'rounded-2xl px-4 py-3 flex flex-col relative max-w-[85%]',
           isUser
-            ? 'bg-primary text-primary-foreground'
+            ? 'bg-primary text-primary-foreground ml-auto'
             : 'bg-muted'
         )}
       >
-        <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <AlertDialog>
-                <AlertDialogTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-6 w-6">
-                        <Trash2 className="h-3 w-3 text-muted-foreground" />
-                    </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Forget this memory?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            This will permanently delete this message from your history. This action cannot be undone.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDelete}>Confirm</AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-        </div>
-
-        <div className="flex items-center gap-2 mb-1">
-            {message.source === 'voice' && isUser && <Mic className="h-3 w-3 text-muted-foreground" />}
-            <span className="text-xs font-bold">{isUser ? 'You' : 'Pandora'}</span>
-            <span className="text-xs text-muted-foreground">{timestamp}</span>
-        </div>
+        {isUser ? (
+          <p className="text-[15px] leading-relaxed whitespace-pre-wrap">
+            {message.content}
+          </p>
+        ) : message.status === 'processing' ? (
+          <ThinkingIndicator logs={message.progress_log || []} />
+        ) : (
+          <div className="text-[15px] leading-relaxed prose prose-sm dark:prose-invert max-w-none">
+            {renderContent(message.content)}
+          </div>
+        )}
 
         {message.imageUrl && (
-            <div className="relative w-full max-w-sm mt-2 rounded-lg border border-zinc-200 dark:border-zinc-700 overflow-hidden cursor-pointer transition-transform hover:scale-[1.02]">
-                 <Image src={message.imageUrl} alt="Uploaded content" width={400} height={300} className="object-cover" />
-            </div>
-        )}
-
-        {isUser ? (
-            <p className="text-base leading-relaxed whitespace-pre-wrap mt-2">
-                {message.content}
-            </p>
-        ) : message.status === 'processing' ? (
-            <ThinkingIndicator logs={message.progress_log || []} />
-        ) : (
-            <article className="prose prose-sm prose-zinc dark:prose-invert max-w-none mt-2">
-                {renderContent(message.content)}
-            </article>
+          <div className="relative w-full max-w-sm mt-3 rounded-lg overflow-hidden">
+            <Image src={message.imageUrl} alt="Uploaded content" width={400} height={300} className="object-cover" />
+          </div>
         )}
       </div>
+
+      {isUser && (
+        <Avatar className="h-8 w-8 shrink-0">
+          {userAvatar ? (
+            <AvatarImage src={userAvatar.imageUrl} alt="User" />
+          ) : null}
+          <AvatarFallback className="bg-primary text-primary-foreground">
+            <User className="h-4 w-4" strokeWidth={1.5} />
+          </AvatarFallback>
+        </Avatar>
+      )}
     </div>
   );
 }

@@ -124,7 +124,7 @@ export function ChatInput({ userId, onMessageSubmit, isSending }: ChatInputProps
       <form
         ref={formRef}
         onSubmit={handleSubmit}
-        className="relative flex flex-col gap-2"
+        className="relative flex flex-col gap-2 bg-background rounded-2xl border border-border shadow-sm"
       >
         {imagePreview && (
           <div className="relative w-24 h-24 rounded-md overflow-hidden border">
@@ -169,8 +169,8 @@ export function ChatInput({ userId, onMessageSubmit, isSending }: ChatInputProps
             name="message"
             onChange={handleTextareaChange}
             onKeyDown={handleKeyDown}
-            placeholder={isTranscribing ? "Transcribing audio..." : "Ask Pandora anything..."}
-            className="w-full resize-none max-h-48 pr-24 pl-12 text-base leading-relaxed input-glass text-white/90 placeholder:text-white/40"
+            placeholder={isTranscribing ? "Transcribing audio..." : "Message Pandora..."}
+            className="w-full resize-none max-h-48 pr-24 pl-12 text-base leading-relaxed rounded-2xl border-border focus-visible:ring-2 focus-visible:ring-ring"
             rows={1}
             disabled={isProcessing}
             aria-label="Chat message input"
@@ -186,7 +186,7 @@ export function ChatInput({ userId, onMessageSubmit, isSending }: ChatInputProps
             <Button
               type="submit"
               size="icon"
-              className="h-8 w-8 bg-gradient-to-r from-neon-cyan to-neon-purple text-white hover:opacity-90 border-0 shadow-neon-cyan-sm"
+              className="h-8 w-8 bg-primary text-primary-foreground hover:bg-primary/90 rounded-full"
               disabled={isProcessing}
               aria-label="Send message"
             >

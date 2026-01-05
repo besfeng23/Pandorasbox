@@ -31,57 +31,43 @@ export function ChatMessages({ messages, thread, userId }: ChatMessagesProps) {
   return (
     <div
       ref={scrollAreaRef}
-      className="h-full w-full overflow-y-auto px-4 pt-20 pb-8"
+      className="h-full w-full overflow-y-auto"
     >
-      <div className="flex flex-col gap-4">
-        {hasSummary && (
-            <motion.div
-                layout
-                initial={{ opacity: 0, y: -20, height: 0 }}
-                animate={{ opacity: 1, y: 0, height: 'auto' }}
-                transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-                className="w-full my-2 p-4 rounded-lg bg-muted border-l-4 border-primary shadow-sm"
-            >
-                <div className="flex items-center gap-2 mb-2">
-                    <FileText className="h-5 w-5 text-primary" strokeWidth={1.5} />
-                    <h3 className="font-semibold text-base text-primary">Conversation Summary</h3>
-                </div>
-                <p className="text-sm text-muted-foreground italic">
-                    {thread.summary}
-                </p>
-            </motion.div>
-        )}
-        
+      <div className="max-w-3xl mx-auto px-4 py-8">
         {messages.length === 0 && !hasSummary && (
-            <div className="flex h-full items-center justify-center">
-                <div className="text-center text-gray-500 bg-gray-900/50 p-4 rounded-lg">
-                    <p>No messages yet.</p>
-                </div>
+          <div className="flex h-full items-center justify-center min-h-[60vh]">
+            <div className="text-center">
+              <h2 className="text-2xl font-semibold mb-2">How can I help you today?</h2>
+              <p className="text-muted-foreground">Start a conversation to begin.</p>
             </div>
+          </div>
         )}
 
-        <AnimatePresence initial={false}>
+        {hasSummary && (
+          <div className="mb-6 p-4 rounded-lg bg-muted/50 border border-border">
+            <div className="flex items-center gap-2 mb-2">
+              <FileText className="h-4 w-4 text-muted-foreground" />
+              <h3 className="text-sm font-medium text-muted-foreground">Conversation Summary</h3>
+            </div>
+            <p className="text-sm text-foreground">
+              {thread.summary}
+            </p>
+          </div>
+        )}
+
+        <div className="flex flex-col gap-6">
           {messages.map((message) => (
-            <motion.div
+            <div
               key={message.id}
-              layout
-              initial={{ opacity: 0, scale: 0.8, y: 50 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.8, y: -50 }}
-              transition={{
-                type: 'spring',
-                stiffness: 350,
-                damping: 30,
-              }}
               className={cn(
-                'flex',
+                'flex items-start gap-4',
                 message.role === 'user' ? 'justify-end' : 'justify-start'
               )}
             >
               <Message message={message} />
-            </motion.div>
+            </div>
           ))}
-        </AnimatePresence>
+        </div>
         <div ref={messagesEndRef} />
       </div>
     </div>
