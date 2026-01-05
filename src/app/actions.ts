@@ -16,6 +16,7 @@ import { randomBytes } from 'crypto';
 import { summarizeLongChat } from '@/ai/flows/summarize-long-chat';
 import * as Sentry from '@sentry/nextjs';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { trackEvent } from '@/lib/analytics';
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY?.trim(),
@@ -173,6 +174,10 @@ export async function submitUserMessage(formData: FormData) {
       const userMessageRef = await historyCollection.add(userMessageData);
       userMessageId = userMessageRef.id;
       await userMessageRef.update({ id: userMessageId });
+  
+      // Track analytics
+      await trackEvent(userId, 'message_sent', { threadId, hasImage: !!imageBase64 });
+      await trackEvent(userId, 'embedding_generated');
   
       console.log(`Successfully wrote message to thread ${threadId} for user: ${userId}`);
   
@@ -352,8 +357,13 @@ export async function getMemories(userId: string, query?: string) {
       if (searchResults.length === 0) return [];
       const docIds = searchResults.map(r => r.id);
       
-      const memoryDocs = await historyCollection.where(FieldValue.documentId(), 'in', docIds).get();
-      const userFilteredDocs = memoryDocs.docs.filter(doc => doc.data().userId === userId);
+      // Get documents by IDs - Firestore Admin SDK doesn't support 'in' with documentId directly
+      // Instead, fetch each document individually (or use a different approach)
+      const memoryDocs = await Promise.all(
+        docIds.slice(0, 10).map(id => historyCollection.doc(id).get())
+      );
+      const memoryDocsArray = memoryDocs.filter(doc => doc.exists).map(doc => doc);
+      const userFilteredDocs = memoryDocsArray.filter(doc => doc.data()?.userId === userId);
       return userFilteredDocs.map(doc => ({ id: doc.id, ...doc.data() }));
 
     } else {
@@ -472,6 +482,9 @@ export async function uploadKnowledge(formData: FormData): Promise<{ success: bo
         }
         
         await batch.commit();
+        
+        // Track analytics
+        await trackEvent(userId, 'knowledge_uploaded', { fileName: file.name, chunks: chunks.length });
 
         revalidatePath('/settings');
 

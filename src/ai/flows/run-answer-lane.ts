@@ -9,6 +9,7 @@ import { generateEmbedding } from '@/lib/vector';
 import OpenAI from 'openai';
 import { FieldValue } from 'firebase-admin/firestore';
 import { textEmbedding3Small } from '@genkit-ai/google-genai';
+import { trackEvent } from '@/lib/analytics';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY?.trim(),
@@ -47,6 +48,9 @@ async function extractAndSaveArtifact(rawResponse: string, userId: string): Prom
     };
   
     const artifactRef = await firestoreAdmin.collection('artifacts').add(artifactData);
+  
+    // Track analytics
+    await trackEvent(userId, 'artifact_created', { artifactType, title });
   
     const citation = `[Artifact Created: ${title}]`;
     const cleanResponse = rawResponse.replace(artifactRegex, `\n${citation}\n`);
