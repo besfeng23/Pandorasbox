@@ -58,6 +58,18 @@ env:
     availability:
       - RUNTIME
   
+  # ChatGPT API Key for Custom GPT Actions
+  - variable: CHATGPT_API_KEY
+    secret: chatgpt-api-key
+    availability:
+      - RUNTIME
+  
+  # CRON_SECRET for securing API routes
+  - variable: CRON_SECRET
+    secret: cron-secret
+    availability:
+      - RUNTIME
+  
   # MEMORY_API_KEY removed - not currently used in the codebase
 
   # Sentry (optional - add when configured)
