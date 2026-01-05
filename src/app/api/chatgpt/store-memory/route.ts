@@ -21,6 +21,20 @@ export const runtime = 'nodejs';
  *   "user_email": "joven.ong23@gmail.com" (optional, defaults to configured email)
  * }
  */
+// CORS headers helper
+function corsHeaders() {
+  return {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-API-Key',
+  };
+}
+
+// Handle OPTIONS request for CORS preflight
+export async function OPTIONS() {
+  return NextResponse.json({}, { headers: corsHeaders() });
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Verify API key
@@ -30,7 +44,7 @@ export async function POST(request: NextRequest) {
     if (!apiKey || apiKey !== process.env.CHATGPT_API_KEY?.trim()) {
       return NextResponse.json(
         { error: 'Unauthorized. Invalid API key.' },
-        { status: 401 }
+        { status: 401, headers: corsHeaders() }
       );
     }
 
@@ -88,13 +102,13 @@ export async function POST(request: NextRequest) {
       message: 'Memory stored successfully',
       memory_id: memoryRef.id,
       user_id: userId,
-    });
+    }, { headers: corsHeaders() });
 
   } catch (error: any) {
     console.error('Error storing memory from ChatGPT:', error);
     return NextResponse.json(
       { error: 'Failed to store memory', details: error.message },
-      { status: 500 }
+      { status: 500, headers: corsHeaders() }
     );
   }
 }
@@ -114,6 +128,6 @@ export async function GET(request: NextRequest) {
       memory: 'string (required) - The memory content to store',
       user_email: 'string (optional) - User email, defaults to joven.ong23@gmail.com',
     },
-  });
+  }, { headers: corsHeaders() });
 }
 
