@@ -143,7 +143,8 @@ export async function POST(
     );
 
   } catch (error: any) {
-    console.error(`Error in MCP HTTP bridge (${params.tool?.[0]}):`, error);
+    const resolvedParams = params instanceof Promise ? await params : params;
+    console.error(`Error in MCP HTTP bridge (${resolvedParams.tool?.[0]}):`, error);
     
     // Handle known error types
     if (error.message && typeof error.message === 'string') {
