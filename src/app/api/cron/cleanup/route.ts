@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirestoreAdmin } from '@/lib/firebase-admin';
-import { FieldValue } from 'firebase-admin/firestore';
 
 /**
  * API route for scheduled memory cleanup.

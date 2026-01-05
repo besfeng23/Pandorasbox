@@ -1,6 +1,11 @@
-# Cloud Scheduler Setup for Memory Cleanup
+# Cloud Scheduler Setup for Scheduled Tasks
 
-Since you're using Firebase App Hosting (not Cloud Functions), the cleanup job needs to be set up using Google Cloud Scheduler to call a Next.js API route.
+Since you're using Firebase App Hosting (not Cloud Functions), all scheduled tasks are implemented as Next.js API routes that can be called by Google Cloud Scheduler.
+
+## Available Scheduled Tasks
+
+1. **Memory Cleanup** - `/api/cron/cleanup` - Deletes old data (90+ days)
+2. **Daily Briefing** - `/api/cron/daily-briefing` - Generates morning briefings for users
 
 ## Setup Steps
 
@@ -10,24 +15,39 @@ Your App Hosting URL should be something like:
 https://studio-sg--seismic-vista-480710-q5.asia-southeast1.hosted.app
 ```
 
-### 2. Create Cloud Scheduler Job
+### 2. Create Cloud Scheduler Jobs
 
-1. Go to [Google Cloud Console](https://console.cloud.google.com/cloudscheduler)
-2. Select your project: `seismic-vista-480710-q5`
-3. Click **"Create Job"**
+Go to [Google Cloud Console](https://console.cloud.google.com/cloudscheduler)
+Select your project: `seismic-vista-480710-q5`
 
-### 3. Configure the Job
+#### Job 1: Memory Cleanup
 
-- **Name**: `cleanup-old-data`
-- **Region**: `asia-southeast1` (or your App Hosting region)
-- **Frequency**: `0 2 * * *` (runs daily at 2 AM UTC)
-- **Timezone**: `UTC`
-- **Target type**: `HTTP`
-- **URL**: `https://studio-sg--seismic-vista-480710-q5.asia-southeast1.hosted.app/api/cron/cleanup`
-- **HTTP method**: `POST`
-- **Headers** (optional, for security):
-  - `Authorization`: `Bearer YOUR_SECRET_TOKEN`
-  - (Set `CRON_SECRET` in your App Hosting environment variables)
+1. Click **"Create Job"**
+2. Configure:
+   - **Name**: `cleanup-old-data`
+   - **Region**: `asia-southeast1` (or your App Hosting region)
+   - **Frequency**: `0 2 * * *` (runs daily at 2 AM UTC)
+   - **Timezone**: `UTC`
+   - **Target type**: `HTTP`
+   - **URL**: `https://studio-sg--seismic-vista-480710-q5.asia-southeast1.hosted.app/api/cron/cleanup`
+   - **HTTP method**: `POST`
+   - **Headers** (optional, for security):
+     - `Authorization`: `Bearer YOUR_SECRET_TOKEN`
+     - (Set `CRON_SECRET` in your App Hosting environment variables)
+
+#### Job 2: Daily Briefing
+
+1. Click **"Create Job"** again
+2. Configure:
+   - **Name**: `daily-briefing`
+   - **Region**: `asia-southeast1`
+   - **Frequency**: `0 8 * * *` (runs daily at 8 AM EST / 1 PM UTC)
+   - **Timezone**: `America/New_York`
+   - **Target type**: `HTTP`
+   - **URL**: `https://studio-sg--seismic-vista-480710-q5.asia-southeast1.hosted.app/api/cron/daily-briefing`
+   - **HTTP method**: `POST`
+   - **Headers** (optional, for security):
+     - `Authorization`: `Bearer YOUR_SECRET_TOKEN`
 
 ### 4. Authentication (Optional but Recommended)
 
@@ -51,14 +71,21 @@ For security, you can add a secret token:
    firebase apphosting:secrets:grantaccess cron-secret
    ```
 
-### 5. Test the Endpoint
+### 5. Test the Endpoints
 
-You can test the cleanup endpoint manually:
+You can test the endpoints manually:
+
+**Memory Cleanup:**
 ```bash
 curl -X POST https://your-app-url/api/cron/cleanup
 ```
 
-Or visit it in your browser (GET request also works for testing).
+**Daily Briefing:**
+```bash
+curl -X POST https://your-app-url/api/cron/daily-briefing
+```
+
+Or visit them in your browser (GET request also works for testing).
 
 ## Alternative: Manual Cleanup
 
