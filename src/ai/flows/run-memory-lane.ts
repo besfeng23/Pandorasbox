@@ -76,6 +76,7 @@ Return a JSON object containing:
         userMessage.push({ role: 'user', content: `Current Context: "${currentContext}"\n\nUser Message: "${message}"` });
       }
 
+      const openai = getOpenAI();
       const completion = await openai.chat.completions.create({
         model: settings.active_model as any,
         messages: [

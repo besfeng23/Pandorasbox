@@ -64,6 +64,7 @@ export async function generateEmbeddingsBatch(texts: string[]): Promise<number[]
   for (let i = 0; i < normalizedTexts.length; i += batchSize) {
     const batch = normalizedTexts.slice(i, i + batchSize);
     
+    const openai = getOpenAI();
     const response = await openai.embeddings.create({
       model: 'text-embedding-3-small',
       input: batch,
