@@ -31,6 +31,7 @@ Traditional chat applications (like ChatGPT) have limited context windows and ca
 - **UI Library**: React 19.2.1
 - **UI Components**: Radix UI (headless components) + custom shadcn/ui components
 - **Styling**: Tailwind CSS 3.4.1 with CSS variables for theming
+- **Theme System**: Dark/light mode toggle with ThemeProvider (`src/hooks/use-theme.tsx`)
 - **State Management**: Zustand 4.5.4 (for client-side state like artifacts)
 - **Animations**: Framer Motion 11.3.2
 - **Icons**: Lucide React 0.475.0
@@ -40,8 +41,10 @@ Traditional chat applications (like ChatGPT) have limited context windows and ca
 
 - **Runtime**: Node.js 20 (server-side)
 - **Server Actions**: Next.js Server Actions (`'use server'`) for all backend logic
+- **API Routes**: Next.js API routes for external integrations (ChatGPT Actions, MCP HTTP bridge, cron jobs)
 - **Authentication**: Firebase Auth (client-side) + Firebase Admin SDK (server-side)
 - **API Client**: OpenAI SDK 4.52.7
+- **MCP Server**: Model Context Protocol server for Claude Desktop integration
 
 ### Database & Storage
 
@@ -274,6 +277,48 @@ admin.initializeApp({
     - Keyboard shortcuts (Cmd/Ctrl+K)
     - Quick navigation
     - Command palette UI
+    - Memory search integration
+
+13. **Theme System**
+    - Dark/light mode toggle
+    - Theme persistence in localStorage
+    - CSS variables for both themes
+    - Glassmorphism effects for both themes
+
+14. **Keyboard Shortcuts**
+    - Cmd/Ctrl+K - Open command menu
+    - Cmd/Ctrl+B - Toggle sidebar
+    - Enter - Send message
+    - Shift+Enter - New line
+    - Esc - Close dialogs
+    - Keyboard shortcuts documentation in Settings
+
+15. **MCP (Model Context Protocol) Integration**
+    - MCP server for Claude Desktop (`src/mcp/index.ts`)
+    - HTTP bridge for ChatGPT Actions (`src/app/api/mcp/[...tool]/route.ts`)
+    - Three MCP tools: search_knowledge_base, add_memory, generate_artifact
+    - OpenAPI schema generation (YAML and JSON formats)
+
+16. **ChatGPT Actions Integration**
+    - Store memory endpoint (`/api/chatgpt/store-memory`)
+    - Retrieve memories endpoint (`/api/chatgpt/retrieve-memories`)
+    - OpenAPI schema for ChatGPT Actions
+    - API key authentication
+
+17. **Scheduled Tasks**
+    - Memory cleanup cron job (`/api/cron/cleanup`)
+    - Daily briefing cron job (`/api/cron/daily-briefing`)
+    - Cloud Scheduler integration
+
+18. **Rate Limiting**
+    - Token bucket algorithm
+    - Per-user rate limits (30 messages/min, 10 uploads/hour)
+    - Rate limit status tracking
+
+19. **Error Monitoring**
+    - Sentry integration
+    - Error tracking in all server actions
+    - Production error logging
 
 ---
 
@@ -314,7 +359,9 @@ admin.initializeApp({
 **Secret Variables** (server-only):
 - `OPENAI_API_KEY` - OpenAI API access
 - `GEMINI_API_KEY` - Google Gemini (optional)
-- `MEMORY_API_KEY` - Placeholder (not currently used)
+- `MCP_API_KEY` - API key for MCP HTTP bridge and ChatGPT Actions
+- `CHATGPT_API_KEY` - Alternative to MCP_API_KEY (used if MCP_API_KEY not set)
+- `MCP_SERVER_URL` - Server URL for OpenAPI schema generation
 
 **Service Account**:
 - Local: `service-account.json` (file-based, gitignored)
@@ -332,7 +379,7 @@ match /users/{userId}/{document=**} {
 }
 ```
 
-**Note**: The `history`, `threads`, `memories`, and `artifacts` collections are **not** protected by client-side rules. They are accessed server-side via Firebase Admin SDK, which bypasses security rules. Client-side access should be restricted or added to security rules.
+**Note**: All collections (`history`, `threads`, `memories`, `artifacts`) are now protected by client-side security rules. They are accessed server-side via Firebase Admin SDK (which bypasses rules), but client-side rules provide defense-in-depth security.
 
 ---
 
@@ -341,9 +388,13 @@ match /users/{userId}/{document=**} {
 ### `/src/app/`
 Next.js App Router pages and Server Actions
 - `page.tsx` - Home page (renders PandorasBox component)
-- `layout.tsx` - Root layout with Firebase provider
+- `layout.tsx` - Root layout with Firebase provider and ThemeProvider
 - `actions.ts` - All Server Actions (message submission, memory operations, file upload)
 - `settings/page.tsx` - Settings page UI
+- `api/` - API routes
+  - `chatgpt/` - ChatGPT Actions endpoints (store-memory, retrieve-memories, openapi.yaml)
+  - `mcp/[...tool]/route.ts` - MCP HTTP bridge for ChatGPT Actions
+  - `cron/` - Scheduled task endpoints (cleanup, daily-briefing)
 
 ### `/src/components/`
 React components organized by feature
@@ -353,6 +404,8 @@ React components organized by feature
 - `layout/` - Layout components (command rail, memory inspector)
 - `pandoras-box.tsx` - Main application container
 - `settings/` - Settings page components (memory table, knowledge upload)
+- `keyboard-shortcuts.tsx` - Keyboard shortcuts dialog component
+- `SettingsModal.tsx` - Settings modal with theme toggle
 - `ui/` - Reusable UI components (shadcn/ui based: buttons, cards, dialogs, etc.)
 
 ### `/src/lib/`
@@ -363,6 +416,12 @@ Core utilities and libraries
 - `types.ts` - TypeScript type definitions
 - `utils.ts` - General utilities (cn, etc.)
 - `vector.ts` - Embedding generation and vector search functions
+  - `generateEmbedding()` - Single embedding generation
+  - `generateEmbeddingsBatch()` - Batch embedding generation
+  - `searchHistory()` - Search history collection
+  - `searchMemories()` - Search memories collection
+- `rate-limit.ts` - Rate limiting implementation (token bucket algorithm)
+- `analytics.ts` - Event tracking and user statistics
 
 ### `/src/ai/`
 AI orchestration using Genkit
@@ -374,6 +433,15 @@ AI orchestration using Genkit
   - `run-answer-lane.ts` - Response generation flow
   - `suggest-follow-up-questions.ts` - Follow-up question generation
   - `summarize-long-chat.ts` - Thread summarization flow
+
+### `/src/mcp/`
+Model Context Protocol (MCP) server implementation
+- `index.ts` - MCP server main entry point (stdio transport)
+- `types.ts` - MCP tool type definitions
+- `tools/` - MCP tool implementations
+  - `search-knowledge.ts` - Semantic search tool
+  - `add-memory.ts` - Memory storage tool
+  - `generate-artifact.ts` - Artifact creation tool
 
 ### `/src/firebase/`
 Firebase client-side integration
@@ -391,6 +459,7 @@ Custom React hooks
 - `use-debounce.ts` - Debounce utility hook
 - `use-mobile.tsx` - Mobile device detection hook
 - `use-toast.ts` - Toast notification system hook
+- `use-theme.tsx` - Theme management hook (dark/light mode toggle)
 
 ### `/src/store/`
 Zustand state management stores
@@ -401,12 +470,21 @@ Zustand state management stores
 - `package.json` - Dependencies and scripts
 - `firebase.json` - Firebase project configuration
 - `.firebaserc` - Firebase project aliases
-- `firestore.rules` - Firestore security rules
+- `firestore.rules` - Firestore security rules (all collections protected)
 - `firestore.indexes.json` - Firestore composite indexes
+- `storage.rules` - Firebase Storage security rules
 - `next.config.ts` - Next.js configuration
 - `tailwind.config.ts` - Tailwind CSS configuration
 - `tsconfig.json` - TypeScript configuration
 - `service-account.json` - Firebase Admin service account (gitignored)
+- `apphosting.yaml` - Firebase App Hosting configuration
+- `scripts/generate-schema.ts` - OpenAPI schema generator for MCP tools
+
+### `/public/`
+Public static files
+- `openapi-mcp.yaml` - OpenAPI schema in YAML format (for ChatGPT Actions)
+- `openapi-mcp.json` - OpenAPI schema in JSON format
+- `manifest.json` - PWA manifest
 
 ---
 
@@ -549,20 +627,20 @@ type AppSettings = {
 
 ### Current Limitations
 
-1. **Security Rules**: Some collections (`history`, `threads`, `memories`, `artifacts`) lack client-side security rules (accessed server-side only)
-2. **Rate Limiting**: No rate limiting on API calls or embeddings
-3. **Cost Optimization**: All messages embedded immediately (could be optimized with batching)
+1. ~~**Security Rules**: Some collections lack client-side security rules~~ ✅ **FIXED** - All collections now have security rules
+2. ~~**Rate Limiting**: No rate limiting on API calls or embeddings~~ ✅ **FIXED** - Token bucket algorithm implemented
+3. ~~**Cost Optimization**: All messages embedded immediately~~ ✅ **FIXED** - Batch embedding generation implemented
 4. **Vector Index**: Firestore vector indexes may take time to build for large datasets
-5. **Memory Cleanup**: No automatic cleanup of old memories or threads
+5. ~~**Memory Cleanup**: No automatic cleanup of old memories or threads~~ ✅ **FIXED** - Automated cleanup via Cloud Scheduler
 
 ### Future Enhancements
 
 1. **Multi-Modal Memory**: Enhanced image memory with vision embeddings
 2. **Memory Compression**: Summarize and compress old memories
-3. **Export/Import**: User data export functionality
+3. ~~**Export/Import**: User data export functionality~~ ✅ **IMPLEMENTED** - GDPR-compliant JSON export
 4. **Collaboration**: Shared threads or knowledge bases
 5. **Plugin System**: Extensible plugin architecture for custom flows
-6. **Analytics**: Usage analytics and memory effectiveness metrics
+6. ~~**Analytics**: Usage analytics and memory effectiveness metrics~~ ✅ **IMPLEMENTED** - Event tracking system
 
 ---
 
@@ -627,9 +705,43 @@ Updates user settings.
 Deletes all user data (history, memories, artifacts, threads).
 - **Returns**: `{ success, message }`
 
+### `exportUserData(userId: string)`
+Exports all user data as JSON (GDPR compliance).
+- **Returns**: `{ success, data }` - JSON object with all user data
+
+### `generateUserApiKey(userId: string)`
+Generates a personal API key for the user.
+- **Returns**: `{ success, apiKey }`
+
 ---
 
-**Document Version**: 1.0  
+## 13. External Integrations
+
+### ChatGPT Actions
+- **Endpoints**: `/api/chatgpt/store-memory`, `/api/chatgpt/retrieve-memories`
+- **Schema**: `/api/chatgpt/openapi.yaml`
+- **Authentication**: Bearer token (CHATGPT_API_KEY)
+- **Purpose**: Allow ChatGPT to store and retrieve memories from Pandora's Box
+
+### MCP (Model Context Protocol)
+- **Server**: Stdio-based MCP server (`src/mcp/index.ts`)
+- **HTTP Bridge**: `/api/mcp/{tool_name}` for ChatGPT Actions compatibility
+- **Tools**: 
+  - `search_knowledge_base` - Semantic search
+  - `add_memory` - Store memories
+  - `generate_artifact` - Create artifacts
+- **Schema**: `public/openapi-mcp.yaml` (YAML) and `public/openapi-mcp.json` (JSON)
+- **Authentication**: Bearer token (MCP_API_KEY or CHATGPT_API_KEY)
+- **Usage**: Claude Desktop (stdio) or ChatGPT Actions (HTTP)
+
+### Cloud Scheduler
+- **Cleanup Job**: Daily cleanup of old data (`/api/cron/cleanup`)
+- **Daily Briefing**: Scheduled daily briefings (`/api/cron/daily-briefing`)
+- **Configuration**: Managed via Cloud Scheduler console or setup scripts
+
+---
+
+**Document Version**: 1.1  
 **Last Updated**: January 2025  
 **Author**: Technical Architecture Team
 
