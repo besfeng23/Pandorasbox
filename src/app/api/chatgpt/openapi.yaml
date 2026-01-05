@@ -28,6 +28,15 @@ paths:
                   type: string
                   description: User email address (defaults to joven.ong23@gmail.com if not provided)
                   default: joven.ong23@gmail.com
+            examples:
+              example1:
+                value:
+                  memory: "User prefers dark mode interface"
+                  user_email: "joven.ong23@gmail.com"
+              example2:
+                value:
+                  memory: "User is working on a Next.js project with Firebase App Hosting"
+                  user_email: "joven.ong23@gmail.com"
       security:
         - ApiKeyAuth: []
       responses:
@@ -144,6 +153,16 @@ paths:
                   maximum: 50
                   default: 10
                   description: Maximum number of memories to return
+            examples:
+              example1:
+                value:
+                  query: "user preferences"
+                  user_email: "joven.ong23@gmail.com"
+                  limit: 5
+              example2:
+                value:
+                  query: "current project"
+                  limit: 10
       security:
         - ApiKeyAuth: []
       responses:
@@ -181,10 +200,10 @@ paths:
         '500':
           description: Server error
 
-securitySchemes:
-  ApiKeyAuth:
-    type: apiKey
-    in: header
-    name: Authorization
-    description: API key in format "Bearer YOUR_API_KEY"
-
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: API key in format "Bearer YOUR_API_KEY"

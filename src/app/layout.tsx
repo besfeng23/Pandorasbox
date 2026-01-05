@@ -60,7 +60,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
-      <body className="font-body antialiased" style={{ height: '100%', overflow: 'hidden' }}>
+      <body className="font-body antialiased" style={{ minHeight: '100dvh', overflowY: 'auto' }}>
         <FirebaseClientProvider>
           {children}
           <CommandMenu />

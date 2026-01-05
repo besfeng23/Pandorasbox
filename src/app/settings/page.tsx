@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useTransition, useState } from 'react';
@@ -8,13 +7,12 @@ import { z } from 'zod';
 import { updateSettings, clearMemory, generateUserApiKey, exportUserData } from '@/app/actions';
 import { useSettings } from '@/hooks/use-settings';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, KeyRound, Copy, Check } from 'lucide-react';
+import { Loader2, KeyRound, Copy, Check, Settings as SettingsIcon } from 'lucide-react';
 import { AppSettings } from '@/lib/types';
 import {
   AlertDialog,
@@ -32,7 +30,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MemoryTable } from '@/components/settings/memory-table';
 import { KnowledgeUpload } from '@/components/settings/knowledge-upload';
 import { Input } from '@/components/ui/input';
-
+import Link from 'next/link';
 
 const settingsSchema = z.object({
   active_model: z.enum(['gpt-4o', 'gpt-4-turbo', 'gpt-3.5-turbo']),
@@ -63,7 +61,7 @@ export default function SettingsPage() {
   const onSubmit = (data: AppSettings) => {
     const formData = new FormData();
     Object.entries(data).forEach(([key, value]) => {
-        if (value !== undefined && key !== 'personal_api_key') { // Don't submit API key via this form
+        if (value !== undefined && key !== 'personal_api_key') {
             formData.append(key, String(value));
         }
     });
@@ -117,246 +115,267 @@ export default function SettingsPage() {
 
   if (isLoadingSettings || isUserLoading) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
+      <div className="flex h-screen items-center justify-center bg-gradient-to-br from-black via-gray-900 to-black">
+        <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />
       </div>
     );
   }
 
   return (
-    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-        <div className="flex items-center justify-between space-y-2">
-            <h2 className="text-3xl font-bold tracking-tight">Settings</h2>
+    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black overflow-y-auto">
+      {/* Glassmorphism Header */}
+      <div className="sticky top-0 z-10 backdrop-blur-xl bg-black/30 border-b border-white/10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <SettingsIcon className="h-6 w-6 text-cyan-400" />
+              <h1 className="text-2xl font-bold text-white">Settings</h1>
+            </div>
+            <Link href="/">
+              <Button variant="ghost" className="text-white hover:bg-white/10">
+                ← Back to Chat
+              </Button>
+            </Link>
+          </div>
         </div>
+      </div>
 
-        <Tabs defaultValue="general">
-            <TabsList className="mb-4">
-                <TabsTrigger value="general">General</TabsTrigger>
-                <TabsTrigger value="memory">Memory Database</TabsTrigger>
-                <TabsTrigger value="api">API</TabsTrigger>
-                <TabsTrigger value="data">Data & Privacy</TabsTrigger>
-            </TabsList>
-            <TabsContent value="general" className="space-y-8">
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>AI Model</CardTitle>
-                                <CardDescription>Select the primary AI model for generating responses.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <FormField
-                                    control={form.control}
-                                    name="active_model"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                        <FormLabel>Active Model</FormLabel>
-                                        <Select onValueChange={field.onChange} value={field.value}>
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Select a model" />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                <SelectItem value="gpt-4o">gpt-4o</SelectItem>
-                                                <SelectItem value="gpt-4-turbo">gpt-4-turbo</SelectItem>
-                                                <SelectItem value="gpt-3.5-turbo">gpt-3.5-turbo</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </CardContent>
-                        </Card>
+      {/* Scrollable Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <Tabs defaultValue="general" className="space-y-6">
+          <TabsList className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-lg p-1">
+            <TabsTrigger value="general" className="data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400">
+              General
+            </TabsTrigger>
+            <TabsTrigger value="memory" className="data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400">
+              Memory
+            </TabsTrigger>
+            <TabsTrigger value="api" className="data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400">
+              API
+            </TabsTrigger>
+            <TabsTrigger value="data" className="data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400">
+              Data
+            </TabsTrigger>
+          </TabsList>
 
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Reply Style</CardTitle>
-                                <CardDescription>Choose how verbose the AI's replies should be.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                            <FormField
-                                control={form.control}
-                                name="reply_style"
-                                render={({ field }) => (
-                                    <FormItem className="space-y-3">
-                                    <FormControl>
-                                        <RadioGroup
-                                            onValueChange={field.onChange}
-                                            value={field.value}
-                                            className="flex flex-col space-y-1"
-                                        >
-                                        <FormItem className="flex items-center space-x-3 space-y-0">
-                                            <FormControl>
-                                            <RadioGroupItem value="concise" />
-                                            </FormControl>
-                                            <FormLabel className="font-normal">Concise</FormLabel>
-                                        </FormItem>
-                                        <FormItem className="flex items-center space-x-3 space-y-0">
-                                            <FormControl>
-                                            <RadioGroupItem value="detailed" />
-                                            </FormControl>
-                                            <FormLabel className="font-normal">Detailed</FormLabel>
-                                        </FormItem>
-                                        </RadioGroup>
-                                    </FormControl>
-                                    <FormMessage />
-                                    </FormItem>
-                                )}
-                                />
-                            </CardContent>
-                        </Card>
-                        
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>System Prompt</CardTitle>
-                                <CardDescription>Override the default system prompt. Leave blank to use the default.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <FormField
-                                    control={form.control}
-                                    name="system_prompt_override"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                        <FormLabel>Prompt Override</FormLabel>
-                                        <FormControl>
-                                            <Textarea
-                                                placeholder="e.g., You are a pirate assistant who says 'Ahoy!' a lot."
-                                                className="resize-y min-h-[100px]"
-                                                {...field}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </CardContent>
-                        </Card>
+          <TabsContent value="general" className="space-y-6">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                {/* AI Model Card */}
+                <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-xl p-6 shadow-xl">
+                  <h3 className="text-lg font-semibold text-white mb-2">AI Model</h3>
+                  <p className="text-sm text-gray-400 mb-4">Select the primary AI model for generating responses.</p>
+                  <FormField
+                    control={form.control}
+                    name="active_model"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-gray-300">Active Model</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger className="bg-black/40 border-white/10 text-white">
+                              <SelectValue placeholder="Select a model" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent className="bg-gray-900 border-white/10">
+                            <SelectItem value="gpt-4o" className="text-white">gpt-4o</SelectItem>
+                            <SelectItem value="gpt-4-turbo" className="text-white">gpt-4-turbo</SelectItem>
+                            <SelectItem value="gpt-3.5-turbo" className="text-white">gpt-3.5-turbo</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
-                        <div className="flex justify-end items-start">
-                            <Button type="submit" disabled={isPending || !user}>
-                                {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Save Settings
-                            </Button>
-                        </div>
-                    </form>
-                </Form>
-            </TabsContent>
-            <TabsContent value="memory" className="space-y-4">
-                {user && <KnowledgeUpload userId={user.uid} />}
-                {user && <MemoryTable userId={user.uid} />}
-                 <Card>
-                    <CardHeader>
-                        <CardTitle className='text-destructive'>Danger Zone</CardTitle>
-                        <CardDescription>
-                            These actions are permanent and cannot be undone.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                         <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                                <Button variant="destructive" type="button" disabled={isPending || !user}>Clear All Memory</Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    This will permanently delete the entire chat history and learned memories. This action cannot be undone.
-                                </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={handleClearMemory} disabled={isPending}>
-                                {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Continue
-                                </AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
-                    </CardContent>
-                 </Card>
-            </TabsContent>
-            <TabsContent value="api" className="space-y-4">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Personal API Key</CardTitle>
-                        <CardDescription>Connect Pandora to external services like a custom GPT.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        {settings.personal_api_key ? (
-                            <div className="relative">
-                                <Input
-                                    readOnly
-                                    type="password"
-                                    value={settings.personal_api_key}
-                                    className="pr-10 font-code"
-                                />
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
-                                    onClick={handleCopyKey}
-                                >
-                                    {hasCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                                </Button>
-                            </div>
-                        ) : (
-                            <div className="flex flex-col items-start gap-4 p-6 border rounded-lg bg-muted/50">
-                                 <KeyRound className="h-8 w-8 text-muted-foreground" />
-                                 <p className="text-muted-foreground">You have not generated an API key yet.</p>
-                                 <Button onClick={handleGenerateKey} disabled={isKeyGenerating}>
-                                    {isKeyGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    Generate Personal API Key
-                                 </Button>
-                            </div>
-                        )}
-                        <p className="text-xs text-muted-foreground">Use this key to allow external applications to access and interact with your Pandora memory.</p>
-                    </CardContent>
-                </Card>
-            </TabsContent>
-            <TabsContent value="data" className="space-y-4">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Data Export</CardTitle>
-                        <CardDescription>Download all your data for backup or GDPR compliance.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <Button 
-                            onClick={async () => {
-                                if (!user) return;
-                                startTransition(async () => {
-                                    const result = await exportUserData(user.uid);
-                                    if (result.success && result.data) {
-                                        // Download as JSON file
-                                        const dataStr = JSON.stringify(result.data, null, 2);
-                                        const dataBlob = new Blob([dataStr], { type: 'application/json' });
-                                        const url = URL.createObjectURL(dataBlob);
-                                        const link = document.createElement('a');
-                                        link.href = url;
-                                        link.download = `pandorasbox-export-${new Date().toISOString().split('T')[0]}.json`;
-                                        document.body.appendChild(link);
-                                        link.click();
-                                        document.body.removeChild(link);
-                                        URL.revokeObjectURL(url);
-                                        toast({ title: 'Success', description: 'Your data has been exported.' });
-                                    } else {
-                                        toast({ variant: 'destructive', title: 'Error', description: result.message || 'Failed to export data.' });
-                                    }
-                                });
-                            }}
-                            disabled={isPending || !user}
-                        >
-                            {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Export All Data (JSON)
-                        </Button>
-                        <p className="text-xs text-muted-foreground mt-2">
-                            This will download all your threads, messages, memories, and artifacts as a JSON file.
-                        </p>
-                    </CardContent>
-                </Card>
-            </TabsContent>
+                {/* Reply Style Card */}
+                <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-xl p-6 shadow-xl">
+                  <h3 className="text-lg font-semibold text-white mb-2">Reply Style</h3>
+                  <p className="text-sm text-gray-400 mb-4">Choose how verbose the AI's replies should be.</p>
+                  <FormField
+                    control={form.control}
+                    name="reply_style"
+                    render={({ field }) => (
+                      <FormItem className="space-y-3">
+                        <FormControl>
+                          <RadioGroup
+                            onValueChange={field.onChange}
+                            value={field.value}
+                            className="flex flex-col space-y-3"
+                          >
+                            <FormItem className="flex items-center space-x-3 space-y-0">
+                              <FormControl>
+                                <RadioGroupItem value="concise" className="border-cyan-400 text-cyan-400" />
+                              </FormControl>
+                              <FormLabel className="font-normal text-gray-300 cursor-pointer">Concise</FormLabel>
+                            </FormItem>
+                            <FormItem className="flex items-center space-x-3 space-y-0">
+                              <FormControl>
+                                <RadioGroupItem value="detailed" className="border-cyan-400 text-cyan-400" />
+                              </FormControl>
+                              <FormLabel className="font-normal text-gray-300 cursor-pointer">Detailed</FormLabel>
+                            </FormItem>
+                          </RadioGroup>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                
+                {/* System Prompt Card */}
+                <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-xl p-6 shadow-xl">
+                  <h3 className="text-lg font-semibold text-white mb-2">System Prompt</h3>
+                  <p className="text-sm text-gray-400 mb-4">Override the default system prompt. Leave blank to use the default.</p>
+                  <FormField
+                    control={form.control}
+                    name="system_prompt_override"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-gray-300">Prompt Override</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="e.g., You are a pirate assistant who says 'Ahoy!' a lot."
+                            className="resize-y min-h-[100px] bg-black/40 border-white/10 text-white placeholder:text-gray-500"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="flex justify-end">
+                  <Button 
+                    type="submit" 
+                    disabled={isPending || !user}
+                    className="bg-cyan-500 hover:bg-cyan-600 text-white"
+                  >
+                    {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Save Settings
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </TabsContent>
+
+          <TabsContent value="memory" className="space-y-6">
+            {user && <KnowledgeUpload userId={user.uid} />}
+            {user && <MemoryTable userId={user.uid} />}
+            <div className="backdrop-blur-xl bg-red-500/10 border border-red-500/30 rounded-xl p-6 shadow-xl">
+              <h3 className="text-lg font-semibold text-red-400 mb-2">Danger Zone</h3>
+              <p className="text-sm text-gray-400 mb-4">
+                These actions are permanent and cannot be undone.
+              </p>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" type="button" disabled={isPending || !user} className="bg-red-600 hover:bg-red-700">
+                    Clear All Memory
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="bg-gray-900 border-white/10">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className="text-white">Are you absolutely sure?</AlertDialogTitle>
+                    <AlertDialogDescription className="text-gray-400">
+                      This will permanently delete the entire chat history and learned memories. This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel className="bg-gray-800 text-white border-white/10">Cancel</AlertDialogCancel>
+                    <AlertDialogAction 
+                      onClick={handleClearMemory} 
+                      disabled={isPending}
+                      className="bg-red-600 hover:bg-red-700"
+                    >
+                      {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Continue
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="api" className="space-y-6">
+            <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-xl p-6 shadow-xl">
+              <h3 className="text-lg font-semibold text-white mb-2">Personal API Key</h3>
+              <p className="text-sm text-gray-400 mb-4">Connect Pandora to external services like a custom GPT.</p>
+              {settings.personal_api_key ? (
+                <div className="relative mb-4">
+                  <Input
+                    readOnly
+                    type="password"
+                    value={settings.personal_api_key}
+                    className="pr-10 font-code bg-black/40 border-white/10 text-white"
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 text-cyan-400 hover:bg-white/10"
+                    onClick={handleCopyKey}
+                  >
+                    {hasCopied ? <Check className="h-4 w-4 text-green-400" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex flex-col items-start gap-4 p-6 border border-white/10 rounded-lg bg-black/20">
+                  <KeyRound className="h-8 w-8 text-cyan-400" />
+                  <p className="text-gray-400">You have not generated an API key yet.</p>
+                  <Button 
+                    onClick={handleGenerateKey} 
+                    disabled={isKeyGenerating}
+                    className="bg-cyan-500 hover:bg-cyan-600 text-white"
+                  >
+                    {isKeyGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Generate Personal API Key
+                  </Button>
+                </div>
+              )}
+              <p className="text-xs text-gray-500">Use this key to allow external applications to access and interact with your Pandora memory.</p>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="data" className="space-y-6">
+            <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-xl p-6 shadow-xl">
+              <h3 className="text-lg font-semibold text-white mb-2">Data Export</h3>
+              <p className="text-sm text-gray-400 mb-4">Download all your data for backup or GDPR compliance.</p>
+              <Button 
+                onClick={async () => {
+                  if (!user) return;
+                  startTransition(async () => {
+                    const result = await exportUserData(user.uid);
+                    if (result.success && result.data) {
+                      const dataStr = JSON.stringify(result.data, null, 2);
+                      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                      const url = URL.createObjectURL(dataBlob);
+                      const link = document.createElement('a');
+                      link.href = url;
+                      link.download = `pandorasbox-export-${new Date().toISOString().split('T')[0]}.json`;
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                      URL.revokeObjectURL(url);
+                      toast({ title: 'Success', description: 'Your data has been exported.' });
+                    } else {
+                      toast({ variant: 'destructive', title: 'Error', description: result.message || 'Failed to export data.' });
+                    }
+                  });
+                }}
+                disabled={isPending || !user}
+                className="bg-cyan-500 hover:bg-cyan-600 text-white"
+              >
+                {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Export All Data (JSON)
+              </Button>
+              <p className="text-xs text-gray-500 mt-2">
+                This will download all your threads, messages, memories, and artifacts as a JSON file.
+              </p>
+            </div>
+          </TabsContent>
         </Tabs>
+      </div>
     </div>
   );
 }

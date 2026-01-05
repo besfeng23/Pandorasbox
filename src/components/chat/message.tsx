@@ -1,32 +1,13 @@
 
 'use client';
 
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Message as MessageType } from '@/lib/types';
 import { cn, formatTime } from '@/lib/utils';
-import { BrainCircuit, User, AlertTriangle, Mic, Sun, Trash2 } from 'lucide-react';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { AlertTriangle, Sun } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import Image from 'next/image';
-import { useArtifactStore } from '@/store/artifacts';
 import { ThinkingIndicator } from './thinking-indicator';
-import { Button } from '../ui/button';
-import { useFirestore } from '@/firebase';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { deleteMemory } from '@/app/actions';
-import { useToast } from '@/hooks/use-toast';
-import { useUser } from '@/firebase';
 
 
 interface MessageProps {
@@ -36,34 +17,13 @@ interface MessageProps {
 const userAvatar = PlaceHolderImages.find(img => img.id === 'user-avatar');
 
 export function Message({ message }: MessageProps) {
-  const { user } = useUser();
-  const { toast } = useToast();
   const isUser = message.role === 'user';
-  const timestamp = formatTime(message.createdAt);
-  const setActiveArtifactId = useArtifactStore(state => state.setActiveArtifactId);
 
   const artifactRegex = /\[Artifact Created: (.*?)\]/g;
   
   const handleArtifactClick = (title: string, e: React.MouseEvent) => {
     e.preventDefault();
-    // This is a simplified approach. A real implementation would need to
-    // look up the artifact ID based on the title from a list of artifacts.
-    // For now, we'll assume the title can be used to find the artifact,
-    // though this is not robust. A better way would be to embed the ID in the message.
     console.log("Artifact clicked:", title);
-    // Since we don't have the ID, we can't set it yet.
-    // We will need to enhance this later.
-    // setActiveArtifactId(artifactId);
-  };
-
-  const handleDelete = async () => {
-    if (!user || !message.id) return;
-    const result = await deleteMemory(message.id, user.uid);
-    if (result.success) {
-      toast({ title: 'Memory forgotten.' });
-    } else {
-      toast({ variant: 'destructive', title: 'Error', description: result.message });
-    }
   };
 
   const renderContent = (content: string) => {
@@ -115,14 +75,6 @@ export function Message({ message }: MessageProps) {
         isUser ? 'flex-row-reverse' : ''
       )}
     >
-      {!isUser && (
-        <Avatar className="h-8 w-8 shrink-0">
-          <AvatarFallback className="bg-muted">
-            <BrainCircuit className="h-4 w-4" strokeWidth={1.5} />
-          </AvatarFallback>
-        </Avatar>
-      )}
-      
       <div
         className={cn(
           'rounded-2xl px-3 py-2.5 sm:px-4 sm:py-3 flex flex-col relative max-w-[85%] sm:max-w-[80%]',
@@ -149,17 +101,6 @@ export function Message({ message }: MessageProps) {
           </div>
         )}
       </div>
-
-      {isUser && (
-        <Avatar className="h-8 w-8 shrink-0">
-          {userAvatar ? (
-            <AvatarImage src={userAvatar.imageUrl} alt="User" />
-          ) : null}
-          <AvatarFallback className="bg-primary text-primary-foreground">
-            <User className="h-4 w-4" strokeWidth={1.5} />
-          </AvatarFallback>
-        </Avatar>
-      )}
     </div>
   );
 }
