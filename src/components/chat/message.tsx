@@ -15,6 +15,9 @@ import { useUser } from '@/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import { FileText } from 'lucide-react';
+import { CodeBlock } from './code-block';
+import { MessageMenu } from './message-menu';
+import type { Components } from 'react-markdown';
 
 interface MessageProps {
   message: MessageType;
@@ -52,6 +55,132 @@ export function Message({ message }: MessageProps) {
     }
   };
 
+  const markdownComponents: Components = {
+    code({ node, className, children, ...props }: any) {
+      const inline = !className || !className.includes('language-');
+      const match = /language-(\w+)/.exec(className || '');
+      const codeString = String(children).replace(/\n$/, '');
+      
+      if (!inline && match) {
+        return (
+          <CodeBlock
+            code={codeString}
+            language={match[1]}
+            className="my-4"
+          />
+        );
+      }
+      
+      return (
+        <code
+          className="px-1.5 py-0.5 rounded bg-white/10 border border-cyan-400/20 text-cyan-300 text-sm font-mono"
+          {...props}
+        >
+          {children}
+        </code>
+      );
+    },
+    a({ node, href, children, ...props }) {
+      return (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-cyan-400 hover:text-cyan-300 underline underline-offset-2 transition-colors"
+          {...props}
+        >
+          {children}
+        </a>
+      );
+    },
+    ul({ node, children, ...props }) {
+      return (
+        <ul className="list-disc list-inside space-y-1 my-2 ml-4" {...props}>
+          {children}
+        </ul>
+      );
+    },
+    ol({ node, children, ...props }) {
+      return (
+        <ol className="list-decimal list-inside space-y-1 my-2 ml-4" {...props}>
+          {children}
+        </ol>
+      );
+    },
+    li({ node, children, ...props }) {
+      return (
+        <li className="pl-2" {...props}>
+          {children}
+        </li>
+      );
+    },
+    table({ node, children, ...props }) {
+      return (
+        <div className="overflow-x-auto my-4">
+          <table className="min-w-full border-collapse glass-panel rounded-lg border border-cyan-400/15" {...props}>
+            {children}
+          </table>
+        </div>
+      );
+    },
+    thead({ node, children, ...props }) {
+      return (
+        <thead className="bg-white/5" {...props}>
+          {children}
+        </thead>
+      );
+    },
+    th({ node, children, ...props }) {
+      return (
+        <th className="px-4 py-2 text-left border-b border-cyan-400/20 text-cyan-400 font-semibold" {...props}>
+          {children}
+        </th>
+      );
+    },
+    td({ node, children, ...props }) {
+      return (
+        <td className="px-4 py-2 border-b border-cyan-400/10" {...props}>
+          {children}
+        </td>
+      );
+    },
+    p({ node, children, ...props }) {
+      return (
+        <p className="my-2 leading-loose" {...props}>
+          {children}
+        </p>
+      );
+    },
+    h1({ node, children, ...props }) {
+      return (
+        <h1 className="text-2xl font-bold my-4 neon-text-cyan" {...props}>
+          {children}
+        </h1>
+      );
+    },
+    h2({ node, children, ...props }) {
+      return (
+        <h2 className="text-xl font-bold my-3 neon-text-cyan" {...props}>
+          {children}
+        </h2>
+      );
+    },
+    h3({ node, children, ...props }) {
+      return (
+        <h3 className="text-lg font-semibold my-2 text-cyan-400" {...props}>
+          {children}
+        </h3>
+      );
+    },
+    blockquote({ node, children, ...props }) {
+      return (
+        <blockquote className="border-l-4 border-cyan-400/30 pl-4 my-3 italic text-white/70" {...props}>
+          {children}
+        </blockquote>
+      );
+    },
+  };
+
   const renderContent = (content: string) => {
     const parts = content.split(ARTIFACT_REGEX);
     return parts.map((part, index) => {
@@ -70,7 +199,16 @@ export function Message({ message }: MessageProps) {
           </Button>
         );
       }
-      return <ReactMarkdown key={index} remarkPlugins={[remarkGfm]} className="prose prose-sm prose-zinc dark:prose-invert max-w-none">{part}</ReactMarkdown>;
+      return (
+        <ReactMarkdown
+          key={index}
+          remarkPlugins={[remarkGfm]}
+          components={markdownComponents}
+          className="prose prose-sm prose-zinc dark:prose-invert max-w-none"
+        >
+          {part}
+        </ReactMarkdown>
+      );
     });
   };
 
@@ -92,7 +230,7 @@ export function Message({ message }: MessageProps) {
                 <span className="text-xs text-white/40 ml-auto">{timestamp}</span>
             </div>
              <article className="prose prose-sm prose-zinc dark:prose-invert max-w-none">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+                <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>{message.content}</ReactMarkdown>
             </article>
         </div>
     )
@@ -101,26 +239,35 @@ export function Message({ message }: MessageProps) {
   return (
     <div
       className={cn(
-        'group flex items-start gap-2 sm:gap-4 w-full',
-        isUser ? 'flex-row-reverse' : ''
+        'group flex items-start w-full transition-all duration-200',
+        isUser ? 'justify-end' : 'justify-start'
       )}
     >
       <div
         className={cn(
-          'rounded-2xl px-3 py-2.5 sm:px-4 sm:py-3 flex flex-col relative max-w-[85%] sm:max-w-[80%] shadow-lg',
+          'rounded-2xl px-4 py-3 sm:px-5 sm:py-4 flex flex-col relative transition-all duration-200',
+          'max-w-[85%] sm:max-w-[75%]',
+          'hover:scale-[1.01] hover:shadow-lg',
           isUser
-            ? 'bg-gradient-to-br from-cyan-400/90 to-cyan-500/80 text-white ml-auto border border-cyan-300/30'
-            : 'glass-panel border border-purple-400/20 text-white/90'
+            ? 'bg-gradient-to-br from-cyan-400/80 to-cyan-500/70 text-white border border-cyan-300/25 shadow-neon-cyan-sm hover:border-cyan-300/35'
+            : 'glass-panel border border-purple-400/15 text-white/90 shadow-lg hover:border-purple-400/25'
         )}
       >
+        <div className="absolute top-2 right-2 z-10">
+          <MessageMenu
+            content={message.content}
+            role={message.role}
+            onRegenerate={message.role === 'assistant' ? undefined : undefined}
+          />
+        </div>
         {isUser ? (
-          <p className="text-sm sm:text-[15px] leading-relaxed whitespace-pre-wrap break-words">
+          <p className="message-text whitespace-pre-wrap break-words">
             {message.content}
           </p>
         ) : message.status === 'processing' ? (
           <ThinkingIndicator logs={message.progress_log || []} />
         ) : (
-          <div className="text-sm sm:text-[15px] leading-relaxed prose prose-sm dark:prose-invert max-w-none break-words">
+          <div className="message-text prose prose-sm dark:prose-invert max-w-none break-words">
             {renderContent(message.content)}
           </div>
         )}

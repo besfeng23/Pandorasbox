@@ -46,10 +46,10 @@ export function ChatSidebar({ userId, activeThreadId, onSelectThread }: ChatSide
                 key={thread.id}
                 onClick={() => onSelectThread(thread.id)}
                 className={cn(
-                  'w-full text-left p-3 rounded-lg transition-all flex flex-col gap-1 touch-manipulation min-h-[44px] group relative',
+                  'w-full text-left p-3 rounded-lg transition-all duration-200 flex flex-col gap-1 touch-manipulation min-h-[44px] group relative',
                   activeThreadId === thread.id 
                     ? 'glass-panel border border-cyan-400/30 shadow-neon-cyan-sm' 
-                    : 'glass-panel border border-transparent hover:border-cyan-400/20 hover:bg-white/5'
+                    : 'glass-panel border border-transparent hover:border-cyan-400/20 hover:bg-white/5 hover:scale-[1.02] active:scale-[0.98]'
                 )}
               >
                 <div className="flex items-start gap-2 min-w-0">

@@ -152,15 +152,15 @@
   
   /* Glowing Borders - Softer glow */
   .border-glow-cyan {
-    border: 1px solid rgba(0, 229, 255, 0.2);
-    box-shadow: 0 0 8px rgba(0, 229, 255, 0.15),
-                inset 0 0 8px rgba(0, 229, 255, 0.08);
+    border: 1px solid rgba(0, 229, 255, 0.15);
+    box-shadow: 0 0 8px rgba(0, 229, 255, 0.1),
+                inset 0 0 8px rgba(0, 229, 255, 0.05);
   }
   
   .border-glow-purple {
-    border: 1px solid rgba(167, 139, 250, 0.2);
-    box-shadow: 0 0 8px rgba(167, 139, 250, 0.15),
-                inset 0 0 8px rgba(167, 139, 250, 0.08);
+    border: 1px solid rgba(167, 139, 250, 0.15);
+    box-shadow: 0 0 8px rgba(167, 139, 250, 0.1),
+                inset 0 0 8px rgba(167, 139, 250, 0.05);
   }
   
   /* Glass Input Fields */
@@ -254,5 +254,34 @@
     letter-spacing: 0.01em;
     line-height: 1.5;
     font-size: 0.875rem;
+  }
+
+  /* Message Typography */
+  .message-text {
+    font-size: 15px;
+    line-height: 1.75;
+    letter-spacing: 0.01em;
+    /* Text color: white/90 on dark background meets WCAG AA contrast (4.5:1) */
+  }
+
+  @media (max-width: 640px) {
+    .message-text {
+      font-size: 16px; /* Prevents iOS zoom */
+      line-height: 1.7;
+    }
+  }
+
+  /* Accessibility: Focus states */
+  *:focus-visible {
+    outline: 2px solid rgba(0, 229, 255, 0.8);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  /* Ensure links are keyboard accessible */
+  a:focus-visible {
+    outline: 2px solid rgba(0, 229, 255, 0.8);
+    outline-offset: 2px;
+    border-radius: 2px;
   }
 }
