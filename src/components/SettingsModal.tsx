@@ -20,10 +20,12 @@ import {
   Zap,
   Shield,
   Moon,
+  Sun,
   X,
   Check,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTheme } from '@/hooks/use-theme';
 
 interface SettingsModalProps {
   open: boolean;
@@ -34,7 +36,8 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
   const [notifications, setNotifications] = useState(true);
   const [temperature, setTemperature] = useState([0.7]);
   const [dataRetention, setDataRetention] = useState(true);
-  const [darkMode, setDarkMode] = useState(true);
+  const { theme, toggleTheme } = useTheme();
+  const darkMode = theme === 'dark';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -130,19 +133,27 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
           {/* Appearance Section */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <Moon className="h-4 w-4 text-neon-cyan" strokeWidth={2} />
+              {darkMode ? (
+                <Moon className="h-4 w-4 text-neon-cyan" strokeWidth={2} />
+              ) : (
+                <Sun className="h-4 w-4 text-neon-cyan" strokeWidth={2} />
+              )}
               <h3 className="text-sm font-semibold text-white/90">Appearance</h3>
             </div>
             <div className="flex items-center justify-between pl-6">
-              <Label htmlFor="dark-mode" className="text-white/80 cursor-pointer">
-                Digital Void Theme
-              </Label>
+              <div className="space-y-1">
+                <Label htmlFor="dark-mode" className="text-white/80 cursor-pointer">
+                  {darkMode ? 'Digital Void Theme' : 'Light Theme'}
+                </Label>
+                <p className="text-xs text-white/50">
+                  {darkMode ? 'Dark mode with cyberpunk aesthetics' : 'Clean light mode interface'}
+                </p>
+              </div>
               <Switch
                 id="dark-mode"
                 checked={darkMode}
-                onCheckedChange={setDarkMode}
+                onCheckedChange={toggleTheme}
                 className="data-[state=checked]:bg-neon-cyan"
-                disabled
               />
             </div>
           </div>

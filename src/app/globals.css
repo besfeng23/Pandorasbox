@@ -31,6 +31,34 @@
     --chart-5: 195 90% 55%;
     --radius: 0.5rem;
   }
+
+  .light {
+    /* Light Theme - Clean and Modern */
+    --background: 0 0% 100%;
+    --foreground: 221 30% 10%;
+    --card: 0 0% 98%;
+    --card-foreground: 221 30% 10%;
+    --popover: 0 0% 98%;
+    --popover-foreground: 221 30% 10%;
+    --primary: 195 100% 45%; /* Cyan - slightly darker for light mode */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 270 60% 50%; /* Purple */
+    --secondary-foreground: 0 0% 100%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 221 30% 40%;
+    --accent: 195 100% 45%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84.2% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 221 30% 85%;
+    --input: 0 0% 96%;
+    --ring: 195 100% 45%;
+    --chart-1: 195 100% 45%;
+    --chart-2: 270 60% 50%;
+    --chart-3: 195 80% 50%;
+    --chart-4: 270 50% 50%;
+    --chart-5: 195 90% 50%;
+  }
 }
 
 @layer base {
@@ -46,6 +74,10 @@
   html.dark {
     color-scheme: dark;
   }
+
+  html.light {
+    color-scheme: light;
+  }
   
   body {
     @apply bg-void text-foreground font-body antialiased;
@@ -53,9 +85,6 @@
     overflow-y: auto;
     overscroll-behavior-y: auto;
     touch-action: manipulation;
-    /* Deep Void Background - Fixed gradient */
-    background: radial-gradient(ellipse at center, #0A0E27 0%, #02040A 100%);
-    background-attachment: fixed;
     position: relative;
     /* Prevent pull-to-refresh on mobile */
     overscroll-behavior-x: none;
@@ -65,9 +94,22 @@
     /* Prevent text size adjustment on iOS */
     -webkit-text-size-adjust: 100%;
   }
+
+  /* Dark theme background */
+  html.dark body {
+    /* Deep Void Background - Fixed gradient */
+    background: radial-gradient(ellipse at center, #0A0E27 0%, #02040A 100%);
+    background-attachment: fixed;
+  }
+
+  /* Light theme background */
+  html.light body {
+    background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+    background-attachment: fixed;
+  }
   
-  /* Optional: Subtle animated glow effect */
-  body::before {
+  /* Optional: Subtle animated glow effect - Dark theme only */
+  html.dark body::before {
     content: '';
     position: fixed;
     top: 0;
@@ -91,48 +133,91 @@
     overscroll-behavior-y: auto;
   }
   
-  /* Custom Scrollbar - Cyberpunk Style */
-  ::-webkit-scrollbar {
+  /* Custom Scrollbar - Dark Theme */
+  html.dark ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
   }
 
-  ::-webkit-scrollbar-track {
+  html.dark ::-webkit-scrollbar-track {
     background: rgba(2, 4, 10, 0.5);
   }
 
-  ::-webkit-scrollbar-thumb {
+  html.dark ::-webkit-scrollbar-thumb {
     background: rgba(0, 229, 255, 0.3);
     border-radius: 4px;
     border: 1px solid rgba(0, 229, 255, 0.1);
   }
   
-  ::-webkit-scrollbar-thumb:hover {
+  html.dark ::-webkit-scrollbar-thumb:hover {
     background: rgba(0, 229, 255, 0.5);
     box-shadow: 0 0 8px rgba(0, 229, 255, 0.4);
   }
 
+  /* Custom Scrollbar - Light Theme */
+  html.light ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  html.light ::-webkit-scrollbar-track {
+    background: rgba(232, 236, 241, 0.5);
+  }
+
+  html.light ::-webkit-scrollbar-thumb {
+    background: rgba(0, 180, 212, 0.4);
+    border-radius: 4px;
+    border: 1px solid rgba(0, 180, 212, 0.2);
+  }
+  
+  html.light ::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 180, 212, 0.6);
+    box-shadow: 0 0 8px rgba(0, 180, 212, 0.3);
+  }
+
   /* Firefox Scrollbar */
-  * {
+  html.dark * {
     scrollbar-width: thin;
     scrollbar-color: rgba(0, 229, 255, 0.3) rgba(2, 4, 10, 0.5);
+  }
+
+  html.light * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 180, 212, 0.4) rgba(232, 236, 241, 0.5);
   }
 }
 
 @layer utilities {
-  /* Glassmorphism Utility Classes */
-  .glass-panel {
+  /* Glassmorphism Utility Classes - Dark Theme */
+  html.dark .glass-panel {
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
   }
   
-  .glass-panel-strong {
+  html.dark .glass-panel-strong {
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     background: rgba(255, 255, 255, 0.08);
     border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+
+  /* Glassmorphism Utility Classes - Light Theme */
+  html.light .glass-panel {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  }
+  
+  html.light .glass-panel-strong {
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
   }
   
   /* Neon Text Effects - Softer glow */

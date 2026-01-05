@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirestoreAdmin, getAuthAdmin } from '@/lib/firebase-admin';
-import { searchHistory, generateEmbedding } from '@/lib/vector';
+import { searchMemories } from '@/lib/vector';
 
 // Prevent this route from being statically generated
 export const dynamic = 'force-dynamic';
@@ -72,9 +72,9 @@ export async function GET(request: NextRequest) {
     let memories;
 
     if (query.trim()) {
-      // Semantic search using vector embeddings
-      const searchResults = await searchHistory(query, userId);
-      memories = searchResults.slice(0, limit).map(result => ({
+      // Semantic search using vector embeddings in the memories collection
+      const searchResults = await searchMemories(query, userId, limit);
+      memories = searchResults.map(result => ({
         id: result.id,
         content: result.text,
         relevance_score: result.score,
@@ -157,9 +157,9 @@ export async function POST(request: NextRequest) {
     let memories;
 
     if (searchQuery.trim()) {
-      // Semantic search using vector embeddings
-      const searchResults = await searchHistory(searchQuery, userId);
-      memories = searchResults.slice(0, resultLimit).map(result => ({
+      // Semantic search using vector embeddings in the memories collection
+      const searchResults = await searchMemories(searchQuery, userId, resultLimit);
+      memories = searchResults.map(result => ({
         id: result.id,
         content: result.text,
         relevance_score: result.score,

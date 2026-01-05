@@ -1,0 +1,429 @@
+#!/usr/bin/env tsx
+
+/**
+ * OpenAPI Schema Generator for MCP Tools
+ * 
+ * Generates an OpenAPI 3.0 schema file for ChatGPT Actions compatibility.
+ * This allows ChatGPT to use Pandora's Box MCP tools via HTTP.
+ * 
+ * Usage:
+ *   npm run mcp:generate-schema
+ */
+
+import * as fs from 'fs';
+import * as path from 'path';
+
+const SERVER_URL = process.env.MCP_SERVER_URL || 'http://localhost:9002';
+
+const openApiSchema = {
+  openapi: '3.0.0',
+  info: {
+    title: 'Pandora\'s Box MCP Tools',
+    description: 'API for accessing Pandora\'s Box knowledge base, memories, and artifacts. This API provides semantic search, memory storage, and artifact creation capabilities.',
+    version: '1.0.0',
+  },
+  servers: [
+    {
+      url: SERVER_URL,
+      description: 'Pandora\'s Box MCP Server',
+    },
+  ],
+  components: {
+    securitySchemes: {
+      ApiKeyAuth: {
+        type: 'apiKey',
+        in: 'header',
+        name: 'Authorization',
+        description: 'API key in format: Bearer {API_KEY}',
+      },
+    },
+    schemas: {
+      SearchKnowledgeBaseRequest: {
+        type: 'object',
+        required: ['query', 'user_email'],
+        properties: {
+          query: {
+            type: 'string',
+            description: 'The search query to find relevant information',
+            example: 'user preferences for dark mode',
+          },
+          user_email: {
+            type: 'string',
+            description: 'Email address of the user whose knowledge base to search',
+            example: 'user@example.com',
+          },
+          limit: {
+            type: 'number',
+            description: 'Maximum number of results to return (1-50, default: 10)',
+            minimum: 1,
+            maximum: 50,
+            default: 10,
+          },
+        },
+      },
+      SearchKnowledgeBaseResponse: {
+        type: 'object',
+        properties: {
+          success: {
+            type: 'boolean',
+            example: true,
+          },
+          result: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                id: {
+                  type: 'string',
+                  description: 'Unique identifier of the result',
+                },
+                content: {
+                  type: 'string',
+                  description: 'The content of the result',
+                },
+                score: {
+                  type: 'number',
+                  description: 'Relevance score between 0 and 1 (higher is more relevant)',
+                  minimum: 0,
+                  maximum: 1,
+                },
+                timestamp: {
+                  type: 'string',
+                  format: 'date-time',
+                  description: 'ISO 8601 timestamp of when the result was created',
+                },
+              },
+            },
+          },
+        },
+      },
+      AddMemoryRequest: {
+        type: 'object',
+        required: ['memory', 'user_email'],
+        properties: {
+          memory: {
+            type: 'string',
+            description: 'The memory content to store',
+            example: 'The user prefers dark mode interfaces',
+          },
+          user_email: {
+            type: 'string',
+            description: 'Email address of the user to associate this memory with',
+            example: 'user@example.com',
+          },
+        },
+      },
+      AddMemoryResponse: {
+        type: 'object',
+        properties: {
+          success: {
+            type: 'boolean',
+            example: true,
+          },
+          result: {
+            type: 'object',
+            properties: {
+              success: {
+                type: 'boolean',
+                example: true,
+              },
+              memory_id: {
+                type: 'string',
+                description: 'Unique identifier of the created memory',
+              },
+              user_id: {
+                type: 'string',
+                description: 'Firebase user ID associated with the memory',
+              },
+            },
+          },
+        },
+      },
+      GenerateArtifactRequest: {
+        type: 'object',
+        required: ['title', 'type', 'content', 'user_email'],
+        properties: {
+          title: {
+            type: 'string',
+            description: 'Title of the artifact',
+            example: 'Example React Component',
+          },
+          type: {
+            type: 'string',
+            enum: ['code', 'markdown'],
+            description: 'Type of artifact: "code" for code snippets, "markdown" for documentation',
+            example: 'code',
+          },
+          content: {
+            type: 'string',
+            description: 'The content of the artifact',
+            example: 'function example() { return "Hello, World!"; }',
+          },
+          user_email: {
+            type: 'string',
+            description: 'Email address of the user to associate this artifact with',
+            example: 'user@example.com',
+          },
+        },
+      },
+      GenerateArtifactResponse: {
+        type: 'object',
+        properties: {
+          success: {
+            type: 'boolean',
+            example: true,
+          },
+          result: {
+            type: 'object',
+            properties: {
+              success: {
+                type: 'boolean',
+                example: true,
+              },
+              artifact_id: {
+                type: 'string',
+                description: 'Unique identifier of the created artifact',
+              },
+              title: {
+                type: 'string',
+                description: 'Title of the artifact',
+              },
+            },
+          },
+        },
+      },
+      ErrorResponse: {
+        type: 'object',
+        properties: {
+          success: {
+            type: 'boolean',
+            example: false,
+          },
+          error: {
+            type: 'string',
+            description: 'Error message',
+          },
+          details: {
+            type: 'string',
+            description: 'Additional error details (only in development)',
+          },
+        },
+      },
+    },
+  },
+  paths: {
+    '/api/mcp/search_knowledge_base': {
+      post: {
+        summary: 'Search Knowledge Base',
+        description: 'Search the knowledge base using semantic search. Searches both conversation history and stored memories to find relevant information.',
+        operationId: 'searchKnowledgeBase',
+        security: [
+          {
+            ApiKeyAuth: [],
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/SearchKnowledgeBaseRequest',
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Successful search',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/SearchKnowledgeBaseResponse',
+                },
+              },
+            },
+          },
+          '400': {
+            description: 'Bad request - invalid parameters',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorResponse',
+                },
+              },
+            },
+          },
+          '401': {
+            description: 'Unauthorized - invalid API key',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorResponse',
+                },
+              },
+            },
+          },
+          '500': {
+            description: 'Internal server error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorResponse',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/mcp/add_memory': {
+      post: {
+        summary: 'Add Memory',
+        description: 'Add a new memory to the knowledge base. The memory will be stored with an embedding for future semantic search.',
+        operationId: 'addMemory',
+        security: [
+          {
+            ApiKeyAuth: [],
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/AddMemoryRequest',
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Memory added successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/AddMemoryResponse',
+                },
+              },
+            },
+          },
+          '400': {
+            description: 'Bad request - invalid parameters',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorResponse',
+                },
+              },
+            },
+          },
+          '401': {
+            description: 'Unauthorized - invalid API key',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorResponse',
+                },
+              },
+            },
+          },
+          '500': {
+            description: 'Internal server error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorResponse',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/mcp/generate_artifact': {
+      post: {
+        summary: 'Generate Artifact',
+        description: 'Create and save a code or markdown artifact. Artifacts can be code snippets, documentation, or other structured content.',
+        operationId: 'generateArtifact',
+        security: [
+          {
+            ApiKeyAuth: [],
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/GenerateArtifactRequest',
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Artifact created successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/GenerateArtifactResponse',
+                },
+              },
+            },
+          },
+          '400': {
+            description: 'Bad request - invalid parameters',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorResponse',
+                },
+              },
+            },
+          },
+          '401': {
+            description: 'Unauthorized - invalid API key',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorResponse',
+                },
+              },
+            },
+          },
+          '500': {
+            description: 'Internal server error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorResponse',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+};
+
+// Write schema to file
+const outputPath = path.join(process.cwd(), 'public', 'openapi-mcp.json');
+const outputDir = path.dirname(outputPath);
+
+// Ensure directory exists
+if (!fs.existsSync(outputDir)) {
+  fs.mkdirSync(outputDir, { recursive: true });
+}
+
+// Write file
+fs.writeFileSync(outputPath, JSON.stringify(openApiSchema, null, 2), 'utf-8');
+
+console.log(`✅ OpenAPI schema generated successfully!`);
+console.log(`   Output: ${outputPath}`);
+console.log(`   Server URL: ${SERVER_URL}`);
+console.log(`\n   To use with ChatGPT Actions:`);
+console.log(`   1. Copy the schema file to a publicly accessible URL`);
+console.log(`   2. Add it as a Custom Action in ChatGPT`);
+console.log(`   3. Set the Authorization header to: Bearer ${process.env.MCP_API_KEY || 'YOUR_API_KEY'}`);
+
