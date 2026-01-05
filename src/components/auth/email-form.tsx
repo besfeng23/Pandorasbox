@@ -147,7 +147,7 @@ export function EmailForm() {
               </FormItem>
             )}
           />
-          <Button type="submit" className="w-full" disabled={isLoading || isResetting}>
+          <Button type="submit" className="w-full bg-gradient-to-r from-neon-cyan to-neon-purple text-white hover:opacity-90 border-0" disabled={isLoading || isResetting}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {isSignUp ? 'Create Account' : 'Sign In'}
           </Button>
@@ -158,14 +158,14 @@ export function EmailForm() {
           <span className="w-full border-t" />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-background px-2 text-muted-foreground">
+          <span className="bg-void px-2 text-white/40">
             Or
           </span>
         </div>
       </div>
       <Button
         variant="outline"
-        className="w-full"
+        className="w-full glass-panel border-glow-purple hover:bg-neon-purple/10 text-white/90"
         onClick={() => {
           setIsSignUp(!isSignUp);
           setError(null);
