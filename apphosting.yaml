@@ -58,10 +58,7 @@ env:
     availability:
       - RUNTIME
   
-  - variable: MEMORY_API_KEY
-    secret: memory-api-key
-    availability:
-      - RUNTIME
+  # MEMORY_API_KEY removed - not currently used in the codebase
 
   # Sentry (optional - add when configured)
   # - variable: NEXT_PUBLIC_SENTRY_DSN

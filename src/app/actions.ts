@@ -4,7 +4,7 @@
 import { getFirestoreAdmin } from '@/lib/firebase-admin';
 import { revalidatePath } from 'next/cache';
 import { runChatLane } from '@/ai/flows/run-chat-lane';
-import { generateEmbedding, searchHistory } from '@/lib/vector';
+import { generateEmbedding, generateEmbeddingsBatch, searchHistory } from '@/lib/vector';
 import { SearchResult, Thread } from '@/lib/types';
 import { getStorage } from 'firebase-admin/storage';
 import { getDownloadURL } from 'firebase-admin/storage';
@@ -449,11 +449,14 @@ export async function uploadKnowledge(formData: FormData): Promise<{ success: bo
 
         const chunks = chunkText(rawContent);
         const historyCollection = firestoreAdmin.collection('history');
+        
+        // Generate embeddings in batch for cost efficiency
+        const embeddings = await generateEmbeddingsBatch(chunks);
+        
         const batch = firestoreAdmin.batch();
-
         for (let i = 0; i < chunks.length; i++) {
             const chunk = chunks[i];
-            const embedding = await generateEmbedding(chunk);
+            const embedding = embeddings[i];
             const docRef = historyCollection.doc();
             
             batch.set(docRef, {
@@ -499,6 +502,105 @@ export async function generateUserApiKey(userId: string): Promise<{ success: boo
       console.error('Error generating API key:', error);
       Sentry.captureException(error, { tags: { function: 'generateUserApiKey', userId } });
       return { success: false, message: 'Failed to generate API key.' };
+    }
+}
+
+/**
+ * Exports all user data for GDPR compliance.
+ * Returns a JSON object containing all user data from Firestore.
+ */
+export async function exportUserData(userId: string): Promise<{ success: boolean, data?: any, message?: string }> {
+    if (!userId) {
+        return { success: false, message: 'User not authenticated.' };
+    }
+
+    const firestoreAdmin = getFirestoreAdmin();
+    try {
+        const exportData: any = {
+            userId,
+            exportedAt: new Date().toISOString(),
+            threads: [],
+            messages: [],
+            memories: [],
+            artifacts: [],
+            settings: null,
+            userState: null,
+        };
+
+        // Export threads
+        const threadsSnapshot = await firestoreAdmin
+            .collection('threads')
+            .where('userId', '==', userId)
+            .get();
+        exportData.threads = threadsSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || doc.data().createdAt,
+        }));
+
+        // Export messages (history)
+        const messagesSnapshot = await firestoreAdmin
+            .collection('history')
+            .where('userId', '==', userId)
+            .get();
+        exportData.messages = messagesSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || doc.data().createdAt,
+            // Remove embeddings for privacy/size
+            embedding: undefined,
+        }));
+
+        // Export memories
+        const memoriesSnapshot = await firestoreAdmin
+            .collection('memories')
+            .where('userId', '==', userId)
+            .get();
+        exportData.memories = memoriesSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || doc.data().createdAt,
+            embedding: undefined,
+        }));
+
+        // Export artifacts
+        const artifactsSnapshot = await firestoreAdmin
+            .collection('artifacts')
+            .where('userId', '==', userId)
+            .get();
+        exportData.artifacts = artifactsSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || doc.data().createdAt,
+        }));
+
+        // Export settings
+        const settingsDoc = await firestoreAdmin.collection('settings').doc(userId).get();
+        if (settingsDoc.exists) {
+            const settingsData = settingsDoc.data();
+            // Remove API key from export for security
+            exportData.settings = {
+                ...settingsData,
+                personal_api_key: undefined,
+            };
+        }
+
+        // Export user state
+        const stateSnapshot = await firestoreAdmin
+            .collection('users')
+            .doc(userId)
+            .collection('state')
+            .get();
+        exportData.userState = {};
+        stateSnapshot.docs.forEach(doc => {
+            exportData.userState[doc.id] = doc.data();
+        });
+
+        return { success: true, data: exportData };
+    } catch (error) {
+        console.error('Error exporting user data:', error);
+        Sentry.captureException(error, { tags: { function: 'exportUserData', userId } });
+        return { success: false, message: 'Failed to export user data.' };
     }
 }
 

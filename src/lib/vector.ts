@@ -31,6 +31,60 @@ export async function generateEmbedding(text: string): Promise<number[]> {
 }
 
 /**
+ * Generates embeddings for multiple texts in a single batch API call.
+ * This is more cost-efficient than generating embeddings one at a time.
+ * @param texts Array of texts to generate embeddings for.
+ * @returns Array of embedding vectors in the same order as input texts.
+ */
+export async function generateEmbeddingsBatch(texts: string[]): Promise<number[][]> {
+  if (texts.length === 0) {
+    return [];
+  }
+
+  // Normalize and filter out empty texts
+  const normalizedTexts = texts
+    .map(text => text.trim().toLowerCase())
+    .filter(text => text.length > 0);
+
+  if (normalizedTexts.length === 0) {
+    // Return zero vectors for all empty texts
+    return texts.map(() => Array(1536).fill(0));
+  }
+
+  // OpenAI supports up to 2048 inputs per batch
+  const batchSize = 100; // Conservative batch size to avoid token limits
+  const results: number[][] = [];
+
+  for (let i = 0; i < normalizedTexts.length; i += batchSize) {
+    const batch = normalizedTexts.slice(i, i + batchSize);
+    
+    const response = await openai.embeddings.create({
+      model: 'text-embedding-3-small',
+      input: batch,
+    });
+
+    // Map results back to original positions (accounting for filtered empty texts)
+    const batchEmbeddings = response.data.map(item => item.embedding);
+    results.push(...batchEmbeddings);
+  }
+
+  // Fill in zero vectors for any empty texts that were filtered out
+  const finalResults: number[][] = [];
+  let resultIndex = 0;
+  
+  for (const text of texts) {
+    if (text.trim().toLowerCase().length > 0) {
+      finalResults.push(results[resultIndex]);
+      resultIndex++;
+    } else {
+      finalResults.push(Array(1536).fill(0));
+    }
+  }
+
+  return finalResults;
+}
+
+/**
  * Searches the history collection for documents with embeddings similar to the query text.
  * @param queryText The text to search for.
  * @param userId The ID of the user whose history we are searching.

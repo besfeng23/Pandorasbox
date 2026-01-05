@@ -5,7 +5,7 @@ import React, { useEffect, useTransition, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { updateSettings, clearMemory, generateUserApiKey } from '@/app/actions';
+import { updateSettings, clearMemory, generateUserApiKey, exportUserData } from '@/app/actions';
 import { useSettings } from '@/hooks/use-settings';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -134,6 +134,7 @@ export default function SettingsPage() {
                 <TabsTrigger value="general">General</TabsTrigger>
                 <TabsTrigger value="memory">Memory Database</TabsTrigger>
                 <TabsTrigger value="api">API</TabsTrigger>
+                <TabsTrigger value="data">Data & Privacy</TabsTrigger>
             </TabsList>
             <TabsContent value="general" className="space-y-8">
                 <Form {...form}>
@@ -311,6 +312,47 @@ export default function SettingsPage() {
                             </div>
                         )}
                         <p className="text-xs text-muted-foreground">Use this key to allow external applications to access and interact with your Pandora memory.</p>
+                    </CardContent>
+                </Card>
+            </TabsContent>
+            <TabsContent value="data" className="space-y-4">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Data Export</CardTitle>
+                        <CardDescription>Download all your data for backup or GDPR compliance.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Button 
+                            onClick={async () => {
+                                if (!user) return;
+                                startTransition(async () => {
+                                    const result = await exportUserData(user.uid);
+                                    if (result.success && result.data) {
+                                        // Download as JSON file
+                                        const dataStr = JSON.stringify(result.data, null, 2);
+                                        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                                        const url = URL.createObjectURL(dataBlob);
+                                        const link = document.createElement('a');
+                                        link.href = url;
+                                        link.download = `pandorasbox-export-${new Date().toISOString().split('T')[0]}.json`;
+                                        document.body.appendChild(link);
+                                        link.click();
+                                        document.body.removeChild(link);
+                                        URL.revokeObjectURL(url);
+                                        toast({ title: 'Success', description: 'Your data has been exported.' });
+                                    } else {
+                                        toast({ variant: 'destructive', title: 'Error', description: result.message || 'Failed to export data.' });
+                                    }
+                                });
+                            }}
+                            disabled={isPending || !user}
+                        >
+                            {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Export All Data (JSON)
+                        </Button>
+                        <p className="text-xs text-muted-foreground mt-2">
+                            This will download all your threads, messages, memories, and artifacts as a JSON file.
+                        </p>
                     </CardContent>
                 </Card>
             </TabsContent>

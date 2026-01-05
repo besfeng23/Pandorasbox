@@ -82,3 +82,6 @@ export const dailyBriefingAgent = functions
 
     return null;
   });
+
+// Export the cleanup function
+export { cleanupOldData } from "./cleanup-memory";
