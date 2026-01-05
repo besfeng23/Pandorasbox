@@ -7,6 +7,8 @@ import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestor
 import { FileCode, Loader2 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
 
 interface ArtifactListProps {
   userId: string;
