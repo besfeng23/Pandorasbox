@@ -146,3 +146,61 @@ export async function searchHistory(
         return [];
     }
 }
+
+/**
+ * Searches the memories collection for documents with embeddings similar to the query text.
+ * @param queryText The text to search for.
+ * @param userId The ID of the user whose memories we are searching.
+ * @param limit Maximum number of results to return (default: 10).
+ * @returns An array of search results with text, id, and score.
+ */
+export async function searchMemories(
+  queryText: string,
+  userId: string,
+  limit: number = 10
+): Promise<{ text: string; id: string; score: number, timestamp: Date }[]> {
+    if (!queryText || !userId) {
+        return [];
+    }
+    const firestoreAdmin = getFirestoreAdmin();
+    try {
+        const queryEmbedding = await generateEmbedding(queryText);
+
+        // Query the 'memories' collection and filter by userId
+        const memoriesCollection = firestoreAdmin.collection('memories');
+      
+        const vectorQuery = memoriesCollection
+          .where('userId', '==', userId)
+          .findNearest('embedding', queryEmbedding, {
+            limit: limit,
+            distanceMeasure: 'COSINE',
+        });
+      
+        const snapshot = await vectorQuery.get();
+      
+        return snapshot.docs.map(doc => {
+          const data = doc.data();
+          // The distance is a value between 0 and 2, where 0 is most similar.
+          // We can convert it to a "score" from 0 to 1, where 1 is most similar.
+          const score = 1 - doc.distance; 
+          
+          let timestamp: Date;
+          if (data.createdAt instanceof Timestamp) {
+              timestamp = data.createdAt.toDate();
+          } else {
+              // Fallback for any other format, though less likely with Firestore Admin SDK
+              timestamp = new Date(data.createdAt);
+          }
+          
+          return {
+            text: data.content,
+            id: doc.id,
+            score: score,
+            timestamp: timestamp,
+          };
+        });
+    } catch (error) {
+        console.warn(`Vector search failed for memories for user ${userId}. This might be because the vector index is still building.`, error);
+        return [];
+    }
+}

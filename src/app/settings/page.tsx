@@ -31,6 +31,8 @@ import { MemoryTable } from '@/components/settings/memory-table';
 import { KnowledgeUpload } from '@/components/settings/knowledge-upload';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
+import { KeyboardShortcuts } from '@/components/keyboard-shortcuts';
+import { Keyboard } from 'lucide-react';
 
 const settingsSchema = z.object({
   active_model: z.enum(['gpt-4o', 'gpt-4-turbo', 'gpt-3.5-turbo']),
@@ -46,6 +48,7 @@ export default function SettingsPage() {
   const [isPending, startTransition] = useTransition();
   const [isKeyGenerating, startKeyGeneration] = useTransition();
   const [hasCopied, setHasCopied] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
   const form = useForm<AppSettings>({
     resolver: zodResolver(settingsSchema),
@@ -247,6 +250,25 @@ export default function SettingsPage() {
                   />
                 </div>
 
+                {/* Keyboard Shortcuts Card */}
+                <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-xl p-6 shadow-xl">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h3 className="text-lg font-semibold text-white mb-2">Keyboard Shortcuts</h3>
+                      <p className="text-sm text-gray-400">Speed up your workflow with keyboard shortcuts</p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShortcutsOpen(true)}
+                      className="bg-black/40 border-white/10 text-white hover:bg-white/10"
+                    >
+                      <Keyboard className="h-4 w-4 mr-2" />
+                      View Shortcuts
+                    </Button>
+                  </div>
+                </div>
+
                 <div className="flex justify-end">
                   <Button 
                     type="submit" 
@@ -376,6 +398,7 @@ export default function SettingsPage() {
           </TabsContent>
         </Tabs>
       </div>
+      <KeyboardShortcuts open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
     </div>
   );
 }
