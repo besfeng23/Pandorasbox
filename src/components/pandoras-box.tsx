@@ -12,6 +12,7 @@ import {
 import { CommandRail } from '@/components/layout/command-rail';
 import { MemoryInspector } from '@/components/layout/memory-inspector';
 import { ChatMessages } from './chat/chat-messages';
+import { ChatInput } from './chat/chat-input';
 import { AlertCircle, FileCode, Loader2, MemoryStick, MessageSquare, Plus } from 'lucide-react';
 import type { User } from 'firebase/auth';
 import { AnimatePresence, motion } from 'framer-motion';
