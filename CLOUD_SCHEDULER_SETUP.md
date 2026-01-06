@@ -6,6 +6,8 @@ Since you're using Firebase App Hosting (not Cloud Functions), all scheduled tas
 
 1. **Memory Cleanup** - `/api/cron/cleanup` - Deletes old data (90+ days)
 2. **Daily Briefing** - `/api/cron/daily-briefing` - Generates morning briefings for users
+3. **Nightly Reflection** - `/api/cron/nightly-reflection` - Analyzes user interactions and creates insight memories
+4. **Deep Research** - `/api/cron/deep-research` - Self-study agent that researches low-confidence topics and stores acquired knowledge
 
 ## Setup Steps
 
@@ -48,6 +50,36 @@ Select your project: `seismic-vista-480710-q5`
    - **HTTP method**: `POST`
    - **Headers** (optional, for security):
      - `Authorization`: `Bearer YOUR_SECRET_TOKEN`
+
+#### Job 3: Nightly Reflection
+
+1. Click **"Create Job"** again
+2. Configure:
+   - **Name**: `nightly-reflection`
+   - **Region**: `asia-southeast1`
+   - **Frequency**: `0 3 * * *` (runs daily at 3 AM UTC)
+   - **Timezone**: `UTC`
+   - **Target type**: `HTTP`
+   - **URL**: `https://studio-sg--seismic-vista-480710-q5.asia-southeast1.hosted.app/api/cron/nightly-reflection`
+   - **HTTP method**: `POST`
+   - **Headers** (optional, for security):
+     - `Authorization`: `Bearer YOUR_SECRET_TOKEN`
+   - **Description**: "Nightly reflection agent that analyzes user interactions and creates insight memories for offline learning"
+
+#### Job 4: Deep Research
+
+1. Click **"Create Job"** again
+2. Configure:
+   - **Name**: `deep-research`
+   - **Region**: `asia-southeast1`
+   - **Frequency**: `0 */6 * * *` (runs every 6 hours)
+   - **Timezone**: `UTC`
+   - **Target type**: `HTTP`
+   - **URL**: `https://studio-sg--seismic-vista-480710-q5.asia-southeast1.hosted.app/api/cron/deep-research`
+   - **HTTP method**: `POST`
+   - **Headers** (optional, for security):
+     - `Authorization`: `Bearer YOUR_SECRET_TOKEN`
+   - **Description**: "Deep research agent that self-studies low-confidence topics and stores acquired knowledge for future answers"
 
 ### 4. Authentication (Optional but Recommended)
 

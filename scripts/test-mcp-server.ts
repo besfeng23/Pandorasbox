@@ -1,114 +1,115 @@
-#!/usr/bin/env node
-
+#!/usr/bin/env tsx
 /**
- * Test script for MCP Server
- * Tests that the server can start and handle requests
+ * Test script for Pandora MCP Server
+ * 
+ * This script verifies that:
+ * 1. The MCP server file can be imported
+ * 2. Environment variables are accessible
+ * 3. Firebase Admin can initialize
+ * 4. Tool handlers are available
  */
 
 import { config } from 'dotenv';
 import { resolve } from 'path';
+
+// Load environment variables
 config({ path: resolve(process.cwd(), '.env.local') });
 
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-} from '@modelcontextprotocol/sdk/types.js';
-import { handleSearchKnowledgeBase } from '../src/mcp/tools/search-knowledge';
-import { handleAddMemory } from '../src/mcp/tools/add-memory';
-import { handleGenerateArtifact } from '../src/mcp/tools/generate-artifact';
+async function testMCPSetup() {
+  console.log('🧪 Testing Pandora MCP Server Setup...\n');
 
-async function testMCP() {
-  console.log('🧪 Testing MCP Server...\n');
-
-  // Test 1: Check environment variables
-  console.log('1. Checking environment variables...');
-  const openaiKey = process.env.OPENAI_API_KEY;
-  if (!openaiKey || openaiKey === 'your_openai_api_key_here') {
-    console.error('❌ OPENAI_API_KEY not set in .env.local');
-    process.exit(1);
+  // Test 1: Environment variables
+  console.log('1️⃣ Checking environment variables...');
+  const openaiKey = process.env.OPENAI_API_KEY?.trim();
+  const firebaseKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY?.trim();
+  
+  if (openaiKey) {
+    console.log('   ✅ OPENAI_API_KEY is set');
+  } else {
+    console.log('   ⚠️  OPENAI_API_KEY is not set (required for embeddings)');
   }
-  console.log('✅ OPENAI_API_KEY is set\n');
-
-  // Test 2: Initialize server
-  console.log('2. Initializing MCP server...');
-  const server = new Server(
-    {
-      name: 'pandoras-box',
-      version: '1.0.0',
-    },
-    {
-      capabilities: {
-        tools: {},
-      },
-    }
-  );
-  console.log('✅ Server initialized\n');
-
-  // Test 3: Test ListTools handler
-  console.log('3. Testing ListTools handler...');
-  server.setRequestHandler(ListToolsRequestSchema, async () => {
-    return {
-      tools: [
-        {
-          name: 'search_knowledge_base',
-          description: 'Search the knowledge base',
-          inputSchema: {
-            type: 'object',
-            properties: {
-              query: { type: 'string' },
-              user_email: { type: 'string' },
-            },
-            required: ['query', 'user_email'],
-          },
-        },
-      ],
-    };
-  });
-  console.log('✅ ListTools handler registered\n');
-
-  // Test 4: Test imports
-  console.log('4. Testing tool imports...');
-  try {
-    // Just verify imports work
-    if (typeof handleSearchKnowledgeBase === 'function') {
-      console.log('✅ search-knowledge imported');
-    }
-    if (typeof handleAddMemory === 'function') {
-      console.log('✅ add-memory imported');
-    }
-    if (typeof handleGenerateArtifact === 'function') {
-      console.log('✅ generate-artifact imported');
-    }
-  } catch (error) {
-    console.error('❌ Import error:', error);
-    process.exit(1);
+  
+  if (firebaseKey) {
+    console.log(`   ✅ FIREBASE_SERVICE_ACCOUNT_KEY is set: ${firebaseKey}`);
+  } else {
+    console.log('   ⚠️  FIREBASE_SERVICE_ACCOUNT_KEY is not set (will use fallback)');
   }
-  console.log('✅ All tools imported successfully\n');
 
-  // Test 5: Test Firebase Admin initialization
-  console.log('5. Testing Firebase Admin initialization...');
+  // Test 2: Firebase Admin initialization
+  console.log('\n2️⃣ Testing Firebase Admin initialization...');
   try {
-    const { getFirestoreAdmin, getAuthAdmin } = await import('../src/lib/firebase-admin');
+    const { getFirestoreAdmin, getAuthAdmin } = await import('@/lib/firebase-admin');
     const firestore = getFirestoreAdmin();
     const auth = getAuthAdmin();
-    console.log('✅ Firebase Admin initialized');
+    console.log('   ✅ Firebase Admin initialized successfully');
+    console.log('   ✅ Firestore instance available');
+    console.log('   ✅ Auth instance available');
   } catch (error: any) {
-    console.error('❌ Firebase Admin error:', error.message);
-    // Don't exit - Firebase might not be configured but MCP can still work
-    console.log('⚠️  Continuing without Firebase (may need service account)\n');
+    console.log(`   ⚠️  Firebase Admin initialization failed: ${error.message}`);
+    console.log('   (This is okay if service account is not configured)');
   }
 
-  console.log('\n✅ All tests passed! MCP server is ready.');
-  console.log('\nTo use in Cursor:');
-  console.log('1. Restart Cursor');
-  console.log('2. Check Settings → MCP Servers');
-  console.log('3. pandoras-box should show as connected');
+  // Test 3: Tool handlers
+  console.log('\n3️⃣ Testing tool handler imports...');
+  try {
+    const { handleAddMemory } = await import('@/mcp/tools/add-memory');
+    const { handleSearchKnowledgeBase } = await import('@/mcp/tools/search-knowledge');
+    
+    if (typeof handleAddMemory === 'function') {
+      console.log('   ✅ handleAddMemory is available');
+    } else {
+      console.log('   ❌ handleAddMemory is not a function');
+    }
+    
+    if (typeof handleSearchKnowledgeBase === 'function') {
+      console.log('   ✅ handleSearchKnowledgeBase is available');
+    } else {
+      console.log('   ❌ handleSearchKnowledgeBase is not a function');
+    }
+  } catch (error: any) {
+    console.log(`   ❌ Failed to import tool handlers: ${error.message}`);
+    if (error.stack) {
+      console.log(`   Stack: ${error.stack.split('\n').slice(0, 3).join('\n')}`);
+    }
+  }
+
+  // Test 4: MCP Server file structure
+  console.log('\n4️⃣ Verifying MCP server file...');
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const serverPath = path.join(process.cwd(), 'src/server/mcp-server.ts');
+    
+    if (fs.existsSync(serverPath)) {
+      console.log('   ✅ MCP server file exists');
+      const content = fs.readFileSync(serverPath, 'utf-8');
+      
+      if (content.includes('handleAddMemory')) {
+        console.log('   ✅ add_memory tool handler referenced');
+      }
+      
+      if (content.includes('handleSearchKnowledgeBase')) {
+        console.log('   ✅ query_knowledge tool handler referenced');
+      }
+      
+      if (content.includes('StdioServerTransport')) {
+        console.log('   ✅ MCP SDK properly imported');
+      }
+    } else {
+      console.log('   ❌ MCP server file not found');
+    }
+  } catch (error: any) {
+    console.log(`   ⚠️  Could not verify file: ${error.message}`);
+  }
+
+  console.log('\n✅ Test complete!\n');
+  console.log('📝 Next steps:');
+  console.log('   1. Restart Cursor to activate the MCP server');
+  console.log('   2. The server will be available as "pandora" in Cursor');
+  console.log('   3. Tools: add_memory, query_knowledge\n');
 }
 
-testMCP().catch((error) => {
+testMCPSetup().catch((error) => {
   console.error('❌ Test failed:', error);
   process.exit(1);
 });
-

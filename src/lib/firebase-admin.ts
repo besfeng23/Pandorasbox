@@ -18,6 +18,34 @@ function initializeAdmin() {
     return;
   }
 
+  // Highest priority: explicit service account path from FIREBASE_SERVICE_ACCOUNT_KEY
+  // This is especially useful for standalone tools and MCP servers.
+  try {
+    const serviceAccountEnv = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+    if (serviceAccountEnv && serviceAccountEnv.trim()) {
+      const path = require('path');
+      const fs = require('fs');
+      const serviceAccountPath = path.isAbsolute(serviceAccountEnv)
+        ? serviceAccountEnv
+        : path.join(process.cwd(), serviceAccountEnv);
+
+      if (fs.existsSync(serviceAccountPath)) {
+        const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf-8'));
+        console.log('Initializing Firebase Admin with FIREBASE_SERVICE_ACCOUNT_KEY path...');
+        admin.initializeApp({
+          credential: admin.credential.cert(serviceAccount),
+        });
+        return;
+      } else {
+        console.warn(
+          `FIREBASE_SERVICE_ACCOUNT_KEY path "${serviceAccountPath}" does not exist. Falling back to other credential strategies.`
+        );
+      }
+    }
+  } catch (error: any) {
+    console.warn('Failed to initialize Firebase Admin from FIREBASE_SERVICE_ACCOUNT_KEY:', error.message);
+  }
+
   // In production/build environments, always use Application Default Credentials
   // The service-account.json file won't exist in the build container
   if (process.env.NODE_ENV === 'production' || process.env.VERCEL || process.env.FIREBASE_CONFIG) {

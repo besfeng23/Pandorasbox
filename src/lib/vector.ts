@@ -191,7 +191,12 @@ export async function searchMemories(
           const data = doc.data();
           // The distance is a value between 0 and 2, where 0 is most similar.
           // We can convert it to a "score" from 0 to 1, where 1 is most similar.
-          const score = 1 - ((doc as any).distance || 1); 
+          let score = 1 - ((doc as any).distance || 1);
+          
+          // Boost insight memories - they represent learned patterns and should be prioritized
+          if (data.type === 'insight') {
+            score = Math.min(1.0, score * 1.2); // Boost by 20%, cap at 1.0
+          }
           
           let timestamp: Date;
           if (data.createdAt instanceof Timestamp) {
@@ -206,16 +211,33 @@ export async function searchMemories(
             id: doc.id,
             score: score,
             timestamp: timestamp,
+            type: data.type || 'normal', // Include type for filtering/prioritization
           };
         });
         
+        // Sort by score (highest first) to ensure insights appear at top
+        results.sort((a, b) => b.score - a.score);
+        
+        // Separate insights and normal memories for explicit prioritization
+        const insights = results.filter(r => r.type === 'insight');
+        const normalMemories = results.filter(r => r.type !== 'insight');
+        
+        // Prioritize insights: put them at the top even if score is slightly lower
+        const prioritizedResults = [...insights, ...normalMemories]
+          .slice(0, limit);
+        
         // If vector search returns no results, try fallback text search
-        if (results.length === 0) {
+        if (prioritizedResults.length === 0) {
           console.log(`[searchMemories] Vector search returned 0 results, trying fallback text search...`);
           return await searchMemoriesFallback(queryText, userId, limit);
         }
         
-        return results;
+        return prioritizedResults.map(r => ({
+          text: r.text,
+          id: r.id,
+          score: r.score,
+          timestamp: r.timestamp,
+        }));
     } catch (error: any) {
         console.error(`[searchMemories] Vector search failed for memories for user ${userId}:`, error);
         console.error(`[searchMemories] Error details:`, {
