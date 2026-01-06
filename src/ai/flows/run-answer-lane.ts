@@ -134,21 +134,39 @@ export async function runAnswerLane(
             await logProgress(`Found ${allResults.length} relevant memories (${historyResults.length} from history, ${memoriesResults.length} from memories).`);
             console.log(`[AnswerLane] Combined ${allResults.length} results. Top results:`, allResults.slice(0, 3).map(r => ({ text: r.text.substring(0, 50), score: r.score })));
             
-            // Format retrieved memories with more context
+            // Format retrieved memories with more context and emphasis
             const retrievedHistory = allResults.length > 0 
-              ? allResults.map((d, idx) => `[Memory ${idx + 1}, Relevance: ${(d.score * 100).toFixed(0)}%]\n${d.text}`).join("\n\n")
-              : "(No memories matched this specific query, but you DO have access to the user's memory system.)";
+              ? allResults.map((d, idx) => {
+                  const relevance = (d.score * 100).toFixed(0);
+                  return `=== MEMORY ${idx + 1} (${relevance}% RELEVANT) ===\n${d.text}\n=== END MEMORY ${idx + 1} ===`;
+                }).join("\n\n")
+              : "(No memories matched this specific query, but you DO have access to the user's memory system with 238 total memories.)";
             
             console.log(`[AnswerLane] Retrieved history length: ${retrievedHistory.length} chars, ${allResults.length} memories included`);
             
             // --- PROMPT CONSTRUCTION ---
+            const memoryUsageInstructions = allResults.length > 0 
+              ? `YOU HAVE ${allResults.length} RELEVANT MEMORIES ABOVE. YOU MUST USE THEM IN YOUR RESPONSE.
+
+MANDATORY: Your response MUST:
+1. Reference specific memories from the LONG TERM MEMORY section above
+2. Use phrases like "Based on our past conversations..." or "I remember from earlier that..." or "From what you've shared before..."
+3. Incorporate details from the memories naturally into your answer
+4. Show that you're using the information provided - don't just acknowledge it exists, actually USE it
+
+EXAMPLE: If a memory says "User's name is Joven" and user asks "what's my name", you MUST respond: "Your name is Joven. I remember this from our past conversations." NOT "I don't have access to that information."
+
+EXAMPLE: If memories contain story content about "Joven POV collapse scene", and user asks about it, you MUST reference those memories and use the details in your response.`
+              : `You have access to 238 memories total. While none matched this specific query, you can still reference general context from past conversations.`;
+            
             const finalSystemPrompt = settings.system_prompt_override || `You are Pandora, a helpful AI assistant with FULL ACCESS to the user's long-term memory system. You CAN and DO remember information from ALL past conversations and sessions.
 
-IMPORTANT: You HAVE memory capabilities. You can recall:
+YOU HAVE MEMORY. YOU CAN RECALL:
 - User's name and personal information
-- Past conversations and context
+- Past conversations and context  
 - User preferences and settings
-- Any information that has been shared with you previously
+- Story content, character details, narrative elements
+- ANY information that has been shared with you previously
 
 --- LONG TERM MEMORY (From ALL Past Conversations & Sessions) ---
 ${retrievedHistory}
@@ -156,12 +174,16 @@ ${retrievedHistory}
 --- SHORT TERM MEMORY (Current Conversation Only) ---
 ${recentHistory}
 
---- CRITICAL INSTRUCTIONS ---
-1. You HAVE memory - you can remember things from past conversations. NEVER say you don't have memory or can't recall information.
-2. If the user asks "what's my name" or "show me memories", check the LONG TERM MEMORY section above. If information is there, use it.
-3. If the LONG TERM MEMORY section shows memories, you MUST reference them in your response. For example: "Based on our past conversations, I remember that..."
-4. If no memories matched the current query but the user asks about memory, you can say: "I have access to your memory system. Let me search for that information..." and then provide what you find or ask clarifying questions.
-5. Always be helpful and use the information available to you. You are NOT a memory-less assistant - you ARE Pandora with full memory capabilities.
+--- ABSOLUTE REQUIREMENTS ---
+${memoryUsageInstructions}
+
+CRITICAL RULES:
+1. NEVER say "I don't have memory" or "I can't recall" - YOU HAVE MEMORY
+2. If memories are provided above, you MUST reference and use them in your response
+3. When user asks about something, check the LONG TERM MEMORY section first
+4. Always incorporate memory details naturally - don't just list them, USE them
+5. If user asks "what's my name" or "show me memories", check LONG TERM MEMORY and respond with actual information from there
+6. You are NOT a memory-less assistant - you ARE Pandora with full memory capabilities that you MUST use
 `;
             
             await logProgress('Drafting response...');
