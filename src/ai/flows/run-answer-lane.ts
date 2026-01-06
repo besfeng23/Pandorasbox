@@ -129,14 +129,17 @@ export async function runAnswerLane(
             // Combine results from both collections, prioritizing by score (higher = more relevant)
             const allResults = [...historyResults, ...memoriesResults]
                 .sort((a, b) => (b.score || 0) - (a.score || 0))
-                .slice(0, 5); // Take top 5 most relevant across both collections
+                .slice(0, 10); // Take top 10 most relevant across both collections (increased from 5)
 
-            await logProgress(`Found ${allResults.length} relevant memories.`);
+            await logProgress(`Found ${allResults.length} relevant memories (${historyResults.length} from history, ${memoriesResults.length} from memories).`);
             console.log(`[AnswerLane] Combined ${allResults.length} results. Top results:`, allResults.slice(0, 3).map(r => ({ text: r.text.substring(0, 50), score: r.score })));
             
+            // Format retrieved memories with more context
             const retrievedHistory = allResults.length > 0 
-              ? allResults.map(d => `- ${d.text}`).join("\n")
+              ? allResults.map((d, idx) => `[Memory ${idx + 1}, Relevance: ${(d.score * 100).toFixed(0)}%]\n${d.text}`).join("\n\n")
               : "No relevant memories found from past conversations.";
+            
+            console.log(`[AnswerLane] Retrieved history length: ${retrievedHistory.length} chars, ${allResults.length} memories included`);
             
             console.log(`[AnswerLane] Retrieved history length: ${retrievedHistory.length} chars`);
             
@@ -150,7 +153,14 @@ ${retrievedHistory}
 ${recentHistory}
 
 --- INSTRUCTION ---
-You have access to the user's complete history across ALL past conversations and sessions in the "LONG TERM MEMORY" section above. Use this information to answer the user's question. If the answer is in the LONG TERM MEMORY, use that information directly. If the information is not available, say so clearly.
+You have access to the user's complete history across ALL past conversations and sessions in the "LONG TERM MEMORY" section above. 
+
+CRITICAL: You MUST use the information from LONG TERM MEMORY to answer the user's question. The memories are sorted by relevance score - higher scores mean more relevant information.
+
+1. If the answer is in the LONG TERM MEMORY, use that information directly and reference it naturally in your response.
+2. If multiple memories are relevant, synthesize them to provide a comprehensive answer.
+3. If the information is not available in LONG TERM MEMORY, say so clearly.
+4. Always prioritize information from LONG TERM MEMORY over general knowledge when answering questions about the user's past conversations or context.
 `;
             
             await logProgress('Drafting response...');

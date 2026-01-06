@@ -260,13 +260,39 @@ export async function searchMemoryAction(query: string, userId: string): Promise
         return [];
     }
 
-    const results = await searchHistory(query, userId);
+    // Search both history and memories collections
+    const { searchHistory, searchMemories } = await import('@/lib/vector');
+    
+    const [historyResults, memoryResults] = await Promise.all([
+        searchHistory(query, userId),
+        searchMemories(query, userId, 10)
+    ]);
 
-    return results.map(result => ({
+    // Combine results and sort by score (highest first)
+    const allResults = [
+        ...historyResults.map(r => ({
+            id: r.id,
+            text: r.text,
+            score: r.score,
+            timestamp: r.timestamp.toISOString(),
+            source: 'history' as const
+        })),
+        ...memoryResults.map(r => ({
+            id: r.id,
+            text: r.text,
+            score: r.score,
+            timestamp: r.timestamp.toISOString(),
+            source: 'memory' as const
+        }))
+    ]
+    .sort((a, b) => b.score - a.score) // Sort by score descending
+    .slice(0, 20); // Limit to top 20 results
+
+    return allResults.map(result => ({
         id: result.id,
         text: result.text,
         score: result.score,
-        timestamp: result.timestamp.toISOString() 
+        timestamp: result.timestamp
     }));
 }
 
