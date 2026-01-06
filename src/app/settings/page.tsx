@@ -246,6 +246,7 @@ export default function SettingsPage() {
                 <div className="glass-panel-strong rounded-xl p-6 shadow-xl">
                   <h3 className="text-lg font-semibold text-white mb-2">System Prompt</h3>
                   <p className="text-sm text-gray-400 mb-4">Override the default system prompt. Leave blank to use the default.</p>
+                  <p className="text-xs text-yellow-400/80 mb-4">⚠️ Note: The default prompt includes persistent memory capabilities. If you override it, make sure to include memory instructions or the AI may say it doesn't have memory.</p>
                   <FormField
                     control={form.control}
                     name="system_prompt_override"
