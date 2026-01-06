@@ -44,6 +44,12 @@ export function PandorasBox({ user }: PandorasBoxProps) {
   const isMobile = useIsMobile();
   const { toast } = useToast();
 
+  // Debug: Log user ID
+  useEffect(() => {
+    console.log('[PandorasBox] Current User ID:', user.uid);
+    console.log('[PandorasBox] Current User Email:', user.email);
+  }, [user.uid, user.email]);
+
   // Load sidebar collapse state from localStorage
   useEffect(() => {
     if (!isMobile) {
