@@ -162,8 +162,7 @@ export function MemoryTable({ userId }: MemoryTableProps) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[50%]">Content</TableHead>
-                <TableHead>Role</TableHead>
+                <TableHead className="w-[70%]">Content</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -171,13 +170,13 @@ export function MemoryTable({ userId }: MemoryTableProps) {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="h-24 text-center">
+                  <TableCell colSpan={3} className="h-24 text-center">
                     <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
                   </TableCell>
                 </TableRow>
               ) : filteredMemories.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="h-24 text-center">
+                  <TableCell colSpan={3} className="h-24 text-center">
                     No memories found.
                   </TableCell>
                 </TableRow>
@@ -193,17 +192,10 @@ export function MemoryTable({ userId }: MemoryTableProps) {
                         />
                       ) : (
                         <div>
-                          {memory.type === 'knowledge_chunk' && (
-                            <div className='flex items-center gap-2 mb-2'>
-                                <FileText className='h-4 w-4 text-muted-foreground'/>
-                                <Badge variant="secondary" className='font-normal'>{memory.source_filename}</Badge>
-                            </div>
-                          )}
                           <p className="truncate-3-lines">{memory.content}</p>
                         </div>
                       )}
                     </TableCell>
-                    <TableCell className="align-top capitalize">{memory.role}</TableCell>
                     <TableCell className="align-top">{formatTimestamp(memory.createdAt)}</TableCell>
                     <TableCell className="text-right align-top">
                       {editingId === memory.id ? (
