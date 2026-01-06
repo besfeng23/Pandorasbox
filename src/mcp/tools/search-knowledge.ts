@@ -1,7 +1,7 @@
 'use server';
 
 import { getAuthAdmin, getFirestoreAdmin } from '@/lib/firebase-admin';
-import { searchHistory, generateEmbedding } from '@/lib/vector';
+import { searchHistory, searchMemories, generateEmbedding } from '@/lib/vector';
 import { SearchKnowledgeBaseParams, SearchKnowledgeBaseResult } from '../types';
 import { Timestamp } from 'firebase-admin/firestore';
 
