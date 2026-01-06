@@ -114,14 +114,17 @@ export async function runAnswerLane(
             // Use existing searchHistory and searchMemories functions which have error handling
             const [historyResults, memoriesResults] = await Promise.all([
                 searchHistory(message, userId).catch(err => {
-                    console.warn('History search failed:', err);
+                    console.warn('[AnswerLane] History search failed:', err);
                     return [];
                 }),
                 searchMemories(message, userId, 5).catch(err => {
-                    console.warn('Memories search failed:', err);
+                    console.warn('[AnswerLane] Memories search failed:', err);
+                    console.error('[AnswerLane] Memory search error details:', err.message, err.stack);
                     return [];
                 })
             ]);
+            
+            console.log(`[AnswerLane] Memory search results: history=${historyResults.length}, memories=${memoriesResults.length}`);
             
             // Combine results from both collections, prioritizing by score (higher = more relevant)
             const allResults = [...historyResults, ...memoriesResults]
@@ -129,10 +132,13 @@ export async function runAnswerLane(
                 .slice(0, 5); // Take top 5 most relevant across both collections
 
             await logProgress(`Found ${allResults.length} relevant memories.`);
+            console.log(`[AnswerLane] Combined ${allResults.length} results. Top results:`, allResults.slice(0, 3).map(r => ({ text: r.text.substring(0, 50), score: r.score })));
             
             const retrievedHistory = allResults.length > 0 
               ? allResults.map(d => `- ${d.text}`).join("\n")
               : "No relevant history found.";
+            
+            console.log(`[AnswerLane] Retrieved history length: ${retrievedHistory.length} chars`);
             
             // --- PROMPT CONSTRUCTION ---
             const finalSystemPrompt = settings.system_prompt_override || `You are a helpful AI assistant. Use the provided context to answer questions. If the context is empty or irrelevant, use your general knowledge.
