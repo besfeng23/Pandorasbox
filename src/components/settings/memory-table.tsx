@@ -45,8 +45,12 @@ export function MemoryTable({ userId }: MemoryTableProps) {
 
   // Fetch memories from memories collection (real-time listener)
   useEffect(() => {
-    if (!userId || !firestore) return;
+    if (!userId || !firestore) {
+      console.log('[MemoryTable] Missing userId or firestore:', { userId: !!userId, firestore: !!firestore });
+      return;
+    }
 
+    console.log('[MemoryTable] Setting up listener for userId:', userId);
     setIsLoading(true);
     const memoriesCollection = collection(firestore, 'memories');
     const q = query(
@@ -66,6 +70,7 @@ export function MemoryTable({ userId }: MemoryTableProps) {
             createdAt: toDate(data.createdAt),
           } as Memory;
         });
+        console.log('[MemoryTable] Received', memoryList.length, 'memories for userId:', userId);
         setMemories(memoryList);
         setIsLoading(false);
       },
