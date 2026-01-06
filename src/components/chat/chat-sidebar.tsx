@@ -1,15 +1,16 @@
 
 'use client';
 
-import React, { useEffect, useState, useTransition } from 'react';
+import React, { useEffect, useState, useTransition, useMemo } from 'react';
 import { getUserThreads } from '@/app/actions';
 import { Thread } from '@/lib/types';
-import { Loader2, MessageSquare, MessageCircle, Pin } from 'lucide-react';
+import { Loader2, MessageSquare, MessageCircle, Pin, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { ScrollArea } from '../ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { ThreadMenu } from './thread-menu';
+import { Input } from '../ui/input';
 
 interface ChatSidebarProps {
   userId: string;
@@ -19,6 +20,7 @@ interface ChatSidebarProps {
 
 export function ChatSidebar({ userId, activeThreadId, onSelectThread }: ChatSidebarProps) {
   const [threads, setThreads] = useState<Thread[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, startTransition] = useTransition();
 
   useEffect(() => {
@@ -28,29 +30,54 @@ export function ChatSidebar({ userId, activeThreadId, onSelectThread }: ChatSide
     });
   }, [userId, activeThreadId]); // Re-fetch when activeThreadId changes to get new titles
 
+  // Filter threads based on search query
+  const filteredThreads = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return threads.filter(thread => !thread.archived);
+    }
+    
+    const query = searchQuery.toLowerCase();
+    return threads.filter(thread => 
+      !thread.archived && 
+      thread.title.toLowerCase().includes(query)
+    );
+  }, [threads, searchQuery]);
+
   return (
     <TooltipProvider>
-      <ScrollArea className="flex-1">
-        <div className="p-2 space-y-2">
-          {isLoading ? (
+      <div className="flex flex-col h-full">
+        {/* Search bar */}
+        <div className="p-2 border-b border-cyan-400/20">
+          <div className="relative">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
+            <Input
+              placeholder="Search threads..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-8 bg-black/40 border-white/10 text-white placeholder:text-white/40 text-sm"
+            />
+          </div>
+        </div>
+        
+        <ScrollArea className="flex-1">
+          <div className="p-2 space-y-2">
+            {isLoading ? (
             <div className="flex justify-center items-center h-full p-8">
               <Loader2 className="animate-spin text-cyan-400" />
             </div>
-          ) : threads.length === 0 ? (
+          ) : filteredThreads.length === 0 ? (
             <div className="text-center text-sm text-white/60 p-4 glass-panel rounded-lg border border-cyan-400/10">
               <MessageSquare className="h-6 w-6 mx-auto mb-2 text-cyan-400/50" />
-              <p>No chats yet. Start a new conversation!</p>
+              <p>{searchQuery ? 'No threads found' : 'No chats yet. Start a new conversation!'}</p>
             </div>
           ) : (
-            threads
-              .filter(thread => !thread.archived) // Filter out archived threads for now
-              .map((thread) => (
+            filteredThreads.map((thread) => (
               <div
                 key={thread.id}
                 className={cn(
                   'w-full rounded-lg transition-all duration-200 flex flex-col gap-1 touch-manipulation min-h-[44px] group relative',
                   activeThreadId === thread.id 
-                    ? 'glass-panel border border-cyan-400/30 shadow-neon-cyan-sm' 
+                    ? 'glass-panel border border-cyan-400/30 shadow-neon-cyan-sm gradient-border' 
                     : 'glass-panel border border-transparent hover:border-cyan-400/20 hover:bg-white/5'
                 )}
               >
@@ -100,8 +127,15 @@ export function ChatSidebar({ userId, activeThreadId, onSelectThread }: ChatSide
                   <ThreadMenu
                     threadId={thread.id}
                     userId={userId}
+                    threadTitle={thread.title}
                     pinned={thread.pinned}
                     archived={thread.archived}
+                    onRename={() => {
+                      startTransition(async () => {
+                        const userThreads = await getUserThreads(userId);
+                        setThreads(userThreads);
+                      });
+                    }}
                     onDeleted={() => {
                       startTransition(async () => {
                         const userThreads = await getUserThreads(userId);
@@ -113,8 +147,9 @@ export function ChatSidebar({ userId, activeThreadId, onSelectThread }: ChatSide
               </div>
             ))
           )}
-        </div>
-      </ScrollArea>
+          </div>
+        </ScrollArea>
+      </div>
     </TooltipProvider>
   );
 }

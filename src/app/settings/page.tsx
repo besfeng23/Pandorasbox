@@ -37,6 +37,25 @@ import { KeyboardShortcuts } from '@/components/keyboard-shortcuts';
 import { Keyboard, Moon, Sun, Fingerprint, MoonStar, Microscope } from 'lucide-react';
 import { useTheme } from '@/hooks/use-theme';
 
+/**
+ * Model Display Names Mapping
+ * Maps internal model IDs to branded display names for the UI.
+ * Update this object to rebrand model names without changing backend logic.
+ */
+const MODEL_NAMES: Record<string, string> = {
+  'gpt-4o': 'Pandora Deep (Complex Reasoning)',
+  'gpt-4o-mini': 'Pandora Spark (High Speed)',
+  'gpt-4-turbo': 'Pandora Turbo (Balanced Performance)',
+  'gpt-3.5-turbo': 'Pandora Classic (Fast & Efficient)',
+};
+
+/**
+ * Get display name for a model ID, or return a default branded name for unknown models.
+ */
+function getModelDisplayName(modelId: string): string {
+  return MODEL_NAMES[modelId] || 'Pandora Experimental';
+}
+
 const settingsSchema = z.object({
   active_model: z.enum(['gpt-4o', 'gpt-4-turbo', 'gpt-3.5-turbo']),
   reply_style: z.enum(['concise', 'detailed']),
@@ -186,7 +205,7 @@ export default function SettingsPage() {
                 {/* AI Model Card */}
                 <div className="glass-panel-strong rounded-xl p-6 shadow-xl">
                   <h3 className="text-lg font-semibold text-white mb-2">AI Model</h3>
-                  <p className="text-sm text-gray-400 mb-4">Select the primary AI model for generating responses.</p>
+                  <p className="text-sm text-gray-400 mb-4">Pandora Deep is recommended for coding and complex analysis. Spark is faster for quick chats.</p>
                   <FormField
                     control={form.control}
                     name="active_model"
@@ -196,13 +215,21 @@ export default function SettingsPage() {
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger className="bg-black/40 border-white/10 text-white">
-                              <SelectValue placeholder="Select a model" />
+                              <SelectValue placeholder="Select a model">
+                                {field.value ? getModelDisplayName(field.value) : 'Select a model'}
+                              </SelectValue>
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent className="bg-gray-900 border-white/10">
-                            <SelectItem value="gpt-4o" className="text-white">gpt-4o</SelectItem>
-                            <SelectItem value="gpt-4-turbo" className="text-white">gpt-4-turbo</SelectItem>
-                            <SelectItem value="gpt-3.5-turbo" className="text-white">gpt-3.5-turbo</SelectItem>
+                            <SelectItem value="gpt-4o" className="text-white">
+                              {getModelDisplayName('gpt-4o')}
+                            </SelectItem>
+                            <SelectItem value="gpt-4-turbo" className="text-white">
+                              {getModelDisplayName('gpt-4-turbo')}
+                            </SelectItem>
+                            <SelectItem value="gpt-3.5-turbo" className="text-white">
+                              {getModelDisplayName('gpt-3.5-turbo')}
+                            </SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />

@@ -871,4 +871,78 @@ export async function exportUserData(userId: string): Promise<{ success: boolean
     }
 }
 
+export async function updateThread(threadId: string, userId: string, updates: { title?: string; pinned?: boolean; archived?: boolean }): Promise<{ success: boolean; message?: string }> {
+    if (!userId || !threadId) {
+        return { success: false, message: 'User not authenticated or thread ID missing.' };
+    }
+
+    const firestoreAdmin = getFirestoreAdmin();
+    try {
+        const threadRef = firestoreAdmin.collection('threads').doc(threadId);
+        const threadDoc = await threadRef.get();
+        
+        if (!threadDoc.exists) {
+            return { success: false, message: 'Thread not found.' };
+        }
+        
+        const threadData = threadDoc.data();
+        if (threadData?.userId !== userId) {
+            return { success: false, message: 'Permission denied.' };
+        }
+
+        await threadRef.update(updates);
+        revalidatePath('/');
+        return { success: true, message: 'Thread updated successfully.' };
+    } catch (error) {
+        console.error('Error updating thread:', error);
+        Sentry.captureException(error, { tags: { function: 'updateThread', userId, threadId } });
+        return { success: false, message: 'Failed to update thread.' };
+    }
+}
+
+export async function deleteThread(threadId: string, userId: string): Promise<{ success: boolean; message?: string }> {
+    if (!userId || !threadId) {
+        return { success: false, message: 'User not authenticated or thread ID missing.' };
+    }
+
+    const firestoreAdmin = getFirestoreAdmin();
+    try {
+        const threadRef = firestoreAdmin.collection('threads').doc(threadId);
+        const threadDoc = await threadRef.get();
+        
+        if (!threadDoc.exists) {
+            return { success: false, message: 'Thread not found.' };
+        }
+        
+        const threadData = threadDoc.data();
+        if (threadData?.userId !== userId) {
+            return { success: false, message: 'Permission denied.' };
+        }
+
+        // Delete all messages in this thread
+        const historyQuery = firestoreAdmin.collection('history')
+            .where('userId', '==', userId)
+            .where('threadId', '==', threadId);
+        
+        const historySnapshot = await historyQuery.get();
+        const batch = firestoreAdmin.batch();
+        
+        historySnapshot.docs.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+        
+        // Delete the thread itself
+        batch.delete(threadRef);
+        
+        await batch.commit();
+        
+        revalidatePath('/');
+        return { success: true, message: 'Thread deleted successfully.' };
+    } catch (error) {
+        console.error('Error deleting thread:', error);
+        Sentry.captureException(error, { tags: { function: 'deleteThread', userId, threadId } });
+        return { success: false, message: 'Failed to delete thread.' };
+    }
+}
+
     
