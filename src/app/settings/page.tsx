@@ -374,10 +374,11 @@ export default function SettingsPage() {
             </Form>
           </TabsContent>
 
-          <TabsContent value="memory" className="space-y-6">
-            {user && <KnowledgeUpload userId={user.uid} />}
-            {user && <MemoryTable userId={user.uid} />}
-            <div className="backdrop-blur-xl bg-red-500/10 border border-red-500/30 rounded-xl p-6 shadow-xl">
+              <TabsContent value="memory" className="space-y-6">
+                {user && <KnowledgeUpload userId={user.uid} />}
+                {user && <MemoryTable userId={user.uid} />}
+                {user && <ReindexMemoriesButton userId={user.uid} />}
+                <div className="backdrop-blur-xl bg-red-500/10 border border-red-500/30 rounded-xl p-6 shadow-xl">
               <h3 className="text-lg font-semibold text-red-400 mb-2">Danger Zone</h3>
               <p className="text-sm text-gray-400 mb-4">
                 These actions are permanent and cannot be undone.

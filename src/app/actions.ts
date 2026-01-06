@@ -582,6 +582,112 @@ export async function uploadKnowledge(formData: FormData): Promise<{ success: bo
     }
 }
 
+export async function reindexMemories(userId: string): Promise<{ success: boolean; message?: string; processed?: number; skipped?: number; errors?: number }> {
+    'use server';
+    if (!userId) {
+        return { success: false, message: 'User not authenticated.' };
+    }
+    
+    const firestoreAdmin = getFirestoreAdmin();
+    const { generateEmbedding } = await import('@/lib/vector');
+    
+    try {
+        console.log(`[ReindexMemories] Starting re-index for user ${userId}`);
+        
+        const memoriesRef = firestoreAdmin.collection('memories');
+        const snapshot = await memoriesRef
+            .where('userId', '==', userId)
+            .limit(1000)
+            .get();
+        
+        console.log(`[ReindexMemories] Found ${snapshot.size} memories for user ${userId}`);
+        
+        let processed = 0;
+        let skipped = 0;
+        let errors = 0;
+        
+        const batch = firestoreAdmin.batch();
+        let batchCount = 0;
+        const BATCH_SIZE = 500; // Firestore batch limit
+        
+        for (const doc of snapshot.docs) {
+            const data = doc.data();
+            const memoryId = doc.id;
+            
+            // Check if embedding exists and is valid (1536 dimensions)
+            const hasValidEmbedding = data.embedding && 
+                                      Array.isArray(data.embedding) && 
+                                      data.embedding.length === 1536 &&
+                                      data.embedding.some((v: any) => v !== 0); // Check it's not all zeros
+            
+            if (hasValidEmbedding) {
+                skipped++;
+                continue;
+            }
+            
+            try {
+                if (!data.content || typeof data.content !== 'string' || !data.content.trim()) {
+                    console.warn(`[ReindexMemories] Memory ${memoryId} has no valid content, skipping`);
+                    skipped++;
+                    continue;
+                }
+                
+                console.log(`[ReindexMemories] Generating embedding for memory ${memoryId}: "${data.content.substring(0, 50)}..."`);
+                
+                // Generate embedding
+                const embedding = await generateEmbedding(data.content);
+                
+                // Update document with embedding
+                batch.update(doc.ref, {
+                    embedding: embedding,
+                    reindexedAt: FieldValue.serverTimestamp(),
+                });
+                
+                batchCount++;
+                processed++;
+                
+                // Commit batch if it reaches the limit
+                if (batchCount >= BATCH_SIZE) {
+                    await batch.commit();
+                    console.log(`[ReindexMemories] Committed batch of ${batchCount} updates`);
+                    batchCount = 0;
+                    // Small delay to avoid rate limits
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+                
+            } catch (error: any) {
+                console.error(`[ReindexMemories] Error re-indexing memory ${memoryId}:`, error);
+                errors++;
+            }
+        }
+        
+        // Commit remaining updates
+        if (batchCount > 0) {
+            await batch.commit();
+            console.log(`[ReindexMemories] Committed final batch of ${batchCount} updates`);
+        }
+        
+        console.log(`[ReindexMemories] Complete: processed=${processed}, skipped=${skipped}, errors=${errors}`);
+        
+        revalidatePath('/settings');
+        
+        return {
+            success: true,
+            message: `Re-indexed ${processed} memories. ${skipped} already had embeddings. ${errors} errors.`,
+            processed,
+            skipped,
+            errors,
+        };
+    } catch (error: any) {
+        console.error('[ReindexMemories] Fatal error:', error);
+        Sentry.captureException(error, { tags: { function: 'reindexMemories', userId } });
+        return {
+            success: false,
+            message: `Failed to re-index memories: ${error.message}`,
+        };
+    }
+}
+
 export async function generateUserApiKey(userId: string): Promise<{ success: boolean, apiKey?: string, message?: string }> {
     if (!userId) {
       return { success: false, message: 'User not authenticated.' };
