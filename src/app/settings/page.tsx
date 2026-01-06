@@ -132,14 +132,14 @@ export default function SettingsPage() {
 
   if (isLoadingSettings || isUserLoading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gradient-to-br from-black via-gray-900 to-black">
+      <div className="flex min-h-[100dvh] items-center justify-center bg-gradient-to-br from-black via-gray-900 to-black">
         <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black overflow-y-auto">
+    <div className="min-h-[100dvh] bg-gradient-to-br from-black via-gray-900 to-black overflow-y-auto">
       {/* Glassmorphism Header */}
       <div className="sticky top-0 z-10 backdrop-blur-xl bg-black/30 border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -158,7 +158,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Scrollable Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
         <Tabs defaultValue="general" className="space-y-6">
           <TabsList className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-lg p-1">
             <TabsTrigger value="general" className="data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400">
@@ -179,7 +179,7 @@ export default function SettingsPage() {
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 {/* AI Model Card */}
-                <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-xl p-6 shadow-xl">
+                <div className="glass-panel-strong rounded-xl p-6 shadow-xl">
                   <h3 className="text-lg font-semibold text-white mb-2">AI Model</h3>
                   <p className="text-sm text-gray-400 mb-4">Select the primary AI model for generating responses.</p>
                   <FormField
@@ -207,7 +207,7 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Reply Style Card */}
-                <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-xl p-6 shadow-xl">
+                <div className="glass-panel-strong rounded-xl p-6 shadow-xl">
                   <h3 className="text-lg font-semibold text-white mb-2">Reply Style</h3>
                   <p className="text-sm text-gray-400 mb-4">Choose how verbose the AI's replies should be.</p>
                   <FormField
@@ -242,7 +242,7 @@ export default function SettingsPage() {
                 </div>
                 
                 {/* System Prompt Card */}
-                <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-xl p-6 shadow-xl">
+                <div className="glass-panel-strong rounded-xl p-6 shadow-xl">
                   <h3 className="text-lg font-semibold text-white mb-2">System Prompt</h3>
                   <p className="text-sm text-gray-400 mb-4">Override the default system prompt. Leave blank to use the default.</p>
                   <FormField
@@ -265,7 +265,7 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Appearance Card */}
-                <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-xl p-6 shadow-xl">
+                <div className="glass-panel-strong rounded-xl p-6 shadow-xl">
                   <h3 className="text-lg font-semibold text-white mb-4">Appearance</h3>
                   
                   <div className="space-y-4">
@@ -342,7 +342,7 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Keyboard Shortcuts Card */}
-                <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-xl p-6 shadow-xl">
+                <div className="glass-panel-strong rounded-xl p-6 shadow-xl">
                   <div className="flex items-center justify-between mb-4">
                     <div>
                       <h3 className="text-lg font-semibold text-white mb-2">Keyboard Shortcuts</h3>
@@ -412,7 +412,7 @@ export default function SettingsPage() {
           </TabsContent>
 
           <TabsContent value="api" className="space-y-6">
-            <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-xl p-6 shadow-xl">
+            <div className="glass-panel-strong rounded-xl p-6 shadow-xl">
               <h3 className="text-lg font-semibold text-white mb-2">Personal API Key</h3>
               <p className="text-sm text-gray-400 mb-4">Connect Pandora to external services like a custom GPT.</p>
               {settings.personal_api_key ? (
@@ -451,7 +451,7 @@ export default function SettingsPage() {
           </TabsContent>
 
           <TabsContent value="data" className="space-y-6">
-            <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-xl p-6 shadow-xl">
+            <div className="glass-panel-strong rounded-xl p-6 shadow-xl">
               <h3 className="text-lg font-semibold text-white mb-2">Data Export</h3>
               <p className="text-sm text-gray-400 mb-4">Download all your data for backup or GDPR compliance.</p>
               <Button 
