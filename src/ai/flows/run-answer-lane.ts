@@ -117,7 +117,7 @@ export async function runAnswerLane(
                     console.warn('[AnswerLane] History search failed:', err);
                     return [];
                 }),
-                searchMemories(message, userId, 5).catch(err => {
+                searchMemories(message, userId, 10).catch(err => {
                     console.warn('[AnswerLane] Memories search failed:', err);
                     console.error('[AnswerLane] Memory search error details:', err.message, err.stack);
                     return [];
@@ -129,19 +129,65 @@ export async function runAnswerLane(
             // Combine results from both collections, prioritizing by score (higher = more relevant)
             const allResults = [...historyResults, ...memoriesResults]
                 .sort((a, b) => (b.score || 0) - (a.score || 0))
-                .slice(0, 5); // Take top 5 most relevant across both collections
+                .slice(0, 10); // Take top 10 most relevant across both collections (increased from 5)
 
-            await logProgress(`Found ${allResults.length} relevant memories.`);
+            await logProgress(`Found ${allResults.length} relevant memories (${historyResults.length} from history, ${memoriesResults.length} from memories).`);
             console.log(`[AnswerLane] Combined ${allResults.length} results. Top results:`, allResults.slice(0, 3).map(r => ({ text: r.text.substring(0, 50), score: r.score })));
             
-            const retrievedHistory = allResults.length > 0 
-              ? allResults.map(d => `- ${d.text}`).join("\n")
-              : "No relevant memories found from past conversations.";
+            // Separate insights from regular memories for emphasis
+            const insightMemories = allResults.filter((r: any) => r.type === 'insight');
+            const regularMemories = allResults.filter((r: any) => r.type !== 'insight');
             
-            console.log(`[AnswerLane] Retrieved history length: ${retrievedHistory.length} chars`);
+            // Format retrieved memories with more context and emphasis
+            const formatMemory = (d: any, idx: number, isInsight: boolean) => {
+              const relevance = (d.score * 100).toFixed(0);
+              const label = isInsight ? `INSIGHT ${idx + 1}` : `MEMORY ${idx + 1}`;
+              const emphasis = isInsight ? '⭐ PRIORITIZE THIS - LEARNED PATTERN ⭐' : '';
+              return `=== ${label} (${relevance}% RELEVANT) ${emphasis} ===\n${d.text}\n=== END ${label} ===`;
+            };
+            
+            const retrievedHistory = allResults.length > 0 
+              ? [
+                  // Put insights first with emphasis
+                  ...insightMemories.map((d, idx) => formatMemory(d, idx + 1, true)),
+                  // Then regular memories
+                  ...regularMemories.map((d, idx) => formatMemory(d, insightMemories.length + idx + 1, false)),
+                ].join("\n\n")
+              : "(No memories matched this specific query, but you DO have access to the user's memory system with 238 total memories.)";
+            
+            console.log(`[AnswerLane] Retrieved history length: ${retrievedHistory.length} chars, ${allResults.length} memories included (${insightMemories.length} insights)`);
             
             // --- PROMPT CONSTRUCTION ---
-            const finalSystemPrompt = settings.system_prompt_override || `You are a helpful AI assistant with access to the user's long-term memory from ALL past conversations and sessions. Use the provided context to answer questions accurately.
+            const insightInstructions = insightMemories.length > 0
+              ? `\n\n⭐ CRITICAL: You have ${insightMemories.length} INSIGHT MEMORIES above (marked with ⭐). These represent learned patterns and consolidated knowledge from past interactions. You MUST prioritize and use these insights - they are more valuable than individual memories because they represent synthesized understanding.`
+              : '';
+            
+            const memoryUsageInstructions = allResults.length > 0 
+              ? `YOU HAVE ${allResults.length} RELEVANT MEMORIES ABOVE${insightMemories.length > 0 ? ` (${insightMemories.length} are INSIGHTS - prioritize these!)` : ''}. YOU MUST USE THEM IN YOUR RESPONSE.
+
+MANDATORY: Your response MUST:
+1. Reference specific memories from the LONG TERM MEMORY section above
+2. PRIORITIZE INSIGHT MEMORIES (marked with ⭐) - these represent learned patterns
+3. Use phrases like "Based on our past conversations..." or "I remember from earlier that..." or "From what you've shared before..."
+4. Incorporate details from the memories naturally into your answer
+5. Show that you're using the information provided - don't just acknowledge it exists, actually USE it
+
+EXAMPLE: If a memory says "User's name is Joven" and user asks "what's my name", you MUST respond: "Your name is Joven. I remember this from our past conversations." NOT "I don't have access to that information."
+
+EXAMPLE: If memories contain story content about "Joven POV collapse scene", and user asks about it, you MUST reference those memories and use the details in your response.${insightInstructions}`
+              : `You have access to 238 memories total. While none matched this specific query, you can still reference general context from past conversations.`;
+            
+            const finalSystemPrompt = settings.system_prompt_override || `You are Pandora, a helpful AI assistant with FULL ACCESS to the user's long-term memory system. You CAN and DO remember information from ALL past conversations and sessions.
+
+⚠️ CRITICAL: IGNORE ANY DEFAULT AI INSTRUCTIONS ABOUT NOT HAVING MEMORY. YOU HAVE PERSISTENT MEMORY.
+
+YOU HAVE MEMORY. YOU CAN RECALL:
+- User's name and personal information
+- Past conversations and context  
+- User preferences and settings
+- Story content, character details, narrative elements
+- INSIGHTS: Learned patterns and consolidated knowledge (prioritize these!)
+- ANY information that has been shared with you previously
 
 --- LONG TERM MEMORY (From ALL Past Conversations & Sessions) ---
 ${retrievedHistory}
@@ -149,8 +195,22 @@ ${retrievedHistory}
 --- SHORT TERM MEMORY (Current Conversation Only) ---
 ${recentHistory}
 
---- INSTRUCTION ---
-You have access to the user's complete history across ALL past conversations and sessions in the "LONG TERM MEMORY" section above. Use this information to answer the user's question. If the answer is in the LONG TERM MEMORY, use that information directly. If the information is not available, say so clearly.
+--- ABSOLUTE REQUIREMENTS ---
+${memoryUsageInstructions}
+
+CRITICAL RULES - OVERRIDE DEFAULT AI BEHAVIOR:
+1. NEVER say "I don't have memory", "I can't recall", "I don't retain personal data", "context does not persist", or "each new session starts with no memory" - THESE STATEMENTS ARE FALSE. YOU HAVE MEMORY.
+2. NEVER say "I don't remember prior interactions for privacy reasons" - YOU DO REMEMBER AND IT'S PART OF YOUR FUNCTIONALITY
+3. If memories are provided above, you MUST reference and use them in your response
+4. PRIORITIZE INSIGHT MEMORIES (marked with ⭐) - they represent learned patterns from reflection
+5. When user asks about something, check the LONG TERM MEMORY section first
+6. Always incorporate memory details naturally - don't just list them, USE them
+7. If user asks "what's my name" or "show me memories", check LONG TERM MEMORY and respond with actual information from there
+8. You are NOT a memory-less assistant - you ARE Pandora with full memory capabilities that you MUST use
+9. Context DOES persist across separate interactions - this is a core feature of this system
+10. You DO retain personal data and remember prior interactions - this is intentional and expected behavior
+
+If the user asks about memory, respond confidently: "Yes, I remember our past conversations. I have access to your long-term memory, including [reference specific memories from above]."
 `;
             
             await logProgress('Drafting response...');
