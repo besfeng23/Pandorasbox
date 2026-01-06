@@ -4,14 +4,13 @@
 import { getFirestoreAdmin } from '@/lib/firebase-admin';
 import { revalidatePath } from 'next/cache';
 import { runChatLane } from '@/ai/flows/run-chat-lane';
-import { generateEmbedding, generateEmbeddingsBatch, searchHistory } from '@/lib/vector';
+import { generateEmbedding, generateEmbeddingsBatch, searchHistory, searchMemories } from '@/lib/vector';
 import { SearchResult, Thread } from '@/lib/types';
-import { getStorage } from 'firebase-admin/storage';
-import { getDownloadURL } from 'firebase-admin/storage';
+import { getStorage, getDownloadURL } from 'firebase-admin/storage';
 import OpenAI from 'openai';
 import pdf from 'pdf-parse';
 import { chunkText } from '@/lib/chunking';
-import { FieldValue }from 'firebase-admin/firestore';
+import { FieldValue } from 'firebase-admin/firestore';
 import { randomBytes } from 'crypto';
 import { summarizeLongChat } from '@/ai/flows/summarize-long-chat';
 import * as Sentry from '@sentry/nextjs';
@@ -261,8 +260,6 @@ export async function searchMemoryAction(query: string, userId: string): Promise
     }
 
     // Search both history and memories collections
-    const { searchHistory, searchMemories } = await import('@/lib/vector');
-    
     const [historyResults, memoryResults] = await Promise.all([
         searchHistory(query, userId),
         searchMemories(query, userId, 10)
