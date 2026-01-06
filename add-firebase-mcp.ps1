@@ -21,25 +21,25 @@ if (Test-Path $claudeConfigPath) {
         $config = $configJson | ConvertFrom-Json
     } catch {
         Write-Host "Error reading config, creating new one: $_" -ForegroundColor Yellow
-        $config = @{} | ConvertTo-Json -Depth 10 | ConvertFrom-Json
+        $config = New-Object PSObject
     }
 } else {
     Write-Host "Config file doesn't exist, creating new one..." -ForegroundColor Yellow
-    $config = @{} | ConvertTo-Json -Depth 10 | ConvertFrom-Json
+    $config = New-Object PSObject
 }
 
 # Ensure mcpServers object exists
 if (-not $config.mcpServers) {
-    $config | Add-Member -MemberType NoteProperty -Name "mcpServers" -Value @{} -Force
+    $config | Add-Member -MemberType NoteProperty -Name "mcpServers" -Value (New-Object PSObject) -Force
 }
 
-# Add or update Firebase MCP server configuration
-$firebaseConfig = @{
-    command = "npm.cmd"
-    args = @("run", "mcp:dev")
-    cwd = $projectPath
-}
+# Create Firebase config object
+$firebaseConfig = New-Object PSObject
+$firebaseConfig | Add-Member -MemberType NoteProperty -Name "command" -Value "npm.cmd"
+$firebaseConfig | Add-Member -MemberType NoteProperty -Name "args" -Value @("run", "mcp:dev")
+$firebaseConfig | Add-Member -MemberType NoteProperty -Name "cwd" -Value $projectPath
 
+# Add Firebase to mcpServers
 $config.mcpServers | Add-Member -MemberType NoteProperty -Name "firebase" -Value $firebaseConfig -Force
 
 # Write back to file
