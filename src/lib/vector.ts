@@ -1,4 +1,11 @@
-'server-only';
+// Only import server-only in Next.js context (not for standalone MCP server)
+if (typeof process !== 'undefined' && process.env.NEXT_RUNTIME) {
+  try {
+    require('server-only');
+  } catch {
+    // Ignore if not in Next.js context
+  }
+}
 
 import OpenAI from 'openai';
 import { getFirestoreAdmin } from './firebase-admin';
@@ -124,7 +131,7 @@ export async function searchHistory(
           const data = doc.data();
           // The distance is a value between 0 and 2, where 0 is most similar.
           // We can convert it to a "score" from 0 to 1, where 1 is most similar.
-          const score = 1 - doc.distance; 
+          const score = 1 - ((doc as any).distance || 1); 
           
           let timestamp: Date;
           if (data.createdAt instanceof Timestamp) {
@@ -177,12 +184,14 @@ export async function searchMemories(
         });
       
         const snapshot = await vectorQuery.get();
+        
+        console.log(`[searchMemories] Vector search found ${snapshot.docs.length} memories for user ${userId}`);
       
-        return snapshot.docs.map(doc => {
+        const results = snapshot.docs.map(doc => {
           const data = doc.data();
           // The distance is a value between 0 and 2, where 0 is most similar.
           // We can convert it to a "score" from 0 to 1, where 1 is most similar.
-          const score = 1 - doc.distance; 
+          const score = 1 - ((doc as any).distance || 1); 
           
           let timestamp: Date;
           if (data.createdAt instanceof Timestamp) {
@@ -199,8 +208,93 @@ export async function searchMemories(
             timestamp: timestamp,
           };
         });
-    } catch (error) {
-        console.warn(`Vector search failed for memories for user ${userId}. This might be because the vector index is still building.`, error);
-        return [];
+        
+        // If vector search returns no results, try fallback text search
+        if (results.length === 0) {
+          console.log(`[searchMemories] Vector search returned 0 results, trying fallback text search...`);
+          return await searchMemoriesFallback(queryText, userId, limit);
+        }
+        
+        return results;
+    } catch (error: any) {
+        console.error(`[searchMemories] Vector search failed for memories for user ${userId}:`, error);
+        console.error(`[searchMemories] Error details:`, {
+          message: error.message,
+          code: error.code,
+          stack: error.stack?.substring(0, 500)
+        });
+        
+        // Try fallback text search on error
+        console.log(`[searchMemories] Attempting fallback text search...`);
+        try {
+          return await searchMemoriesFallback(queryText, userId, limit);
+        } catch (fallbackError) {
+          console.error(`[searchMemories] Fallback search also failed:`, fallbackError);
+          return [];
+        }
     }
+}
+
+/**
+ * Fallback text-based search for memories when vector search fails
+ */
+async function searchMemoriesFallback(
+  queryText: string,
+  userId: string,
+  limit: number = 10
+): Promise<{ text: string; id: string; score: number, timestamp: Date }[]> {
+  const firestoreAdmin = getFirestoreAdmin();
+  const memoriesCollection = firestoreAdmin.collection('memories');
+  
+  try {
+    // Get all memories for user and filter by text content
+    const snapshot = await memoriesCollection
+      .where('userId', '==', userId)
+      .orderBy('createdAt', 'desc')
+      .limit(100) // Get more to filter
+      .get();
+    
+    console.log(`[searchMemoriesFallback] Found ${snapshot.size} total memories for user ${userId}`);
+    
+    const queryLower = queryText.toLowerCase();
+    const queryWords = queryLower.split(/\s+/).filter(w => w.length > 2);
+    
+    const results = snapshot.docs
+      .map(doc => {
+        const data = doc.data();
+        const content = (data.content || '').toLowerCase();
+        
+        // Simple text matching score
+        let score = 0;
+        for (const word of queryWords) {
+          if (content.includes(word)) {
+            score += 1;
+          }
+        }
+        score = score / Math.max(queryWords.length, 1);
+        
+        let timestamp: Date;
+        if (data.createdAt instanceof Timestamp) {
+          timestamp = data.createdAt.toDate();
+        } else {
+          timestamp = new Date(data.createdAt);
+        }
+        
+        return {
+          text: data.content || '',
+          id: doc.id,
+          score: score,
+          timestamp: timestamp,
+        };
+      })
+      .filter(r => r.score > 0) // Only return results with some match
+      .sort((a, b) => b.score - a.score)
+      .slice(0, limit);
+    
+    console.log(`[searchMemoriesFallback] Returning ${results.length} text-matched results`);
+    return results;
+  } catch (error) {
+    console.error(`[searchMemoriesFallback] Error in fallback search:`, error);
+    return [];
+  }
 }

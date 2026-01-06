@@ -1,6 +1,13 @@
 'use server';
 
-import 'server-only';
+// Only import server-only in Next.js context (not for standalone MCP server)
+if (typeof process !== 'undefined' && process.env.NEXT_RUNTIME) {
+  try {
+    require('server-only');
+  } catch {
+    // Ignore if not in Next.js context
+  }
+}
 import admin from 'firebase-admin';
 
 let firestoreAdmin: admin.firestore.Firestore;

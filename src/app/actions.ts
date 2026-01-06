@@ -463,6 +463,34 @@ export async function updateMemory(id: string, newText: string, userId: string) 
     }
 }
 
+export async function createMemoryFromSettings(content: string, userId: string): Promise<{ success: boolean; message?: string; memory_id?: string }> {
+    'use server';
+    if (!userId || !content || !content.trim()) {
+        return { success: false, message: 'User not authenticated or content is empty.' };
+    }
+    
+    // Use centralized memory utility to ensure automatic indexing
+    const { saveMemory } = await import('@/lib/memory-utils');
+    
+    try {
+        const result = await saveMemory({
+            content: content.trim(),
+            userId: userId,
+            source: 'settings',
+        });
+        
+        if (result.success) {
+            revalidatePath('/settings');
+        }
+        
+        return result;
+    } catch (error) {
+        console.error('Error creating memory:', error);
+        Sentry.captureException(error, { tags: { function: 'createMemoryFromSettings', userId } });
+        return { success: false, message: 'Failed to create memory.' };
+    }
+}
+
 export async function deleteMemoryFromMemories(id: string, userId: string): Promise<{ success: boolean; message?: string }> {
     'use server';
     if (!userId) {
@@ -490,21 +518,16 @@ export async function updateMemoryInMemories(id: string, newText: string, userId
     if (!userId) {
         return { success: false, message: 'User not authenticated.' };
     }
-    const firestoreAdmin = getFirestoreAdmin();
+    
+    // Use centralized memory utility to ensure embedding is regenerated
+    const { updateMemoryWithEmbedding } = await import('@/lib/memory-utils');
+    
     try {
-        const docRef = firestoreAdmin.collection('memories').doc(id);
-        const docSnap = await docRef.get();
-        if (!docSnap.exists || docSnap.data()?.userId !== userId) {
-            return { success: false, message: 'Permission denied.' };
+        const result = await updateMemoryWithEmbedding(id, newText, userId);
+        if (result.success) {
+            revalidatePath('/');
         }
-        const newEmbedding = await generateEmbedding(newText);
-        await docRef.update({
-            content: newText,
-            embedding: newEmbedding,
-            editedAt: FieldValue.serverTimestamp(),
-        });
-        revalidatePath('/');
-        return { success: true };
+        return result;
     } catch (error) {
         console.error('Error updating memory:', error);
         Sentry.captureException(error, { tags: { function: 'updateMemoryInMemories', userId, memoryId: id } });
@@ -549,14 +572,30 @@ export async function uploadKnowledge(formData: FormData): Promise<{ success: bo
         // Generate embeddings in batch for cost efficiency
         const embeddings = await generateEmbeddingsBatch(chunks);
         
+        // Use centralized utility to automatically save to memories collection
+        const { saveMemoriesBatch } = await import('@/lib/memory-utils');
+        const memories = chunks.map((chunk, i) => ({
+          content: chunk,
+          userId: userId,
+          source: 'knowledge_upload',
+          metadata: {
+            source_filename: file.name,
+            chunk_index: i,
+          },
+        }));
+        
+        // Save to memories collection automatically (with embeddings)
+        await saveMemoriesBatch(memories);
+        
+        // Also save to history collection (for chat context)
         const batch = firestoreAdmin.batch();
         for (let i = 0; i < chunks.length; i++) {
             const chunk = chunks[i];
             const embedding = embeddings[i];
-            const docRef = historyCollection.doc();
             
-            batch.set(docRef, {
-                id: docRef.id,
+            const historyDocRef = historyCollection.doc();
+            batch.set(historyDocRef, {
+                id: historyDocRef.id,
                 role: 'assistant',
                 type: 'knowledge_chunk',
                 source_filename: file.name,

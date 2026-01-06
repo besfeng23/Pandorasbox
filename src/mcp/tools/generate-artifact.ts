@@ -1,5 +1,3 @@
-'use server';
-
 import { getAuthAdmin, getFirestoreAdmin } from '@/lib/firebase-admin';
 import { GenerateArtifactParams, GenerateArtifactResult } from '../types';
 import { FieldValue } from 'firebase-admin/firestore';
@@ -49,7 +47,7 @@ export async function handleGenerateArtifact(
   
   // Prepare artifact data
   const artifactType = params.type === 'code' ? 'code' : 'markdown';
-  const artifactData: Omit<Artifact, 'id'> = {
+  const artifactData: any = {
     userId: userId,
     title: params.title.trim(),
     type: artifactType,

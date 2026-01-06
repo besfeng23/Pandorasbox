@@ -7,7 +7,7 @@
   },
   "servers": [
     {
-      "url": "https://studio-sg--seismic-vista-480710-q5.asia-southeast1.hosted.app",
+      "url": "http://localhost:9002",
       "description": "Pandora's Box MCP Server"
     }
   ],

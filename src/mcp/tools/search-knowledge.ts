@@ -1,5 +1,3 @@
-'use server';
-
 import { getAuthAdmin, getFirestoreAdmin } from '@/lib/firebase-admin';
 import { searchHistory, searchMemories, generateEmbedding } from '@/lib/vector';
 import { SearchKnowledgeBaseParams, SearchKnowledgeBaseResult } from '../types';
@@ -46,7 +44,7 @@ async function searchKnowledgeBase(
     const historyDocs = historySnapshot.docs.map(doc => ({
       ...doc.data(),
       id: doc.id,
-      distance: doc.distance,
+      distance: (doc as any).distance || 1,
       collection: 'history'
     }));
     
@@ -62,7 +60,7 @@ async function searchKnowledgeBase(
     const memoriesDocs = memoriesSnapshot.docs.map(doc => ({
       ...doc.data(),
       id: doc.id,
-      distance: doc.distance,
+      distance: (doc as any).distance || 1,
       collection: 'memories'
     }));
     
@@ -71,7 +69,7 @@ async function searchKnowledgeBase(
       .sort((a, b) => (a.distance || 1) - (b.distance || 1))
       .slice(0, limit);
     
-    return allDocs.map(doc => {
+    return allDocs.map((doc: any) => {
       const score = 1 - (doc.distance || 1);
       let timestamp: Date;
       
@@ -91,8 +89,49 @@ async function searchKnowledgeBase(
       };
     });
   } catch (error: any) {
-    console.error('Error in searchKnowledgeBase:', error);
-    // Fallback to regular searchHistory if vector search fails
+    console.error('[searchKnowledgeBase] Error in vector search:', error);
+    console.error('[searchKnowledgeBase] Error details:', {
+      message: error.message,
+      code: error.code,
+      userId: userId,
+      queryLength: queryText.length
+    });
+    
+    // Fallback: Try to get memories directly without vector search
+    try {
+      console.log('[searchKnowledgeBase] Attempting fallback: direct memory query...');
+      const memoriesCollection = firestoreAdmin.collection('memories');
+      const memorySnapshot = await memoriesCollection
+        .where('userId', '==', userId)
+        .orderBy('createdAt', 'desc')
+        .limit(limit)
+        .get();
+      
+      console.log(`[searchKnowledgeBase] Fallback found ${memorySnapshot.size} memories`);
+      
+      if (memorySnapshot.size > 0) {
+        return memorySnapshot.docs.map(doc => {
+          const data = doc.data();
+          let timestamp: Date;
+          if (data.createdAt instanceof Timestamp) {
+            timestamp = data.createdAt.toDate();
+          } else {
+            timestamp = new Date(data.createdAt);
+          }
+          
+          return {
+            id: doc.id,
+            content: data.content || '',
+            score: 0.5, // Default score for fallback
+            timestamp: timestamp.toISOString(),
+          };
+        });
+      }
+    } catch (fallbackError) {
+      console.error('[searchKnowledgeBase] Fallback search also failed:', fallbackError);
+    }
+    
+    // Final fallback to regular searchHistory
     try {
       const results = await searchHistory(queryText, userId);
       return results.slice(0, limit).map(r => ({
@@ -101,8 +140,8 @@ async function searchKnowledgeBase(
         score: r.score,
         timestamp: r.timestamp.toISOString(),
       }));
-    } catch (fallbackError) {
-      console.error('Fallback search also failed:', fallbackError);
+    } catch (finalError) {
+      console.error('[searchKnowledgeBase] All search methods failed:', finalError);
       return [];
     }
   }
