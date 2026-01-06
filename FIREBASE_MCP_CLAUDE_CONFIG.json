@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "firebase": {
+      "command": "npm.cmd",
+      "args": ["run", "mcp:dev"],
+      "cwd": "C:\\Users\\Administrator\\Downloads\\New folder\\Pandorasbox"
+    }
+  }
+}
+
