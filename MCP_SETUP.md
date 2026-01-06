@@ -201,7 +201,6 @@ The MCP server will automatically connect when Claude Desktop starts. You can te
 
 ### OpenAPI Schema Not Generating
 
-1. Check that `MCP_SERVER_URL` is set correctly
 2. Verify the `public` directory exists
 3. Check file permissions
 

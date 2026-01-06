@@ -1,9 +1,5 @@
-'use server';
-
-import { getAuthAdmin, getFirestoreAdmin } from '@/lib/firebase-admin';
-import { generateEmbedding } from '@/lib/vector';
+import { getAuthAdmin } from '@/lib/firebase-admin';
 import { AddMemoryParams, AddMemoryResult } from '../types';
-import { FieldValue } from 'firebase-admin/firestore';
 
 /**
  * Maps user email to Firebase UID
@@ -39,37 +35,22 @@ export async function handleAddMemory(
   // Map email to UID
   const userId = await getUserUidFromEmail(params.user_email);
   
-  // Generate embedding
-  const embedding = await generateEmbedding(params.memory.trim());
+  // Use centralized memory utility to ensure automatic indexing
+  const { saveMemory } = await import('@/lib/memory-utils');
   
-  // Store memory in Firestore
-  const firestoreAdmin = getFirestoreAdmin();
-  const memoriesCollection = firestoreAdmin.collection('memories');
-  
-  const memoryRef = await memoriesCollection.add({
-    id: '', // Will be set after creation
+  const result = await saveMemory({
     content: params.memory.trim(),
-    embedding: embedding,
-    createdAt: FieldValue.serverTimestamp(),
     userId: userId,
-    source: 'mcp', // Mark as coming from MCP
+    source: 'mcp',
   });
   
-  // Update with the ID
-  await memoryRef.update({ id: memoryRef.id });
-  
-  // Track analytics if available
-  try {
-    const { trackEvent } = await import('@/lib/analytics');
-    await trackEvent(userId, 'memory_created', { source: 'mcp' });
-  } catch (error) {
-    // Analytics is optional, don't fail if it's not available
-    console.warn('Could not track analytics:', error);
+  if (!result.success) {
+    throw new Error(result.message || 'Failed to save memory');
   }
   
   return {
     success: true,
-    memory_id: memoryRef.id,
+    memory_id: result.memory_id!,
     user_id: userId,
   };
 }

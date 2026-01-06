@@ -110,30 +110,17 @@ IMPORTANT: Always generate at least 3-5 search_queries if there is ANY meaningfu
       const stateCollection = firestoreAdmin.collection('users').doc(userId).collection('state');
       await stateCollection.doc('context').set({ note: responseData.new_context_note }, { merge: true });
       
-      // Create memories from search queries - use batch embedding for efficiency
+      // Create memories from search queries - use centralized utility for automatic indexing
       const searchQueries = responseData.search_queries || [];
       if (searchQueries.length > 0) {
-        const memoriesCollection = firestoreAdmin.collection('memories');
-        // Generate embeddings in batch
-        const { generateEmbeddingsBatch } = await import('@/lib/vector');
-        const embeddings = await generateEmbeddingsBatch(searchQueries);
-        const batch = firestoreAdmin.batch();
-        for (let i = 0; i < searchQueries.length; i++) {
-            const query = searchQueries[i];
-            const embedding = embeddings[i];
-            const docRef = memoriesCollection.doc();
-            batch.set(docRef, {
-                id: docRef.id,
-                content: query,
-                embedding,
-                createdAt: FieldValue.serverTimestamp(),
-                userId: userId,
-            });
-        }
-        await batch.commit();
+        const { saveMemoriesBatch } = await import('@/lib/memory-utils');
+        const memories = searchQueries.map(query => ({
+          content: query,
+          userId: userId,
+          source: 'conversation',
+        }));
         
-        // Track analytics
-        await trackEvent(userId, 'memory_created', { count: searchQueries.length });
+        await saveMemoriesBatch(memories);
       }
 
       return responseData;

@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getFirestoreAdmin, getAuthAdmin } from '@/lib/firebase-admin';
-import { generateEmbedding } from '@/lib/vector';
-import { FieldValue } from 'firebase-admin/firestore';
+import { getAuthAdmin } from '@/lib/firebase-admin';
 
 // Prevent this route from being statically generated
 export const dynamic = 'force-dynamic';
@@ -78,29 +76,26 @@ export async function POST(request: NextRequest) {
 
     const userId = firebaseUser.uid;
 
-    // Generate embedding for the memory
-    const embedding = await generateEmbedding(memory);
-
-    // Store memory in Firestore
-    const firestoreAdmin = getFirestoreAdmin();
-    const memoriesCollection = firestoreAdmin.collection('memories');
+    // Use centralized memory utility to ensure automatic indexing
+    const { saveMemory } = await import('@/lib/memory-utils');
     
-    const memoryRef = await memoriesCollection.add({
-      id: '', // Will be set after creation
+    const result = await saveMemory({
       content: memory.trim(),
-      embedding: embedding,
-      createdAt: FieldValue.serverTimestamp(),
       userId: userId,
-      source: 'chatgpt', // Mark as coming from ChatGPT
+      source: 'chatgpt',
     });
 
-    // Update with the ID
-    await memoryRef.update({ id: memoryRef.id });
+    if (!result.success) {
+      return NextResponse.json(
+        { error: result.message || 'Failed to store memory' },
+        { status: 500, headers: corsHeaders() }
+      );
+    }
 
     return NextResponse.json({
       success: true,
       message: 'Memory stored successfully',
-      memory_id: memoryRef.id,
+      memory_id: result.memory_id,
       user_id: userId,
     }, { headers: corsHeaders() });
 
