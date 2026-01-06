@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { updateSettings, clearMemory, generateUserApiKey, exportUserData } from '@/app/actions';
+import { seedIdentityProfile, triggerReflection, triggerDeepResearch } from '@/app/actions/brain-actions';
 import { useSettings } from '@/hooks/use-settings';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -33,7 +34,7 @@ import { ReindexMemoriesButton } from '@/components/settings/reindex-memories-bu
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import { KeyboardShortcuts } from '@/components/keyboard-shortcuts';
-import { Keyboard, Moon, Sun } from 'lucide-react';
+import { Keyboard, Moon, Sun, Fingerprint, MoonStar, Microscope } from 'lucide-react';
 import { useTheme } from '@/hooks/use-theme';
 
 const settingsSchema = z.object({
@@ -173,6 +174,9 @@ export default function SettingsPage() {
             </TabsTrigger>
             <TabsTrigger value="data" className="data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400">
               Data
+            </TabsTrigger>
+            <TabsTrigger value="brain" className="data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400">
+              Brain Controls
             </TabsTrigger>
           </TabsList>
 
@@ -450,6 +454,140 @@ export default function SettingsPage() {
                 </div>
               )}
               <p className="text-xs text-gray-500">Use this key to allow external applications to access and interact with your Pandora memory.</p>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="brain" className="space-y-6">
+            <div className="glass-panel-strong rounded-xl p-6 shadow-xl">
+              <h3 className="text-lg font-semibold text-white mb-2">Brain Management</h3>
+              <p className="text-sm text-gray-400 mb-4">
+                Manually control Pandora&apos;s long-term memory and offline learning systems.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Implant Core Identity */}
+                <div className="bg-black/40 border border-cyan-500/30 rounded-xl p-4 flex flex-col justify-between">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="p-2 rounded-full bg-cyan-500/20 border border-cyan-400/40">
+                      <Fingerprint className="h-5 w-5 text-cyan-400" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-semibold text-white">Implant Core Identity</h4>
+                      <p className="text-xs text-gray-400">
+                        Force-write Joven&apos;s coding preferences into long-term memory.
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    disabled={isPending || !user}
+                    className="w-full bg-cyan-500 hover:bg-cyan-600 text-white"
+                    onClick={() => {
+                      if (!user) return;
+                      startTransition(async () => {
+                        const result = await seedIdentityProfile(user.uid);
+                        if (result.success) {
+                          toast({
+                            title: 'Core Identity Updated',
+                            description: result.message,
+                          });
+                        } else {
+                          toast({
+                            variant: 'destructive',
+                            title: 'Error',
+                            description: result.message,
+                          });
+                        }
+                      });
+                    }}
+                  >
+                    {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Implant Core Identity
+                  </Button>
+                </div>
+
+                {/* Force Reflection */}
+                <div className="bg-black/40 border border-indigo-500/30 rounded-xl p-4 flex flex-col justify-between">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="p-2 rounded-full bg-indigo-500/20 border border-indigo-400/40">
+                      <MoonStar className="h-5 w-5 text-indigo-300" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-semibold text-white">Force Reflection</h4>
+                      <p className="text-xs text-gray-400">
+                        Analyze recent history and generate insights immediately.
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    disabled={isPending || !user}
+                    className="w-full bg-indigo-500 hover:bg-indigo-600 text-white"
+                    onClick={() => {
+                      if (!user) return;
+                      startTransition(async () => {
+                        const result = await triggerReflection(user.uid);
+                        if (result.success) {
+                          toast({
+                            title: 'Reflection Complete',
+                            description: result.message,
+                          });
+                        } else {
+                          toast({
+                            variant: 'destructive',
+                            title: 'Error',
+                            description: result.message,
+                          });
+                        }
+                      });
+                    }}
+                  >
+                    {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Force Reflection
+                  </Button>
+                </div>
+
+                {/* Run Deep Research */}
+                <div className="bg-black/40 border border-emerald-500/30 rounded-xl p-4 flex flex-col justify-between">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="p-2 rounded-full bg-emerald-500/20 border border-emerald-400/40">
+                      <Microscope className="h-5 w-5 text-emerald-300" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-semibold text-white">Run Deep Research</h4>
+                      <p className="text-xs text-gray-400">
+                        Process the pending learning queue and store acquired knowledge now.
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    disabled={isPending || !user}
+                    className="w-full bg-emerald-500 hover:bg-emerald-600 text-white"
+                    onClick={() => {
+                      if (!user) return;
+                      startTransition(async () => {
+                        const result = await triggerDeepResearch(user.uid);
+                        if (result.success) {
+                          toast({
+                            title: 'Deep Research Complete',
+                            description: result.message,
+                          });
+                        } else {
+                          toast({
+                            variant: 'destructive',
+                            title: 'Error',
+                            description: result.message,
+                          });
+                        }
+                      });
+                    }}
+                  >
+                    {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Run Deep Research
+                  </Button>
+                </div>
+              </div>
             </div>
           </TabsContent>
 
