@@ -136,21 +136,21 @@ export async function runAnswerLane(
             
             const retrievedHistory = allResults.length > 0 
               ? allResults.map(d => `- ${d.text}`).join("\n")
-              : "No relevant history found.";
+              : "No relevant memories found from past conversations.";
             
             console.log(`[AnswerLane] Retrieved history length: ${retrievedHistory.length} chars`);
             
             // --- PROMPT CONSTRUCTION ---
-            const finalSystemPrompt = settings.system_prompt_override || `You are a helpful AI assistant. Use the provided context to answer questions. If the context is empty or irrelevant, use your general knowledge.
+            const finalSystemPrompt = settings.system_prompt_override || `You are a helpful AI assistant with access to the user's long-term memory from ALL past conversations and sessions. Use the provided context to answer questions accurately.
 
---- LONG TERM MEMORY (User's Past) ---
+--- LONG TERM MEMORY (From ALL Past Conversations & Sessions) ---
 ${retrievedHistory}
 
---- SHORT TERM MEMORY (Current Conversation) ---
+--- SHORT TERM MEMORY (Current Conversation Only) ---
 ${recentHistory}
 
 --- INSTRUCTION ---
-Based on ALL the context above, answer the User's last message. If the answer is in the Short Term Memory, use that directly.
+You have access to the user's complete history across ALL past conversations and sessions in the "LONG TERM MEMORY" section above. Use this information to answer the user's question. If the answer is in the LONG TERM MEMORY, use that information directly. If the information is not available, say so clearly.
 `;
             
             await logProgress('Drafting response...');
