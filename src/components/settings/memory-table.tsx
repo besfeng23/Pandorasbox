@@ -1,10 +1,9 @@
 
 'use client';
 
-import React, { useState, useEffect, useTransition, useCallback } from 'react';
-import { getMemories, deleteMemory, updateMemory } from '@/app/actions';
-import { Message } from '@/lib/types';
-import { useDebounce } from '@/hooks/use-debounce';
+import React, { useState, useEffect, useTransition } from 'react';
+import { deleteMemoryFromMemories, updateMemoryInMemories } from '@/app/actions';
+import type { Memory } from '@/lib/types';
 import { formatDistanceToNow } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -14,55 +13,94 @@ import { Loader2, Trash2, Edit, Save, X, Search, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
 import { Badge } from '../ui/badge';
+import { useFirestore } from '@/firebase';
+import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestore';
+import { toDate } from '@/lib/utils';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface MemoryTableProps {
   userId: string;
 }
 
 export function MemoryTable({ userId }: MemoryTableProps) {
-  const [memories, setMemories] = useState<Message[]>([]);
+  const [memories, setMemories] = useState<Memory[]>([]);
+  const [filteredMemories, setFilteredMemories] = useState<Memory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-
-  const debouncedSearch = useDebounce(searchQuery, 500);
   const { toast } = useToast();
+  const firestore = useFirestore();
 
-  const fetchMemories = useCallback(async (query?: string) => {
-    setIsLoading(true);
-    try {
-      const fetchedMemories = await getMemories(userId, query);
-      if (Array.isArray(fetchedMemories)) {
-        setMemories(fetchedMemories as Message[]);
-      } else {
-        setMemories([]);
-      }
-    } catch (error) {
-      console.error('Failed to fetch memories', error);
-      setMemories([]);
-      // Don't show error toast - just show empty state
-      // The error might be due to missing Firestore index or empty collection
-    } finally {
-      setIsLoading(false);
-    }
-  }, [userId]);
-
+  // Fetch memories from memories collection (real-time listener)
   useEffect(() => {
-    fetchMemories(debouncedSearch);
-  }, [debouncedSearch, fetchMemories]);
+    if (!userId || !firestore) return;
+
+    setIsLoading(true);
+    const memoriesCollection = collection(firestore, 'memories');
+    const q = query(
+      memoriesCollection, 
+      where('userId', '==', userId),
+      orderBy('createdAt', 'desc')
+    );
+
+    const unsubscribe = onSnapshot(
+      q,
+      snapshot => {
+        const memoryList = snapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            ...data,
+            createdAt: toDate(data.createdAt),
+          } as Memory;
+        });
+        setMemories(memoryList);
+        setIsLoading(false);
+      },
+      err => {
+        console.error('Error fetching memories:', err);
+        setIsLoading(false);
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to load memories.' });
+      }
+    );
+
+    return () => unsubscribe();
+  }, [userId, firestore, toast]);
+
+  // Apply search filter
+  useEffect(() => {
+    let filtered = [...memories];
+    
+    if (searchQuery.trim()) {
+      const queryLower = searchQuery.toLowerCase();
+      filtered = filtered.filter(m => 
+        m.content.toLowerCase().includes(queryLower)
+      );
+    }
+    
+    setFilteredMemories(filtered);
+  }, [memories, searchQuery]);
 
   const handleDelete = (id: string) => {
     startTransition(async () => {
-      // Optimistic UI update
-      setMemories(prev => prev.filter(m => m.id !== id));
-      const result = await deleteMemory(id, userId);
-      if (!result.success) {
-        toast({ variant: 'destructive', title: 'Error', description: result.message });
-        fetchMemories(debouncedSearch); // Re-fetch to revert optimistic update
-      } else {
+      const result = await deleteMemoryFromMemories(id, userId);
+      if (result.success) {
+        setDeleteDialogOpen(null);
         toast({ title: 'Memory deleted' });
+      } else {
+        toast({ variant: 'destructive', title: 'Error', description: result.message });
       }
     });
   };
@@ -73,18 +111,18 @@ export function MemoryTable({ userId }: MemoryTableProps) {
         return;
     }
     startTransition(async () => {
-      const result = await updateMemory(id, editText, userId);
+      const result = await updateMemoryInMemories(id, editText, userId);
       if (result.success) {
         toast({ title: 'Memory updated' });
         setEditingId(null);
-        fetchMemories(debouncedSearch);
+        setEditText('');
       } else {
         toast({ variant: 'destructive', title: 'Error', description: result.message });
       }
     });
   };
 
-  const startEditing = (memory: Message) => {
+  const startEditing = (memory: Memory) => {
     setEditingId(memory.id);
     setEditText(memory.content);
   };
@@ -97,10 +135,10 @@ export function MemoryTable({ userId }: MemoryTableProps) {
   const formatTimestamp = (timestamp: any) => {
     if (!timestamp) return 'N/A';
     try {
-        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+        const date = toDate(timestamp);
         return formatDistanceToNow(date, { addSuffix: true });
     } catch (e) {
-        return 'Invalid Date';
+        return 'N/A';
     }
   }
 
@@ -137,14 +175,14 @@ export function MemoryTable({ userId }: MemoryTableProps) {
                     <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
                   </TableCell>
                 </TableRow>
-              ) : memories.length === 0 ? (
+              ) : filteredMemories.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={4} className="h-24 text-center">
                     No memories found.
                   </TableCell>
                 </TableRow>
               ) : (
-                memories.map((memory) => (
+                filteredMemories.map((memory) => (
                   <TableRow key={memory.id}>
                     <TableCell className="font-medium align-top">
                       {editingId === memory.id ? (
@@ -182,7 +220,7 @@ export function MemoryTable({ userId }: MemoryTableProps) {
                           <Button variant="ghost" size="icon" onClick={() => startEditing(memory)} disabled={isPending}>
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button variant="destructive" size="icon" onClick={() => handleDelete(memory.id)} disabled={isPending}>
+                          <Button variant="destructive" size="icon" onClick={() => setDeleteDialogOpen(memory.id)} disabled={isPending}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
