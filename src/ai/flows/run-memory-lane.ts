@@ -7,6 +7,7 @@ import { generateEmbedding } from '@/lib/vector';
 import OpenAI from 'openai';
 import { trackEvent } from '@/lib/analytics';
 import { ChatCompletionMessageParam } from 'openai/resources/index.mjs';
+import { FieldValue } from 'firebase-admin/firestore';
 
 // Lazy initialization to avoid build-time errors
 function getOpenAI() {

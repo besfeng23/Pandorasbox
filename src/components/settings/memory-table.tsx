@@ -70,9 +70,19 @@ export function MemoryTable({ userId }: MemoryTableProps) {
         setIsLoading(false);
       },
       err => {
-        console.error('Error fetching memories:', err);
+        console.error('[MemoryTable] Error fetching memories:', err);
         setIsLoading(false);
-        toast({ variant: 'destructive', title: 'Error', description: 'Failed to load memories.' });
+        // Check if it's a missing index error
+        if (err.code === 'failed-precondition' || err.message?.includes('index')) {
+          toast({ 
+            variant: 'destructive', 
+            title: 'Index Required', 
+            description: 'Firestore index missing. Check console for index creation link.' 
+          });
+          console.error('[MemoryTable] Firestore index required. Create index for: memories collection, fields: userId (Ascending), createdAt (Descending)');
+        } else {
+          toast({ variant: 'destructive', title: 'Error', description: 'Failed to load memories.' });
+        }
       }
     );
 
