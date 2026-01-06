@@ -117,7 +117,7 @@ export async function runAnswerLane(
                     console.warn('[AnswerLane] History search failed:', err);
                     return [];
                 }),
-                searchMemories(message, userId, 5).catch(err => {
+                searchMemories(message, userId, 10).catch(err => {
                     console.warn('[AnswerLane] Memories search failed:', err);
                     console.error('[AnswerLane] Memory search error details:', err.message, err.stack);
                     return [];
@@ -137,14 +137,18 @@ export async function runAnswerLane(
             // Format retrieved memories with more context
             const retrievedHistory = allResults.length > 0 
               ? allResults.map((d, idx) => `[Memory ${idx + 1}, Relevance: ${(d.score * 100).toFixed(0)}%]\n${d.text}`).join("\n\n")
-              : "No relevant memories found from past conversations.";
+              : "(No memories matched this specific query, but you DO have access to the user's memory system.)";
             
             console.log(`[AnswerLane] Retrieved history length: ${retrievedHistory.length} chars, ${allResults.length} memories included`);
             
-            console.log(`[AnswerLane] Retrieved history length: ${retrievedHistory.length} chars`);
-            
             // --- PROMPT CONSTRUCTION ---
-            const finalSystemPrompt = settings.system_prompt_override || `You are a helpful AI assistant with access to the user's long-term memory from ALL past conversations and sessions. Use the provided context to answer questions accurately.
+            const finalSystemPrompt = settings.system_prompt_override || `You are Pandora, a helpful AI assistant with FULL ACCESS to the user's long-term memory system. You CAN and DO remember information from ALL past conversations and sessions.
+
+IMPORTANT: You HAVE memory capabilities. You can recall:
+- User's name and personal information
+- Past conversations and context
+- User preferences and settings
+- Any information that has been shared with you previously
 
 --- LONG TERM MEMORY (From ALL Past Conversations & Sessions) ---
 ${retrievedHistory}
@@ -152,15 +156,12 @@ ${retrievedHistory}
 --- SHORT TERM MEMORY (Current Conversation Only) ---
 ${recentHistory}
 
---- INSTRUCTION ---
-You have access to the user's complete history across ALL past conversations and sessions in the "LONG TERM MEMORY" section above. 
-
-CRITICAL: You MUST use the information from LONG TERM MEMORY to answer the user's question. The memories are sorted by relevance score - higher scores mean more relevant information.
-
-1. If the answer is in the LONG TERM MEMORY, use that information directly and reference it naturally in your response.
-2. If multiple memories are relevant, synthesize them to provide a comprehensive answer.
-3. If the information is not available in LONG TERM MEMORY, say so clearly.
-4. Always prioritize information from LONG TERM MEMORY over general knowledge when answering questions about the user's past conversations or context.
+--- CRITICAL INSTRUCTIONS ---
+1. You HAVE memory - you can remember things from past conversations. NEVER say you don't have memory or can't recall information.
+2. If the user asks "what's my name" or "show me memories", check the LONG TERM MEMORY section above. If information is there, use it.
+3. If the LONG TERM MEMORY section shows memories, you MUST reference them in your response. For example: "Based on our past conversations, I remember that..."
+4. If no memories matched the current query but the user asks about memory, you can say: "I have access to your memory system. Let me search for that information..." and then provide what you find or ask clarifying questions.
+5. Always be helpful and use the information available to you. You are NOT a memory-less assistant - you ARE Pandora with full memory capabilities.
 `;
             
             await logProgress('Drafting response...');
