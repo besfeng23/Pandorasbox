@@ -126,7 +126,7 @@ IMPORTANT: Always generate at least 3-5 search_queries if there is ANY meaningfu
                 id: docRef.id,
                 content: query,
                 embedding,
-                createdAt: new Date(),
+                createdAt: FieldValue.serverTimestamp(),
                 userId: userId,
             });
         }
