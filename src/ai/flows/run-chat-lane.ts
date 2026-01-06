@@ -58,6 +58,27 @@ export async function runChatLane(
         threadId, // Pass threadId to answer lane
       });
 
+      // 3b. If the model reports low confidence for a specific topic, enqueue it for deep research (silent).
+      try {
+        if (process.env.ENABLE_DEEP_RESEARCH?.trim() !== 'false') {
+          const topic = answerResult.lowConfidenceTopic?.trim();
+          if (topic) {
+            const queueRef = firestoreAdmin.collection('learning_queue').doc();
+            await queueRef.set({
+              id: queueRef.id,
+              topic,
+              userId,
+              status: 'pending',
+              createdAt: FieldValue.serverTimestamp(),
+              updatedAt: FieldValue.serverTimestamp(),
+              source: 'low_confidence_answer',
+            });
+          }
+        }
+      } catch (queueError) {
+        console.warn('[ChatLane] Failed to enqueue topic for deep research:', queueError);
+      }
+
       // 4. Suggest follow-up questions.
       const suggestions = await suggestFollowUpQuestions({
         userMessage: message,

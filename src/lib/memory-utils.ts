@@ -17,6 +17,7 @@ export interface MemoryData {
   userId: string;
   source?: string;
   metadata?: Record<string, any>;
+  type?: 'insight' | 'question_to_ask' | 'normal';
 }
 
 export interface MemoryResult {
@@ -56,6 +57,7 @@ export async function saveMemory(memoryData: MemoryData): Promise<MemoryResult> 
       createdAt: FieldValue.serverTimestamp(),
       userId: memoryData.userId,
       source: memoryData.source || 'system', // Track where memory came from
+      type: memoryData.type || 'normal', // Memory type: insight, question_to_ask, or normal
       ...memoryData.metadata, // Include any additional metadata
     });
 
@@ -139,6 +141,7 @@ export async function saveMemoriesBatch(memories: MemoryData[]): Promise<{
           createdAt: FieldValue.serverTimestamp(),
           userId: memoryData.userId,
           source: memoryData.source || 'system',
+          type: memoryData.type || 'normal', // Memory type: insight, question_to_ask, or normal
           ...memoryData.metadata,
         });
 
@@ -233,5 +236,57 @@ export async function updateMemoryWithEmbedding(
       message: `Failed to update memory: ${error.message || 'Unknown error'}`,
     };
   }
+}
+
+/**
+ * Helper function to save an insight memory with proper type and metadata.
+ * This ensures insights are properly tagged for prioritization in search.
+ * 
+ * @param insight - The insight content to save
+ * @param userId - The user ID
+ * @param metadata - Additional metadata (reflectionDate, processedCount, etc.)
+ * @returns Promise with success status and memory ID
+ */
+export async function saveInsightMemory(
+  insight: string,
+  userId: string,
+  metadata?: Record<string, any>
+): Promise<MemoryResult> {
+  return saveMemory({
+    content: insight,
+    userId: userId,
+    source: 'reflection',
+    type: 'insight',
+    metadata: metadata,
+  });
+}
+
+/**
+ * Helper function to save a question memory with proper type and metadata.
+ * These are questions the AI should ask the user based on weak answers identified.
+ * 
+ * @param question - The question content to save
+ * @param userId - The user ID
+ * @param topic - The topic the question relates to
+ * @param metadata - Additional metadata
+ * @returns Promise with success status and memory ID
+ */
+export async function saveQuestionMemory(
+  question: string,
+  userId: string,
+  topic: string,
+  metadata?: Record<string, any>
+): Promise<MemoryResult> {
+  const content = `Topic: ${topic}\n\nQuestion to ask user: ${question}`;
+  return saveMemory({
+    content: content,
+    userId: userId,
+    source: 'reflection',
+    type: 'question_to_ask',
+    metadata: {
+      weakAnswerTopic: topic,
+      ...metadata,
+    },
+  });
 }
 

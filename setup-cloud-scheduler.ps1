@@ -122,8 +122,28 @@ if ($existingJobs -contains "projects/$PROJECT_ID/locations/$LOCATION/jobs/night
     }
 }
 
-Write-Host ""
+# Create deep research job (every 6 hours)
+if ($existingJobs -contains "projects/$PROJECT_ID/locations/$LOCATION/jobs/deep-research") {
+    Write-Host "⚠ Deep research job already exists, skipping..." -ForegroundColor Yellow
+} else {
+    Write-Host "Creating deep-research job..." -ForegroundColor Yellow
+    $deepResearchResult = & $gcloudPath scheduler jobs create http deep-research `
+        --location=$LOCATION `
+        --schedule="0 */6 * * *" `
+        --time-zone="UTC" `
+        --uri="$APP_URL/api/cron/deep-research" `
+        --http-method=POST `
+        --description="Deep research agent that self-studies low-confidence topics and stores acquired knowledge" `
+        --project=$PROJECT_ID 2>&1
 
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✓ Deep research job created successfully" -ForegroundColor Green
+    } else {
+        Write-Host "✗ Failed to create deep research job: $deepResearchResult" -ForegroundColor Red
+    }
+}
+
+Write-Host ""
 # List all jobs
 Write-Host "Current Cloud Scheduler jobs:" -ForegroundColor Cyan
 & $gcloudPath scheduler jobs list --location=$LOCATION --format="table(name,schedule,timeZone,state)" --project=$PROJECT_ID 2>&1
@@ -134,4 +154,5 @@ Write-Host "To test a job manually, run:" -ForegroundColor Yellow
 Write-Host "  gcloud scheduler jobs run cleanup-old-data --location=$LOCATION" -ForegroundColor White
 Write-Host "  gcloud scheduler jobs run daily-briefing --location=$LOCATION" -ForegroundColor White
 Write-Host "  gcloud scheduler jobs run nightly-reflection --location=$LOCATION" -ForegroundColor White
+Write-Host "  gcloud scheduler jobs run deep-research --location=$LOCATION" -ForegroundColor White
 
