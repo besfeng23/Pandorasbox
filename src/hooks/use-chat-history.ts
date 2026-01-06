@@ -22,25 +22,47 @@ export function useChatHistory(userId: string | null, threadId: string | null) {
       setMessages([]);
       setThread(null);
       setIsLoading(false);
+      queryRef.current = null; // Reset query ref when clearing
       return;
     }
 
+    // Reset query ref when threadId changes to force re-subscription
+    queryRef.current = null;
     setIsLoading(true);
+    setError(null);
+    
+    // Clear messages immediately when switching threads to prevent stale data
+    setMessages([]);
+
+    console.log(`[useChatHistory] Loading thread ${threadId} for user ${userId}`);
 
     // Listener for thread data (including summary)
     const threadDocRef = doc(firestore, 'threads', threadId);
-    const unsubscribeThread = onSnapshot(threadDocRef, (doc) => {
+    const unsubscribeThread = onSnapshot(
+      threadDocRef, 
+      (doc) => {
         if (doc.exists()) {
-            const data = doc.data();
-            setThread({
-                id: doc.id,
-                ...data,
-                createdAt: toDate(data.createdAt),
-            } as Thread);
+          const data = doc.data();
+          const threadData = {
+            id: doc.id,
+            ...data,
+            createdAt: toDate(data.createdAt),
+          } as Thread;
+          setThread(threadData);
+          console.log(`[useChatHistory] Thread loaded: ${doc.id}`, threadData);
         } else {
-            setThread(null);
+          console.warn(`[useChatHistory] Thread ${threadId} does not exist`);
+          setThread(null);
+          setError(`Thread not found`);
+          setIsLoading(false);
         }
-    });
+      },
+      (err) => {
+        console.error('[useChatHistory] Error loading thread:', err);
+        setError('Could not load thread. Please check your connection.');
+        setIsLoading(false);
+      }
+    );
 
     const historyCollectionRef = collection(firestore, 'history');
     const newQuery = query(
@@ -50,17 +72,14 @@ export function useChatHistory(userId: string | null, threadId: string | null) {
         orderBy('createdAt', 'asc')
     );
 
-    // Only resubscribe if the query has changed
-    if (queryRef.current && queryEqual(queryRef.current, newQuery)) {
-        setIsLoading(false);
-        return;
-    }
-    
     queryRef.current = newQuery;
+    console.log(`[useChatHistory] Subscribing to messages for thread ${threadId}`);
 
     const unsubscribeMessages = onSnapshot(
       newQuery,
       (snapshot) => {
+        console.log(`[useChatHistory] Received ${snapshot.docs.length} messages for thread ${threadId}`);
+        
         const history = snapshot.docs.map((doc) => {
           const data = doc.data();
           
@@ -83,18 +102,29 @@ export function useChatHistory(userId: string | null, threadId: string | null) {
         setIsLoading(false);
         setError(null);
         setConnectionStatus(pendingMessages.size > 0 ? 'syncing' : 'live');
+        console.log(`[useChatHistory] Messages updated: ${history.length} messages loaded`);
       },
       (err) => {
-        console.error('Error fetching chat history (onSnapshot error):', err);
-        setError('Could not load chat history. Please check your connection and Firebase setup.');
+        console.error('[useChatHistory] Error fetching chat history (onSnapshot error):', err);
+        
+        // Check for missing index error
+        if (err.code === 'failed-precondition' || err.message?.includes('index')) {
+          setError('Firestore index missing. Please create the required composite index for the history collection.');
+          console.error('[useChatHistory] Missing Firestore index. Create index for: userId, threadId, createdAt');
+        } else {
+          setError('Could not load chat history. Please check your connection and Firebase setup.');
+        }
+        
         setIsLoading(false);
         setConnectionStatus('offline');
       }
     );
 
     return () => {
+        console.log(`[useChatHistory] Cleaning up listeners for thread ${threadId}`);
         unsubscribeThread();
         unsubscribeMessages();
+        // Don't reset queryRef here as it might be needed for comparison
     }
   }, [userId, threadId, firestore, setConnectionStatus, pendingMessages, calculateLatency]);
 

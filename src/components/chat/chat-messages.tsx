@@ -12,9 +12,10 @@ interface ChatMessagesProps {
   messages: MessageType[];
   thread: Thread | null;
   userId: string;
+  isLoading?: boolean;
 }
 
-export function ChatMessages({ messages, thread, userId }: ChatMessagesProps) {
+export function ChatMessages({ messages, thread, userId, isLoading }: ChatMessagesProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -34,7 +35,7 @@ export function ChatMessages({ messages, thread, userId }: ChatMessagesProps) {
       className="h-full w-full overflow-y-auto"
     >
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
-        {messages.length === 0 && !hasSummary && (
+        {messages.length === 0 && !hasSummary && !isLoading && (
           <div className="flex h-full items-center justify-center min-h-[60vh] px-4">
             <div className="text-center">
               <h2 className="text-2xl sm:text-3xl font-bold mb-3 tracking-tight neon-text-cyan">How can I help you today?</h2>
@@ -60,8 +61,8 @@ export function ChatMessages({ messages, thread, userId }: ChatMessagesProps) {
             <div
               key={message.id}
               className={cn(
-                'flex items-start gap-4',
-                message.role === 'user' ? 'justify-end' : 'justify-start'
+                'flex items-start gap-3',
+                message.role === 'user' ? 'justify-end flex-row-reverse' : 'justify-start'
               )}
             >
               <Message message={message} />

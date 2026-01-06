@@ -81,6 +81,8 @@ export function PandorasBox({ user }: PandorasBoxProps) {
   };
 
   const handleThreadSelect = (threadId: string) => {
+    // Explicitly set thread ID - useChatHistory hook will handle loading messages
+    console.log(`[PandorasBox] Selecting thread: ${threadId}`);
     setCurrentThreadId(threadId);
     if (isMobile) {
       setSidebarOpen(false);
@@ -221,24 +223,32 @@ export function PandorasBox({ user }: PandorasBoxProps) {
         !isMobile && !isSplitView && !rightSidebarCollapsed && "border-r border-cyan-400/20" // Add border when right sidebar is visible
       )}>
         <div className="flex-1 overflow-hidden relative flex flex-col">
-          {isLoading && (
-            <div className="absolute inset-0 flex items-center justify-center glass-panel z-10">
-              <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />
-            </div>
-          )}
-          {error && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center glass-panel z-10 p-4">
-              <AlertCircle className="h-8 w-8 text-red-400 mb-2" />
-              <p className="text-center text-red-400">{error}</p>
-            </div>
-          )}
-
           {/* Messages Area */}
-          <div className="flex-1 overflow-y-auto overscroll-contain">
+          <div className="flex-1 overflow-y-auto overscroll-contain relative">
+            {isLoading && messages.length === 0 && (
+              <div className="absolute inset-0 flex items-center justify-center glass-panel z-10">
+                <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />
+              </div>
+            )}
+            {error && messages.length === 0 && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center glass-panel z-10 p-4">
+                <AlertCircle className="h-8 w-8 text-red-400 mb-2" />
+                <p className="text-center text-red-400">{error}</p>
+              </div>
+            )}
+            {isLoading && messages.length > 0 && (
+              <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10">
+                <div className="glass-panel-strong border border-cyan-400/30 rounded-lg px-4 py-2 flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin text-cyan-400" />
+                  <span className="text-sm text-cyan-400">Loading more...</span>
+                </div>
+              </div>
+            )}
             <ChatMessages 
               messages={messages} 
               thread={thread} 
               userId={user.uid}
+              isLoading={isLoading}
             />
           </div>
 

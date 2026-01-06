@@ -8,10 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useFirestore } from '@/firebase';
 import type { Memory } from '@/lib/types';
 import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestore';
-import { BrainCircuit, Loader2, Search, Trash2, Edit, X, Save } from 'lucide-react';
+import { BrainCircuit, Loader2, Search, Trash2, Edit, X, Save, Plus } from 'lucide-react';
 import React, { useEffect, useState, useTransition } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { deleteMemoryFromMemories, updateMemoryInMemories } from '@/app/actions';
+import { deleteMemoryFromMemories, updateMemoryInMemories, createMemoryFromSettings } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { toDate } from '@/lib/utils';
 import {
@@ -24,6 +24,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 
 interface MemoryInspectorProps {
@@ -39,6 +47,8 @@ export function MemoryInspector({ userId }: MemoryInspectorProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState<string | null>(null);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [newMemoryText, setNewMemoryText] = useState('');
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const firestore = useFirestore();
@@ -145,18 +155,47 @@ export function MemoryInspector({ userId }: MemoryInspectorProps) {
     setEditText(memory.content);
   };
 
+  const handleCreate = () => {
+    if (!newMemoryText.trim()) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Memory content cannot be empty.' });
+      return;
+    }
+    startTransition(async () => {
+      const result = await createMemoryFromSettings(newMemoryText.trim(), userId);
+      if (result.success) {
+        setCreateDialogOpen(false);
+        setNewMemoryText('');
+        toast({ title: 'Memory created' });
+        // Memory will be added via real-time listener
+      } else {
+        toast({ variant: 'destructive', title: 'Error', description: result.message });
+      }
+    });
+  };
+
   const displayMemories = filteredMemories.length > 0 ? filteredMemories : memories;
 
   return (
     <div className="flex flex-col h-full">
         <div className="p-4 border-b border-cyan-400/20 space-y-3">
-            <div>
-                <h3 className="text-sm font-semibold mb-1 neon-text-cyan">
-                    Memory Inspector
-                </h3>
-                <p className="text-xs text-white/60">
-                    Live view of Pandora's long-term memory. These memories help the AI remember your preferences and context across conversations.
-                </p>
+            <div className="flex items-center justify-between">
+                <div>
+                    <h3 className="text-sm font-semibold mb-1 neon-text-cyan">
+                        Memory Inspector
+                    </h3>
+                    <p className="text-xs text-white/60">
+                        Live view of Pandora's long-term memory. These memories help the AI remember your preferences and context across conversations.
+                    </p>
+                </div>
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setCreateDialogOpen(true)}
+                    className="bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/30 text-cyan-400"
+                >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Create
+                </Button>
             </div>
             
             {/* Search bar */}
@@ -202,7 +241,7 @@ export function MemoryInspector({ userId }: MemoryInspectorProps) {
                 {displayMemories.map(memory => (
                 <div 
                     key={memory.id} 
-                    className="glass-panel rounded-lg border border-purple-400/20 p-3 hover:border-purple-400/30 hover:shadow-neon-purple-sm transition-all group"
+                    className="glass-panel rounded-lg border border-purple-400/20 p-3 hover:border-purple-400/30 hover:shadow-neon-purple-sm transition-all group gradient-border"
                 >
                     {editingId === memory.id ? (
                         <div className="space-y-2">
@@ -269,6 +308,45 @@ export function MemoryInspector({ userId }: MemoryInspectorProps) {
             )}
         </ScrollArea>
         
+        {/* Create memory dialog */}
+        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+            <DialogContent className="glass-panel-strong border border-cyan-400/20">
+                <DialogHeader>
+                    <DialogTitle>Create Memory</DialogTitle>
+                    <DialogDescription>
+                        Add a new memory to Pandora's long-term memory. This will help the AI remember important information.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="py-4">
+                    <Textarea
+                        value={newMemoryText}
+                        onChange={(e) => setNewMemoryText(e.target.value)}
+                        placeholder="Enter memory content..."
+                        className="min-h-[120px] bg-black/40 border-white/10 text-white placeholder:text-white/40"
+                    />
+                </div>
+                <DialogFooter>
+                    <Button
+                        variant="ghost"
+                        onClick={() => {
+                            setCreateDialogOpen(false);
+                            setNewMemoryText('');
+                        }}
+                        disabled={isPending}
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        onClick={handleCreate}
+                        disabled={isPending || !newMemoryText.trim()}
+                        className="bg-cyan-600 hover:bg-cyan-700"
+                    >
+                        {isPending ? 'Creating...' : 'Create Memory'}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
         {/* Delete confirmation dialog */}
         <AlertDialog open={!!deleteDialogOpen} onOpenChange={(open) => !open && setDeleteDialogOpen(null)}>
             <AlertDialogContent className="glass-panel-strong border border-red-400/20">
