@@ -65,23 +65,15 @@ service cloud.firestore {
       allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
     }
 
+    // Phase 5: Graph analytics - users can only access their own analytics
+    match /graph_analytics/{snapshotId} {
+      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
+
     // RateLimits collection - users can only access their own rate limit data
     match /rateLimits/{rateLimitId} {
-      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
-      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
-    }
-
-    // Phase 4: Knowledge Graph collections
-    // System knowledge graph nodes - users can only access their own nodes
-    match /system_knowledge_graph/{nodeId} {
-      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
-      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
-    }
-
-    // Knowledge edges - users can only access their own edges
-    match /knowledge_edges/{edgeId} {
       allow read: if request.auth != null && request.auth.uid == resource.data.userId;
       allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
       allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
