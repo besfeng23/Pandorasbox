@@ -3,10 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useUser } from '@/firebase';
 import { GraphView, GraphViewNode, GraphViewEdge } from '@/components/GraphView';
-import { Loader2, Network, RefreshCw, GitGraph } from 'lucide-react';
+import { Loader2, RefreshCw, GitGraph } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 export default function GraphPage() {
   const { user, isLoading: isUserLoading } = useUser();
@@ -115,9 +116,5 @@ export default function GraphPage() {
       </div>
     </div>
   );
-}
-
-function cn(...classes: (string | undefined)[]): string {
-  return classes.filter(Boolean).join(' ');
 }
 
