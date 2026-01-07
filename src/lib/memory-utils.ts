@@ -71,6 +71,22 @@ export async function saveMemory(memoryData: MemoryData): Promise<MemoryResult> 
       content: memoryData.content.trim(),
     });
 
+    // Phase 5: Periodically capture graph snapshots for temporal analysis
+    // Capture snapshot every 10 memories (with some randomness to avoid conflicts)
+    try {
+      const { captureGraphSnapshot } = await import('./temporal-analysis');
+      const snapshotCount = Math.floor(Math.random() * 10);
+      if (snapshotCount === 0) {
+        // Capture snapshot asynchronously (don't block memory save)
+        captureGraphSnapshot(memoryData.userId).catch(err => {
+          console.warn('Failed to capture graph snapshot:', err);
+        });
+      }
+    } catch (error) {
+      // Snapshot capture is optional
+      console.warn('Could not capture graph snapshot:', error);
+    }
+
     // Track analytics
     try {
       await trackEvent(memoryData.userId, 'memory_created', { 
