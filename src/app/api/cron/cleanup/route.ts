@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirestoreAdmin } from '@/lib/firebase-admin';
+import admin from 'firebase-admin';
 
 // Prevent this route from being statically generated
 export const dynamic = 'force-dynamic';
@@ -39,7 +40,7 @@ export async function POST(request: NextRequest) {
     // Clean up old threads
     const oldThreadsSnapshot = await firestoreAdmin
       .collection("threads")
-      .where("createdAt", "<", firestoreAdmin.Timestamp.fromDate(cutoffDate))
+      .where("createdAt", "<", admin.firestore.Timestamp.fromDate(cutoffDate))
       .limit(500) // Process in batches
       .get();
     
@@ -55,7 +56,7 @@ export async function POST(request: NextRequest) {
     // Clean up old memories
     const oldMemoriesSnapshot = await firestoreAdmin
       .collection("memories")
-      .where("createdAt", "<", firestoreAdmin.Timestamp.fromDate(cutoffDate))
+      .where("createdAt", "<", admin.firestore.Timestamp.fromDate(cutoffDate))
       .limit(500)
       .get();
     
@@ -71,7 +72,7 @@ export async function POST(request: NextRequest) {
     // Clean up old history messages
     const oldHistorySnapshot = await firestoreAdmin
       .collection("history")
-      .where("createdAt", "<", firestoreAdmin.Timestamp.fromDate(cutoffDate))
+      .where("createdAt", "<", admin.firestore.Timestamp.fromDate(cutoffDate))
       .limit(500)
       .get();
     
