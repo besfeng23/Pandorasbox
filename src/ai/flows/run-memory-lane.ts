@@ -114,7 +114,7 @@ IMPORTANT: Always generate at least 3-5 search_queries if there is ANY meaningfu
       const searchQueries = responseData.search_queries || [];
       if (searchQueries.length > 0) {
         const { saveMemoriesBatch } = await import('@/lib/memory-utils');
-        const memories = searchQueries.map(query => ({
+        const memories = searchQueries.map((query: string) => ({
           content: query,
           userId: userId,
           source: 'conversation',

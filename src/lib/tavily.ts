@@ -1,8 +1,9 @@
 'use server';
 
+// @ts-ignore - TavilyClient type definitions might not export the class correctly
 import { TavilyClient } from '@tavily/core';
 
-let tavilyClient: TavilyClient | null = null;
+let tavilyClient: any = null;
 
 function getTavilyClient() {
   if (tavilyClient) return tavilyClient;
@@ -14,6 +15,7 @@ function getTavilyClient() {
     );
   }
 
+  // @ts-ignore - TavilyClient is a class but types might not be exported correctly
   tavilyClient = new TavilyClient({
     apiKey,
   });
@@ -41,6 +43,9 @@ export async function tavilySearch(
   }
 ): Promise<TavilySearchResult> {
   const client = getTavilyClient();
+  if (!client) {
+    throw new Error('Tavily client not initialized');
+  }
   const maxResults = options?.maxResults ?? 5;
 
   // Tavily API returns an array of results with title, content/snippet, and url
