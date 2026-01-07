@@ -1,5 +1,3 @@
-'use server';
-
 export type RelationshipType = 'co_occurrence' | 'semantic_association';
 
 export interface RelationshipEdgeInput {
