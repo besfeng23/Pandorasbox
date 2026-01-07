@@ -11,6 +11,7 @@ import { getFirestoreAdmin } from './firebase-admin';
 import { generateEmbedding, generateEmbeddingsBatch } from './vector';
 import { FieldValue } from 'firebase-admin/firestore';
 import { trackEvent } from './analytics';
+import { updateKnowledgeGraphFromMemory } from './knowledge-graph';
 
 export interface MemoryData {
   content: string;
@@ -63,6 +64,12 @@ export async function saveMemory(memoryData: MemoryData): Promise<MemoryResult> 
 
     // Update with the ID
     await memoryRef.update({ id: memoryRef.id });
+
+    await updateKnowledgeGraphFromMemory({
+      userId: memoryData.userId,
+      memoryId: memoryRef.id,
+      content: memoryData.content.trim(),
+    });
 
     // Track analytics
     try {
@@ -128,6 +135,8 @@ export async function saveMemoriesBatch(memories: MemoryData[]): Promise<{
     let saved = 0;
     let failed = 0;
 
+    const knowledgeUpdates: Array<Promise<unknown>> = [];
+
     for (let i = 0; i < validMemories.length; i++) {
       try {
         const memoryData = validMemories[i];
@@ -145,6 +154,14 @@ export async function saveMemoriesBatch(memories: MemoryData[]): Promise<{
           ...memoryData.metadata,
         });
 
+        knowledgeUpdates.push(
+          updateKnowledgeGraphFromMemory({
+            userId: memoryData.userId,
+            memoryId: docRef.id,
+            content: memoryData.content.trim(),
+          })
+        );
+
         saved++;
       } catch (error) {
         console.error(`Error preparing memory ${i}:`, error);
@@ -155,6 +172,7 @@ export async function saveMemoriesBatch(memories: MemoryData[]): Promise<{
     // Commit batch (Firestore limit is 500 operations per batch)
     if (saved > 0) {
       await batch.commit();
+      await Promise.all(knowledgeUpdates);
       
       // Track analytics
       try {
@@ -224,6 +242,12 @@ export async function updateMemoryWithEmbedding(
       editedAt: FieldValue.serverTimestamp(),
     });
 
+    await updateKnowledgeGraphFromMemory({
+      userId,
+      memoryId,
+      content: newContent.trim(),
+    });
+
     return {
       success: true,
       memory_id: memoryId,
@@ -289,4 +313,3 @@ export async function saveQuestionMemory(
     },
   });
 }
-
