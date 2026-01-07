@@ -107,6 +107,17 @@ IMPORTANT: Always generate at least 3-5 search_queries if there is ANY meaningfu
       const responseText = completion.choices[0].message.content || '{}';
       const responseData = JSON.parse(responseText);
 
+      // Phase 4: Extract knowledge from user message to build knowledge graph
+      try {
+        const { extractKnowledgeFromText } = await import('@/lib/knowledge-graph');
+        await extractKnowledgeFromText(userId, message, 'memory_lane', 'User message').catch(err => {
+          console.warn('[MemoryLane] Knowledge extraction failed (non-critical):', err);
+        });
+      } catch (err) {
+        // Non-critical, continue even if knowledge extraction fails
+        console.warn('[MemoryLane] Knowledge extraction error (non-critical):', err);
+      }
+
       const stateCollection = firestoreAdmin.collection('users').doc(userId).collection('state');
       await stateCollection.doc('context').set({ note: responseData.new_context_note }, { merge: true });
       
