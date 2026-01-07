@@ -12,6 +12,7 @@ import ReactFlow, {
   ReactFlowProvider,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
+// @ts-ignore - dagre types might not be available
 import dagre from 'dagre';
 import type { Message, Thread } from '@/lib/types';
 import { nodeTypes } from './CustomNodes';
@@ -196,7 +197,7 @@ function ChatCanvasInner({
             <h3 className="font-semibold text-base neon-text-cyan">Conversation Summary</h3>
           </div>
           <p className="text-sm text-white/80 italic">
-            {thread.summary}
+            {thread?.summary}
           </p>
         </motion.div>
       )}

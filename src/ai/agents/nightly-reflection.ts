@@ -12,7 +12,7 @@ import { ai } from '@/ai/genkit';
 import { getFirestoreAdmin } from '@/lib/firebase-admin';
 import { z } from 'zod';
 import OpenAI from 'openai';
-import { Timestamp } from 'firebase-admin/firestore';
+import admin from 'firebase-admin';
 
 // Lazy initialization to avoid build-time errors
 function getOpenAI() {
@@ -75,7 +75,7 @@ export async function runReflectionFlow(
         historySnapshot.docs.reverse().forEach(doc => {
           const data = doc.data();
           const role = data.role === 'user' ? 'User' : 'Assistant';
-          const timestamp = data.createdAt instanceof Timestamp 
+          const timestamp = data.createdAt instanceof admin.firestore.Timestamp 
             ? data.createdAt.toDate().toISOString() 
             : new Date().toISOString();
           interactions.push(`[${timestamp}] ${role}: ${data.content || ''}`);
@@ -85,7 +85,7 @@ export async function runReflectionFlow(
         memoriesSnapshot.docs.reverse().forEach(doc => {
           const data = doc.data();
           if (data.type !== 'insight' && data.type !== 'question_to_ask') {
-            const timestamp = data.createdAt instanceof Timestamp 
+            const timestamp = data.createdAt && typeof data.createdAt.toDate === 'function'
               ? data.createdAt.toDate().toISOString() 
               : new Date().toISOString();
             interactions.push(`[${timestamp}] Memory: ${data.content || ''}`);
