@@ -124,6 +124,17 @@ export async function runAnswerLane(
                     return [];
                 })
             ]);
+
+            // Phase 4: Extract knowledge from user message and integrate with knowledge graph
+            try {
+                const { extractKnowledgeFromText } = await import('@/lib/knowledge-graph');
+                await extractKnowledgeFromText(userId, message, 'conversation', `Thread: ${threadId}`).catch(err => {
+                    console.warn('[AnswerLane] Knowledge extraction failed (non-critical):', err);
+                });
+            } catch (err) {
+                // Non-critical, continue even if knowledge extraction fails
+                console.warn('[AnswerLane] Knowledge extraction error (non-critical):', err);
+            }
             
             console.log(`[AnswerLane] Memory search results: history=${historyResults.length}, memories=${memoriesResults.length}`);
             
