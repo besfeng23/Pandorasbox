@@ -160,7 +160,7 @@ export async function saveMemoriesBatch(memories: MemoryData[]): Promise<{
       try {
         const userId = validMemories[0]?.userId;
         if (userId) {
-          await trackEvent(userId, 'memories_created_batch', { 
+          await trackEvent(userId, 'memory_created', { 
             count: saved,
             source: validMemories[0]?.source || 'system'
           });
