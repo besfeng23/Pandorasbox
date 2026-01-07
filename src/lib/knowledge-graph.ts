@@ -1,5 +1,3 @@
-'use server';
-
 import { FieldValue } from 'firebase-admin/firestore';
 import { getFirestoreAdmin } from './firebase-admin';
 import {
