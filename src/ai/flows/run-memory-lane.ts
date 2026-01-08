@@ -107,6 +107,17 @@ IMPORTANT: Always generate at least 3-5 search_queries if there is ANY meaningfu
       const responseText = completion.choices[0].message.content || '{}';
       const responseData = JSON.parse(responseText);
 
+      // Phase 4: Extract knowledge from user message to build knowledge graph
+      try {
+        const { extractKnowledgeFromText } = await import('@/lib/knowledge-graph');
+        await extractKnowledgeFromText(userId, message, 'memory_lane', 'User message').catch(err => {
+          console.warn('[MemoryLane] Knowledge extraction failed (non-critical):', err);
+        });
+      } catch (err) {
+        // Non-critical, continue even if knowledge extraction fails
+        console.warn('[MemoryLane] Knowledge extraction error (non-critical):', err);
+      }
+
       const stateCollection = firestoreAdmin.collection('users').doc(userId).collection('state');
       await stateCollection.doc('context').set({ note: responseData.new_context_note }, { merge: true });
       
@@ -114,7 +125,7 @@ IMPORTANT: Always generate at least 3-5 search_queries if there is ANY meaningfu
       const searchQueries = responseData.search_queries || [];
       if (searchQueries.length > 0) {
         const { saveMemoriesBatch } = await import('@/lib/memory-utils');
-        const memories = searchQueries.map(query => ({
+        const memories = searchQueries.map((query: string) => ({
           content: query,
           userId: userId,
           source: 'conversation',

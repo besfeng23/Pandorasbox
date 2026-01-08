@@ -40,6 +40,19 @@ export function CommandRail() {
               </SidebarMenuButton>
             </Link>
           </SidebarMenuItem>
+          <SidebarMenuItem>
+            <Link href="/graph" passHref>
+              <SidebarMenuButton
+                tooltip="Knowledge Graph"
+                isActive={pathname === '/graph'}
+                size="lg"
+                asChild
+                className={pathname === '/graph' ? 'bg-neon-cyan/20 border border-neon-cyan/30' : ''}
+              >
+                <Icons.brain strokeWidth={1.5} className={pathname === '/graph' ? 'text-neon-cyan' : 'text-white/60'} />
+              </SidebarMenuButton>
+            </Link>
+          </SidebarMenuItem>
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="p-2 border-t border-white/10">

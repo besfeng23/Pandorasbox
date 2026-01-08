@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirestoreAdmin } from '@/lib/firebase-admin';
+import { FieldValue } from 'firebase-admin/firestore';
 import OpenAI from 'openai';
 
 // Lazy initialization to avoid build-time errors
@@ -86,7 +87,7 @@ export async function POST(request: NextRequest) {
               role: "assistant",
               type: "briefing",
               content: briefing,
-              timestamp: firestoreAdmin.FieldValue.serverTimestamp(),
+              timestamp: FieldValue.serverTimestamp(),
             });
           processed++;
         }

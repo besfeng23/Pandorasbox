@@ -3,7 +3,8 @@
 
 import { Message as MessageType } from '@/lib/types';
 import { cn, formatTime, formatMessageTime, formatFullDateTime, toDate } from '@/lib/utils';
-import { AlertTriangle, Sun, CheckCircle2, Clock, XCircle } from 'lucide-react';
+import { useState } from 'react';
+import { AlertTriangle, Sun, CheckCircle2, Clock, XCircle, User, BrainCircuit } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import Image from 'next/image';
@@ -19,6 +20,7 @@ import { CodeBlock } from './code-block';
 import { MessageMenu } from './message-menu';
 import type { Components } from 'react-markdown';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import { Copy, Check } from 'lucide-react';
 
 interface MessageProps {
   message: MessageType;
@@ -32,6 +34,7 @@ export function Message({ message }: MessageProps) {
   const { toast } = useToast();
   const { user } = useUser();
   const firestore = useFirestore();
+  const [copied, setCopied] = useState(false);
 
   // Determine status indicator for user messages
   const getStatusIcon = () => {
@@ -252,23 +255,65 @@ export function Message({ message }: MessageProps) {
 
   return (
     <TooltipProvider>
-      <div
-        className={cn(
-          'group flex items-start w-full transition-all duration-200 mb-4',
-          isUser ? 'justify-end' : 'justify-start'
+      <div className="flex items-start gap-3 w-full">
+        {/* Avatar/Icon */}
+        {!isUser && (
+          <div className="flex-shrink-0 mt-1">
+            <div className="h-8 w-8 rounded-full glass-panel border border-purple-400/30 flex items-center justify-center shadow-neon-purple-sm">
+              <BrainCircuit className="h-4 w-4 text-purple-400" strokeWidth={1.5} />
+            </div>
+          </div>
         )}
-      >
+        
         <div
           className={cn(
-            'rounded-2xl px-4 py-3 sm:px-5 sm:py-4 flex flex-col relative transition-all duration-200',
+            'group rounded-2xl px-4 py-3 sm:px-5 sm:py-4 flex flex-col relative transition-all duration-200',
             'max-w-[85%] sm:max-w-[75%]',
-            'hover:scale-[1.01] hover:shadow-lg',
+            'hover:scale-[1.01] hover:shadow-lg active:scale-[0.99]',
             isUser
               ? 'bg-gradient-to-br from-cyan-400/80 to-cyan-500/70 text-white border border-cyan-300/25 shadow-neon-cyan-sm hover:border-cyan-300/35'
-              : 'glass-panel border border-purple-400/15 text-white/90 shadow-lg hover:border-purple-400/25'
+              : 'glass-panel border border-purple-400/20 text-white/90 shadow-lg hover:border-purple-400/30'
           )}
         >
-          <div className="absolute top-2 right-2 z-10">
+          
+          {/* Quick copy button - visible on hover */}
+          <div className="absolute top-2 right-2 z-10 flex items-center gap-1">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    'h-7 w-7 text-white/40 hover:text-white/80 hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200',
+                    copied && 'opacity-100 text-green-400'
+                  )}
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    try {
+                      await navigator.clipboard.writeText(message.content);
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 2000);
+                    } catch (error) {
+                      toast({
+                        variant: 'destructive',
+                        title: 'Failed to copy',
+                        description: 'Could not copy message to clipboard',
+                      });
+                    }
+                  }}
+                  aria-label="Copy message"
+                >
+                  {copied ? (
+                    <Check className="h-4 w-4" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="glass-panel-strong border border-cyan-400/30 text-white">
+                <p>{copied ? 'Copied!' : 'Copy'}</p>
+              </TooltipContent>
+            </Tooltip>
             <MessageMenu
               content={message.content}
               role={message.role}
@@ -309,6 +354,15 @@ export function Message({ message }: MessageProps) {
             </Tooltip>
           </div>
         </div>
+        
+        {/* Avatar/Icon for user messages (after) */}
+        {isUser && (
+          <div className="flex-shrink-0 mt-1">
+            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-cyan-400/80 to-cyan-500/70 border border-cyan-300/30 flex items-center justify-center shadow-neon-cyan-sm">
+              <User className="h-4 w-4 text-white" strokeWidth={1.5} />
+            </div>
+          </div>
+        )}
       </div>
     </TooltipProvider>
   );

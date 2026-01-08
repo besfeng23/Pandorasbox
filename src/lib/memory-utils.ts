@@ -11,12 +11,14 @@ import { getFirestoreAdmin } from './firebase-admin';
 import { generateEmbedding, generateEmbeddingsBatch } from './vector';
 import { FieldValue } from 'firebase-admin/firestore';
 import { trackEvent } from './analytics';
+import { updateKnowledgeGraphFromMemory } from './knowledge-graph';
 
 export interface MemoryData {
   content: string;
   userId: string;
   source?: string;
   metadata?: Record<string, any>;
+  type?: 'insight' | 'question_to_ask' | 'normal';
 }
 
 export interface MemoryResult {
@@ -56,11 +58,34 @@ export async function saveMemory(memoryData: MemoryData): Promise<MemoryResult> 
       createdAt: FieldValue.serverTimestamp(),
       userId: memoryData.userId,
       source: memoryData.source || 'system', // Track where memory came from
+      type: memoryData.type || 'normal', // Memory type: insight, question_to_ask, or normal
       ...memoryData.metadata, // Include any additional metadata
     });
 
     // Update with the ID
     await memoryRef.update({ id: memoryRef.id });
+
+    await updateKnowledgeGraphFromMemory({
+      userId: memoryData.userId,
+      memoryId: memoryRef.id,
+      content: memoryData.content.trim(),
+    });
+
+    // Phase 5: Periodically capture graph snapshots for temporal analysis
+    // Capture snapshot every 10 memories (with some randomness to avoid conflicts)
+    try {
+      const { captureGraphSnapshot } = await import('./temporal-analysis');
+      const snapshotCount = Math.floor(Math.random() * 10);
+      if (snapshotCount === 0) {
+        // Capture snapshot asynchronously (don't block memory save)
+        captureGraphSnapshot(memoryData.userId).catch(err => {
+          console.warn('Failed to capture graph snapshot:', err);
+        });
+      }
+    } catch (error) {
+      // Snapshot capture is optional
+      console.warn('Could not capture graph snapshot:', error);
+    }
 
     // Track analytics
     try {
@@ -126,6 +151,8 @@ export async function saveMemoriesBatch(memories: MemoryData[]): Promise<{
     let saved = 0;
     let failed = 0;
 
+    const knowledgeUpdates: Array<Promise<unknown>> = [];
+
     for (let i = 0; i < validMemories.length; i++) {
       try {
         const memoryData = validMemories[i];
@@ -139,8 +166,17 @@ export async function saveMemoriesBatch(memories: MemoryData[]): Promise<{
           createdAt: FieldValue.serverTimestamp(),
           userId: memoryData.userId,
           source: memoryData.source || 'system',
+          type: memoryData.type || 'normal', // Memory type: insight, question_to_ask, or normal
           ...memoryData.metadata,
         });
+
+        knowledgeUpdates.push(
+          updateKnowledgeGraphFromMemory({
+            userId: memoryData.userId,
+            memoryId: docRef.id,
+            content: memoryData.content.trim(),
+          })
+        );
 
         saved++;
       } catch (error) {
@@ -152,12 +188,13 @@ export async function saveMemoriesBatch(memories: MemoryData[]): Promise<{
     // Commit batch (Firestore limit is 500 operations per batch)
     if (saved > 0) {
       await batch.commit();
+      await Promise.all(knowledgeUpdates);
       
       // Track analytics
       try {
         const userId = validMemories[0]?.userId;
         if (userId) {
-          await trackEvent(userId, 'memories_created_batch', { 
+          await trackEvent(userId, 'memory_created', { 
             count: saved,
             source: validMemories[0]?.source || 'system'
           });
@@ -221,6 +258,12 @@ export async function updateMemoryWithEmbedding(
       editedAt: FieldValue.serverTimestamp(),
     });
 
+    await updateKnowledgeGraphFromMemory({
+      userId,
+      memoryId,
+      content: newContent.trim(),
+    });
+
     return {
       success: true,
       memory_id: memoryId,
@@ -235,3 +278,54 @@ export async function updateMemoryWithEmbedding(
   }
 }
 
+/**
+ * Helper function to save an insight memory with proper type and metadata.
+ * This ensures insights are properly tagged for prioritization in search.
+ * 
+ * @param insight - The insight content to save
+ * @param userId - The user ID
+ * @param metadata - Additional metadata (reflectionDate, processedCount, etc.)
+ * @returns Promise with success status and memory ID
+ */
+export async function saveInsightMemory(
+  insight: string,
+  userId: string,
+  metadata?: Record<string, any>
+): Promise<MemoryResult> {
+  return saveMemory({
+    content: insight,
+    userId: userId,
+    source: 'reflection',
+    type: 'insight',
+    metadata: metadata,
+  });
+}
+
+/**
+ * Helper function to save a question memory with proper type and metadata.
+ * These are questions the AI should ask the user based on weak answers identified.
+ * 
+ * @param question - The question content to save
+ * @param userId - The user ID
+ * @param topic - The topic the question relates to
+ * @param metadata - Additional metadata
+ * @returns Promise with success status and memory ID
+ */
+export async function saveQuestionMemory(
+  question: string,
+  userId: string,
+  topic: string,
+  metadata?: Record<string, any>
+): Promise<MemoryResult> {
+  const content = `Topic: ${topic}\n\nQuestion to ask user: ${question}`;
+  return saveMemory({
+    content: content,
+    userId: userId,
+    source: 'reflection',
+    type: 'question_to_ask',
+    metadata: {
+      weakAnswerTopic: topic,
+      ...metadata,
+    },
+  });
+}

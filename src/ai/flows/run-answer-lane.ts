@@ -28,6 +28,7 @@ const AnswerLaneInputSchema = z.object({
 
 const AnswerLaneOutputSchema = z.object({
   answer: z.string(),
+  lowConfidenceTopic: z.string().nullable().optional(),
 });
 
 async function extractAndSaveArtifact(rawResponse: string, userId: string): Promise<{ cleanResponse: string; artifactId?: string }> {
@@ -123,6 +124,17 @@ export async function runAnswerLane(
                     return [];
                 })
             ]);
+
+            // Phase 4: Extract knowledge from user message and integrate with knowledge graph
+            try {
+                const { extractKnowledgeFromText } = await import('@/lib/knowledge-graph');
+                await extractKnowledgeFromText(userId, message, 'conversation', `Thread: ${threadId}`).catch(err => {
+                    console.warn('[AnswerLane] Knowledge extraction failed (non-critical):', err);
+                });
+            } catch (err) {
+                // Non-critical, continue even if knowledge extraction fails
+                console.warn('[AnswerLane] Knowledge extraction error (non-critical):', err);
+            }
             
             console.log(`[AnswerLane] Memory search results: history=${historyResults.length}, memories=${memoriesResults.length}`);
             
@@ -226,6 +238,41 @@ If the user asks about memory, respond confidently: "Yes, I remember our past co
 
             await logProgress('Finalizing and saving...');
             const { cleanResponse } = await extractAndSaveArtifact(rawAIResponse, userId);
+
+            // --- SELF-EVALUATION: Confidence & topic extraction for deep research ---
+            let lowConfidenceTopic: string | null = null;
+            try {
+                const evalPrompt = `You are an evaluation model. Given the user's question, retrieved memories, and the assistant's draft answer, rate your confidence from 0.0 to 1.0 and extract the core topic.\n\nRespond ONLY as JSON with this exact shape:\n{"confidence": number, "topic": string}`;
+
+                const truncatedMemories = retrievedHistory.slice(0, 4000);
+                const truncatedAnswer = cleanResponse.slice(0, 4000);
+
+                const evalCompletion = await getOpenAI().chat.completions.create({
+                    model: 'gpt-4o-mini' as any,
+                    messages: [
+                        { role: 'system', content: evalPrompt },
+                        {
+                            role: 'user',
+                            content: `User question:\n${message}\n\nRetrieved memories (truncated):\n${truncatedMemories}\n\nDraft answer (truncated):\n${truncatedAnswer}`,
+                        },
+                    ],
+                    response_format: { type: 'json_object' },
+                });
+
+                const evalText = evalCompletion.choices[0].message.content || '{}';
+                const evalData = JSON.parse(evalText);
+                const confidence = typeof evalData.confidence === 'number'
+                  ? evalData.confidence
+                  : parseFloat(evalData.confidence || '0');
+                const topic = (evalData.topic || '').toString().trim();
+
+                if (!isNaN(confidence) && confidence < 0.6 && topic) {
+                    lowConfidenceTopic = topic;
+                    console.log(`[AnswerLane] Low confidence detected (${confidence.toFixed(2)}) for topic "${topic}"`);
+                }
+            } catch (evalError) {
+                console.warn('[AnswerLane] Self-evaluation failed, continuing without learning_queue enqueue:', evalError);
+            }
             
             const embedding = await generateEmbedding(cleanResponse);
             
@@ -237,7 +284,7 @@ If the user asks about memory, respond confidently: "Yes, I remember our past co
                 progress_log: FieldValue.arrayUnion('Done.'),
             });
     
-            return { answer: cleanResponse };
+            return { answer: cleanResponse, lowConfidenceTopic };
 
         } catch(error: any) {
             console.error("Error in Answer Lane: ", error);
