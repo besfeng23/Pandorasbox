@@ -67,13 +67,13 @@ function initializeAdmin() {
 
   // Try local service account file (for local development only)
   try {
-    // Use dynamic require with try-catch to avoid build-time errors
+    // Use fs.readFileSync instead of require to avoid Turbopack static analysis issues
     const path = require('path');
     const fs = require('fs');
     const serviceAccountPath = path.join(process.cwd(), 'service-account.json');
     
     if (fs.existsSync(serviceAccountPath)) {
-      const serviceAccount = require(serviceAccountPath);
+      const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf-8'));
       console.log("Initializing Firebase Admin with local service-account.json...");
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
