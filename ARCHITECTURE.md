@@ -424,6 +424,8 @@ Core utilities and libraries
 - `rate-limit.ts` - Rate limiting implementation (token bucket algorithm)
 - `analytics.ts` - Event tracking and user statistics
 - `tavily.ts` - Tavily web search helper used by the Deep Research Agent
+- `hybrid-search.ts` - Phase 5: Hybrid search combining internal memories with external web results
+- `external-cache.ts` - Phase 5: External knowledge result caching
 
 ### `/src/ai/`
 AI orchestration using Genkit
@@ -435,6 +437,7 @@ AI orchestration using Genkit
   - `run-answer-lane.ts` - Response generation flow (also performs self-evaluation for low-confidence topics)
   - `suggest-follow-up-questions.ts` - Follow-up question generation
   - `summarize-long-chat.ts` - Thread summarization flow
+  - `run-hybrid-lane.ts` - Phase 5: Hybrid reasoning flow combining internal and external knowledge
 - `agents/` - Background / offline agents
   - `nightly-reflection.ts` - Nightly reflection agent that analyzes interactions and creates insight memories
   - `deep-research.ts` - Deep Research Agent that self-studies low-confidence topics from `learning_queue` and stores acquired knowledge
@@ -543,6 +546,17 @@ type AppSettings = {
   reply_style: 'concise' | 'detailed';
   system_prompt_override: string;
   personal_api_key?: string;
+};
+
+// External knowledge cache stored in Firestore 'external_knowledge' collection (Phase 5)
+type ExternalKnowledgeCache = {
+  query: string; // Normalized (lowercase) search query
+  source: string; // Source identifier (e.g., 'tavily')
+  content: string; // Cached content/snippet
+  confidence: number; // Confidence score (0.0 to 1.0)
+  url?: string; // Source URL
+  title?: string; // Result title
+  cachedAt: Timestamp; // Cache timestamp
 };
 ```
 

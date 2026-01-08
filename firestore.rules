@@ -85,5 +85,14 @@ service cloud.firestore {
       allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
       allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
     }
+
+    // Phase 5: External Knowledge cache - server-side only (no userId, public cache)
+    // This is a shared cache for external search results to reduce API calls
+    match /external_knowledge/{cacheId} {
+      // Allow server-side writes (from Firebase Admin SDK)
+      // Allow authenticated reads for any user (shared cache)
+      allow read: if request.auth != null;
+      allow write: if false; // Only server-side writes via Admin SDK
+    }
   }
 }
