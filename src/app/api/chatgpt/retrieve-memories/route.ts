@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirestoreAdmin, getAuthAdmin } from '@/lib/firebase-admin';
 import { searchMemories } from '@/lib/vector';
+import { getContextualMemories } from '@/lib/context-manager';
 
 // Prevent this route from being statically generated
 export const dynamic = 'force-dynamic';
@@ -50,6 +51,7 @@ export async function GET(request: NextRequest) {
     const query = searchParams.get('query') || '';
     const userEmail = searchParams.get('user_email') || 'joven.ong23@gmail.com';
     const limit = Math.min(parseInt(searchParams.get('limit') || '10'), 50);
+    const mode = searchParams.get('mode') || 'baseline'; // 'baseline' or 'context'
 
     // Get Firebase user by email
     const authAdmin = getAuthAdmin();
@@ -72,14 +74,28 @@ export async function GET(request: NextRequest) {
     let memories;
 
     if (query.trim()) {
-      // Semantic search using vector embeddings in the memories collection
-      const searchResults = await searchMemories(query, userId, limit);
-      memories = searchResults.map(result => ({
-        id: result.id,
-        content: result.text,
-        relevance_score: result.score,
-        timestamp: result.timestamp.toISOString(),
-      }));
+      if (mode === 'context') {
+        // Use contextual weighted recall
+        const weightedResults = await getContextualMemories(query, userId, limit);
+        memories = weightedResults.map(result => ({
+          id: result.id,
+          content: result.text,
+          relevance_score: result.similarityScore,
+          recency_score: result.recencyScore,
+          importance: result.importance,
+          weighted_score: result.finalWeightedScore,
+          timestamp: result.timestamp.toISOString(),
+        }));
+      } else {
+        // Baseline semantic search using vector embeddings
+        const searchResults = await searchMemories(query, userId, limit);
+        memories = searchResults.map(result => ({
+          id: result.id,
+          content: result.text,
+          relevance_score: result.score,
+          timestamp: result.timestamp.toISOString(),
+        }));
+      }
     } else {
       // Get recent memories from the memories collection
       const memoriesSnapshot = await firestoreAdmin
@@ -130,11 +146,12 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { query, user_email, limit } = body;
+    const { query, user_email, limit, mode } = body;
 
     const userEmail = user_email || 'joven.ong23@gmail.com';
     const searchQuery = query || '';
     const resultLimit = Math.min(limit || 10, 50);
+    const recallMode = mode || 'baseline'; // 'baseline' or 'context'
 
     // Get Firebase user by email
     const authAdmin = getAuthAdmin();
@@ -157,14 +174,28 @@ export async function POST(request: NextRequest) {
     let memories;
 
     if (searchQuery.trim()) {
-      // Semantic search using vector embeddings in the memories collection
-      const searchResults = await searchMemories(searchQuery, userId, resultLimit);
-      memories = searchResults.map(result => ({
-        id: result.id,
-        content: result.text,
-        relevance_score: result.score,
-        timestamp: result.timestamp.toISOString(),
-      }));
+      if (recallMode === 'context') {
+        // Use contextual weighted recall
+        const weightedResults = await getContextualMemories(searchQuery, userId, resultLimit);
+        memories = weightedResults.map(result => ({
+          id: result.id,
+          content: result.text,
+          relevance_score: result.similarityScore,
+          recency_score: result.recencyScore,
+          importance: result.importance,
+          weighted_score: result.finalWeightedScore,
+          timestamp: result.timestamp.toISOString(),
+        }));
+      } else {
+        // Baseline semantic search using vector embeddings
+        const searchResults = await searchMemories(searchQuery, userId, resultLimit);
+        memories = searchResults.map(result => ({
+          id: result.id,
+          content: result.text,
+          relevance_score: result.score,
+          timestamp: result.timestamp.toISOString(),
+        }));
+      }
     } else {
       // Get recent memories
       const memoriesSnapshot = await firestoreAdmin
