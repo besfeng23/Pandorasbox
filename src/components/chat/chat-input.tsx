@@ -231,17 +231,24 @@ export function ChatInput({ userId, onMessageSubmit, isSending }: ChatInputProps
             name="image_file"
           />
 
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="absolute bottom-2 left-2 h-9 w-9 sm:h-8 sm:w-8 text-white/60 hover:text-cyan-400 hover:bg-white/10 touch-manipulation hover:scale-110 active:scale-95 transition-transform duration-200"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isProcessing}
-            aria-label="Attach image"
-          >
-            <Paperclip className="h-4 w-4" strokeWidth={1.5} />
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute bottom-2 left-2 h-9 w-9 sm:h-8 sm:w-8 text-white/60 hover:text-cyan-400 hover:bg-white/10 touch-manipulation hover:scale-110 active:scale-95 transition-transform duration-200"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isProcessing}
+                aria-label="Attach image"
+              >
+                <Paperclip className="h-4 w-4" strokeWidth={1.5} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent className="glass-panel-strong border border-cyan-400/30 text-white">
+              <p>Attach image</p>
+            </TooltipContent>
+          </Tooltip>
 
           <Textarea
             ref={textareaRef}
@@ -257,25 +264,41 @@ export function ChatInput({ userId, onMessageSubmit, isSending }: ChatInputProps
           />
 
           <div className="absolute bottom-2 right-2 flex items-center gap-1">
-            <VoiceInput 
-                userId={userId} 
-                onTranscriptionStatusChange={setIsTranscribing} 
-                disabled={isProcessing} 
-                onAudioSubmit={onMessageSubmit}
-            />
-            <Button
-              type="submit"
-              size="icon"
-              className="h-9 w-9 sm:h-8 sm:w-8 bg-gradient-to-br from-cyan-400/90 to-purple-500/90 text-white hover:from-cyan-300 hover:to-purple-400 rounded-full touch-manipulation shadow-neon-cyan-sm hover:scale-110 active:scale-95 transition-transform duration-200"
-              disabled={isProcessing}
-              aria-label="Send message"
-            >
-              {isSending ? (
-                <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.5} />
-              ) : (
-                <ArrowUp className="h-4 w-4" strokeWidth={1.5} />
-              )}
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <VoiceInput 
+                      userId={userId} 
+                      onTranscriptionStatusChange={setIsTranscribing} 
+                      disabled={isProcessing} 
+                      onAudioSubmit={onMessageSubmit}
+                  />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent className="glass-panel-strong border border-cyan-400/30 text-white">
+                <p>Voice input (hold to record)</p>
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="submit"
+                  size="icon"
+                  className="h-9 w-9 sm:h-8 sm:w-8 bg-gradient-to-br from-cyan-400/90 to-purple-500/90 text-white hover:from-cyan-300 hover:to-purple-400 rounded-full touch-manipulation shadow-neon-cyan-sm hover:scale-110 active:scale-95 transition-transform duration-200 send-action-pulse"
+                  disabled={isProcessing}
+                  aria-label="Send message"
+                >
+                  {isSending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.5} />
+                  ) : (
+                    <ArrowUp className="h-4 w-4" strokeWidth={1.5} />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="glass-panel-strong border border-cyan-400/30 text-white">
+                <p>Send message</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
         </div>
       </form>

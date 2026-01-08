@@ -362,6 +362,7 @@ admin.initializeApp({
 - `MCP_API_KEY` - API key for MCP HTTP bridge and ChatGPT Actions
 - `CHATGPT_API_KEY` - Alternative to MCP_API_KEY (used if MCP_API_KEY not set)
 - `MCP_SERVER_URL` - Server URL for OpenAPI schema generation
+- `TAVILY_API_KEY` - Tavily web search API key used by the Deep Research Agent
 
 **Service Account**:
 - Local: `service-account.json` (file-based, gitignored)
@@ -422,6 +423,7 @@ Core utilities and libraries
   - `searchMemories()` - Search memories collection
 - `rate-limit.ts` - Rate limiting implementation (token bucket algorithm)
 - `analytics.ts` - Event tracking and user statistics
+- `tavily.ts` - Tavily web search helper used by the Deep Research Agent
 
 ### `/src/ai/`
 AI orchestration using Genkit
@@ -430,9 +432,12 @@ AI orchestration using Genkit
 - `flows/` - Genkit flow definitions
   - `run-memory-lane.ts` - Memory processing flow
   - `run-chat-lane.ts` - Chat orchestration flow
-  - `run-answer-lane.ts` - Response generation flow
+  - `run-answer-lane.ts` - Response generation flow (also performs self-evaluation for low-confidence topics)
   - `suggest-follow-up-questions.ts` - Follow-up question generation
   - `summarize-long-chat.ts` - Thread summarization flow
+- `agents/` - Background / offline agents
+  - `nightly-reflection.ts` - Nightly reflection agent that analyzes interactions and creates insight memories
+  - `deep-research.ts` - Deep Research Agent that self-studies low-confidence topics from `learning_queue` and stores acquired knowledge
 
 ### `/src/mcp/`
 Model Context Protocol (MCP) server implementation

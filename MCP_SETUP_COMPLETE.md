@@ -106,6 +106,40 @@ Add to Claude Desktop settings (`%APPDATA%\Claude\claude_desktop_config.json`):
 - **ChatGPT Integration**: See `CHATGPT_SETUP_COMPLETE.md`
 - **API Documentation**: See `API_DOCUMENTATION.md`
 
+## 📝 Memory Storage for Cursor Integration
+
+### Vector Fix Memory Stored ✅
+
+A memory has been successfully stored via MCP for Cursor integration:
+
+- **Memory ID**: `77rCgZQ8ZGjSHE5cSozE`
+- **User**: `chatgpt@pandorasbox.com`
+- **Tags**: `#vector-fix #recall`
+- **Purpose**: Instructions to ensure `src/app/api/chatgpt/store-memory/route.ts` uses centralized memory utility for automatic embedding generation
+
+**Current Implementation Status**: ✅ **VERIFIED CORRECT**
+
+The `store-memory/route.ts` file already correctly uses:
+```typescript
+const { saveMemory } = await import('@/lib/memory-utils');
+const result = await saveMemory({
+  content: memory.trim(),
+  userId: userId,
+  source: 'chatgpt',
+});
+```
+
+This ensures:
+- ✅ Automatic embedding generation (1536 dimensions)
+- ✅ Proper Firestore indexing
+- ✅ Vector search capability
+
+**To retrieve this memory in Cursor:**
+```bash
+# Search for the memory using MCP search_knowledge_base tool
+# Query: "vector fix embedding generation store-memory"
+```
+
 ---
 
 **Status**: ✅ All setup steps completed successfully!

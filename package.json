@@ -13,7 +13,8 @@
     "mcp:dev": "tsx --tsconfig tsconfig.mcp.json -r tsconfig-paths/register src/mcp/index.ts",
     "mcp:start": "tsx --tsconfig tsconfig.mcp.json -r tsconfig-paths/register src/mcp/index.ts",
     "mcp:generate-schema": "tsx scripts/generate-schema.ts",
-    "save-settings-memories": "tsx scripts/save-all-settings-memories.ts"
+    "save-settings-memories": "tsx scripts/save-all-settings-memories.ts",
+    "test-tavily": "tsx scripts/test-tavily-search.ts"
   },
   "dependencies": {
     "@genkit-ai/firebase": "^1.27.0",
