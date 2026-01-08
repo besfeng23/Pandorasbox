@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { CommandMenu } from '@/components/command-menu';
 import { ThemeProvider } from '@/hooks/use-theme';
+import { NotificationProvider } from '@/components/notification-provider';
 
 export const metadata: Metadata = {
   title: 'PandorasBox - AI-Powered Memory',
@@ -64,8 +65,10 @@ export default function RootLayout({
       <body className="font-body antialiased" style={{ minHeight: '100dvh', overflowY: 'auto' }}>
         <ThemeProvider>
           <FirebaseClientProvider>
-            {children}
-            <CommandMenu />
+            <NotificationProvider>
+              {children}
+              <CommandMenu />
+            </NotificationProvider>
           </FirebaseClientProvider>
           <Toaster />
         </ThemeProvider>

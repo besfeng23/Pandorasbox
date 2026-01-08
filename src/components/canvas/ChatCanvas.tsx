@@ -197,7 +197,7 @@ function ChatCanvasInner({
             <h3 className="font-semibold text-base neon-text-cyan">Conversation Summary</h3>
           </div>
           <p className="text-sm text-white/80 italic">
-            {thread?.summary}
+            {thread?.summary || ''}
           </p>
         </motion.div>
       )}
