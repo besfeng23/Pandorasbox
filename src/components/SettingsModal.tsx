@@ -26,6 +26,8 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/hooks/use-theme';
+import { useNotification } from '@/hooks/use-notification';
+import { useEffect } from 'react';
 
 interface SettingsModalProps {
   open: boolean;
@@ -38,6 +40,28 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
   const [dataRetention, setDataRetention] = useState(true);
   const { theme, toggleTheme } = useTheme();
   const darkMode = theme === 'dark';
+  const { isSupported, permission, requestPermission } = useNotification();
+
+  // Load notification preference from localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('notificationsEnabled');
+      if (saved !== null) {
+        setNotifications(saved === 'true');
+      }
+    }
+  }, []);
+
+  // Save notification preference to localStorage
+  const handleNotificationsChange = async (enabled: boolean) => {
+    setNotifications(enabled);
+    localStorage.setItem('notificationsEnabled', String(enabled));
+    
+    // Request permission if enabling and not already granted
+    if (enabled && isSupported && permission !== 'granted') {
+      await requestPermission();
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -60,14 +84,26 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
               <h3 className="text-sm font-semibold text-white/90">Notifications</h3>
             </div>
             <div className="flex items-center justify-between pl-6">
-              <Label htmlFor="notifications" className="text-white/80 cursor-pointer">
-                Enable notification alerts
-              </Label>
+              <div className="space-y-1">
+                <Label htmlFor="notifications" className="text-white/80 cursor-pointer">
+                  Enable browser notifications
+                </Label>
+                <p className="text-xs text-white/50">
+                  {!isSupported 
+                    ? 'Notifications not supported in this browser'
+                    : permission === 'granted'
+                    ? 'Permission granted'
+                    : permission === 'denied'
+                    ? 'Permission denied. Enable in browser settings.'
+                    : 'Click to request permission'}
+                </p>
+              </div>
               <Switch
                 id="notifications"
-                checked={notifications}
-                onCheckedChange={setNotifications}
-                className="data-[state=checked]:bg-neon-cyan"
+                checked={notifications && isSupported}
+                disabled={!isSupported || permission === 'denied'}
+                onCheckedChange={handleNotificationsChange}
+                className="data-[state=checked]:bg-neon-cyan disabled:opacity-50"
               />
             </div>
           </div>

@@ -56,6 +56,11 @@ Traditional chat applications (like ChatGPT) have limited context windows and ca
     - `artifacts` - Generated code/markdown artifacts
     - `settings` - User preferences
     - `users/{userId}/state` - User state (context notes, suggestions)
+    - `external_knowledge` - Phase 5: Cached external search results (query, source, content, confidence, cachedAt, url, title)
+    - `feedback` - Phase 6: User feedback on search results (query, userId, resultIds, satisfaction, feedback)
+    - `performance_metrics` - Phase 6: Search performance tracking (query, userId, internalCount, externalCount, avgConfidence, responseTime, userSatisfaction)
+    - `meta_learning_state` - Phase 6: Per-user meta-learning state (internalWeight, externalWeight, learningRate, avgSatisfaction, strategy)
+    - `system_logs` - System operation logs and telemetry
 - **Vector Storage**: Firestore native vector search (using `findNearest()`)
   - **Embedding Model**: OpenAI `text-embedding-3-small` (1536 dimensions)
   - **Distance Measure**: COSINE similarity
@@ -424,6 +429,12 @@ Core utilities and libraries
 - `rate-limit.ts` - Rate limiting implementation (token bucket algorithm)
 - `analytics.ts` - Event tracking and user statistics
 - `tavily.ts` - Tavily web search helper used by the Deep Research Agent
+- `hybrid-search.ts` - Phase 5: Hybrid search combining internal memories with external web results (Phase 6: uses adaptive weights)
+- `external-cache.ts` - Phase 5: External knowledge result caching
+- `meta-learning.ts` - Phase 6: Meta-learning and continuous self-improvement (performance tracking, weight adaptation)
+- `feedback-manager.ts` - Phase 6: Feedback collection and analysis system
+- `performance-tracker.ts` - Phase 6: Performance metrics tracking for search operations
+- `adaptive-weights.ts` - Phase 6: Dynamic weight adjustment based on user performance
 
 ### `/src/ai/`
 AI orchestration using Genkit
@@ -435,6 +446,8 @@ AI orchestration using Genkit
   - `run-answer-lane.ts` - Response generation flow (also performs self-evaluation for low-confidence topics)
   - `suggest-follow-up-questions.ts` - Follow-up question generation
   - `summarize-long-chat.ts` - Thread summarization flow
+  - `run-hybrid-lane.ts` - Phase 5: Hybrid reasoning flow combining internal and external knowledge
+  - `run-self-improvement.ts` - Phase 6: Self-improvement flow for meta-learning and continuous optimization
 - `agents/` - Background / offline agents
   - `nightly-reflection.ts` - Nightly reflection agent that analyzes interactions and creates insight memories
   - `deep-research.ts` - Deep Research Agent that self-studies low-confidence topics from `learning_queue` and stores acquired knowledge
@@ -543,6 +556,17 @@ type AppSettings = {
   reply_style: 'concise' | 'detailed';
   system_prompt_override: string;
   personal_api_key?: string;
+};
+
+// External knowledge cache stored in Firestore 'external_knowledge' collection (Phase 5)
+type ExternalKnowledgeCache = {
+  query: string; // Normalized (lowercase) search query
+  source: string; // Source identifier (e.g., 'tavily')
+  content: string; // Cached content/snippet
+  confidence: number; // Confidence score (0.0 to 1.0)
+  url?: string; // Source URL
+  title?: string; // Result title
+  cachedAt: Timestamp; // Cache timestamp
 };
 ```
 
