@@ -16,6 +16,7 @@
 | `settings` | ✅ Yes | ✅ Yes | ⚠️ None | ✅ OK (simple queries, no index needed) |
 | `analytics` | ✅ Yes | ✅ Wildcard | ⚠️ None | ✅ OK (simple queries, no index needed) |
 | `rateLimits` | ✅ Yes | ✅ Wildcard | ⚠️ None | ✅ OK (simple queries, no index needed) |
+| `external_knowledge` | ✅ Yes | ✅ Yes | ⚠️ None | ✅ OK (simple queries, no index needed) |
 
 ---
 
