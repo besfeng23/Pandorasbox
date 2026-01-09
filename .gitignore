@@ -57,4 +57,10 @@ src/base44/logs/*.log
 
 # large zip files
 *.zip
-!PB_temp_extract/**/*.zip
+
+# duplicate/temporary directories
+Pandorasbox/
+PB_temp_extract/
+def/
+defa/
+.firebase/
