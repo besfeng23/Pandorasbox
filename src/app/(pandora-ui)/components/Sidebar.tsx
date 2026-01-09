@@ -39,7 +39,7 @@ export default function Sidebar({
     if (!user?.uid) return;
     try {
       const threadId = await createThread(user.uid);
-      router.push("/(pandora-ui)");
+      router.push("/");
       setOpen(false);
     } catch (error) {
       console.error("Failed to create thread:", error);
@@ -87,11 +87,11 @@ export default function Sidebar({
                 <div className="space-y-1">
                   <button 
                     className={`flex items-center gap-2 text-sm w-full px-3 py-2 rounded-lg transition-colors ${
-                      pathname === "/(pandora-ui)" 
+                      pathname === "/" 
                         ? "bg-violet-500/20 text-violet-400" 
                         : "text-white/70 hover:text-violet-400 hover:bg-white/5"
                     }`}
-                    onClick={() => handleNavigate("/(pandora-ui)")}
+                    onClick={() => handleNavigate("/")}
                   >
                     <Home className="w-4 h-4" /> Home
                   </button>
@@ -151,7 +151,7 @@ export default function Sidebar({
                           className="w-full text-left px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors truncate"
                           onClick={() => {
                             // TODO: Navigate to specific thread
-                            handleNavigate("/(pandora-ui)");
+                            handleNavigate("/");
                           }}
                           title={thread.title}
                         >
