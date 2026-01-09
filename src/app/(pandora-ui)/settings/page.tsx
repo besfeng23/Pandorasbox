@@ -35,7 +35,6 @@ import { Input } from '@/components/ui/input';
 import { KeyboardShortcuts } from '@/components/keyboard-shortcuts';
 import { Keyboard, Moon, Sun, Fingerprint, MoonStar, Microscope } from 'lucide-react';
 import { useTheme } from '@/hooks/use-theme';
-import Link from 'next/link';
 
 /**
  * Model Display Names Mapping

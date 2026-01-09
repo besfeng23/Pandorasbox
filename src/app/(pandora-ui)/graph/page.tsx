@@ -5,7 +5,6 @@ import { useUser } from '@/firebase';
 import { GraphView, GraphViewNode, GraphViewEdge } from '@/components/GraphView';
 import { Loader2, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
