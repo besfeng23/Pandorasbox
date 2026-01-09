@@ -51,3 +51,6 @@ TECHNICAL_DESIGN.md
 
 # base44 logs
 src/base44/logs/*.log
+
+# firebase build artifacts
+.firebase/
