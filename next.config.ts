@@ -1,14 +1,19 @@
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  reactStrictMode: true,
   typescript: {
     ignoreBuildErrors: true,
   },
   eslint: {
     ignoreDuringBuilds: true,
   },
+  experimental: {
+    serverActions: true
+  },
+  output: "standalone",
   images: {
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',
@@ -38,6 +43,9 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
     NEXT_PUBLIC_FIREBASE_APP_ID: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
     NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
+    NEXT_PUBLIC_BASE44_API_KEY: process.env.NEXT_PUBLIC_BASE44_API_KEY,
+    NEXT_PUBLIC_BASE44_PROJECT_ID: process.env.NEXT_PUBLIC_BASE44_PROJECT_ID,
+    NEXT_PUBLIC_BUILD_VERSION: "v1.0.0"
   }
 };
 
