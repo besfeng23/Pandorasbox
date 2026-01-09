@@ -65,7 +65,6 @@ export default function SettingsDrawer({ open, setOpen }: { open: boolean; setOp
                 >
                   <option value="Pandora Core v1">Pandora Core v1</option>
                   <option value="Pandora Core v2">Pandora Core v2</option>
-                  <option value="Base44 Experimental">Base44 Experimental</option>
                 </select>
               </div>
             </div>

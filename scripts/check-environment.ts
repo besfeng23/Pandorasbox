@@ -1,6 +1,6 @@
 /**
  * Pandora Environment Check
- * Verifies Firebase, GCP, GitHub, MCP, and Base44 readiness
+ * Verifies Firebase, GCP, GitHub, and MCP readiness
  * Paste and run directly inside Cursor
  */
 
@@ -87,7 +87,7 @@ async function main() {
   await checkNetwork("https://firebase.google.com", "Firebase");
   await checkNetwork("https://github.com", "GitHub");
 
-  console.log("\n✅ Environment check complete.\nIf all entries above show ✅, your system is ready for phase seeding and Base44 alignment.");
+  console.log("\n✅ Environment check complete.\nIf all entries above show ✅, your system is ready for phase seeding.");
 }
 
 main();
