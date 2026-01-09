@@ -5,7 +5,15 @@ import { Home, Settings, Activity } from "lucide-react";
 import ProfileMenu from "./ProfileMenu";
 import PandoraBoxInteractive from "./PandoraBoxInteractive";
 
-export default function Sidebar({ open, setOpen }: { open: boolean; setOpen: (o: boolean) => void }) {
+export default function Sidebar({ 
+  open, 
+  setOpen, 
+  onOpenSettings 
+}: { 
+  open: boolean; 
+  setOpen: (o: boolean) => void;
+  onOpenSettings?: () => void;
+}) {
   return (
     <>
       {/* Overlay for mobile */}
@@ -50,7 +58,10 @@ export default function Sidebar({ open, setOpen }: { open: boolean; setOpen: (o:
               </button>
               <button 
                 className="flex items-center gap-2 text-sm text-white/70 hover:text-violet-400 transition-colors w-full"
-                onClick={() => setOpen(false)}
+                onClick={() => {
+                  setOpen(false);
+                  onOpenSettings?.();
+                }}
               >
                 <Settings className="w-4 h-4" /> Settings
               </button>
