@@ -1,14 +1,18 @@
 {
   "hosting": {
     "source": ".",
+    "public": ".next",
     "ignore": [
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
     ],
     "frameworksBackend": {
-      "region": "us-central1"
-    }
+      "region": "asia-southeast1"
+    },
+    "rewrites": [
+      { "source": "**", "destination": "/index.html" }
+    ]
   },
   // Functions configuration removed - using App Hosting with Next.js API routes instead
   // All scheduled tasks are now in src/app/api/cron/
