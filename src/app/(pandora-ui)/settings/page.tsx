@@ -32,10 +32,10 @@ import { MemoryTable } from '@/components/settings/memory-table';
 import { KnowledgeUpload } from '@/components/settings/knowledge-upload';
 import { ReindexMemoriesButton } from '@/components/settings/reindex-memories-button';
 import { Input } from '@/components/ui/input';
-import Link from 'next/link';
 import { KeyboardShortcuts } from '@/components/keyboard-shortcuts';
 import { Keyboard, Moon, Sun, Fingerprint, MoonStar, Microscope } from 'lucide-react';
 import { useTheme } from '@/hooks/use-theme';
+import Link from 'next/link';
 
 /**
  * Model Display Names Mapping
@@ -153,48 +153,36 @@ export default function SettingsPage() {
 
   if (isLoadingSettings || isUserLoading) {
     return (
-      <div className="flex min-h-[100dvh] items-center justify-center bg-gradient-to-br from-black via-gray-900 to-black">
-        <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />
+      <div className="flex min-h-[100dvh] items-center justify-center bg-black">
+        <Loader2 className="h-8 w-8 animate-spin text-white" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-[100dvh] bg-gradient-to-br from-black via-gray-900 to-black overflow-y-auto">
-      {/* Glassmorphism Header */}
-      <div className="sticky top-0 z-10 backdrop-blur-xl bg-black/30 border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <SettingsIcon className="h-6 w-6 text-cyan-400" />
-              <h1 className="text-2xl font-bold text-white">Settings</h1>
-            </div>
-            <Link href="/">
-              <Button variant="ghost" className="text-white hover:bg-white/10">
-                ← Back to Chat
-              </Button>
-            </Link>
-          </div>
-        </div>
+    <div className="h-full bg-black text-white overflow-y-auto">
+      {/* Page Header */}
+      <div className="border-b border-white/10 px-4 py-3 bg-black">
+        <h1 className="text-xl font-medium text-white">Settings</h1>
       </div>
 
       {/* Scrollable Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
         <Tabs defaultValue="general" className="space-y-6">
-          <TabsList className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-lg p-1">
-            <TabsTrigger value="general" className="data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400">
+          <TabsList className="bg-black border border-white/10 rounded-lg p-1">
+            <TabsTrigger value="general" className="data-[state=active]:bg-white/10 data-[state=active]:text-white text-white/70">
               General
             </TabsTrigger>
-            <TabsTrigger value="memory" className="data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400">
+            <TabsTrigger value="memory" className="data-[state=active]:bg-white/10 data-[state=active]:text-white text-white/70">
               Memory
             </TabsTrigger>
-            <TabsTrigger value="api" className="data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400">
+            <TabsTrigger value="api" className="data-[state=active]:bg-white/10 data-[state=active]:text-white text-white/70">
               API
             </TabsTrigger>
-            <TabsTrigger value="data" className="data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400">
+            <TabsTrigger value="data" className="data-[state=active]:bg-white/10 data-[state=active]:text-white text-white/70">
               Data
             </TabsTrigger>
-            <TabsTrigger value="brain" className="data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400">
+            <TabsTrigger value="brain" className="data-[state=active]:bg-white/10 data-[state=active]:text-white text-white/70">
               Brain Controls
             </TabsTrigger>
           </TabsList>
@@ -203,24 +191,24 @@ export default function SettingsPage() {
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 {/* AI Model Card */}
-                <div className="glass-panel-strong rounded-xl p-6 shadow-xl">
-                  <h3 className="text-lg font-semibold text-white mb-2">AI Model</h3>
-                  <p className="text-sm text-gray-400 mb-4">Pandora Deep is recommended for coding and complex analysis. Spark is faster for quick chats.</p>
+                <div className="bg-black border border-white/10 rounded-lg p-6">
+                  <h3 className="text-lg font-medium text-white mb-2">AI Model</h3>
+                  <p className="text-sm text-white/60 mb-4">Pandora Deep is recommended for coding and complex analysis. Spark is faster for quick chats.</p>
                   <FormField
                     control={form.control}
                     name="active_model"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-gray-300">Active Model</FormLabel>
+                        <FormLabel className="text-white/80">Active Model</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
-                            <SelectTrigger className="bg-black/40 border-white/10 text-white">
+                            <SelectTrigger className="bg-black border-white/10 text-white">
                               <SelectValue placeholder="Select a model">
                                 {field.value ? getModelDisplayName(field.value) : 'Select a model'}
                               </SelectValue>
                             </SelectTrigger>
                           </FormControl>
-                          <SelectContent className="bg-gray-900 border-white/10">
+                          <SelectContent className="bg-black border-white/10">
                             <SelectItem value="gpt-4o" className="text-white">
                               {getModelDisplayName('gpt-4o')}
                             </SelectItem>
@@ -239,9 +227,9 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Reply Style Card */}
-                <div className="glass-panel-strong rounded-xl p-6 shadow-xl">
-                  <h3 className="text-lg font-semibold text-white mb-2">Reply Style</h3>
-                  <p className="text-sm text-gray-400 mb-4">Choose how verbose the AI's replies should be.</p>
+                <div className="bg-black border border-white/10 rounded-lg p-6">
+                  <h3 className="text-lg font-medium text-white mb-2">Reply Style</h3>
+                  <p className="text-sm text-white/60 mb-4">Choose how verbose the AI's replies should be.</p>
                   <FormField
                     control={form.control}
                     name="reply_style"
@@ -255,15 +243,15 @@ export default function SettingsPage() {
                           >
                             <FormItem className="flex items-center space-x-3 space-y-0">
                               <FormControl>
-                                <RadioGroupItem value="concise" className="border-cyan-400 text-cyan-400" />
+                                <RadioGroupItem value="concise" className="border-white/40 text-white" />
                               </FormControl>
-                              <FormLabel className="font-normal text-gray-300 cursor-pointer">Concise</FormLabel>
+                              <FormLabel className="font-normal text-white/80 cursor-pointer">Concise</FormLabel>
                             </FormItem>
                             <FormItem className="flex items-center space-x-3 space-y-0">
                               <FormControl>
-                                <RadioGroupItem value="detailed" className="border-cyan-400 text-cyan-400" />
+                                <RadioGroupItem value="detailed" className="border-white/40 text-white" />
                               </FormControl>
-                              <FormLabel className="font-normal text-gray-300 cursor-pointer">Detailed</FormLabel>
+                              <FormLabel className="font-normal text-white/80 cursor-pointer">Detailed</FormLabel>
                             </FormItem>
                           </RadioGroup>
                         </FormControl>
@@ -274,20 +262,20 @@ export default function SettingsPage() {
                 </div>
                 
                 {/* System Prompt Card */}
-                <div className="glass-panel-strong rounded-xl p-6 shadow-xl">
-                  <h3 className="text-lg font-semibold text-white mb-2">System Prompt</h3>
-                  <p className="text-sm text-gray-400 mb-4">Override the default system prompt. Leave blank to use the default.</p>
-                  <p className="text-xs text-yellow-400/80 mb-4">⚠️ Note: The default prompt includes persistent memory capabilities. If you override it, make sure to include memory instructions or the AI may say it doesn't have memory.</p>
+                <div className="bg-black border border-white/10 rounded-lg p-6">
+                  <h3 className="text-lg font-medium text-white mb-2">System Prompt</h3>
+                  <p className="text-sm text-white/60 mb-4">Override the default system prompt. Leave blank to use the default.</p>
+                  <p className="text-xs text-yellow-400/70 mb-4">⚠️ Note: The default prompt includes persistent memory capabilities. If you override it, make sure to include memory instructions or the AI may say it doesn't have memory.</p>
                   <FormField
                     control={form.control}
                     name="system_prompt_override"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-gray-300">Prompt Override</FormLabel>
+                        <FormLabel className="text-white/80">Prompt Override</FormLabel>
                         <FormControl>
                           <Textarea
                             placeholder="e.g., You are a pirate assistant who says 'Ahoy!' a lot."
-                            className="resize-y min-h-[100px] bg-black/40 border-white/10 text-white placeholder:text-gray-500"
+                            className="resize-y min-h-[100px] bg-black border-white/10 text-white placeholder:text-white/40"
                             {...field}
                           />
                         </FormControl>
@@ -298,21 +286,21 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Appearance Card */}
-                <div className="glass-panel-strong rounded-xl p-6 shadow-xl">
-                  <h3 className="text-lg font-semibold text-white mb-4">Appearance</h3>
+                <div className="bg-black border border-white/10 rounded-lg p-6">
+                  <h3 className="text-lg font-medium text-white mb-4">Appearance</h3>
                   
                   <div className="space-y-4">
                     {/* Theme Toggle */}
                     <div className="flex items-center justify-between">
                       <div className="space-y-1">
-                        <label className="text-sm font-medium text-gray-300">Theme</label>
-                        <p className="text-xs text-gray-400">Choose between dark and light mode</p>
+                        <label className="text-sm font-medium text-white/80">Theme</label>
+                        <p className="text-xs text-white/60">Choose between dark and light mode</p>
                       </div>
                       <Button
                         type="button"
                         variant="outline"
                         onClick={toggleTheme}
-                        className="bg-black/40 border-white/10 text-white hover:bg-white/10"
+                        className="bg-black border-white/10 text-white hover:bg-white/10"
                       >
                         {theme === 'dark' ? (
                           <>
@@ -330,16 +318,16 @@ export default function SettingsPage() {
 
                     {/* Font Size */}
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-300">Font Size</label>
+                      <label className="text-sm font-medium text-white/80">Font Size</label>
                       <Select value={fontSize} onValueChange={(value) => {
                         setFontSize(value);
                         localStorage.setItem('fontSize', value);
                         document.documentElement.style.setProperty('--font-size-scale', value === 'small' ? '0.875' : value === 'large' ? '1.125' : '1');
                       }}>
-                        <SelectTrigger className="bg-black/40 border-white/10 text-white">
+                        <SelectTrigger className="bg-black border-white/10 text-white">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="bg-gray-900 border-white/10">
+                        <SelectContent className="bg-black border-white/10">
                           <SelectItem value="small" className="text-white">Small</SelectItem>
                           <SelectItem value="medium" className="text-white">Medium</SelectItem>
                           <SelectItem value="large" className="text-white">Large</SelectItem>
@@ -350,8 +338,8 @@ export default function SettingsPage() {
                     {/* Reduced Motion */}
                     <div className="flex items-center justify-between">
                       <div className="space-y-1">
-                        <label className="text-sm font-medium text-gray-300">Reduced Motion</label>
-                        <p className="text-xs text-gray-400">Disable animations for better accessibility</p>
+                        <label className="text-sm font-medium text-white/80">Reduced Motion</label>
+                        <p className="text-xs text-white/60">Disable animations for better accessibility</p>
                       </div>
                       <Button
                         type="button"
@@ -366,7 +354,7 @@ export default function SettingsPage() {
                             document.documentElement.classList.remove('reduce-motion');
                           }
                         }}
-                        className={`bg-black/40 border-white/10 text-white hover:bg-white/10 ${reducedMotion ? 'bg-cyan-500/20 border-cyan-400/30' : ''}`}
+                        className={`bg-black border-white/10 text-white hover:bg-white/10 ${reducedMotion ? 'bg-white/10 border-white/20' : ''}`}
                       >
                         {reducedMotion ? 'On' : 'Off'}
                       </Button>
@@ -375,17 +363,17 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Keyboard Shortcuts Card */}
-                <div className="glass-panel-strong rounded-xl p-6 shadow-xl">
+                <div className="bg-black border border-white/10 rounded-lg p-6">
                   <div className="flex items-center justify-between mb-4">
                     <div>
-                      <h3 className="text-lg font-semibold text-white mb-2">Keyboard Shortcuts</h3>
-                      <p className="text-sm text-gray-400">Speed up your workflow with keyboard shortcuts</p>
+                      <h3 className="text-lg font-medium text-white mb-2">Keyboard Shortcuts</h3>
+                      <p className="text-sm text-white/60">Speed up your workflow with keyboard shortcuts</p>
                     </div>
                     <Button
                       type="button"
                       variant="outline"
                       onClick={() => setShortcutsOpen(true)}
-                      className="bg-black/40 border-white/10 text-white hover:bg-white/10"
+                      className="bg-black border-white/10 text-white hover:bg-white/10"
                     >
                       <Keyboard className="h-4 w-4 mr-2" />
                       View Shortcuts
@@ -397,7 +385,7 @@ export default function SettingsPage() {
                   <Button 
                     type="submit" 
                     disabled={isPending || !user}
-                    className="bg-cyan-500 hover:bg-cyan-600 text-white"
+                    className="bg-white/10 hover:bg-white/20 text-white border border-white/10"
                   >
                     {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Save Settings
@@ -411,30 +399,30 @@ export default function SettingsPage() {
                 {user && <KnowledgeUpload userId={user.uid} />}
                 {user && <MemoryTable userId={user.uid} />}
                 {user && <ReindexMemoriesButton userId={user.uid} />}
-                <div className="backdrop-blur-xl bg-red-500/10 border border-red-500/30 rounded-xl p-6 shadow-xl">
-              <h3 className="text-lg font-semibold text-red-400 mb-2">Danger Zone</h3>
-              <p className="text-sm text-gray-400 mb-4">
+                <div className="bg-black border border-white/10 rounded-lg p-6">
+              <h3 className="text-lg font-medium text-white mb-2">Danger Zone</h3>
+              <p className="text-sm text-white/60 mb-4">
                 These actions are permanent and cannot be undone.
               </p>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="destructive" type="button" disabled={isPending || !user} className="bg-red-600 hover:bg-red-700">
+                  <Button variant="destructive" type="button" disabled={isPending || !user} className="bg-white/10 hover:bg-white/20 text-white border border-white/10">
                     Clear All Memory
                   </Button>
                 </AlertDialogTrigger>
-                <AlertDialogContent className="bg-gray-900 border-white/10">
+                <AlertDialogContent className="bg-black border-white/10">
                   <AlertDialogHeader>
                     <AlertDialogTitle className="text-white">Are you absolutely sure?</AlertDialogTitle>
-                    <AlertDialogDescription className="text-gray-400">
+                    <AlertDialogDescription className="text-white/60">
                       This will permanently delete the entire chat history and learned memories. This action cannot be undone.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel className="bg-gray-800 text-white border-white/10">Cancel</AlertDialogCancel>
+                    <AlertDialogCancel className="bg-black text-white border-white/10 hover:bg-white/10">Cancel</AlertDialogCancel>
                     <AlertDialogAction 
                       onClick={handleClearMemory} 
                       disabled={isPending}
-                      className="bg-red-600 hover:bg-red-700"
+                      className="bg-white/10 hover:bg-white/20 text-white border border-white/10"
                     >
                       {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       Continue
@@ -446,61 +434,61 @@ export default function SettingsPage() {
           </TabsContent>
 
           <TabsContent value="api" className="space-y-6">
-            <div className="glass-panel-strong rounded-xl p-6 shadow-xl">
-              <h3 className="text-lg font-semibold text-white mb-2">Personal API Key</h3>
-              <p className="text-sm text-gray-400 mb-4">Connect Pandora to external services like a custom GPT.</p>
+            <div className="bg-black border border-white/10 rounded-lg p-6">
+              <h3 className="text-lg font-medium text-white mb-2">Personal API Key</h3>
+              <p className="text-sm text-white/60 mb-4">Connect Pandora to external services like a custom GPT.</p>
               {settings.personal_api_key ? (
                 <div className="relative mb-4">
                   <Input
                     readOnly
                     type="password"
                     value={settings.personal_api_key}
-                    className="pr-10 font-code bg-black/40 border-white/10 text-white"
+                    className="pr-10 font-code bg-black border-white/10 text-white"
                   />
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 text-cyan-400 hover:bg-white/10"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 text-white hover:bg-white/10"
                     onClick={handleCopyKey}
                   >
-                    {hasCopied ? <Check className="h-4 w-4 text-green-400" /> : <Copy className="h-4 w-4" />}
+                    {hasCopied ? <Check className="h-4 w-4 text-white" /> : <Copy className="h-4 w-4" />}
                   </Button>
                 </div>
               ) : (
-                <div className="flex flex-col items-start gap-4 p-6 border border-white/10 rounded-lg bg-black/20">
-                  <KeyRound className="h-8 w-8 text-cyan-400" />
-                  <p className="text-gray-400">You have not generated an API key yet.</p>
+                <div className="flex flex-col items-start gap-4 p-6 border border-white/10 rounded-lg bg-black">
+                  <KeyRound className="h-8 w-8 text-white/80" />
+                  <p className="text-white/60">You have not generated an API key yet.</p>
                   <Button 
                     onClick={handleGenerateKey} 
                     disabled={isKeyGenerating}
-                    className="bg-cyan-500 hover:bg-cyan-600 text-white"
+                    className="bg-white/10 hover:bg-white/20 text-white border border-white/10"
                   >
                     {isKeyGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Generate Personal API Key
                   </Button>
                 </div>
               )}
-              <p className="text-xs text-gray-500">Use this key to allow external applications to access and interact with your Pandora memory.</p>
+              <p className="text-xs text-white/40">Use this key to allow external applications to access and interact with your Pandora memory.</p>
             </div>
           </TabsContent>
 
           <TabsContent value="brain" className="space-y-6">
-            <div className="glass-panel-strong rounded-xl p-6 shadow-xl">
-              <h3 className="text-lg font-semibold text-white mb-2">Brain Management</h3>
-              <p className="text-sm text-gray-400 mb-4">
+            <div className="bg-black border border-white/10 rounded-lg p-6">
+              <h3 className="text-lg font-medium text-white mb-2">Brain Management</h3>
+              <p className="text-sm text-white/60 mb-4">
                 Manually control Pandora&apos;s long-term memory and offline learning systems.
               </p>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Implant Core Identity */}
-                <div className="bg-black/40 border border-cyan-500/30 rounded-xl p-4 flex flex-col justify-between">
+                <div className="bg-black border border-white/10 rounded-lg p-4 flex flex-col justify-between">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="p-2 rounded-full bg-cyan-500/20 border border-cyan-400/40">
-                      <Fingerprint className="h-5 w-5 text-cyan-400" />
+                    <div className="p-2 rounded-full bg-white/10 border border-white/20">
+                      <Fingerprint className="h-5 w-5 text-white/80" />
                     </div>
                     <div>
-                      <h4 className="text-sm font-semibold text-white">Implant Core Identity</h4>
-                      <p className="text-xs text-gray-400">
+                      <h4 className="text-sm font-medium text-white">Implant Core Identity</h4>
+                      <p className="text-xs text-white/60">
                         Force-write Joven&apos;s coding preferences into long-term memory.
                       </p>
                     </div>
@@ -508,7 +496,7 @@ export default function SettingsPage() {
                   <Button
                     type="button"
                     disabled={isPending || !user}
-                    className="w-full bg-cyan-500 hover:bg-cyan-600 text-white"
+                    className="w-full bg-white/10 hover:bg-white/20 text-white border border-white/10"
                     onClick={() => {
                       if (!user) return;
                       startTransition(async () => {
@@ -534,14 +522,14 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Force Reflection */}
-                <div className="bg-black/40 border border-indigo-500/30 rounded-xl p-4 flex flex-col justify-between">
+                <div className="bg-black border border-white/10 rounded-lg p-4 flex flex-col justify-between">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="p-2 rounded-full bg-indigo-500/20 border border-indigo-400/40">
-                      <MoonStar className="h-5 w-5 text-indigo-300" />
+                    <div className="p-2 rounded-full bg-white/10 border border-white/20">
+                      <MoonStar className="h-5 w-5 text-white/80" />
                     </div>
                     <div>
-                      <h4 className="text-sm font-semibold text-white">Force Reflection</h4>
-                      <p className="text-xs text-gray-400">
+                      <h4 className="text-sm font-medium text-white">Force Reflection</h4>
+                      <p className="text-xs text-white/60">
                         Analyze recent history and generate insights immediately.
                       </p>
                     </div>
@@ -549,7 +537,7 @@ export default function SettingsPage() {
                   <Button
                     type="button"
                     disabled={isPending || !user}
-                    className="w-full bg-indigo-500 hover:bg-indigo-600 text-white"
+                    className="w-full bg-white/10 hover:bg-white/20 text-white border border-white/10"
                     onClick={() => {
                       if (!user) return;
                       startTransition(async () => {
@@ -575,14 +563,14 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Run Deep Research */}
-                <div className="bg-black/40 border border-emerald-500/30 rounded-xl p-4 flex flex-col justify-between">
+                <div className="bg-black border border-white/10 rounded-lg p-4 flex flex-col justify-between">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="p-2 rounded-full bg-emerald-500/20 border border-emerald-400/40">
-                      <Microscope className="h-5 w-5 text-emerald-300" />
+                    <div className="p-2 rounded-full bg-white/10 border border-white/20">
+                      <Microscope className="h-5 w-5 text-white/80" />
                     </div>
                     <div>
-                      <h4 className="text-sm font-semibold text-white">Run Deep Research</h4>
-                      <p className="text-xs text-gray-400">
+                      <h4 className="text-sm font-medium text-white">Run Deep Research</h4>
+                      <p className="text-xs text-white/60">
                         Process the pending learning queue and store acquired knowledge now.
                       </p>
                     </div>
@@ -590,7 +578,7 @@ export default function SettingsPage() {
                   <Button
                     type="button"
                     disabled={isPending || !user}
-                    className="w-full bg-emerald-500 hover:bg-emerald-600 text-white"
+                    className="w-full bg-white/10 hover:bg-white/20 text-white border border-white/10"
                     onClick={() => {
                       if (!user) return;
                       startTransition(async () => {
@@ -619,9 +607,9 @@ export default function SettingsPage() {
           </TabsContent>
 
           <TabsContent value="data" className="space-y-6">
-            <div className="glass-panel-strong rounded-xl p-6 shadow-xl">
-              <h3 className="text-lg font-semibold text-white mb-2">Data Export</h3>
-              <p className="text-sm text-gray-400 mb-4">Download all your data for backup or GDPR compliance.</p>
+            <div className="bg-black border border-white/10 rounded-lg p-6">
+              <h3 className="text-lg font-medium text-white mb-2">Data Export</h3>
+              <p className="text-sm text-white/60 mb-4">Download all your data for backup or GDPR compliance.</p>
               <Button 
                 onClick={async () => {
                   if (!user) return;
@@ -645,12 +633,12 @@ export default function SettingsPage() {
                   });
                 }}
                 disabled={isPending || !user}
-                className="bg-cyan-500 hover:bg-cyan-600 text-white"
+                className="bg-white/10 hover:bg-white/20 text-white border border-white/10"
               >
                 {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Export All Data (JSON)
               </Button>
-              <p className="text-xs text-gray-500 mt-2">
+              <p className="text-xs text-white/40 mt-2">
                 This will download all your threads, messages, memories, and artifacts as a JSON file.
               </p>
             </div>

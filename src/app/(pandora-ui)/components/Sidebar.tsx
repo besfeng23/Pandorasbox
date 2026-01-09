@@ -88,8 +88,8 @@ export default function Sidebar({
                   <button 
                     className={`flex items-center gap-2 text-sm w-full px-3 py-2 rounded-lg transition-colors ${
                       pathname === "/" 
-                        ? "bg-violet-500/20 text-violet-400" 
-                        : "text-white/70 hover:text-violet-400 hover:bg-white/5"
+                        ? "bg-white/10 text-white" 
+                        : "text-white/70 hover:text-white hover:bg-white/5"
                     }`}
                     onClick={() => handleNavigate("/")}
                   >
@@ -98,8 +98,8 @@ export default function Sidebar({
                   <button 
                     className={`flex items-center gap-2 text-sm w-full px-3 py-2 rounded-lg transition-colors ${
                       pathname === "/graph" 
-                        ? "bg-violet-500/20 text-violet-400" 
-                        : "text-white/70 hover:text-violet-400 hover:bg-white/5"
+                        ? "bg-white/10 text-white" 
+                        : "text-white/70 hover:text-white hover:bg-white/5"
                     }`}
                     onClick={() => handleNavigate("/graph")}
                   >
@@ -108,8 +108,8 @@ export default function Sidebar({
                   <button 
                     className={`flex items-center gap-2 text-sm w-full px-3 py-2 rounded-lg transition-colors ${
                       pathname === "/settings" 
-                        ? "bg-violet-500/20 text-violet-400" 
-                        : "text-white/70 hover:text-violet-400 hover:bg-white/5"
+                        ? "bg-white/10 text-white" 
+                        : "text-white/70 hover:text-white hover:bg-white/5"
                     }`}
                     onClick={() => handleNavigate("/settings")}
                   >

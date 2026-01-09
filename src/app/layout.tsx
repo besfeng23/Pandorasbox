@@ -67,7 +67,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
-      <body className="font-body antialiased" style={{ minHeight: '100dvh', overflowY: 'auto' }}>
+      <body className="font-body antialiased bg-black text-white" style={{ minHeight: '100dvh', overflowY: 'auto' }}>
         <ThemeProvider>
           <FirebaseClientProvider>
             <NotificationProvider>
