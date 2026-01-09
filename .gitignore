@@ -54,3 +54,7 @@ src/base44/logs/*.log
 
 # firebase build artifacts
 .firebase/
+
+# large zip files
+*.zip
+!PB_temp_extract/**/*.zip
