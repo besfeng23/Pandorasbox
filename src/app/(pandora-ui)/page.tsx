@@ -1,43 +1,69 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowUp, Mic } from "lucide-react";
 import PandoraBoxInteractive from "@/app/(pandora-ui)/components/PandoraBoxInteractive";
 import ChatMessages from "@/app/(pandora-ui)/components/ChatMessages";
 import ChatInput from "@/app/(pandora-ui)/components/ChatInput";
-
-async function sendMessage(message: string, sessionId: string) {
-  try {
-    // TODO: Implement chat API integration
-    return "Chat functionality coming soon...";
-  } catch (err: any) {
-    console.error("Chat error:", err);
-    return "⚠️  Connection issue.";
-  }
-}
+import { submitUserMessage } from "@/app/actions";
+import { useChatHistory } from "@/hooks/use-chat-history";
+import { useUser } from "@/firebase";
+import { createThread } from "@/app/actions";
+import { Message } from "@/lib/types";
 
 export default function PandoraChatPage() {
+  const { user } = useUser();
+  const userId = user?.uid || null;
+  const [threadId, setThreadId] = useState<string | null>(null);
   const [input, setInput] = useState("");
-  const [messages, setMessages] = useState<{ role: string; content: string }[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const sessionId = "pandora-session";
+  const [isSending, setIsSending] = useState(false);
+
+  // Initialize thread on mount
+  useEffect(() => {
+    if (userId && !threadId) {
+      createThread(userId).then(setThreadId).catch(console.error);
+    }
+  }, [userId, threadId]);
+
+  // Fetch real-time messages using the existing hook
+  const { messages, isLoading } = useChatHistory(userId, threadId);
+
+  // Convert Message type to simple format for ChatMessages component
+  const chatMessages = messages.map((msg: Message) => ({
+    role: msg.role,
+    content: msg.content || "",
+  }));
 
   const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
-    
-    const userMsg = { role: "user", content: input.trim() };
-    setMessages((m) => [...m, userMsg]);
+    if (!input.trim() || isSending || !userId) return;
+
+    const messageContent = input.trim();
     setInput("");
-    setIsLoading(true);
+    setIsSending(true);
 
     try {
-      const reply = await sendMessage(userMsg.content, sessionId);
-      setMessages((m) => [...m, { role: "assistant", content: reply }]);
+      const formData = new FormData();
+      formData.append("message", messageContent);
+      formData.append("userId", userId);
+      if (threadId) {
+        formData.append("threadId", threadId);
+      }
+      formData.append("source", "text");
+
+      const result = await submitUserMessage(formData);
+      
+      if (result.threadId && !threadId) {
+        setThreadId(result.threadId);
+      }
+
+      if (result.error) {
+        console.error("Message error:", result.error);
+      }
     } catch (error) {
-      setMessages((m) => [...m, { role: "assistant", content: "⚠️  Error sending message. Please try again." }]);
+      console.error("Failed to send message:", error);
     } finally {
-      setIsLoading(false);
+      setIsSending(false);
     }
   };
 
@@ -45,7 +71,10 @@ export default function PandoraChatPage() {
     <div className="flex flex-col h-full bg-black text-white">
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-        <ChatMessages messages={messages} isLoading={isLoading} />
+        <ChatMessages 
+          messages={chatMessages} 
+          isLoading={isLoading || isSending} 
+        />
       </div>
 
       {/* Input bar */}
@@ -57,6 +86,7 @@ export default function PandoraChatPage() {
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
           placeholder="Ask Pandora…"
+          disabled={isSending || !userId}
         />
 
         <AnimatePresence mode="wait">
@@ -64,7 +94,7 @@ export default function PandoraChatPage() {
             <motion.button
               key="send"
               onClick={handleSend}
-              disabled={isLoading}
+              disabled={isSending || !userId}
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}

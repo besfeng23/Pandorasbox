@@ -14,15 +14,17 @@ export default function ChatInput({
   onChange,
   onKeyDown,
   placeholder = "Type a message...",
+  disabled,
   ...props
 }: ChatInputProps) {
   return (
     <input
-      className="flex-1 bg-transparent outline-none text-white placeholder-white/40"
+      className="flex-1 bg-transparent outline-none text-white placeholder-white/40 disabled:opacity-50"
       placeholder={placeholder}
       value={value}
       onChange={onChange}
       onKeyDown={onKeyDown}
+      disabled={disabled}
       {...props}
     />
   );

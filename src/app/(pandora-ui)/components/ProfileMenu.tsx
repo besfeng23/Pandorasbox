@@ -2,9 +2,25 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LogOut, User } from "lucide-react";
+import { getAuth, signOut } from "firebase/auth";
+import { useRouter } from "next/navigation";
+import { useUser } from "@/firebase";
 
 export default function ProfileMenu() {
   const [open, setOpen] = useState(false);
+  const { user } = useUser();
+  const router = useRouter();
+
+  const handleSignOut = async () => {
+    setOpen(false);
+    try {
+      const auth = getAuth();
+      await signOut(auth);
+      router.push("/");
+    } catch (error) {
+      console.error("Sign out error:", error);
+    }
+  };
 
   return (
     <div className="relative p-4 border-t border-white/10">
@@ -12,7 +28,7 @@ export default function ProfileMenu() {
         onClick={() => setOpen((o) => !o)}
         className="flex items-center gap-2 text-sm text-white/70 hover:text-white transition-colors w-full"
       >
-        <User className="w-4 h-4" /> Operator
+        <User className="w-4 h-4" /> {user?.email?.split("@")[0] || "Operator"}
       </button>
 
       <AnimatePresence>
@@ -50,11 +66,7 @@ export default function ProfileMenu() {
               </button>
               <button 
                 className="w-full text-left px-3 py-1.5 text-sm text-red-400 hover:bg-white/10 rounded-md transition-colors"
-                onClick={() => {
-                  setOpen(false);
-                  // TODO: Implement sign out logic
-                  console.log("Sign out clicked");
-                }}
+                onClick={handleSignOut}
               >
                 <LogOut className="inline w-3 h-3 mr-1" /> Sign out
               </button>
