@@ -8,9 +8,7 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  experimental: {
-    serverActions: true
-  },
+  // serverActions are enabled by default in Next.js 15
   output: "standalone",
   images: {
     unoptimized: true,
