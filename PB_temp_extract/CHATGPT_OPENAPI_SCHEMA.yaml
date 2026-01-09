@@ -1,0 +1,337 @@
+openapi: 3.1.0
+info:
+  title: Pandora's Box Memory API
+  description: |
+    API for ChatGPT to store and retrieve memories from Pandora's Box.
+    This enables ChatGPT to maintain persistent memory across conversations by storing
+    important information in Pandora's Box's vector database for semantic search.
+  version: 1.0.0
+servers:
+  - url: https://studio-sg--seismic-vista-480710-q5.asia-southeast1.hosted.app
+    description: Production server
+paths:
+  /api/chatgpt/store-memory:
+    post:
+      operationId: storeMemory
+      summary: Store a memory in Pandora's Box
+      description: |
+        Stores a memory that can be retrieved later using semantic search.
+        Use this to save important facts, preferences, or information about the user
+        that should be remembered across conversations.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - memory
+              properties:
+                memory:
+                  type: string
+                  description: |
+                    The memory content to store. Be specific and clear.
+                    Examples: "User prefers dark mode UI", "User's favorite programming language is TypeScript",
+                    "User is working on a Next.js project with Firebase"
+                user_email:
+                  type: string
+                  description: User email address (defaults to joven.ong23@gmail.com if not provided)
+                  default: joven.ong23@gmail.com
+            examples:
+              example1:
+                value:
+                  memory: "User prefers dark mode interface"
+                  user_email: "joven.ong23@gmail.com"
+              example2:
+                value:
+                  memory: "User is working on a Next.js project with Firebase App Hosting"
+                  user_email: "joven.ong23@gmail.com"
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Memory stored successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Memory stored successfully"
+                  memory_id:
+                    type: string
+                    example: "abc123def456"
+                  user_id:
+                    type: string
+                    example: "firebase_user_uid"
+        '400':
+          description: Invalid request (missing memory content)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Memory content is required"
+        '401':
+          description: Unauthorized (invalid API key)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Unauthorized: Invalid API Key"
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "User not found for email: user@example.com"
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Failed to store memory"
+                  details:
+                    type: string
+
+  /api/chatgpt/retrieve-memories:
+    get:
+      operationId: retrieveMemories
+      summary: Retrieve relevant memories from Pandora's Box
+      description: |
+        Retrieves memories using semantic search or returns recent memories.
+        If a query is provided, performs semantic vector search to find the most relevant memories.
+        If no query is provided, returns the most recent memories.
+      parameters:
+        - name: query
+          in: query
+          required: false
+          schema:
+            type: string
+          description: |
+            Search query for semantic memory retrieval.
+            Examples: "user preferences", "programming languages", "current project"
+        - name: user_email
+          in: query
+          required: false
+          schema:
+            type: string
+          description: User email address (defaults to joven.ong23@gmail.com)
+          default: joven.ong23@gmail.com
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+          description: Maximum number of memories to return
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Memories retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  count:
+                    type: integer
+                    example: 5
+                  memories:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          example: "abc123def456"
+                        content:
+                          type: string
+                          example: "User prefers dark mode interface"
+                        relevance_score:
+                          type: number
+                          format: float
+                          minimum: 0
+                          maximum: 1
+                          description: Relevance score (0-1, higher is more relevant)
+                          example: 0.9234
+                        timestamp:
+                          type: string
+                          format: date-time
+                          example: "2025-01-05T18:27:38.021Z"
+                  user_id:
+                    type: string
+                    example: "firebase_user_uid"
+        '401':
+          description: Unauthorized (invalid API key)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Unauthorized: Invalid API Key"
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "User not found for email: user@example.com"
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Failed to retrieve memories"
+                  details:
+                    type: string
+    post:
+      operationId: retrieveMemoriesPost
+      summary: Retrieve relevant memories from Pandora's Box (POST)
+      description: |
+        Alternative POST endpoint for retrieving memories.
+        Use this if you prefer POST over GET for sending query parameters.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                  description: Search query for semantic memory retrieval
+                user_email:
+                  type: string
+                  description: User email address (defaults to joven.ong23@gmail.com)
+                  default: joven.ong23@gmail.com
+                limit:
+                  type: integer
+                  minimum: 1
+                  maximum: 50
+                  default: 10
+                  description: Maximum number of memories to return
+            examples:
+              example1:
+                value:
+                  query: "user preferences"
+                  user_email: "joven.ong23@gmail.com"
+                  limit: 5
+              example2:
+                value:
+                  query: "current project"
+                  limit: 10
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Memories retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  count:
+                    type: integer
+                    example: 5
+                  memories:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          example: "abc123def456"
+                        content:
+                          type: string
+                          example: "User prefers dark mode interface"
+                        relevance_score:
+                          type: number
+                          format: float
+                          example: 0.9234
+                        timestamp:
+                          type: string
+                          format: date-time
+                          example: "2025-01-05T18:27:38.021Z"
+                  user_id:
+                    type: string
+                    example: "firebase_user_uid"
+        '401':
+          description: Unauthorized (invalid API key)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Unauthorized: Invalid API Key"
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "User not found for email: user@example.com"
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Failed to retrieve memories"
+                  details:
+                    type: string
+
+components:
+  schemas: {}
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: |
+        API key authentication.
+        Format: "Bearer YOUR_API_KEY"
+        Use the value from the CHATGPT_API_KEY secret: OKepTRWlwBohzaEbCGQgcUZXjI34m7qL
