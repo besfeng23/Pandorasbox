@@ -48,3 +48,6 @@ service-account.json
 # cursor
 .cursor/
 TECHNICAL_DESIGN.md
+
+# base44 logs
+src/base44/logs/*.log
