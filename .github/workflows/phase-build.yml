@@ -40,6 +40,7 @@ jobs:
           GCLOUD_PROJECT: ${{ secrets.GCLOUD_PROJECT }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MCP_ENDPOINT: ${{ secrets.MCP_ENDPOINT }}
+          FIREBASE_SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
         run: |
           echo "🌱 Running Pandora build and phase sync..."
           npm run seed:phases

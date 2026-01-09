@@ -19,27 +19,47 @@ function initializeFirebase() {
     return admin.firestore();
   }
 
-  // Try local service account file
-  const serviceAccountPath = path.join(process.cwd(), 'service-account.json');
-  
-  if (fs.existsSync(serviceAccountPath)) {
-    const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf-8'));
-    console.log('Initializing Firebase Admin with service-account.json...');
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-    });
-    return admin.firestore();
-  } else {
-    // Try Application Default Credentials
+  // Priority 1: Service account from environment variable (for GitHub Actions)
+  const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+  if (serviceAccountJson) {
     try {
-      console.log('Initializing Firebase Admin with Application Default Credentials...');
+      const serviceAccount = JSON.parse(serviceAccountJson);
+      console.log('Initializing Firebase Admin with FIREBASE_SERVICE_ACCOUNT_KEY...');
       admin.initializeApp({
-        credential: admin.credential.applicationDefault()
+        credential: admin.credential.cert(serviceAccount),
       });
       return admin.firestore();
     } catch (error: any) {
-      throw new Error(`Failed to initialize Firebase Admin: ${error.message}`);
+      console.warn('Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY:', error.message);
     }
+  }
+
+  // Priority 2: Local service account file
+  const serviceAccountPath = path.join(process.cwd(), 'service-account.json');
+  if (fs.existsSync(serviceAccountPath)) {
+    try {
+      const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf-8'));
+      console.log('Initializing Firebase Admin with service-account.json...');
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+      });
+      return admin.firestore();
+    } catch (error: any) {
+      console.warn('Failed to load service-account.json:', error.message);
+    }
+  }
+
+  // Priority 3: Application Default Credentials (with proper database URL)
+  try {
+    console.log('Initializing Firebase Admin with Application Default Credentials...');
+    const projectId = process.env.FIREBASE_PROJECT_ID || process.env.GCLOUD_PROJECT;
+    admin.initializeApp({
+      credential: admin.credential.applicationDefault(),
+      ...(projectId && { projectId }),
+    });
+    return admin.firestore();
+  } catch (error: any) {
+    throw new Error(`Failed to initialize Firebase Admin: ${error.message}. Please set FIREBASE_SERVICE_ACCOUNT_KEY secret in GitHub Actions.`);
   }
 }
 
