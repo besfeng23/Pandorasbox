@@ -23,7 +23,7 @@
     "indexes": "firestore.indexes.json"
   },
   "apphosting": {
-    "backendId": "studio",
+    "backendId": "pandora-ui",
     "rootDir": "/",
     "ignore": [
       "node_modules",
