@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Activity, Shield, Network, Brain, TrendingUp } from "lucide-react";
 import { useFirestore } from "@/firebase";
-import { collection, getDocs, query, orderBy } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, limit } from "firebase/firestore";
 import { useUIState } from "./useUIState";
 
 interface PhaseMetrics {
@@ -57,23 +57,66 @@ export default function PhaseDashboard() {
         }));
         setPhases(phasesData);
 
-        // Fetch system metrics (these would be in separate collections)
-        // For now, simulate data
-        setSystemMetrics({
-          federation: {
-            connected_systems: 3,
-            active_federations: ["system-a", "system-b", "system-c"],
-          },
-          selfheal: {
-            recovery_events: 12,
-            last_recovery: new Date().toISOString(),
-            health_status: "healthy",
-          },
-          governance: {
-            active_constraints: 8,
-            violations_today: 0,
-          },
-        });
+        // Fetch system metrics from Firestore collections
+        try {
+          // Fetch federation metrics (Phase 9)
+          const federationSnapshot = await getDocs(
+            collection(firestore, "system_federation")
+          );
+          let federationData = { connected_systems: 0, active_federations: [] as string[] };
+          if (!federationSnapshot.empty) {
+            const latest = federationSnapshot.docs[0].data();
+            federationData = {
+              connected_systems: latest.connected_systems || 0,
+              active_federations: latest.active_federations || [],
+            };
+          }
+
+          // Fetch self-healing metrics (Phase 7)
+          const selfhealSnapshot = await getDocs(
+            query(collection(firestore, "system_selfheal"), orderBy("timestamp", "desc"), limit(1))
+          );
+          let selfhealData = {
+            recovery_events: 0,
+            last_recovery: null as string | null,
+            health_status: "healthy" as "healthy" | "degraded" | "critical",
+          };
+          if (!selfhealSnapshot.empty) {
+            const latest = selfhealSnapshot.docs[0].data();
+            selfhealData = {
+              recovery_events: latest.recovery_events || 0,
+              last_recovery: latest.last_recovery || latest.timestamp || null,
+              health_status: latest.health_status || "healthy",
+            };
+          }
+
+          // Fetch governance metrics (Phase 11)
+          const governanceSnapshot = await getDocs(
+            collection(firestore, "system_governance")
+          );
+          let governanceData = { active_constraints: 0, violations_today: 0 };
+          if (!governanceSnapshot.empty) {
+            const latest = governanceSnapshot.docs[0].data();
+            governanceData = {
+              active_constraints: latest.active_constraints || 0,
+              violations_today: latest.violations_today || 0,
+            };
+          }
+
+          setSystemMetrics({
+            federation: federationData,
+            selfheal: selfhealData,
+            governance: governanceData,
+          });
+        } catch (metricsError) {
+          console.error("Error fetching system metrics:", metricsError);
+          // Fallback to default values on error
+          setSystemMetrics({
+            federation: { connected_systems: 0, active_federations: [] },
+            selfheal: { recovery_events: 0, last_recovery: null, health_status: "healthy" },
+            governance: { active_constraints: 0, violations_today: 0 },
+          });
+        }
       } catch (error) {
         console.error("Error fetching metrics:", error);
       } finally {

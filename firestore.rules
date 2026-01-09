@@ -122,5 +122,29 @@ service cloud.firestore {
       allow read: if request.auth != null; // Authenticated users can read logs
       allow write: if false; // Only server-side writes via Admin SDK
     }
+
+    // System Phases - read-only for authenticated users (Phase 1-14 status)
+    match /system_phases/{phaseId} {
+      allow read: if request.auth != null; // Authenticated users can read phase status
+      allow write: if false; // Only server-side writes via Admin SDK
+    }
+
+    // System Governance (Phase 11) - read-only for authenticated users
+    match /system_governance/{docId} {
+      allow read: if request.auth != null; // Authenticated users can read governance metrics
+      allow write: if false; // Only server-side writes via Admin SDK
+    }
+
+    // System Federation (Phase 9) - read-only for authenticated users
+    match /system_federation/{docId} {
+      allow read: if request.auth != null; // Authenticated users can read federation metrics
+      allow write: if false; // Only server-side writes via Admin SDK
+    }
+
+    // System Self-Healing (Phase 7) - read-only for authenticated users
+    match /system_selfheal/{docId} {
+      allow read: if request.auth != null; // Authenticated users can read self-healing metrics
+      allow write: if false; // Only server-side writes via Admin SDK
+    }
   }
 }
