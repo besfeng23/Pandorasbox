@@ -1,11 +1,10 @@
 'use server';
 
-// @ts-ignore - TavilyClient type definitions might not export the class correctly
-import { TavilyClient } from '@tavily/core';
+import { tavily, type TavilyClient } from '@tavily/core';
 
-let tavilyClient: any = null;
+let tavilyClient: TavilyClient | null = null;
 
-function getTavilyClient() {
+function getTavilyClient(): TavilyClient {
   if (tavilyClient) return tavilyClient;
 
   const apiKey = process.env.TAVILY_API_KEY?.trim();
@@ -15,8 +14,7 @@ function getTavilyClient() {
     );
   }
 
-  // @ts-ignore - TavilyClient is a class but types might not be exported correctly
-  tavilyClient = new TavilyClient({
+  tavilyClient = tavily({
     apiKey,
   });
 

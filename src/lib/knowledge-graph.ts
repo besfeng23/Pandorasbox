@@ -266,3 +266,45 @@ export function toRelationshipEdges(edges: KnowledgeGraphEdge[]): RelationshipEd
     weight: edge.weight,
   }));
 }
+
+/**
+ * Search knowledge graph nodes by label (text-based search)
+ * For semantic search, use searchMemories from vector.ts with memoryIds from nodes
+ */
+export async function searchKnowledgeNodes(
+  userId: string,
+  query: string,
+  limit: number = 10
+): Promise<KnowledgeGraphNode[]> {
+  if (!query.trim()) {
+    return [];
+  }
+
+  const firestoreAdmin = getFirestoreAdmin();
+  const nodesCollection = firestoreAdmin.collection(KNOWLEDGE_NODE_COLLECTION);
+  
+  // Simple text-based search - filter nodes where label contains query
+  const queryLower = query.toLowerCase().trim();
+  const snapshot = await nodesCollection
+    .where('userId', '==', userId)
+    .limit(limit * 2) // Get more to filter
+    .get();
+
+  const nodes = snapshot.docs
+    .map(doc => doc.data() as KnowledgeGraphNode)
+    .filter(node => 
+      node.label.toLowerCase().includes(queryLower) ||
+      queryLower.split(/\s+/).some(term => node.label.toLowerCase().includes(term))
+    )
+    .sort((a, b) => {
+      // Sort by relevance: exact matches first, then by occurrences
+      const aExact = a.label.toLowerCase() === queryLower;
+      const bExact = b.label.toLowerCase() === queryLower;
+      if (aExact && !bExact) return -1;
+      if (!aExact && bExact) return 1;
+      return b.occurrences - a.occurrences;
+    })
+    .slice(0, limit);
+
+  return nodes;
+}
