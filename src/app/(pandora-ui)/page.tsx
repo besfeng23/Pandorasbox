@@ -71,14 +71,20 @@ export default function PandoraChatPage() {
     <div className="flex flex-col h-full bg-black text-white">
       {/* Messages */}
       <div className="flex-1 overflow-y-auto bg-black">
-        <ChatMessages 
-          messages={chatMessages} 
-          isLoading={isLoading || isSending} 
-        />
+        {chatMessages.length === 0 && !isLoading && !isSending ? (
+          <div className="flex items-center justify-center h-full">
+            <PandoraBoxInteractive />
+          </div>
+        ) : (
+          <ChatMessages 
+            messages={chatMessages} 
+            isLoading={isLoading || isSending} 
+          />
+        )}
       </div>
 
       {/* Input bar */}
-      <div className="flex items-center gap-3 px-4 py-3 bg-black">
+      <div className="flex items-center gap-3 border-t border-white/10 px-4 py-3 bg-black">
         <PandoraBoxInteractive />
 
         <ChatInput
