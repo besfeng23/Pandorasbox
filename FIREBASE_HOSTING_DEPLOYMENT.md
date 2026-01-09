@@ -10,7 +10,7 @@
 ✅ **next.config.ts** - Updated with:
 - `output: "standalone"` for Firebase deployment
 - `images.unoptimized: true` for static hosting
-- Base44 environment variables
+- Environment variables for Firebase and AI services
 - Build version
 
 ✅ **package.json** - Added:
@@ -24,8 +24,7 @@
 Make sure these are set in `.env.local`:
 
 ```env
-NEXT_PUBLIC_BASE44_PROJECT_ID=your_base44_project_id
-NEXT_PUBLIC_BASE44_API_KEY=your_base44_api_key
+# Genkit and AI services configured via apphosting.yaml secrets
 NEXT_PUBLIC_FIREBASE_PROJECT_ID=seismic-vista-480710-q5
 NEXT_PUBLIC_BUILD_VERSION=v1.0.0
 ```
@@ -81,7 +80,7 @@ After deployment, Firebase will provide URLs:
 - [ ] Hosting URL is accessible
 - [ ] Sidebar opens smoothly
 - [ ] Settings drawer opens from right
-- [ ] Chat sends messages via Base44
+- [ ] Chat sends messages via Genkit flows
 - [ ] Mobile layout collapses on <768px width
 - [ ] All environment variables are set
 
@@ -99,7 +98,7 @@ After deployment, Firebase will provide URLs:
 
 ### Runtime Errors
 - Check environment variables in `.env.local`
-- Verify Base44 API key is set
+- Verify Genkit is properly initialized
 - Check Firebase project configuration
 
 ## Notes

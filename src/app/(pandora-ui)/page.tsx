@@ -6,12 +6,11 @@ import { ArrowUp, Mic } from "lucide-react";
 import PandoraBoxInteractive from "@/app/(pandora-ui)/components/PandoraBoxInteractive";
 import ChatMessages from "@/app/(pandora-ui)/components/ChatMessages";
 import ChatInput from "@/app/(pandora-ui)/components/ChatInput";
-import { base44 } from "@/lib/base44Client";
 
-async function sendMessageToBase44(message: string, sessionId: string) {
+async function sendMessage(message: string, sessionId: string) {
   try {
-    const response = await base44.chatCompletion(message, sessionId, "operator");
-    return response || "...";
+    // TODO: Implement chat API integration
+    return "Chat functionality coming soon...";
   } catch (err: any) {
     console.error("Chat error:", err);
     return "⚠️  Connection issue.";
@@ -33,7 +32,7 @@ export default function PandoraChatPage() {
     setIsLoading(true);
 
     try {
-      const reply = await sendMessageToBase44(userMsg.content, sessionId);
+      const reply = await sendMessage(userMsg.content, sessionId);
       setMessages((m) => [...m, { role: "assistant", content: reply }]);
     } catch (error) {
       setMessages((m) => [...m, { role: "assistant", content: "⚠️  Error sending message. Please try again." }]);

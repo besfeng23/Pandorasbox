@@ -1,6 +1,6 @@
 /**
- * Pandora Phase Seeder & Base44 Alignment Script
- * This script seeds all 15 phases, syncs Firebase, and updates Cursor + GitHub.
+ * Pandora Phase Seeder Script
+ * This script seeds all 15 phases, syncs Firebase, and updates GitHub.
  */
 
 import { execSync } from 'child_process';
@@ -79,7 +79,7 @@ const phases = [
   { id: 12, title: "Reflection & Self-Diagnosis", description: "Enabling self-reflection and diagnosis of Pandora's health.", status: "Referenced", dependencies: ["Phase 11"], build_entrypoint: "self_reflection" },
   { id: 13, title: "Unified Cognition & Emergent Agency", description: "Creating a fully unified, emergent cognitive state.", status: "Stored", dependencies: ["Phase 12"], build_entrypoint: "unified_cognition" },
   { id: 14, title: "Distributed Conscious Subnetworks", description: "Allowing distributed agent networks to interact with Pandora.", status: "Stored", dependencies: ["Phase 13"], build_entrypoint: "distributed_subnetworks" },
-  { id: 15, title: "Unified Gateway Layer (Base44)", description: "Base44 middleware integration for API gateway functionality.", status: "Active", dependencies: ["Phase 13", "Phase 14"], build_entrypoint: "base44_integration" }
+      { id: 15, title: "Unified Gateway Layer", description: "Unified middleware integration for API gateway functionality.", status: "Active", dependencies: ["Phase 13", "Phase 14"], build_entrypoint: "gateway_integration" }
 ];
 
 // Function to Seed Phases into Firestore
@@ -245,7 +245,7 @@ ${phases.map(p => `          # Phase ${p.id}: ${p.title}`).join('\n')}
 // Main Execution
 async function execute() {
   try {
-    console.log('🧠 Pandora Phase Seeder & Base44 Alignment\n');
+    console.log('🧠 Pandora Phase Seeder\n');
     console.log('=' .repeat(60));
 
     // Initialize Firebase

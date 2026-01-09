@@ -27,7 +27,7 @@ Your Pandora UI has been successfully deployed to Firebase Hosting!
 
 1. **Next.js Application** (standalone output)
    - All static pages
-   - API routes (Base44, MCP, Cron jobs, etc.)
+   - API routes (MCP, Cron jobs, etc.)
    - Pandora UI components
 
 2. **Cloud Function** (for SSR)
@@ -54,7 +54,7 @@ Your Pandora UI has been successfully deployed to Firebase Hosting!
    - Visit: https://seismic-vista-480710-q5.web.app
    - Test sidebar functionality
    - Test settings drawer
-   - Test chat via Base44
+   - Test chat functionality
 
 2. **Link Web App (Optional):**
    - Go to: https://console.firebase.google.com/project/seismic-vista-480710-q5/settings/general/web
