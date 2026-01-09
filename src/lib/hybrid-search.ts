@@ -10,6 +10,8 @@
 import { searchMemories } from './vector';
 import { tavilySearch, TavilySearchResult } from './tavily';
 import { getCachedResults, cacheExternalResults } from './external-cache';
+import { getWeightsWithFallback } from './adaptive-weights';
+import { trackSearchPerformance } from './performance-tracker';
 
 export interface HybridSearchResult {
   id: string;
@@ -39,14 +41,20 @@ export async function hybridSearch(
     return [];
   }
 
+  const startTime = Date.now();
+
   try {
+    // Get adaptive weights for this user (Phase 6: Continuous Self-Improvement)
+    const weights = await getWeightsWithFallback(userId, 0.6, 0.4);
+    
     // Check cache for external results first
     const cachedExternal = await getCachedResults(query);
     
     // Parallel search: internal memories + external web (or cached)
+    // Use adaptive weights to determine result distribution
     const [internalResults, externalResults] = await Promise.all([
-      // Internal memory search
-      searchMemories(query, userId, Math.ceil(limit * 0.6)), // Get more internal results
+      // Internal memory search - use adaptive weight to determine count
+      searchMemories(query, userId, Math.ceil(limit * weights.internal)),
       
       // External web search (use cache if available, otherwise fetch)
       cachedExternal.length > 0
@@ -58,7 +66,7 @@ export async function hybridSearch(
               url: item.url || '',
             })),
           } as TavilySearchResult)
-        : tavilySearch(query, { maxResults: Math.ceil(limit * 0.4) }),
+        : tavilySearch(query, { maxResults: Math.ceil(limit * weights.external) }),
     ]);
 
     // If we fetched fresh external results, cache them
@@ -66,17 +74,17 @@ export async function hybridSearch(
       await cacheExternalResults(query, externalResults.results);
     }
 
-    // Convert internal results to HybridSearchResult format
+    // Convert internal results to HybridSearchResult format (Phase 6: use adaptive weights)
     const internalHybrid: HybridSearchResult[] = internalResults.map(result => ({
       id: result.id,
       content: result.text,
       source: 'internal' as const,
       confidence: result.score, // Internal confidence is the similarity score
-      fusedScore: result.score * 0.6, // Internal weight: 60%
+      fusedScore: result.score * weights.internal, // Use adaptive internal weight
       timestamp: result.timestamp,
     }));
 
-    // Convert external results to HybridSearchResult format
+    // Convert external results to HybridSearchResult format (Phase 6: use adaptive weights)
     const externalHybrid: HybridSearchResult[] = externalResults.results.map((result, index) => {
       // Calculate confidence based on position (first results are more confident)
       // Normalize to 0-1 range with decay for later results
@@ -88,7 +96,7 @@ export async function hybridSearch(
         content: result.snippet || result.title || '',
         source: 'external' as const,
         confidence,
-        fusedScore: confidence * 0.4, // External weight: 40%
+        fusedScore: confidence * weights.external, // Use adaptive external weight
         url: result.url,
         title: result.title,
       };
@@ -99,7 +107,40 @@ export async function hybridSearch(
       .sort((a, b) => b.fusedScore - a.fusedScore)
       .slice(0, limit);
 
-    console.log(`[hybridSearch] Found ${internalHybrid.length} internal and ${externalHybrid.length} external results. Returning top ${allResults.length} fused results.`);
+    const responseTime = Date.now() - startTime;
+    const avgConfidence = allResults.length > 0
+      ? allResults.reduce((sum, r) => sum + r.confidence, 0) / allResults.length
+      : 0;
+    const avgFusedScore = allResults.length > 0
+      ? allResults.reduce((sum, r) => sum + r.fusedScore, 0) / allResults.length
+      : 0;
+
+    // Track performance for meta-learning (Phase 6)
+    try {
+      await trackSearchPerformance({
+        query,
+        userId,
+        internalCount: internalHybrid.length,
+        externalCount: externalHybrid.length,
+        avgConfidence,
+        avgFusedScore,
+        responseTime,
+        weights: {
+          internal: weights.internal,
+          external: weights.external,
+        },
+      });
+    } catch (error) {
+      // Fail silently - performance tracking shouldn't break search
+      console.warn('[hybridSearch] Failed to track performance:', error);
+    }
+
+    console.log(
+      `[hybridSearch] Found ${internalHybrid.length} internal and ${externalHybrid.length} external results. ` +
+      `Returning top ${allResults.length} fused results. ` +
+      `Weights: ${(weights.internal * 100).toFixed(0)}% internal, ${(weights.external * 100).toFixed(0)}% external. ` +
+      `Response time: ${responseTime}ms`
+    );
 
     return allResults;
 

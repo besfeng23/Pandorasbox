@@ -16,7 +16,11 @@
 | `settings` | ✅ Yes | ✅ Yes | ⚠️ None | ✅ OK (simple queries, no index needed) |
 | `analytics` | ✅ Yes | ✅ Wildcard | ⚠️ None | ✅ OK (simple queries, no index needed) |
 | `rateLimits` | ✅ Yes | ✅ Wildcard | ⚠️ None | ✅ OK (simple queries, no index needed) |
-| `external_knowledge` | ✅ Yes | ✅ Yes | ⚠️ None | ✅ OK (simple queries, no index needed) |
+| `external_knowledge` | ✅ Yes | ✅ Yes | ✅ Yes (2 indexes) | ✅ ALIGNED |
+| `feedback` | ✅ Yes | ✅ Yes | ✅ Yes (1 index) | ✅ ALIGNED |
+| `performance_metrics` | ✅ Yes | ✅ Yes | ✅ Yes (1 index) | ✅ ALIGNED |
+| `meta_learning_state` | ✅ Yes | ✅ Yes | ⚠️ None | ✅ OK (document ID access, no index needed) |
+| `system_logs` | ✅ Yes | ✅ Yes | ✅ Yes (1 index) | ✅ ALIGNED |
 
 ---
 
@@ -184,4 +188,118 @@ match /users/{userId}/{document=**} {
 
 **The memories collection vector indexes are correctly configured and deployed.**
 **After the indexes finish building (5-10 minutes), vector search will work.**
+
+---
+
+### 7. EXTERNAL_KNOWLEDGE Collection ✅ (Phase 5)
+
+**Code Usage:**
+- `firestoreAdmin.collection('external_knowledge')` - Used in:
+  - `external-cache.ts` (caching and retrieval)
+
+**Firestore Rules:**
+```javascript
+match /external_knowledge/{cacheId} {
+  allow read: if request.auth != null;
+  allow create, update, delete: if false; // Only Firebase Admin can write/update/delete
+}
+```
+
+**Indexes:**
+- ✅ `queryEmbedding` (Vector, 1536 dim) + `__name__` (ASC) - For semantic cache lookup
+- ✅ `expiresAt` (ASC) + `__name__` (ASC) - For cleanup/expiry checks
+
+**Status:** ✅ **FULLY ALIGNED**
+
+---
+
+### 8. FEEDBACK Collection ✅ (Phase 6)
+
+**Code Usage:**
+- `firestoreAdmin.collection('feedback')` - Used in:
+  - `feedback-manager.ts` (feedback submission and retrieval)
+  - `meta-learning.ts` (feedback analysis)
+
+**Firestore Rules:**
+```javascript
+match /feedback/{feedbackId} {
+  allow read: if request.auth != null && request.auth.uid == resource.data.userId;
+  allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+  allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+}
+```
+
+**Indexes:**
+- ✅ `userId` (ASC) + `type` (ASC) + `timestamp` (DESC) + `__name__` (DESC) - For user feedback queries
+
+**Status:** ✅ **FULLY ALIGNED**
+
+---
+
+### 9. PERFORMANCE_METRICS Collection ✅ (Phase 6)
+
+**Code Usage:**
+- `firestoreAdmin.collection('performance_metrics')` - Used in:
+  - `performance-tracker.ts` (performance tracking)
+  - `meta-learning.ts` (performance analysis)
+
+**Firestore Rules:**
+```javascript
+match /performance_metrics/{metricId} {
+  allow read: if request.auth != null && request.auth.uid == resource.data.userId;
+  allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+  allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+}
+```
+
+**Indexes:**
+- ✅ `userId` (ASC) + `timestamp` (DESC) + `__name__` (DESC) - For user performance queries
+
+**Status:** ✅ **FULLY ALIGNED**
+
+---
+
+### 10. META_LEARNING_STATE Collection ✅ (Phase 6)
+
+**Code Usage:**
+- `firestoreAdmin.collection('meta_learning_state').doc(userId)` - Used in:
+  - `meta-learning.ts` (state management)
+  - `adaptive-weights.ts` (weight retrieval)
+
+**Firestore Rules:**
+```javascript
+match /meta_learning_state/{userId} {
+  allow read: if request.auth != null && request.auth.uid == userId;
+  allow create: if request.auth != null && request.auth.uid == userId;
+  allow update: if request.auth != null && request.auth.uid == userId;
+  allow delete: if false; // Never allow deletion - preserve learning state
+}
+```
+
+**Indexes:**
+- ⚠️ None (not needed - single document per user, accessed by document ID)
+
+**Status:** ✅ **OK** (simple document access, no index needed)
+
+---
+
+### 11. SYSTEM_LOGS Collection ✅ (Phase 6)
+
+**Code Usage:**
+- `firestoreAdmin.collection('system_logs')` - Used in:
+  - Various validation scripts and system monitoring
+  - Performance logging
+
+**Firestore Rules:**
+```javascript
+match /system_logs/{logId} {
+  allow read: if request.auth != null; // Authenticated users can read logs
+  allow write: if false; // Only server-side writes via Admin SDK
+}
+```
+
+**Indexes:**
+- ✅ `tag` (ASC) + `timestamp` (DESC) + `__name__` (DESC) - For log queries by tag
+
+**Status:** ✅ **FULLY ALIGNED**
 

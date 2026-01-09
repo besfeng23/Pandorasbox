@@ -89,7 +89,12 @@ export function ArtifactList({ userId }: ArtifactListProps) {
                     <p className="font-medium text-sm truncate text-white/90 group-hover:text-purple-400/80 transition-colors">{artifact.title}</p>
                     <div className="flex justify-between items-center mt-1">
                         <p className="text-xs text-white/40">
-                            {artifact.createdAt ? formatDistanceToNow(artifact.createdAt instanceof Date ? artifact.createdAt : (artifact.createdAt as any)?.toDate?.() || new Date(artifact.createdAt as any), { addSuffix: true }) : 'just now'}
+                            {artifact.createdAt ? formatDistanceToNow(
+                                artifact.createdAt instanceof Date 
+                                    ? artifact.createdAt 
+                                    : (artifact.createdAt as any)?.toDate?.() || new Date((artifact.createdAt as any).seconds ? (artifact.createdAt as any).seconds * 1000 : artifact.createdAt as any), 
+                                { addSuffix: true }
+                            ) : 'just now'}
                         </p>
                         <Badge variant="secondary" className="text-xs font-mono bg-purple-400/20 text-purple-400 border-purple-400/30">{artifact.type}</Badge>
                     </div>

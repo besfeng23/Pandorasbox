@@ -8,7 +8,7 @@ import { FieldValue } from 'firebase-admin/firestore';
  */
 export async function trackEvent(
   userId: string,
-  eventType: 'message_sent' | 'embedding_generated' | 'memory_created' | 'artifact_created' | 'knowledge_uploaded',
+  eventType: 'message_sent' | 'embedding_generated' | 'memory_created' | 'memories_created_batch' | 'artifact_created' | 'knowledge_uploaded',
   metadata?: Record<string, any>
 ): Promise<void> {
   try {

@@ -94,5 +94,33 @@ service cloud.firestore {
       allow read: if request.auth != null;
       allow write: if false; // Only server-side writes via Admin SDK
     }
+
+    // Phase 6: Feedback collection - users can only access their own feedback
+    match /feedback/{feedbackId} {
+      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
+
+    // Phase 6: Performance metrics - users can only access their own metrics
+    match /performance_metrics/{metricId} {
+      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
+
+    // Phase 6: Meta-learning state - users can only access their own learning state
+    match /meta_learning_state/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && request.auth.uid == userId;
+      allow delete: if false; // Never allow deletion - preserve learning state
+    }
+
+    // System logs - server-side only (no userId, for system monitoring)
+    match /system_logs/{logId} {
+      allow read: if request.auth != null; // Authenticated users can read logs
+      allow write: if false; // Only server-side writes via Admin SDK
+    }
   }
 }

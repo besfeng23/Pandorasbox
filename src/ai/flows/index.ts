@@ -17,3 +17,6 @@ export { runPlannerLane } from './run-planner-lane';
 // Phase 5: External Knowledge Fusion
 export { runHybridLane } from './run-hybrid-lane';
 
+// Phase 6: Continuous Self-Improvement & Meta-Learning
+export { runSelfImprovement } from './run-self-improvement';
+
