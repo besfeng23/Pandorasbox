@@ -19,7 +19,7 @@ export default function ChatInput({
 }: ChatInputProps) {
   return (
     <input
-      className="flex-1 bg-transparent outline-none text-white placeholder-white/40 disabled:opacity-50"
+      className="flex-1 bg-black/60 rounded-md px-4 py-2 outline-none text-white placeholder:text-gray-500 disabled:opacity-50 border border-transparent focus:border-white/10"
       placeholder={placeholder}
       value={value}
       onChange={onChange}

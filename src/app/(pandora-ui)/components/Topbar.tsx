@@ -1,22 +1,41 @@
 "use client";
 import React from "react";
-import { Menu } from "lucide-react";
-import { useSettings } from "./useSettings";
+import { Menu, Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useUser } from "@/firebase";
+import { createThread } from "@/app/actions";
 
 export default function Topbar({ setOpen }: { setOpen: (o: boolean) => void }) {
-  const { model } = useSettings();
-  
+  const router = useRouter();
+  const { user } = useUser();
+
+  const handleNewChat = async () => {
+    if (user?.uid) {
+      try {
+        const threadId = await createThread(user.uid);
+        router.push("/");
+      } catch (error) {
+        console.error("Failed to create thread:", error);
+      }
+    }
+  };
+
   return (
-    <header className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-black/60 backdrop-blur">
+    <header className="flex items-center justify-between px-4 py-3 bg-black">
       <button 
         onClick={() => setOpen(true)} 
-        className="hover:text-violet-400 transition-colors"
+        className="text-white hover:text-white/80 transition-colors"
         aria-label="Open sidebar"
       >
         <Menu className="w-5 h-5" />
       </button>
-      <div className="text-sm text-white/70">Model: {model}</div>
-      <div className="w-5 h-5" /> {/* spacer */}
+      <button 
+        onClick={handleNewChat}
+        className="text-white hover:text-white/80 transition-colors"
+        aria-label="New chat"
+      >
+        <Plus className="w-5 h-5" />
+      </button>
     </header>
   );
 }

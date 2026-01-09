@@ -70,7 +70,7 @@ export default function PandoraChatPage() {
   return (
     <div className="flex flex-col h-full bg-black text-white">
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+      <div className="flex-1 overflow-y-auto bg-black">
         <ChatMessages 
           messages={chatMessages} 
           isLoading={isLoading || isSending} 
@@ -78,7 +78,7 @@ export default function PandoraChatPage() {
       </div>
 
       {/* Input bar */}
-      <div className="flex items-center gap-3 border-t border-white/10 px-4 py-3">
+      <div className="flex items-center gap-3 px-4 py-3 bg-black">
         <PandoraBoxInteractive />
 
         <ChatInput
@@ -89,32 +89,16 @@ export default function PandoraChatPage() {
           disabled={isSending || !userId}
         />
 
-        <AnimatePresence mode="wait">
-          {input ? (
-            <motion.button
-              key="send"
-              onClick={handleSend}
-              disabled={isSending || !userId}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.15 }}
-              className="p-2 bg-white/10 rounded-full hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <ArrowUp className="w-4 h-4" />
-            </motion.button>
-          ) : (
-            <motion.div
-              key="mic"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              className="p-2 bg-white/10 rounded-full"
-            >
-              <Mic className="w-4 h-4" />
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {input ? (
+          <button
+            onClick={handleSend}
+            disabled={isSending || !userId}
+            className="p-2 bg-black/60 hover:bg-black/80 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-white"
+            aria-label="Send message"
+          >
+            <ArrowUp className="w-4 h-4" />
+          </button>
+        ) : null}
       </div>
     </div>
   );

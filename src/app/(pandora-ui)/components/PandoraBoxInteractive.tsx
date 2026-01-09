@@ -22,7 +22,7 @@ export default function PandoraBoxInteractive() {
 
   return (
     <div
-      className="relative w-12 h-12 cursor-pointer"
+      className="relative w-10 h-10 cursor-pointer"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onMouseMove={(e) => {
@@ -37,6 +37,16 @@ export default function PandoraBoxInteractive() {
         }
       }}
     >
+      {/* Circuit pattern overlay */}
+      <svg className="absolute inset-0 w-full h-full opacity-60" viewBox="0 0 40 40">
+        <defs>
+          <pattern id="circuit" x="0" y="0" width="8" height="8" patternUnits="userSpaceOnUse">
+            <path d="M 0 4 L 8 4 M 4 0 L 4 8" stroke="rgba(96, 165, 250, 0.6)" strokeWidth="0.5" />
+          </pattern>
+        </defs>
+        <rect width="40" height="40" fill="url(#circuit)" />
+      </svg>
+
       <motion.div
         className="w-full h-full"
         style={{
@@ -48,39 +58,67 @@ export default function PandoraBoxInteractive() {
         }}
         transition={{ duration: 0.2 }}
       >
-        {/* Cube faces */}
-        <div className="absolute inset-0" style={{ transform: "translateZ(24px)" }}>
-          <div className="w-full h-full bg-gradient-to-br from-cyan-500 to-violet-600 rounded-sm opacity-90 border border-cyan-400/30" />
+        {/* Cube - top face (most visible) */}
+        <div className="absolute inset-0" style={{ transform: "translateZ(20px)" }}>
+          <div className="w-full h-full bg-gradient-to-br from-blue-400 via-cyan-300 to-blue-500 rounded-sm border-2 border-blue-300/40 opacity-95">
+            {/* Top face glow */}
+            <div className="absolute inset-0 bg-blue-400/30 rounded-sm blur-sm" />
+          </div>
         </div>
-        <div className="absolute inset-0" style={{ transform: "translateZ(-24px) rotateY(180deg)" }}>
-          <div className="w-full h-full bg-gradient-to-br from-violet-600 to-cyan-500 rounded-sm opacity-90 border border-violet-400/30" />
+        
+        {/* Other faces */}
+        <div className="absolute inset-0" style={{ transform: "translateZ(-20px) rotateY(180deg)" }}>
+          <div className="w-full h-full bg-gradient-to-br from-blue-500 to-cyan-400 rounded-sm border border-blue-400/30 opacity-70" />
         </div>
-        <div className="absolute inset-0" style={{ transform: "rotateY(90deg) translateZ(24px)" }}>
-          <div className="w-full h-full bg-gradient-to-br from-cyan-400 to-purple-600 rounded-sm opacity-80 border border-cyan-300/30" />
+        <div className="absolute inset-0" style={{ transform: "rotateY(90deg) translateZ(20px)" }}>
+          <div className="w-full h-full bg-gradient-to-br from-cyan-400 to-blue-500 rounded-sm border border-cyan-300/30 opacity-60" />
         </div>
-        <div className="absolute inset-0" style={{ transform: "rotateY(-90deg) translateZ(24px)" }}>
-          <div className="w-full h-full bg-gradient-to-br from-purple-600 to-cyan-400 rounded-sm opacity-80 border border-purple-300/30" />
+        <div className="absolute inset-0" style={{ transform: "rotateY(-90deg) translateZ(20px)" }}>
+          <div className="w-full h-full bg-gradient-to-br from-blue-500 to-cyan-400 rounded-sm border border-blue-300/30 opacity-60" />
         </div>
-        <div className="absolute inset-0" style={{ transform: "rotateX(90deg) translateZ(24px)" }}>
-          <div className="w-full h-full bg-gradient-to-br from-violet-500 to-cyan-500 rounded-sm opacity-85 border border-violet-300/30" />
+        <div className="absolute inset-0" style={{ transform: "rotateX(90deg) translateZ(20px)" }}>
+          <div className="w-full h-full bg-gradient-to-br from-blue-400 to-cyan-400 rounded-sm border border-blue-300/30 opacity-65" />
         </div>
-        <div className="absolute inset-0" style={{ transform: "rotateX(-90deg) translateZ(24px)" }}>
-          <div className="w-full h-full bg-gradient-to-br from-cyan-500 to-violet-500 rounded-sm opacity-85 border border-cyan-300/30" />
+        <div className="absolute inset-0" style={{ transform: "rotateX(-90deg) translateZ(20px)" }}>
+          <div className="w-full h-full bg-gradient-to-br from-cyan-400 to-blue-400 rounded-sm border border-cyan-300/30 opacity-65" />
         </div>
       </motion.div>
 
-      {/* Glow effect */}
+      {/* Bright glow effect from top */}
       <motion.div
         className="absolute inset-0 rounded-sm"
         style={{
-          background: "radial-gradient(circle, rgba(139, 92, 246, 0.3) 0%, transparent 70%)",
-          filter: "blur(8px)",
+          background: "radial-gradient(circle at 50% 30%, rgba(96, 165, 250, 0.6) 0%, rgba(59, 130, 246, 0.3) 30%, transparent 70%)",
+          filter: "blur(10px)",
         }}
         animate={{
-          opacity: isHovered ? 0.8 : 0.4,
+          opacity: isHovered ? 1 : 0.7,
         }}
         transition={{ duration: 0.2 }}
       />
+
+      {/* White speckles/sparkles */}
+      <div className="absolute inset-0">
+        {[...Array(8)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute w-0.5 h-0.5 bg-white rounded-full"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+            }}
+            animate={{
+              opacity: [0.3, 0.8, 0.3],
+              scale: [0.8, 1.2, 0.8],
+            }}
+            transition={{
+              duration: 2 + Math.random(),
+              repeat: Infinity,
+              delay: Math.random() * 2,
+            }}
+          />
+        ))}
+      </div>
     </div>
   );
 }

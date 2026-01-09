@@ -15,11 +15,7 @@ interface ChatMessagesProps {
 
 export default function ChatMessages({ messages, isLoading }: ChatMessagesProps) {
   if (messages.length === 0 && !isLoading) {
-    return (
-      <div className="flex items-center justify-center h-full text-white/40">
-        <p>Start a conversation with Pandora...</p>
-      </div>
-    );
+    return null; // Empty state - just show black background
   }
 
   return (
