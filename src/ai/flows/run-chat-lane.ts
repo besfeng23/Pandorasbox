@@ -42,18 +42,21 @@ export async function runChatLane(
         threadId: threadId, // Save threadId to the AI's message
       });
 
-      // 2. Run memory lane to process the input.
-      const memoryResult = await runMemoryLane({
+      // 2. Run memory lane to process the input (Fire-and-Forget).
+      // We do NOT await this, allowing the answer lane to start immediately.
+      runMemoryLane({
         userId,
         message,
         imageBase64,
         source,
-      });
+      }).catch(err => console.error("Memory Lane failed:", err));
 
       // 3. Run the answer lane to generate a response.
+      // We pass imageBase64 directly so it doesn't need to wait for memory lane's description.
       const answerResult = await runAnswerLane({
         userId,
-        message: message || memoryResult.image_description || 'Describe the image.',
+        message: message || 'Describe the image.', // Fallback if message is empty
+        imageBase64: imageBase64,
         assistantMessageId: assistantRef.id,
         threadId, // Pass threadId to answer lane
       });

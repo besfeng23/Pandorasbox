@@ -1,0 +1,486 @@
+'use server';
+
+import { getFirestoreAdmin } from '@/lib/firebase-admin';
+import { revalidatePath } from 'next/cache';
+import { generateEmbedding, generateEmbeddingsBatch, searchHistory, searchMemories } from '@/lib/vector';
+import { SearchResult } from '@/lib/types';
+import pdf from 'pdf-parse';
+import { chunkText } from '@/lib/chunking';
+import { FieldValue } from 'firebase-admin/firestore';
+import * as Sentry from '@sentry/nextjs';
+import { checkRateLimit } from '@/lib/rate-limit';
+import { trackEvent } from '@/lib/analytics';
+
+export async function searchMemoryAction(query: string, userId: string): Promise<SearchResult[]> {
+    if (!query.trim() || !userId) {
+        return [];
+    }
+
+    // Search both history and memories collections
+    const [historyResults, memoryResults] = await Promise.all([
+        searchHistory(query, userId),
+        searchMemories(query, userId, 10)
+    ]);
+
+    // Combine results and sort by score (highest first)
+    const allResults = [
+        ...historyResults.map(r => ({
+            id: r.id,
+            text: r.text,
+            score: r.score,
+            timestamp: r.timestamp.toISOString(),
+            source: 'history' as const
+        })),
+        ...memoryResults.map(r => ({
+            id: r.id,
+            text: r.text,
+            score: r.score,
+            timestamp: r.timestamp.toISOString(),
+            source: 'memory' as const
+        }))
+    ]
+    .sort((a, b) => b.score - a.score) // Sort by score descending
+    .slice(0, 20); // Limit to top 20 results
+
+    return allResults.map(result => ({
+        id: result.id,
+        text: result.text,
+        score: result.score,
+        timestamp: result.timestamp
+    }));
+}
+
+export async function clearMemory(userId: string) {
+    if (!userId) {
+        return { success: false, message: 'User not authenticated.' };
+    }
+    const firestoreAdmin = getFirestoreAdmin();
+    const historyQuery = firestoreAdmin.collection('history').where('userId', '==', userId);
+    const memoriesQuery = firestoreAdmin.collection('memories').where('userId', '==', userId);
+    const stateCollectionRef = firestoreAdmin.collection('users').doc(userId).collection('state');
+    const artifactsQuery = firestoreAdmin.collection('artifacts').where('userId', '==', userId);
+
+    try {
+        const historySnapshot = await historyQuery.get();
+        const historyBatch = firestoreAdmin.batch();
+        historySnapshot.docs.forEach(doc => {
+            historyBatch.delete(doc.ref);
+        });
+        await historyBatch.commit();
+
+        const memoriesSnapshot = await memoriesQuery.get();
+        const memoriesBatch = firestoreAdmin.batch();
+        memoriesSnapshot.docs.forEach(doc => {
+            memoriesBatch.delete(doc.ref);
+        });
+        await memoriesBatch.commit();
+        
+        const artifactsSnapshot = await artifactsQuery.get();
+        const artifactsBatch = firestoreAdmin.batch();
+        artifactsSnapshot.docs.forEach(doc => {
+            artifactsBatch.delete(doc.ref);
+        });
+        await artifactsBatch.commit();
+
+        const stateSnapshot = await stateCollectionRef.get();
+        const stateBatch = firestoreAdmin.batch();
+        stateSnapshot.docs.forEach(doc => {
+            stateBatch.delete(doc.ref);
+        });
+        await stateBatch.commit();
+
+        // Also delete threads
+        const threadsSnapshot = await firestoreAdmin.collection('threads').where('userId', '==', userId).get();
+        const threadsBatch = firestoreAdmin.batch();
+        threadsSnapshot.docs.forEach(doc => {
+            threadsBatch.delete(doc.ref);
+        });
+        await threadsBatch.commit();
+
+        revalidatePath('/settings');
+        return { success: true, message: 'Memory cleared successfully.' };
+    } catch (error) {
+        console.error('Error clearing memory:', error);
+        Sentry.captureException(error, { tags: { function: 'clearMemory', userId } });
+        return { success: false, message: 'Failed to clear memory.' };
+    }
+}
+
+export async function getMemories(userId: string, query?: string) {
+    'use server';
+    try {
+      if (!userId) {
+        console.warn('getMemories: User not authenticated');
+        return [];
+      }
+    
+      const firestoreAdmin = getFirestoreAdmin();
+      const historyCollection = firestoreAdmin.collection('history');
+    
+      if (query && query.trim()) {
+        try {
+          const searchResults = await searchHistory(query, userId);
+          if (searchResults.length === 0) return [];
+          const docIds = searchResults.map(r => r.id);
+          
+          // Get documents by IDs - Firestore Admin SDK doesn't support 'in' with documentId directly
+          // Instead, fetch each document individually (or use a different approach)
+          const memoryDocs = await Promise.all(
+            docIds.slice(0, 10).map(id => historyCollection.doc(id).get())
+          );
+          const memoryDocsArray = memoryDocs.filter(doc => doc.exists).map(doc => doc);
+          const userFilteredDocs = memoryDocsArray.filter(doc => doc.data()?.userId === userId);
+          return userFilteredDocs.map(doc => ({ id: doc.id, ...doc.data() }));
+        } catch (searchError: any) {
+          console.error('Error in semantic search for memories:', searchError);
+          // Fallback to regular query if semantic search fails
+          const snapshot = await historyCollection
+            .where('userId', '==', userId)
+            .orderBy('createdAt', 'desc')
+            .limit(50)
+            .get();
+          return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        }
+
+      } else {
+        try {
+          const snapshot = await historyCollection
+            .where('userId', '==', userId)
+            .orderBy('createdAt', 'desc')
+            .limit(50)
+            .get();
+          return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        } catch (queryError: any) {
+          // If orderBy fails (missing index), try without it
+          if (queryError.code === 9 || queryError.message?.includes('index')) {
+            console.warn('Firestore index missing for createdAt. Querying without orderBy.');
+            const snapshot = await historyCollection
+              .where('userId', '==', userId)
+              .limit(50)
+              .get();
+            return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          }
+          throw queryError;
+        }
+      }
+    } catch (error: any) {
+      console.error('Error fetching memories:', error);
+      // Return empty array instead of throwing to prevent server component crash
+      return [];
+    }
+}
+  
+export async function deleteMemory(id: string, userId: string) {
+    'use server';
+    if (!userId) {
+      return { success: false, message: 'User not authenticated.' };
+    }
+    const firestoreAdmin = getFirestoreAdmin();
+    try {
+      const docRef = firestoreAdmin.collection('history').doc(id);
+      // Add a check to ensure user owns the document before deleting
+      const docSnap = await docRef.get();
+      if (!docSnap.exists || docSnap.data()?.userId !== userId) {
+        return { success: false, message: 'Permission denied.' };
+      }
+      await docRef.delete();
+      revalidatePath('/settings');
+      return { success: true };
+    } catch (error) {
+      console.error('Error deleting memory:', error);
+      Sentry.captureException(error, { tags: { function: 'deleteMemory', userId, memoryId: id } });
+      return { success: false, message: 'Failed to delete memory.' };
+    }
+}
+  
+export async function updateMemory(id: string, newText: string, userId: string) {
+    'use server';
+    if (!userId) {
+        return { success: false, message: 'User not authenticated.' };
+    }
+    const firestoreAdmin = getFirestoreAdmin();
+    try {
+        const docRef = firestoreAdmin.collection('history').doc(id);
+        const docSnap = await docRef.get();
+        if (!docSnap.exists || docSnap.data()?.userId !== userId) {
+            return { success: false, message: 'Permission denied.' };
+        }
+        const newEmbedding = await generateEmbedding(newText);
+        await docRef.update({
+            content: newText,
+            embedding: newEmbedding,
+            editedAt: FieldValue.serverTimestamp(),
+        });
+        revalidatePath('/settings');
+        return { success: true };
+    } catch (error) {
+        console.error('Error updating memory:', error);
+        Sentry.captureException(error, { tags: { function: 'updateMemory', userId, memoryId: id } });
+        return { success: false, message: 'Failed to update memory.' };
+    }
+}
+
+export async function createMemoryFromSettings(content: string, userId: string): Promise<{ success: boolean; message?: string; memory_id?: string }> {
+    'use server';
+    if (!userId || !content || !content.trim()) {
+        return { success: false, message: 'User not authenticated or content is empty.' };
+    }
+    
+    // Use centralized memory utility to ensure automatic indexing
+    const { saveMemory } = await import('@/lib/memory-utils');
+    
+    try {
+        const result = await saveMemory({
+            content: content.trim(),
+            userId: userId,
+            source: 'settings',
+        });
+        
+        if (result.success) {
+            revalidatePath('/settings');
+        }
+        
+        return result;
+    } catch (error) {
+        console.error('Error creating memory:', error);
+        Sentry.captureException(error, { tags: { function: 'createMemoryFromSettings', userId } });
+        return { success: false, message: 'Failed to create memory.' };
+    }
+}
+
+export async function deleteMemoryFromMemories(id: string, userId: string): Promise<{ success: boolean; message?: string }> {
+    'use server';
+    if (!userId) {
+      return { success: false, message: 'User not authenticated.' };
+    }
+    const firestoreAdmin = getFirestoreAdmin();
+    try {
+      const docRef = firestoreAdmin.collection('memories').doc(id);
+      const docSnap = await docRef.get();
+      if (!docSnap.exists || docSnap.data()?.userId !== userId) {
+        return { success: false, message: 'Permission denied.' };
+      }
+      await docRef.delete();
+      revalidatePath('/');
+      return { success: true };
+    } catch (error) {
+      console.error('Error deleting memory:', error);
+      Sentry.captureException(error, { tags: { function: 'deleteMemoryFromMemories', userId, memoryId: id } });
+      return { success: false, message: 'Failed to delete memory.' };
+    }
+}
+
+export async function updateMemoryInMemories(id: string, newText: string, userId: string): Promise<{ success: boolean; message?: string }> {
+    'use server';
+    if (!userId) {
+        return { success: false, message: 'User not authenticated.' };
+    }
+    
+    // Use centralized memory utility to ensure embedding is regenerated
+    const { updateMemoryWithEmbedding } = await import('@/lib/memory-utils');
+    
+    try {
+        const result = await updateMemoryWithEmbedding(id, newText, userId);
+        if (result.success) {
+            revalidatePath('/');
+        }
+        return result;
+    } catch (error) {
+        console.error('Error updating memory:', error);
+        Sentry.captureException(error, { tags: { function: 'updateMemoryInMemories', userId, memoryId: id } });
+        return { success: false, message: 'Failed to update memory.' };
+    }
+}
+
+export async function uploadKnowledge(formData: FormData): Promise<{ success: boolean; message: string; chunks?: number }> {
+    const file = formData.get('file') as File;
+    const userId = formData.get('userId') as string;
+
+    if (!file || !userId) {
+        return { success: false, message: 'File or user ID missing.' };
+    }
+
+    // Check rate limit for uploads
+    const rateLimitCheck = await checkRateLimit(userId, 'uploads');
+    if (!rateLimitCheck.success) {
+        return { 
+            success: false, 
+            message: rateLimitCheck.message || 'Upload rate limit exceeded. Please try again later.' 
+        };
+    }
+
+    const firestoreAdmin = getFirestoreAdmin();
+    try {
+        let rawContent = '';
+        const fileBuffer = Buffer.from(await file.arrayBuffer());
+
+        if (file.type === 'application/pdf') {
+            const data = await pdf(fileBuffer);
+            rawContent = data.text;
+        } else if (file.type.startsWith('text/')) {
+            rawContent = fileBuffer.toString('utf-8');
+        } else {
+            return { success: false, message: `Unsupported file type: ${file.type}` };
+        }
+
+        const chunks = chunkText(rawContent);
+        const historyCollection = firestoreAdmin.collection('history');
+        
+        // Generate embeddings in batch for cost efficiency
+        const embeddings = await generateEmbeddingsBatch(chunks);
+        
+        // Use centralized utility to automatically save to memories collection
+        const { saveMemoriesBatch } = await import('@/lib/memory-utils');
+        const memories = chunks.map((chunk, i) => ({
+          content: chunk,
+          userId: userId,
+          source: 'knowledge_upload',
+          metadata: {
+            source_filename: file.name,
+            chunk_index: i,
+          },
+        }));
+        
+        // Save to memories collection automatically (with embeddings)
+        await saveMemoriesBatch(memories);
+        
+        // Also save to history collection (for chat context)
+        const batch = firestoreAdmin.batch();
+        for (let i = 0; i < chunks.length; i++) {
+            const chunk = chunks[i];
+            const embedding = embeddings[i];
+            
+            const historyDocRef = historyCollection.doc();
+            batch.set(historyDocRef, {
+                id: historyDocRef.id,
+                role: 'assistant',
+                type: 'knowledge_chunk',
+                source_filename: file.name,
+                content: chunk,
+                embedding: embedding,
+                createdAt: FieldValue.serverTimestamp(),
+                userId: userId,
+            });
+        }
+        
+        await batch.commit();
+        
+        // Track analytics
+        await trackEvent(userId, 'knowledge_uploaded', { fileName: file.name, chunks: chunks.length });
+
+        revalidatePath('/settings');
+
+        return { success: true, message: `Successfully indexed ${file.name}.`, chunks: chunks.length };
+    } catch (error) {
+        console.error('Error uploading knowledge:', error);
+        Sentry.captureException(error, { tags: { function: 'uploadKnowledge', userId, fileName: file.name } });
+        return { success: false, message: `Failed to index ${file.name}.` };
+    }
+}
+
+export async function reindexMemories(userId: string): Promise<{ success: boolean; message?: string; processed?: number; skipped?: number; errors?: number }> {
+    'use server';
+    if (!userId) {
+        return { success: false, message: 'User not authenticated.' };
+    }
+    
+    const firestoreAdmin = getFirestoreAdmin();
+    const { generateEmbedding } = await import('@/lib/vector');
+    
+    try {
+        console.log(`[ReindexMemories] Starting re-index for user ${userId}`);
+        
+        const memoriesRef = firestoreAdmin.collection('memories');
+        const snapshot = await memoriesRef
+            .where('userId', '==', userId)
+            .limit(1000)
+            .get();
+        
+        console.log(`[ReindexMemories] Found ${snapshot.size} memories for user ${userId}`);
+        
+        let processed = 0;
+        let skipped = 0;
+        let errors = 0;
+        
+        const batch = firestoreAdmin.batch();
+        let batchCount = 0;
+        const BATCH_SIZE = 500; // Firestore batch limit
+        
+        for (const doc of snapshot.docs) {
+            const data = doc.data();
+            const memoryId = doc.id;
+            
+            // Check if embedding exists and is valid (1536 dimensions)
+            const hasValidEmbedding = data.embedding && 
+                                      Array.isArray(data.embedding) && 
+                                      data.embedding.length === 1536 &&
+                                      data.embedding.some((v: any) => v !== 0); // Check it's not all zeros
+            
+            if (hasValidEmbedding) {
+                skipped++;
+                continue;
+            }
+            
+            try {
+                if (!data.content || typeof data.content !== 'string' || !data.content.trim()) {
+                    console.warn(`[ReindexMemories] Memory ${memoryId} has no valid content, skipping`);
+                    skipped++;
+                    continue;
+                }
+                
+                console.log(`[ReindexMemories] Generating embedding for memory ${memoryId}: "${data.content.substring(0, 50)}..."`);
+                
+                // Generate embedding
+                const embedding = await generateEmbedding(data.content);
+                
+                // Update document with embedding
+                batch.update(doc.ref, {
+                    embedding: embedding,
+                    reindexedAt: FieldValue.serverTimestamp(),
+                });
+                
+                batchCount++;
+                processed++;
+                
+                // Commit batch if it reaches the limit
+                if (batchCount >= BATCH_SIZE) {
+                    await batch.commit();
+                    console.log(`[ReindexMemories] Committed batch of ${batchCount} updates`);
+                    batchCount = 0;
+                    // Small delay to avoid rate limits
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+                
+            } catch (error: any) {
+                console.error(`[ReindexMemories] Error re-indexing memory ${memoryId}:`, error);
+                errors++;
+            }
+        }
+        
+        // Commit remaining updates
+        if (batchCount > 0) {
+            await batch.commit();
+            console.log(`[ReindexMemories] Committed final batch of ${batchCount} updates`);
+        }
+        
+        console.log(`[ReindexMemories] Complete: processed=${processed}, skipped=${skipped}, errors=${errors}`);
+        
+        revalidatePath('/settings');
+        
+        return {
+            success: true,
+            message: `Re-indexed ${processed} memories. ${skipped} already had embeddings. ${errors} errors.`,
+            processed,
+            skipped,
+            errors,
+        };
+    } catch (error: any) {
+        console.error('[ReindexMemories] Fatal error:', error);
+        Sentry.captureException(error, { tags: { function: 'reindexMemories', userId } });
+        return {
+            success: false,
+            message: `Failed to re-index memories: ${error.message}`,
+        };
+    }
+}
+

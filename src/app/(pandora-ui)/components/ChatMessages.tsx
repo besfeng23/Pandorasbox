@@ -6,6 +6,7 @@ import { Loader2 } from "lucide-react";
 interface Message {
   role: string;
   content: string;
+  isOptimistic?: boolean;
 }
 
 interface ChatMessagesProps {
@@ -33,16 +34,17 @@ export default function ChatMessages({ messages, isLoading }: ChatMessagesProps)
               m.role === "user"
                 ? "bg-gradient-to-r from-cyan-400 to-violet-500 text-white"
                 : "bg-white/10 text-white/90 border border-white/10"
-            }`}
+            } ${m.isOptimistic ? "opacity-70" : ""}`}
             style={
               m.role === "user"
                 ? {
-                    boxShadow: "0 0 20px rgba(56, 189, 248, 0.3)",
+                    boxShadow: m.isOptimistic ? "none" : "0 0 20px rgba(56, 189, 248, 0.3)",
                   }
                 : {}
             }
           >
             {m.content}
+            {m.isOptimistic && <span className="ml-2 text-xs italic opacity-70">(sending...)</span>}
           </div>
         </motion.div>
       ))}

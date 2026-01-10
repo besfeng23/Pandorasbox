@@ -8,7 +8,7 @@
 
 import { getFirestoreAdmin } from './firebase-admin';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
-import { recordPerformanceMetric, PerformanceMetric } from './meta-learning';
+import { PerformanceMetric } from './meta-learning';
 
 export interface SearchPerformance {
   query: string;
@@ -44,7 +44,13 @@ export async function trackSearchPerformance(
     resultQuality: determineResultQuality(performance),
   };
 
-  await recordPerformanceMetric(metric);
+  // Phase 6 Scalability: Log to stdout for Cloud Logging/BigQuery ingestion instead of Firestore
+  console.log(JSON.stringify({
+    severity: 'INFO',
+    message: 'Performance Metric',
+    type: 'performance_metric',
+    ...metric
+  }));
 }
 
 /**

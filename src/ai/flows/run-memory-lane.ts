@@ -52,6 +52,36 @@ export async function runMemoryLane(
       const settings = { active_model: 'gpt-4o', ...settingsDoc.data() };
       const currentContext = contextDoc.exists ? contextDoc.data()?.note : 'No context yet.';
       
+      const openai = getOpenAI();
+
+      // 0. The Bouncer: Semantic Gating
+      // Skip expensive processing for short, low-value messages unless an image is present
+      if (!imageBase64 && message && message.length < 100) { 
+        try {
+            const bouncerPrompt = `Analyze the following message. Does it contain factual information, user preferences, or distinct context worth remembering? Reply TRUE or FALSE.\n\nMessage: "${message}"`;
+            
+            const bouncer = await openai.chat.completions.create({
+                model: 'gpt-4o-mini',
+                messages: [{ role: 'system', content: bouncerPrompt }],
+                temperature: 0,
+                max_tokens: 5,
+            });
+            
+            const isWorthRemembering = bouncer.choices[0].message.content?.trim().toUpperCase().includes('TRUE');
+            
+            if (!isWorthRemembering) {
+                console.log('[MemoryLane] Bouncer rejected message:', message);
+                // Return existing context without creating new memories
+                return {
+                    new_context_note: currentContext, 
+                    search_queries: [],
+                };
+            }
+        } catch (bouncerError) {
+            console.warn('[MemoryLane] Bouncer failed, proceeding with memory generation:', bouncerError);
+        }
+      }
+
       let systemPrompt: string;
       const userMessage: ChatCompletionMessageParam[] = [];
 
@@ -94,7 +124,6 @@ IMPORTANT: Always generate at least 3-5 search_queries if there is ANY meaningfu
         userMessage.push({ role: 'user', content: `Current Context: "${currentContext}"\n\nUser Message: "${message}"` });
       }
 
-      const openai = getOpenAI();
       const completion = await openai.chat.completions.create({
         model: settings.active_model as any,
         messages: [

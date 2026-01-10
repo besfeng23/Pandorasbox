@@ -1,4 +1,3 @@
-
 'use server';
 
 import { ai } from '@/ai/genkit';
@@ -9,6 +8,7 @@ import { generateEmbedding, searchHistory, searchMemories } from '@/lib/vector';
 import OpenAI from 'openai';
 import { FieldValue } from 'firebase-admin/firestore';
 import { trackEvent } from '@/lib/analytics';
+import { ChatCompletionMessageParam } from 'openai/resources/index.mjs';
 
 // Lazy initialization to avoid build-time errors
 function getOpenAI() {
@@ -22,6 +22,7 @@ function getOpenAI() {
 const AnswerLaneInputSchema = z.object({
   userId: z.string(),
   message: z.string(),
+  imageBase64: z.string().nullable().optional(),
   assistantMessageId: z.string(),
   threadId: z.string(), // Pass threadId for context
 });
@@ -72,7 +73,7 @@ export async function runAnswerLane(
       inputSchema: AnswerLaneInputSchema,
       outputSchema: AnswerLaneOutputSchema,
     },
-    async ({ userId, message, assistantMessageId, threadId }) => {
+    async ({ userId, message, imageBase64, assistantMessageId, threadId }) => {
         const firestoreAdmin = getFirestoreAdmin();
         const assistantMessageRef = firestoreAdmin.collection('history').doc(assistantMessageId);
 
@@ -113,6 +114,7 @@ export async function runAnswerLane(
             await logProgress('Searching memory...');
             
             // Use existing searchHistory and searchMemories functions which have error handling
+            // We fetch more candidates (up to 20 total) to allow for re-ranking
             const [historyResults, memoriesResults] = await Promise.all([
                 searchHistory(message, userId).catch(err => {
                     console.warn('[AnswerLane] History search failed:', err);
@@ -138,13 +140,61 @@ export async function runAnswerLane(
             
             console.log(`[AnswerLane] Memory search results: history=${historyResults.length}, memories=${memoriesResults.length}`);
             
-            // Combine results from both collections, prioritizing by score (higher = more relevant)
-            const allResults = [...historyResults, ...memoriesResults]
-                .sort((a, b) => (b.score || 0) - (a.score || 0))
-                .slice(0, 10); // Take top 10 most relevant across both collections (increased from 5)
+            // Combine results from both collections
+            const allCandidates = [...historyResults, ...memoriesResults];
+            let topResults = allCandidates;
 
-            await logProgress(`Found ${allResults.length} relevant memories (${historyResults.length} from history, ${memoriesResults.length} from memories).`);
-            console.log(`[AnswerLane] Combined ${allResults.length} results. Top results:`, allResults.slice(0, 3).map(r => ({ text: r.text.substring(0, 50), score: r.score })));
+            // Re-ranking step using gpt-4o-mini
+            if (allCandidates.length > 3) { // Only re-rank if we have enough candidates
+                try {
+                    await logProgress('Re-ranking memories...');
+                    // Create a simplified list for the model to rank
+                    const candidatesList = allCandidates.map((c, i) => ({
+                        index: i,
+                        text: c.text.substring(0, 300) // Truncate for token efficiency
+                    }));
+
+                    const rankingPrompt = `You are a relevance ranking system. 
+                    User Query: "${message}"
+                    
+                    Rank the following memory snippets by relevance to the query. 
+                    Return a JSON object with a property "indices" containing the indices of the top 5 most relevant snippets, in order of relevance.
+                    
+                    Snippets:
+                    ${JSON.stringify(candidatesList)}`;
+
+                    const rankingCompletion = await getOpenAI().chat.completions.create({
+                        model: 'gpt-4o-mini',
+                        messages: [{ role: 'system', content: rankingPrompt }],
+                        response_format: { type: 'json_object' },
+                        temperature: 0,
+                    });
+
+                    const rankingData = JSON.parse(rankingCompletion.choices[0].message.content || '{}');
+                    const topIndices = rankingData.indices;
+
+                    if (Array.isArray(topIndices) && topIndices.length > 0) {
+                        topResults = topIndices
+                            .map((idx: any) => allCandidates[Number(idx)])
+                            .filter(Boolean); // Filter undefined
+                        console.log(`[AnswerLane] Re-ranked ${allCandidates.length} candidates down to ${topResults.length}`);
+                    }
+                } catch (rankingError) {
+                    console.warn('[AnswerLane] Re-ranking failed, falling back to vector scores:', rankingError);
+                    // Fallback to vector scores
+                    topResults = allCandidates.sort((a, b) => (b.score || 0) - (a.score || 0));
+                }
+            } else {
+                 // Fallback to vector scores if few results
+                 topResults = allCandidates.sort((a, b) => (b.score || 0) - (a.score || 0));
+            }
+
+            // Take top 5 (or 10 as in previous logic, but plan said "Inject only the top 5 re-ranked items")
+            // Previous code used 10. I will use 5 as per plan.
+            const allResults = topResults.slice(0, 5);
+
+            await logProgress(`Found ${allResults.length} relevant memories.`);
+            console.log(`[AnswerLane] Final selection. Top results:`, allResults.slice(0, 3).map(r => ({ text: r.text.substring(0, 50), score: r.score })));
             
             // Separate insights from regular memories for emphasis
             const insightMemories = allResults.filter((r: any) => r.type === 'insight');
@@ -227,12 +277,26 @@ If the user asks about memory, respond confidently: "Yes, I remember our past co
             
             await logProgress('Drafting response...');
             const openai = getOpenAI();
+
+            const messages: ChatCompletionMessageParam[] = [
+                { role: 'system', content: finalSystemPrompt },
+            ];
+
+            if (imageBase64) {
+                messages.push({
+                    role: 'user',
+                    content: [
+                        { type: 'text', text: message },
+                        { type: 'image_url', image_url: { url: imageBase64 } }
+                    ]
+                });
+            } else {
+                messages.push({ role: 'user', content: message });
+            }
+
             const completion = await openai.chat.completions.create({
                 model: settings.active_model as any,
-                messages: [
-                    { role: 'system', content: finalSystemPrompt },
-                    { role: 'user', content: message } 
-                ],
+                messages: messages,
             });
             const rawAIResponse = completion.choices[0].message.content || '';
 

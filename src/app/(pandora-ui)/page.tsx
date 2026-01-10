@@ -28,12 +28,22 @@ export default function PandoraChatPage() {
 
   // Fetch real-time messages using the existing hook
   const { messages, isLoading } = useChatHistory(userId, threadId);
+  const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
 
   // Convert Message type to simple format for ChatMessages component
-  const chatMessages = messages.map((msg: Message) => ({
-    role: msg.role,
-    content: msg.content || "",
-  }));
+  // Merge real messages with optimistic ones
+  const chatMessages = [
+    ...messages.map((msg: Message) => ({
+      role: msg.role,
+      content: msg.content || "",
+      isOptimistic: false,
+    })),
+    ...optimisticMessages.map((msg: Message) => ({
+      role: msg.role,
+      content: msg.content || "",
+      isOptimistic: true,
+    }))
+  ];
 
   const handleSend = async () => {
     if (!input.trim() || isSending || !userId) return;
@@ -42,10 +52,25 @@ export default function PandoraChatPage() {
     setInput("");
     setIsSending(true);
 
+    const tempId = `temp-${Date.now()}`;
+    const optimisticMsg: Message = {
+        id: tempId,
+        role: 'user',
+        content: messageContent,
+        createdAt: new Date(),
+        userId: userId,
+        threadId: threadId || 'temp',
+    };
+    setOptimisticMessages(prev => [...prev, optimisticMsg]);
+
     try {
+      const idToken = user ? await user.getIdToken() : "";
+      
       const formData = new FormData();
       formData.append("message", messageContent);
-      formData.append("userId", userId);
+      // Remove client-side userId reliance, let server verify token
+      // formData.append("userId", userId); 
+      formData.append("idToken", idToken);
       if (threadId) {
         formData.append("threadId", threadId);
       }
@@ -59,11 +84,15 @@ export default function PandoraChatPage() {
 
       if (result.error) {
         console.error("Message error:", result.error);
+        // Optionally keep optimistic message with error state or remove
       }
     } catch (error) {
       console.error("Failed to send message:", error);
     } finally {
       setIsSending(false);
+      // Remove the optimistic message (assuming it's now in the real list or failed)
+      // In a more robust impl, we'd wait for it to appear in real list
+      setOptimisticMessages(prev => prev.filter(m => m.content !== messageContent));
     }
   };
 
