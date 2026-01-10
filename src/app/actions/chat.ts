@@ -4,7 +4,7 @@ import { getFirestoreAdmin, getAuthAdmin } from '@/lib/firebase-admin';
 import { revalidatePath } from 'next/cache';
 import { after } from 'next/server';
 import { runChatLane } from '@/ai/flows/run-chat-lane';
-import { generateEmbedding } from '@/lib/vector';
+// import { generateEmbedding } from '@/lib/vector'; // Removed sync embedding
 import { Thread } from '@/lib/types';
 import { getStorage, getDownloadURL } from 'firebase-admin/storage';
 import OpenAI from 'openai';
@@ -13,6 +13,7 @@ import { summarizeLongChat } from '@/ai/flows/summarize-long-chat';
 import * as Sentry from '@sentry/nextjs';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { trackEvent } from '@/lib/analytics';
+import { v4 as uuidv4 } from 'uuid';
 
 // Lazy initialization to avoid build-time errors
 function getOpenAI() {
@@ -80,7 +81,6 @@ export async function getUserThreads(userId: string) {
 
 export async function transcribeAndProcessMessage(formData: FormData) {
     const audioFile = formData.get('audio_file') as File;
-    // const userId = formData.get('userId') as string; // Legacy
     const idToken = formData.get('idToken') as string;
     const threadId = formData.get('threadId') as string | null;
 
@@ -93,36 +93,47 @@ export async function transcribeAndProcessMessage(formData: FormData) {
         const decodedToken = await auth.verifyIdToken(idToken);
         const userId = decodedToken.uid;
 
-        const openai = getOpenAI();
-        const transcription = await openai.audio.transcriptions.create({
-            model: 'whisper-1',
-            file: audioFile,
+        // Upload audio file to Firebase Storage
+        const storage = getStorage();
+        const bucket = storage.bucket();
+        const fileExtension = audioFile.name.split('.').pop() || 'webm';
+        const fileName = `audio/${userId}/${uuidv4()}.${fileExtension}`;
+        const fileRef = bucket.file(fileName);
+        
+        const arrayBuffer = await audioFile.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        
+        await fileRef.save(buffer, {
+            metadata: {
+                contentType: audioFile.type || 'audio/webm',
+            }
         });
 
-        const transcribedText = transcription.text;
+        // Use GCS URI for internal processing (Vertex AI)
+        const audioUrl = `gs://${bucket.name}/${fileName}`;
+        // Also get a signed URL or public URL if needed for frontend, but for now we use GCS URI for backend
         
         let messageId: string | undefined;
         let newThreadId: string | undefined;
 
-        if (transcribedText) {
-            const messageFormData = new FormData();
-            messageFormData.append('message', transcribedText);
-            messageFormData.append('idToken', idToken);
-            // messageFormData.append('userId', userId); // Not needed if we verify token
-            if (threadId) {
-                messageFormData.append('threadId', threadId);
-            }
-            messageFormData.append('source', 'voice');
-            const result = await submitUserMessage(messageFormData);
-            messageId = result?.messageId;
-            newThreadId = result?.threadId;
+        const messageFormData = new FormData();
+        messageFormData.append('message', ''); // Empty text, just audio
+        messageFormData.append('idToken', idToken);
+        if (threadId) {
+            messageFormData.append('threadId', threadId);
         }
+        messageFormData.append('source', 'voice');
+        messageFormData.append('audioUrl', audioUrl); // Pass the GCS URL
+
+        const result = await submitUserMessage(messageFormData);
+        messageId = result?.messageId;
+        newThreadId = result?.threadId;
 
         return { success: true, messageId, threadId: newThreadId };
     } catch (error) {
-        console.error('Error transcribing audio:', error);
+        console.error('Error processing audio:', error);
         Sentry.captureException(error, { tags: { function: 'transcribeAndProcessMessage' } });
-        return { success: false, message: 'Failed to transcribe audio.' };
+        return { success: false, message: 'Failed to process audio.' };
     }
 }
 
@@ -134,6 +145,7 @@ export async function submitUserMessage(formData: FormData) {
     let threadId = formData.get('threadId') as string | null;
     const imageBase64 = formData.get('image_data') as string | null;
     const source = formData.get('source') as string || 'text';
+    const audioUrl = formData.get('audioUrl') as string | null;
   
     if (!idToken) {
       console.error('submitUserMessage Error: ID token is missing.');
@@ -154,7 +166,8 @@ export async function submitUserMessage(formData: FormData) {
       };
     }
   
-    if ((!messageContent || !messageContent.trim()) && !imageBase64) {
+    // Allow empty message if audioUrl is present
+    if ((!messageContent || !messageContent.trim()) && !imageBase64 && !audioUrl) {
       return;
     }
     
@@ -163,7 +176,7 @@ export async function submitUserMessage(formData: FormData) {
     if (!threadId) {
         threadId = await createThread(userId);
         // Auto-generate title for the new thread
-        const newTitle = messageContent.substring(0, 40) + (messageContent.length > 40 ? '...' : '');
+        const newTitle = messageContent ? (messageContent.substring(0, 40) + (messageContent.length > 40 ? '...' : '')) : 'Voice Note';
         await firestoreAdmin.collection('threads').doc(threadId).update({ title: newTitle });
     }
   
@@ -171,8 +184,9 @@ export async function submitUserMessage(formData: FormData) {
     let userMessageId: string;
   
     try {
-      const embedding = await generateEmbedding(messageContent || 'image');
-  
+      // Async Nervous System: Removed synchronous embedding generation
+      // const embedding = await generateEmbedding(messageContent || 'image'); 
+      
       const userMessageData = {
         role: 'user',
         content: messageContent,
@@ -180,8 +194,9 @@ export async function submitUserMessage(formData: FormData) {
         userId: userId,
         threadId: threadId,
         imageUrl: null,
+        audioUrl: audioUrl || null, // Store audio URL
         source: source,
-        embedding: embedding,
+        // embedding: embedding, // Removed synchronous embedding
       };
 
       const userMessageRef = await historyCollection.add(userMessageData);
@@ -189,8 +204,8 @@ export async function submitUserMessage(formData: FormData) {
       await userMessageRef.update({ id: userMessageId });
   
       // Track analytics
-      await trackEvent(userId, 'message_sent', { threadId, hasImage: !!imageBase64 });
-      await trackEvent(userId, 'embedding_generated');
+      await trackEvent(userId, 'message_sent', { threadId, hasImage: !!imageBase64, hasAudio: !!audioUrl });
+      // await trackEvent(userId, 'embedding_generated'); // Removed as it's now async
   
       console.log(`Successfully wrote message to thread ${threadId} for user: ${userId}`);
   
@@ -213,10 +228,13 @@ export async function submitUserMessage(formData: FormData) {
   
       // Pass the threadId to the AI lane
       after(async () => {
+        // We need to pass the audioUrl to runChatLane
         await runChatLane({
             userId,
             message: messageContent,
+            messageId: userMessageId, // Pass messageId for async embedding update
             imageBase64,
+            audioUrl: audioUrl || undefined, // Pass audioUrl
             source,
             threadId,
         });
@@ -337,4 +355,3 @@ export async function deleteThread(threadId: string, userId: string): Promise<{ 
         return { success: false, message: 'Failed to delete thread.' };
     }
 }
-

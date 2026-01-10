@@ -37,8 +37,11 @@ export function CommandMenu() {
     }
 
     startSearchTransition(async () => {
-      const searchResults = await searchMemoryAction(debouncedQuery, user.uid);
-      setResults(searchResults);
+      if (user) {
+        const token = await user.getIdToken();
+        const searchResults = await searchMemoryAction(debouncedQuery, token);
+        setResults(searchResults);
+      }
     });
   }, [debouncedQuery, user]);
 

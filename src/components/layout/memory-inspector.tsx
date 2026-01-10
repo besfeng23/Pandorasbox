@@ -5,7 +5,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useFirestore } from '@/firebase';
+import { useFirestore, useUser } from '@/firebase';
 import type { Memory } from '@/lib/types';
 import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestore';
 import { BrainCircuit, Loader2, Search, Trash2, Edit, X, Save, Plus } from 'lucide-react';
@@ -52,6 +52,7 @@ export function MemoryInspector({ userId }: MemoryInspectorProps) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const firestore = useFirestore();
+  const { user } = useUser();
 
   // Fetch memories from memories collection (real-time listener)
   useEffect(() => {
@@ -121,7 +122,9 @@ export function MemoryInspector({ userId }: MemoryInspectorProps) {
 
   const handleDelete = (memoryId: string) => {
     startTransition(async () => {
-      const result = await deleteMemoryFromMemories(memoryId, userId);
+      if (!user) return;
+      const token = await user.getIdToken();
+      const result = await deleteMemoryFromMemories(memoryId, token);
       if (result.success) {
         setMemories(prev => prev.filter(m => m.id !== memoryId));
         setDeleteDialogOpen(null);
@@ -138,7 +141,9 @@ export function MemoryInspector({ userId }: MemoryInspectorProps) {
       return;
     }
     startTransition(async () => {
-      const result = await updateMemoryInMemories(memoryId, editText, userId);
+      if (!user) return;
+      const token = await user.getIdToken();
+      const result = await updateMemoryInMemories(memoryId, editText, token);
       if (result.success) {
         setMemories(prev => prev.map(m => m.id === memoryId ? { ...m, content: editText } : m));
         setEditingId(null);
@@ -161,7 +166,9 @@ export function MemoryInspector({ userId }: MemoryInspectorProps) {
       return;
     }
     startTransition(async () => {
-      const result = await createMemoryFromSettings(newMemoryText.trim(), userId);
+      if (!user) return;
+      const token = await user.getIdToken();
+      const result = await createMemoryFromSettings(newMemoryText.trim(), token);
       if (result.success) {
         setCreateDialogOpen(false);
         setNewMemoryText('');

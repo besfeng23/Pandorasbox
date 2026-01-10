@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { reindexMemories } from '@/app/actions';
 import { Loader2, RefreshCw } from 'lucide-react';
+import { useUser } from '@/firebase';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,10 +26,13 @@ export function ReindexMemoriesButton({ userId }: ReindexMemoriesButtonProps) {
   const [isPending, startTransition] = useTransition();
   const [isOpen, setIsOpen] = useState(false);
   const { toast } = useToast();
+  const { user } = useUser();
 
   const handleReindex = () => {
     startTransition(async () => {
-      const result = await reindexMemories(userId);
+      if (!user) return;
+      const token = await user.getIdToken();
+      const result = await reindexMemories(token);
       setIsOpen(false);
       
       if (result.success) {

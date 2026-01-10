@@ -1,40 +1,55 @@
 'use server';
 
-import { getFirestoreAdmin } from '@/lib/firebase-admin';
+import { getFirestoreAdmin, getAuthAdmin } from '@/lib/firebase-admin';
 import { revalidatePath } from 'next/cache';
 import { randomBytes } from 'crypto';
 import * as Sentry from '@sentry/nextjs';
 
-export async function updateSettings(formData: FormData) {
-    const settingsData = {
-        active_model: formData.get('active_model'),
-        reply_style: formData.get('reply_style'),
-        system_prompt_override: formData.get('system_prompt_override'),
-    };
-    const userId = formData.get('userId') as string;
-
-    if (!userId) {
-      return { success: false, message: 'User not authenticated.' };
-    }
-    const firestoreAdmin = getFirestoreAdmin();
+async function getUserIdFromToken(token: string): Promise<string> {
     try {
+        const decoded = await getAuthAdmin().verifyIdToken(token);
+        return decoded.uid;
+    } catch (error) {
+        console.error('Invalid ID token:', error);
+        throw new Error('Invalid authentication token');
+    }
+}
+
+export async function updateSettings(formData: FormData) {
+    const idToken = formData.get('idToken') as string;
+    
+    if (!idToken) {
+        return { success: false, message: 'User not authenticated.' };
+    }
+
+    try {
+        const userId = await getUserIdFromToken(idToken);
+        
+        const settingsData = {
+            active_model: formData.get('active_model'),
+            reply_style: formData.get('reply_style'),
+            system_prompt_override: formData.get('system_prompt_override'),
+        };
+
+        const firestoreAdmin = getFirestoreAdmin();
         await firestoreAdmin.collection('settings').doc(userId).set(settingsData, { merge: true });
         revalidatePath('/settings');
         return { success: true, message: 'Settings updated successfully.' };
     } catch (error) {
         console.error('Error updating settings:', error);
-        Sentry.captureException(error, { tags: { function: 'updateSettings', userId } });
+        Sentry.captureException(error, { tags: { function: 'updateSettings' } });
         return { success: false, message: 'Failed to update settings.' };
     }
 }
 
-export async function generateUserApiKey(userId: string): Promise<{ success: boolean, apiKey?: string, message?: string }> {
-    if (!userId) {
+export async function generateUserApiKey(idToken: string): Promise<{ success: boolean, apiKey?: string, message?: string }> {
+    if (!idToken) {
       return { success: false, message: 'User not authenticated.' };
     }
   
-    const firestoreAdmin = getFirestoreAdmin();
     try {
+      const userId = await getUserIdFromToken(idToken);
+      const firestoreAdmin = getFirestoreAdmin();
       const apiKey = `sk-pandora-${randomBytes(24).toString('hex')}`;
       
       const settingsRef = firestoreAdmin.collection('settings').doc(userId);
@@ -45,7 +60,7 @@ export async function generateUserApiKey(userId: string): Promise<{ success: boo
 
     } catch (error) {
       console.error('Error generating API key:', error);
-      Sentry.captureException(error, { tags: { function: 'generateUserApiKey', userId } });
+      Sentry.captureException(error, { tags: { function: 'generateUserApiKey' } });
       return { success: false, message: 'Failed to generate API key.' };
     }
 }
@@ -54,13 +69,15 @@ export async function generateUserApiKey(userId: string): Promise<{ success: boo
  * Exports all user data for GDPR compliance.
  * Returns a JSON object containing all user data from Firestore.
  */
-export async function exportUserData(userId: string): Promise<{ success: boolean, data?: any, message?: string }> {
-    if (!userId) {
+export async function exportUserData(idToken: string): Promise<{ success: boolean, data?: any, message?: string }> {
+    if (!idToken) {
         return { success: false, message: 'User not authenticated.' };
     }
 
-    const firestoreAdmin = getFirestoreAdmin();
     try {
+        const userId = await getUserIdFromToken(idToken);
+        const firestoreAdmin = getFirestoreAdmin();
+        
         const exportData: any = {
             userId,
             exportedAt: new Date().toISOString(),
@@ -144,8 +161,7 @@ export async function exportUserData(userId: string): Promise<{ success: boolean
         return { success: true, data: exportData };
     } catch (error) {
         console.error('Error exporting user data:', error);
-        Sentry.captureException(error, { tags: { function: 'exportUserData', userId } });
+        Sentry.captureException(error, { tags: { function: 'exportUserData' } });
         return { success: false, message: 'Failed to export user data.' };
     }
 }
-

@@ -1,6 +1,6 @@
 'use server';
 
-import { getFirestoreAdmin } from '@/lib/firebase-admin';
+import { getFirestoreAdmin, getAuthAdmin } from '@/lib/firebase-admin';
 import { revalidatePath } from 'next/cache';
 import { generateEmbedding, generateEmbeddingsBatch, searchHistory, searchMemories } from '@/lib/vector';
 import { SearchResult } from '@/lib/types';
@@ -11,56 +11,74 @@ import * as Sentry from '@sentry/nextjs';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { trackEvent } from '@/lib/analytics';
 
-export async function searchMemoryAction(query: string, userId: string): Promise<SearchResult[]> {
-    if (!query.trim() || !userId) {
+async function getUserIdFromToken(token: string): Promise<string> {
+    try {
+        const decoded = await getAuthAdmin().verifyIdToken(token);
+        return decoded.uid;
+    } catch (error) {
+        console.error('Invalid ID token:', error);
+        throw new Error('Invalid authentication token');
+    }
+}
+
+export async function searchMemoryAction(query: string, idToken: string): Promise<SearchResult[]> {
+    if (!query.trim() || !idToken) {
         return [];
     }
 
-    // Search both history and memories collections
-    const [historyResults, memoryResults] = await Promise.all([
-        searchHistory(query, userId),
-        searchMemories(query, userId, 10)
-    ]);
+    try {
+        const userId = await getUserIdFromToken(idToken);
+        // Search both history and memories collections
+        const [historyResults, memoryResults] = await Promise.all([
+            searchHistory(query, userId),
+            searchMemories(query, userId, 10)
+        ]);
 
-    // Combine results and sort by score (highest first)
-    const allResults = [
-        ...historyResults.map(r => ({
-            id: r.id,
-            text: r.text,
-            score: r.score,
-            timestamp: r.timestamp.toISOString(),
-            source: 'history' as const
-        })),
-        ...memoryResults.map(r => ({
-            id: r.id,
-            text: r.text,
-            score: r.score,
-            timestamp: r.timestamp.toISOString(),
-            source: 'memory' as const
-        }))
-    ]
-    .sort((a, b) => b.score - a.score) // Sort by score descending
-    .slice(0, 20); // Limit to top 20 results
+        // Combine results and sort by score (highest first)
+        const allResults = [
+            ...historyResults.map(r => ({
+                id: r.id,
+                text: r.text,
+                score: r.score,
+                timestamp: r.timestamp.toISOString(),
+                source: 'history' as const
+            })),
+            ...memoryResults.map(r => ({
+                id: r.id,
+                text: r.text,
+                score: r.score,
+                timestamp: r.timestamp.toISOString(),
+                source: 'memory' as const
+            }))
+        ]
+        .sort((a, b) => b.score - a.score) // Sort by score descending
+        .slice(0, 20); // Limit to top 20 results
 
-    return allResults.map(result => ({
-        id: result.id,
-        text: result.text,
-        score: result.score,
-        timestamp: result.timestamp
-    }));
+        return allResults.map(result => ({
+            id: result.id,
+            text: result.text,
+            score: result.score,
+            timestamp: result.timestamp
+        }));
+    } catch (error) {
+        console.error('Error in searchMemoryAction:', error);
+        return [];
+    }
 }
 
-export async function clearMemory(userId: string) {
-    if (!userId) {
+export async function clearMemory(idToken: string) {
+    if (!idToken) {
         return { success: false, message: 'User not authenticated.' };
     }
-    const firestoreAdmin = getFirestoreAdmin();
-    const historyQuery = firestoreAdmin.collection('history').where('userId', '==', userId);
-    const memoriesQuery = firestoreAdmin.collection('memories').where('userId', '==', userId);
-    const stateCollectionRef = firestoreAdmin.collection('users').doc(userId).collection('state');
-    const artifactsQuery = firestoreAdmin.collection('artifacts').where('userId', '==', userId);
-
+    
     try {
+        const userId = await getUserIdFromToken(idToken);
+        const firestoreAdmin = getFirestoreAdmin();
+        const historyQuery = firestoreAdmin.collection('history').where('userId', '==', userId);
+        const memoriesQuery = firestoreAdmin.collection('memories').where('userId', '==', userId);
+        const stateCollectionRef = firestoreAdmin.collection('users').doc(userId).collection('state');
+        const artifactsQuery = firestoreAdmin.collection('artifacts').where('userId', '==', userId);
+
         const historySnapshot = await historyQuery.get();
         const historyBatch = firestoreAdmin.batch();
         historySnapshot.docs.forEach(doc => {
@@ -101,18 +119,20 @@ export async function clearMemory(userId: string) {
         return { success: true, message: 'Memory cleared successfully.' };
     } catch (error) {
         console.error('Error clearing memory:', error);
-        Sentry.captureException(error, { tags: { function: 'clearMemory', userId } });
+        Sentry.captureException(error, { tags: { function: 'clearMemory' } });
         return { success: false, message: 'Failed to clear memory.' };
     }
 }
 
-export async function getMemories(userId: string, query?: string) {
+export async function getMemories(idToken: string, query?: string) {
     'use server';
     try {
-      if (!userId) {
+      if (!idToken) {
         console.warn('getMemories: User not authenticated');
         return [];
       }
+      
+      const userId = await getUserIdFromToken(idToken);
     
       const firestoreAdmin = getFirestoreAdmin();
       const historyCollection = firestoreAdmin.collection('history');
@@ -123,8 +143,6 @@ export async function getMemories(userId: string, query?: string) {
           if (searchResults.length === 0) return [];
           const docIds = searchResults.map(r => r.id);
           
-          // Get documents by IDs - Firestore Admin SDK doesn't support 'in' with documentId directly
-          // Instead, fetch each document individually (or use a different approach)
           const memoryDocs = await Promise.all(
             docIds.slice(0, 10).map(id => historyCollection.doc(id).get())
           );
@@ -133,7 +151,6 @@ export async function getMemories(userId: string, query?: string) {
           return userFilteredDocs.map(doc => ({ id: doc.id, ...doc.data() }));
         } catch (searchError: any) {
           console.error('Error in semantic search for memories:', searchError);
-          // Fallback to regular query if semantic search fails
           const snapshot = await historyCollection
             .where('userId', '==', userId)
             .orderBy('createdAt', 'desc')
@@ -151,7 +168,6 @@ export async function getMemories(userId: string, query?: string) {
             .get();
           return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         } catch (queryError: any) {
-          // If orderBy fails (missing index), try without it
           if (queryError.code === 9 || queryError.message?.includes('index')) {
             console.warn('Firestore index missing for createdAt. Querying without orderBy.');
             const snapshot = await historyCollection
@@ -165,20 +181,20 @@ export async function getMemories(userId: string, query?: string) {
       }
     } catch (error: any) {
       console.error('Error fetching memories:', error);
-      // Return empty array instead of throwing to prevent server component crash
       return [];
     }
 }
   
-export async function deleteMemory(id: string, userId: string) {
+export async function deleteMemory(id: string, idToken: string) {
     'use server';
-    if (!userId) {
+    if (!idToken) {
       return { success: false, message: 'User not authenticated.' };
     }
-    const firestoreAdmin = getFirestoreAdmin();
+    
     try {
+      const userId = await getUserIdFromToken(idToken);
+      const firestoreAdmin = getFirestoreAdmin();
       const docRef = firestoreAdmin.collection('history').doc(id);
-      // Add a check to ensure user owns the document before deleting
       const docSnap = await docRef.get();
       if (!docSnap.exists || docSnap.data()?.userId !== userId) {
         return { success: false, message: 'Permission denied.' };
@@ -188,18 +204,20 @@ export async function deleteMemory(id: string, userId: string) {
       return { success: true };
     } catch (error) {
       console.error('Error deleting memory:', error);
-      Sentry.captureException(error, { tags: { function: 'deleteMemory', userId, memoryId: id } });
+      Sentry.captureException(error, { tags: { function: 'deleteMemory', memoryId: id } });
       return { success: false, message: 'Failed to delete memory.' };
     }
 }
   
-export async function updateMemory(id: string, newText: string, userId: string) {
+export async function updateMemory(id: string, newText: string, idToken: string) {
     'use server';
-    if (!userId) {
+    if (!idToken) {
         return { success: false, message: 'User not authenticated.' };
     }
-    const firestoreAdmin = getFirestoreAdmin();
+    
     try {
+        const userId = await getUserIdFromToken(idToken);
+        const firestoreAdmin = getFirestoreAdmin();
         const docRef = firestoreAdmin.collection('history').doc(id);
         const docSnap = await docRef.get();
         if (!docSnap.exists || docSnap.data()?.userId !== userId) {
@@ -215,21 +233,21 @@ export async function updateMemory(id: string, newText: string, userId: string) 
         return { success: true };
     } catch (error) {
         console.error('Error updating memory:', error);
-        Sentry.captureException(error, { tags: { function: 'updateMemory', userId, memoryId: id } });
+        Sentry.captureException(error, { tags: { function: 'updateMemory', memoryId: id } });
         return { success: false, message: 'Failed to update memory.' };
     }
 }
 
-export async function createMemoryFromSettings(content: string, userId: string): Promise<{ success: boolean; message?: string; memory_id?: string }> {
+export async function createMemoryFromSettings(content: string, idToken: string): Promise<{ success: boolean; message?: string; memory_id?: string }> {
     'use server';
-    if (!userId || !content || !content.trim()) {
+    if (!idToken || !content || !content.trim()) {
         return { success: false, message: 'User not authenticated or content is empty.' };
     }
     
-    // Use centralized memory utility to ensure automatic indexing
-    const { saveMemory } = await import('@/lib/memory-utils');
-    
     try {
+        const userId = await getUserIdFromToken(idToken);
+        const { saveMemory } = await import('@/lib/memory-utils');
+        
         const result = await saveMemory({
             content: content.trim(),
             userId: userId,
@@ -243,18 +261,20 @@ export async function createMemoryFromSettings(content: string, userId: string):
         return result;
     } catch (error) {
         console.error('Error creating memory:', error);
-        Sentry.captureException(error, { tags: { function: 'createMemoryFromSettings', userId } });
+        Sentry.captureException(error, { tags: { function: 'createMemoryFromSettings' } });
         return { success: false, message: 'Failed to create memory.' };
     }
 }
 
-export async function deleteMemoryFromMemories(id: string, userId: string): Promise<{ success: boolean; message?: string }> {
+export async function deleteMemoryFromMemories(id: string, idToken: string): Promise<{ success: boolean; message?: string }> {
     'use server';
-    if (!userId) {
+    if (!idToken) {
       return { success: false, message: 'User not authenticated.' };
     }
-    const firestoreAdmin = getFirestoreAdmin();
+    
     try {
+      const userId = await getUserIdFromToken(idToken);
+      const firestoreAdmin = getFirestoreAdmin();
       const docRef = firestoreAdmin.collection('memories').doc(id);
       const docSnap = await docRef.get();
       if (!docSnap.exists || docSnap.data()?.userId !== userId) {
@@ -265,21 +285,21 @@ export async function deleteMemoryFromMemories(id: string, userId: string): Prom
       return { success: true };
     } catch (error) {
       console.error('Error deleting memory:', error);
-      Sentry.captureException(error, { tags: { function: 'deleteMemoryFromMemories', userId, memoryId: id } });
+      Sentry.captureException(error, { tags: { function: 'deleteMemoryFromMemories', memoryId: id } });
       return { success: false, message: 'Failed to delete memory.' };
     }
 }
 
-export async function updateMemoryInMemories(id: string, newText: string, userId: string): Promise<{ success: boolean; message?: string }> {
+export async function updateMemoryInMemories(id: string, newText: string, idToken: string): Promise<{ success: boolean; message?: string }> {
     'use server';
-    if (!userId) {
+    if (!idToken) {
         return { success: false, message: 'User not authenticated.' };
     }
     
-    // Use centralized memory utility to ensure embedding is regenerated
-    const { updateMemoryWithEmbedding } = await import('@/lib/memory-utils');
-    
     try {
+        const userId = await getUserIdFromToken(idToken);
+        const { updateMemoryWithEmbedding } = await import('@/lib/memory-utils');
+        
         const result = await updateMemoryWithEmbedding(id, newText, userId);
         if (result.success) {
             revalidatePath('/');
@@ -287,30 +307,31 @@ export async function updateMemoryInMemories(id: string, newText: string, userId
         return result;
     } catch (error) {
         console.error('Error updating memory:', error);
-        Sentry.captureException(error, { tags: { function: 'updateMemoryInMemories', userId, memoryId: id } });
+        Sentry.captureException(error, { tags: { function: 'updateMemoryInMemories', memoryId: id } });
         return { success: false, message: 'Failed to update memory.' };
     }
 }
 
 export async function uploadKnowledge(formData: FormData): Promise<{ success: boolean; message: string; chunks?: number }> {
     const file = formData.get('file') as File;
-    const userId = formData.get('userId') as string;
+    const idToken = formData.get('idToken') as string;
 
-    if (!file || !userId) {
-        return { success: false, message: 'File or user ID missing.' };
+    if (!file || !idToken) {
+        return { success: false, message: 'File or ID token missing.' };
     }
 
-    // Check rate limit for uploads
-    const rateLimitCheck = await checkRateLimit(userId, 'uploads');
-    if (!rateLimitCheck.success) {
-        return { 
-            success: false, 
-            message: rateLimitCheck.message || 'Upload rate limit exceeded. Please try again later.' 
-        };
-    }
-
-    const firestoreAdmin = getFirestoreAdmin();
     try {
+        const userId = await getUserIdFromToken(idToken);
+        // Check rate limit for uploads
+        const rateLimitCheck = await checkRateLimit(userId, 'uploads');
+        if (!rateLimitCheck.success) {
+            return { 
+                success: false, 
+                message: rateLimitCheck.message || 'Upload rate limit exceeded. Please try again later.' 
+            };
+        }
+
+        const firestoreAdmin = getFirestoreAdmin();
         let rawContent = '';
         const fileBuffer = Buffer.from(await file.arrayBuffer());
 
@@ -373,21 +394,22 @@ export async function uploadKnowledge(formData: FormData): Promise<{ success: bo
         return { success: true, message: `Successfully indexed ${file.name}.`, chunks: chunks.length };
     } catch (error) {
         console.error('Error uploading knowledge:', error);
-        Sentry.captureException(error, { tags: { function: 'uploadKnowledge', userId, fileName: file.name } });
+        Sentry.captureException(error, { tags: { function: 'uploadKnowledge', fileName: file.name } });
         return { success: false, message: `Failed to index ${file.name}.` };
     }
 }
 
-export async function reindexMemories(userId: string): Promise<{ success: boolean; message?: string; processed?: number; skipped?: number; errors?: number }> {
+export async function reindexMemories(idToken: string): Promise<{ success: boolean; message?: string; processed?: number; skipped?: number; errors?: number }> {
     'use server';
-    if (!userId) {
+    if (!idToken) {
         return { success: false, message: 'User not authenticated.' };
     }
     
-    const firestoreAdmin = getFirestoreAdmin();
-    const { generateEmbedding } = await import('@/lib/vector');
-    
     try {
+        const userId = await getUserIdFromToken(idToken);
+        const firestoreAdmin = getFirestoreAdmin();
+        const { generateEmbedding } = await import('@/lib/vector');
+        
         console.log(`[ReindexMemories] Starting re-index for user ${userId}`);
         
         const memoriesRef = firestoreAdmin.collection('memories');
@@ -476,11 +498,10 @@ export async function reindexMemories(userId: string): Promise<{ success: boolea
         };
     } catch (error: any) {
         console.error('[ReindexMemories] Fatal error:', error);
-        Sentry.captureException(error, { tags: { function: 'reindexMemories', userId } });
+        Sentry.captureException(error, { tags: { function: 'reindexMemories' } });
         return {
             success: false,
             message: `Failed to re-index memories: ${error.message}`,
         };
     }
 }
-

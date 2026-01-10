@@ -1,11 +1,11 @@
 # Settings for Backend (on Cloud Run).
 # See https://firebase.google.com/docs/app-hosting/configure#cloud-run
 runConfig:
-  minInstances: 0
-  # maxInstances: 100
-  # concurrency: 80
-  # cpu: 1
-  # memoryMiB: 512
+  minInstances: 1 # CRITICAL: Keeps the CPU from freezing immediately after response
+  maxInstances: 10
+  concurrency: 80
+  cpu: 1
+  memoryMiB: 2048
 
 # Environment variables and secrets.
 env:
@@ -70,11 +70,19 @@ env:
     availability:
       - RUNTIME
   
-  # MEMORY_API_KEY removed - not currently used in the codebase
+  # Firebase Admin Credentials (using ADMIN_ prefix to avoid reserved FIREBASE_ prefix)
+  - variable: ADMIN_CLIENT_EMAIL
+    secret: firebase-client-email
+    availability:
+      - RUNTIME
 
-  # Sentry (optional - add when configured)
-  # - variable: NEXT_PUBLIC_SENTRY_DSN
-  #   value: YOUR_SENTRY_DSN_HERE
-  #   availability:
-  #     - BUILD
-  #     - RUNTIME
+  - variable: ADMIN_PRIVATE_KEY
+    secret: firebase-private-key
+    availability:
+      - RUNTIME
+
+  # Tavily Search API
+  - variable: TAVILY_API_KEY
+    secret: tavily-api-key
+    availability:
+      - RUNTIME

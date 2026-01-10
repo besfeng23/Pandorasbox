@@ -95,31 +95,38 @@ export default function SettingsPage() {
     }
   }, [settings, form]);
 
-  const onSubmit = (data: AppSettings) => {
+  const onSubmit = async (data: AppSettings) => {
     const formData = new FormData();
     Object.entries(data).forEach(([key, value]) => {
         if (value !== undefined && key !== 'personal_api_key') {
             formData.append(key, String(value));
         }
     });
+    
     if (user) {
-      formData.append('userId', user.uid);
-    }
-
-    startTransition(async () => {
-      const result = await updateSettings(formData);
-      if (result.success) {
-        toast({ title: 'Success', description: result.message });
-      } else {
-        toast({ variant: 'destructive', title: 'Error', description: result.message });
+      try {
+        const token = await user.getIdToken();
+        formData.append('idToken', token);
+        
+        startTransition(async () => {
+          const result = await updateSettings(formData);
+          if (result.success) {
+            toast({ title: 'Success', description: result.message });
+          } else {
+            toast({ variant: 'destructive', title: 'Error', description: result.message });
+          }
+        });
+      } catch (e) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Authentication failed.' });
       }
-    });
+    }
   };
   
   const handleClearMemory = () => {
     if (!user) return;
     startTransition(async () => {
-        const result = await clearMemory(user.uid);
+        const token = await user.getIdToken();
+        const result = await clearMemory(token);
         if (result.success) {
           toast({ title: "Success", description: result.message });
         } else {
@@ -131,7 +138,8 @@ export default function SettingsPage() {
   const handleGenerateKey = () => {
     if (!user) return;
     startKeyGeneration(async () => {
-      const result = await generateUserApiKey(user.uid);
+      const token = await user.getIdToken();
+      const result = await generateUserApiKey(token);
       if (result.success && result.apiKey) {
         toast({ title: 'API Key Generated', description: 'Your new personal API key is ready.' });
         form.setValue('personal_api_key', result.apiKey);
@@ -613,7 +621,8 @@ export default function SettingsPage() {
                 onClick={async () => {
                   if (!user) return;
                   startTransition(async () => {
-                    const result = await exportUserData(user.uid);
+                    const token = await user.getIdToken();
+                    const result = await exportUserData(token);
                     if (result.success && result.data) {
                       const dataStr = JSON.stringify(result.data, null, 2);
                       const dataBlob = new Blob([dataStr], { type: 'application/json' });

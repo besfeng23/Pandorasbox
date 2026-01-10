@@ -96,6 +96,9 @@ export function PandorasBox({ user }: PandorasBoxProps) {
     
     startTransition(async () => {
         try {
+            const token = await user.getIdToken();
+            formData.append('idToken', token);
+            
             const result = await submitUserMessage(formData);
             if (result?.error) {
                 // Handle rate limit or other errors

@@ -13,7 +13,9 @@ import { summarizeThread } from '@/app/actions';
 const ChatLaneInputSchema = z.object({
   userId: z.string(),
   message: z.string(),
+  messageId: z.string().optional(), // Added messageId
   imageBase64: z.string().nullable(),
+  audioUrl: z.string().optional(),
   source: z.string(),
   threadId: z.string(), // Added threadId
 });
@@ -27,7 +29,7 @@ export async function runChatLane(
       inputSchema: ChatLaneInputSchema,
       outputSchema: z.void(),
     },
-    async ({ userId, message, imageBase64, source, threadId }) => {
+    async ({ userId, message, messageId, imageBase64, audioUrl, source, threadId }) => {
       const firestoreAdmin = getFirestoreAdmin();
       // 1. Create a placeholder for the assistant's response in the correct subcollection.
       const assistantRef = firestoreAdmin.collection('history').doc();
@@ -47,7 +49,9 @@ export async function runChatLane(
       runMemoryLane({
         userId,
         message,
+        messageId, // Pass messageId
         imageBase64,
+        audioUrl, // Pass audioUrl
         source,
       }).catch(err => console.error("Memory Lane failed:", err));
 
@@ -55,8 +59,9 @@ export async function runChatLane(
       // We pass imageBase64 directly so it doesn't need to wait for memory lane's description.
       const answerResult = await runAnswerLane({
         userId,
-        message: message || 'Describe the image.', // Fallback if message is empty
+        message: message || (audioUrl ? 'Process this audio.' : 'Describe the image.'), // Fallback if message is empty
         imageBase64: imageBase64,
+        audioUrl: audioUrl, // Pass audioUrl
         assistantMessageId: assistantRef.id,
         threadId, // Pass threadId to answer lane
       });

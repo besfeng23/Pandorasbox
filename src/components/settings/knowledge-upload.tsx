@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Loader2, UploadCloud, File, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useUser } from '@/firebase';
 
 interface KnowledgeUploadProps {
   userId: string;
@@ -18,19 +19,22 @@ export function KnowledgeUpload({ userId }: KnowledgeUploadProps) {
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const { toast } = useToast();
+  const { user } = useUser();
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     if (!file) return;
 
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('userId', userId);
-    
-    setFileName(file.name);
-    setUploadProgress(0); // Start progress
-
     startTransition(async () => {
+        if (!user) return;
+        const token = await user.getIdToken();
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('idToken', token);
+        
+        setFileName(file.name);
+        setUploadProgress(0); // Start progress
+
       // Simulate progress for large file processing
       const progressInterval = setInterval(() => {
         setUploadProgress(prev => {

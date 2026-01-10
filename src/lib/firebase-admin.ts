@@ -21,6 +21,19 @@ function initializeAdmin() {
   // Highest priority: explicit service account path from FIREBASE_SERVICE_ACCOUNT_KEY
   // This is especially useful for standalone tools and MCP servers.
   try {
+    // 1. Check for App Hosting / Cloud Run Env Vars (ADMIN_PRIVATE_KEY)
+    if (process.env.ADMIN_PRIVATE_KEY && process.env.ADMIN_CLIENT_EMAIL) {
+        console.log('Initializing Firebase Admin with ADMIN_PRIVATE_KEY env var...');
+        admin.initializeApp({
+            credential: admin.credential.cert({
+                projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'seismic-vista-480710-q5',
+                clientEmail: process.env.ADMIN_CLIENT_EMAIL,
+                privateKey: process.env.ADMIN_PRIVATE_KEY.replace(/\\n/g, '\n'),
+            }),
+        });
+        return;
+    }
+
     const serviceAccountEnv = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
     if (serviceAccountEnv && serviceAccountEnv.trim()) {
       const path = require('path');

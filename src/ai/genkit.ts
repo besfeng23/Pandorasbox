@@ -5,16 +5,16 @@
  * Genkit runs within the App Hosting runtime environment.
  */
 import { genkit } from "genkit";
-import { googleAI } from "@genkit-ai/google-genai";
+import { vertexAI } from "@genkit-ai/vertexai";
 import { enableFirebaseTelemetry } from "@genkit-ai/firebase";
 
 // Enable Firebase telemetry for observability
 enableFirebaseTelemetry();
 
-// Initialize Genkit with Google AI plugin
-// Location matches Firestore region: asia-southeast1
+// Initialize Genkit with Vertex AI plugin
+// Location set to us-central1 for best model availability
 export const ai = genkit({
-  plugins: [googleAI()],
+  plugins: [vertexAI({ location: 'us-central1' })],
   enableFlowControl: true,
   logLevel: "info",
 });

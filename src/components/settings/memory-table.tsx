@@ -13,7 +13,7 @@ import { Loader2, Trash2, Edit, Save, X, Search, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
 import { Badge } from '../ui/badge';
-import { useFirestore } from '@/firebase';
+import { useFirestore, useUser } from '@/firebase';
 import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestore';
 import { toDate } from '@/lib/utils';
 import {
@@ -42,6 +42,7 @@ export function MemoryTable({ userId }: MemoryTableProps) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const firestore = useFirestore();
+  const { user } = useUser();
 
   // Fetch memories from memories collection (real-time listener)
   useEffect(() => {
@@ -110,7 +111,9 @@ export function MemoryTable({ userId }: MemoryTableProps) {
 
   const handleDelete = (id: string) => {
     startTransition(async () => {
-      const result = await deleteMemoryFromMemories(id, userId);
+      if (!user) return;
+      const token = await user.getIdToken();
+      const result = await deleteMemoryFromMemories(id, token);
       if (result.success) {
         setDeleteDialogOpen(null);
         toast({ title: 'Memory deleted' });
@@ -126,7 +129,9 @@ export function MemoryTable({ userId }: MemoryTableProps) {
         return;
     }
     startTransition(async () => {
-      const result = await updateMemoryInMemories(id, editText, userId);
+      if (!user) return;
+      const token = await user.getIdToken();
+      const result = await updateMemoryInMemories(id, editText, token);
       if (result.success) {
         toast({ title: 'Memory updated' });
         setEditingId(null);
