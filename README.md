@@ -9,6 +9,42 @@ An AI-powered chat application with persistent long-term memory and MCP (Model C
 - **Memory Management**: Store and retrieve long-term memories with embeddings
 - **Artifact Creation**: Generate and save code/markdown artifacts
 - **MCP Server**: Expose capabilities to external AI agents (ChatGPT Actions, Claude Desktop)
+- **PandoraUI**: Unified, phase-aware UI with real-time system metrics
+
+## PandoraUI Setup & Activation
+
+### 1. Seed System Data
+Populate the Firestore database with system phases and telemetry data to activate the UI.
+
+```bash
+# Seed 14 system phases
+npm run seed:phases
+
+# Seed initial telemetry metrics
+npx tsx scripts/seed-telemetry.ts
+```
+
+### 2. Deploy Configuration
+Deploy Firestore security rules and indexes.
+
+```bash
+firebase deploy --only firestore
+```
+
+### 3. Verify UI
+Run the development server and check the dashboard.
+
+```bash
+npm run dev
+# Visit http://localhost:9002
+```
+
+**Checklist:**
+- ✅ PhaseIndicator updates on click
+- ✅ PhaseDashboard shows grid and live values
+- ✅ Pandora Cube animates and opens menu
+- ✅ Settings modal works
+- ✅ Sidebar search works
 
 ## MCP Server
 
