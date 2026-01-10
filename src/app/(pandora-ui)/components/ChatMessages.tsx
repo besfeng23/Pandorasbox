@@ -33,7 +33,7 @@ export default function ChatMessages({ messages, isLoading }: ChatMessagesProps)
             className={`px-4 py-3 rounded-2xl max-w-[80%] ${
               m.role === "user"
                 ? "bg-gradient-to-r from-cyan-400 to-violet-500 text-white"
-                : "bg-white/10 text-white/90 border border-white/10"
+                : "bg-zinc-900/50 text-gray-100 border border-white/10"
             } ${m.isOptimistic ? "opacity-70" : ""}`}
             style={
               m.role === "user"
