@@ -5,7 +5,7 @@ import { X, Settings as SettingsIcon, Palette, CreditCard, HelpCircle, Shield, L
 import { useUIState } from "./useUIState";
 import { useSettings } from "./useSettings";
 import { useState } from "react";
-import { useFirebaseAuth } from "@/firebase";
+import { useAuth } from "@/firebase";
 import { useRouter } from "next/navigation";
 
 type TabValue = "general" | "personalization" | "billing" | "help" | "security" | "logout";
@@ -13,7 +13,7 @@ type TabValue = "general" | "personalization" | "billing" | "help" | "security" 
 export default function SettingsModal() {
   const { settingsOpen, setSettingsOpen } = useUIState();
   const { theme, setTheme, model, setModel, voiceEnabled, toggleVoice } = useSettings();
-  const { signOut } = useFirebaseAuth();
+  const { signOut } = useAuth();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabValue>("general");
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
