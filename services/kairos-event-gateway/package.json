@@ -1,0 +1,29 @@
+{
+  "name": "kairos-event-gateway",
+  "version": "1.0.0",
+  "description": "Kairos Event Gateway - Cloud Run service that signs and forwards events to Base44 ingest",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test:event": "pwsh -File scripts/send-test-event.ps1",
+    "test:event:ts": "tsx scripts/send-test-event.ts"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4",
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.14.10",
+    "tsx": "^4.7.0",
+    "google-auth-library": "^9.0.0"
+  }
+}
+

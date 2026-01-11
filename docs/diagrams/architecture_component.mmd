@@ -1,0 +1,22 @@
+flowchart LR
+  user[User] --> ui[NextJS_UI]
+  ui --> auth[FirebaseAuth]
+  ui --> actions[ServerActions]
+  ui --> api[ApiRoutes]
+
+  actions --> fs[(Firestore)]
+  actions --> storage[(Storage)]
+
+  api --> fs
+  api --> lanes[Genkit_Flows]
+  api --> mcpBridge[MCP_HTTP_Bridge]
+
+  lanes --> openai[OpenAI_API]
+  lanes --> tavily[Tavily_optional]
+  lanes --> vertex[VertexAI_Gemini_optional]
+  lanes --> fs
+
+  mcpServer[MCP_Server_stdio] --> fs
+  mcpServer --> openai
+
+

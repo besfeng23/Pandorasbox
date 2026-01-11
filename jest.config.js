@@ -11,7 +11,13 @@ const customJestConfig = {
   testEnvironment: 'jest-environment-jsdom',
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    // lucide-react ships ESM builds; map to a lightweight test stub to avoid ESM-in-jest issues.
+    '^lucide-react$': '<rootDir>/src/__mocks__/lucide-react.tsx',
   },
+  modulePathIgnorePatterns: [
+    '<rootDir>/.firebase/',
+    '<rootDir>/.next/',
+  ],
   testMatch: [
     '**/__tests__/**/*.[jt]s?(x)',
     '**/?(*.)+(spec|test).[jt]s?(x)',

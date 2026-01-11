@@ -2,15 +2,16 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowUp, Mic } from "lucide-react";
-import PandoraBoxInteractive from "@/app/(pandora-ui)/components/PandoraBoxInteractive";
+import { ArrowUp } from "lucide-react";
 import ChatMessages from "@/app/(pandora-ui)/components/ChatMessages";
 import ChatInput from "@/app/(pandora-ui)/components/ChatInput";
-import { submitUserMessage } from "@/app/actions";
+import { submitUserMessage, transcribeAndProcessMessage } from "@/app/actions";
 import { useChatHistory } from "@/hooks/use-chat-history";
 import { useUser } from "@/firebase";
-import { createThread } from "@/app/actions";
+import { createThreadAuthed } from "@/app/actions";
 import { Message } from "@/lib/types";
+import { VoiceInput } from "@/components/chat/voice-input";
+import { useSearchParams } from "next/navigation";
 
 export default function PandoraChatPage() {
   const { user } = useUser();
@@ -18,13 +19,25 @@ export default function PandoraChatPage() {
   const [threadId, setThreadId] = useState<string | null>(null);
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const searchParams = useSearchParams();
 
   // Initialize thread on mount
   useEffect(() => {
-    if (userId && !threadId) {
-      createThread(userId).then(setThreadId).catch(console.error);
+    const paramThreadId = searchParams.get("threadId");
+    if (paramThreadId) {
+      setThreadId(paramThreadId);
+      return;
     }
-  }, [userId, threadId]);
+
+    if (user && userId && !threadId) {
+      user
+        .getIdToken()
+        .then((token) => createThreadAuthed(token))
+        .then(setThreadId)
+        .catch(console.error);
+    }
+  }, [user, userId, threadId, searchParams]);
 
   // Fetch real-time messages using the existing hook
   const { messages, isLoading } = useChatHistory(userId, threadId);
@@ -45,8 +58,12 @@ export default function PandoraChatPage() {
     }))
   ];
 
+  const isBusy = isSending || isTranscribing;
+  const hasText = input.trim().length > 0;
+  const isEmptyThread = chatMessages.length === 0 && !isLoading && !isBusy;
+
   const handleSend = async () => {
-    if (!input.trim() || isSending || !userId) return;
+    if (!input.trim() || isBusy || !userId) return;
 
     const messageContent = input.trim();
     setInput("");
@@ -77,6 +94,9 @@ export default function PandoraChatPage() {
       formData.append("source", "text");
 
       const result = await submitUserMessage(formData);
+      if (!result) {
+        return;
+      }
       
       if (result.threadId && !threadId) {
         setThreadId(result.threadId);
@@ -96,15 +116,31 @@ export default function PandoraChatPage() {
     }
   };
 
+  const handleVoiceSubmit = async (formData: FormData) => {
+    if (!userId || !user) return;
+    try {
+      const idToken = await user.getIdToken();
+      formData.append("idToken", idToken);
+      if (threadId) {
+        formData.append("threadId", threadId);
+      }
+
+      const result = await transcribeAndProcessMessage(formData);
+      if (result?.threadId && !threadId) {
+        setThreadId(result.threadId);
+      }
+    } catch (error) {
+      console.error("Failed to send voice message:", error);
+    } finally {
+      setIsTranscribing(false);
+    }
+  };
+
   return (
-    <div className="flex flex-col h-full bg-black text-white">
+    <div className="relative flex flex-col h-full bg-black text-white">
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto bg-black">
-        {chatMessages.length === 0 && !isLoading && !isSending ? (
-          <div className="flex items-center justify-center h-full">
-            <PandoraBoxInteractive />
-          </div>
-        ) : (
+      <div className="flex-1 overflow-y-auto bg-black pb-40">
+        {!isEmptyThread && (
           <ChatMessages 
             messages={chatMessages} 
             isLoading={isLoading || isSending} 
@@ -112,28 +148,67 @@ export default function PandoraChatPage() {
         )}
       </div>
 
-      {/* Input bar */}
-      <div className="flex items-center gap-3 border-t border-white/10 px-4 py-3 bg-black">
-        <PandoraBoxInteractive />
+      {/* Floating Composer (video-like). Empty thread centers it; otherwise it docks to bottom. */}
+      <div
+        className={[
+          "pointer-events-none absolute inset-x-0",
+          isEmptyThread
+            ? "top-1/2 -translate-y-1/2"
+            : "bottom-0 pb-[calc(env(safe-area-inset-bottom)+24px)]",
+        ].join(" ")}
+      >
+        <div className="pointer-events-auto mx-auto w-full max-w-[520px] px-4">
+          <div className="flex items-end gap-2 rounded-full border border-white/10 bg-black/40 backdrop-blur-md shadow-[0_0_24px_rgba(167,139,250,0.22)] px-3">
+            <ChatInput
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend();
+                }
+              }}
+              placeholder="Ask Pandora…"
+              disabled={isBusy || !userId}
+            />
 
-        <ChatInput
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
-          placeholder="Ask Pandora…"
-          disabled={isSending || !userId}
-        />
-
-        {input ? (
-          <button
-            onClick={handleSend}
-            disabled={isSending || !userId}
-            className="p-2 bg-black/60 hover:bg-black/80 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-white"
-            aria-label="Send message"
-          >
-            <ArrowUp className="w-4 h-4" />
-          </button>
-        ) : null}
+            {/* NON-NEGOTIABLE: mic ↔ send swap (value.trim().length) with fade+scale */}
+            <AnimatePresence mode="wait" initial={false}>
+              {hasText ? (
+                <motion.button
+                  key="send"
+                  type="button"
+                  onClick={handleSend}
+                  disabled={isBusy || !userId}
+                  initial={{ opacity: 0, scale: 0.92 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.92 }}
+                  transition={{ duration: 0.18, ease: "easeOut" }}
+                  className="mb-1 p-3 rounded-full bg-white/10 hover:bg-white/15 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-white"
+                  aria-label="Send message"
+                >
+                  <ArrowUp className="w-5 h-5" />
+                </motion.button>
+              ) : (
+                <motion.div
+                  key="mic"
+                  initial={{ opacity: 0, scale: 0.92 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.92 }}
+                  transition={{ duration: 0.18, ease: "easeOut" }}
+                  className="mb-1"
+                >
+                  <VoiceInput
+                    userId={userId || ""}
+                    onTranscriptionStatusChange={setIsTranscribing}
+                    disabled={isBusy || !userId}
+                    onAudioSubmit={handleVoiceSubmit}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
       </div>
     </div>
   );

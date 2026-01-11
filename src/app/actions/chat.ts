@@ -14,6 +14,7 @@ import * as Sentry from '@sentry/nextjs';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { trackEvent } from '@/lib/analytics';
 import { v4 as uuidv4 } from 'uuid';
+import { getActiveWorkspaceIdForUser } from '@/lib/workspaces';
 
 // Lazy initialization to avoid build-time errors
 function getOpenAI() {
@@ -26,10 +27,12 @@ function getOpenAI() {
 
 export async function createThread(userId: string): Promise<string> {
     const firestoreAdmin = getFirestoreAdmin();
+    const workspaceId = await getActiveWorkspaceIdForUser(userId);
     const threadRef = firestoreAdmin.collection('threads').doc();
     await threadRef.set({
         id: threadRef.id,
         userId: userId,
+        workspaceId,
         title: 'New Chat',
         createdAt: FieldValue.serverTimestamp(),
     });
@@ -40,6 +43,7 @@ export async function getUserThreads(userId: string) {
   try {
     if (!userId) return [];
     const firestoreAdmin = getFirestoreAdmin();
+    const workspaceId = await getActiveWorkspaceIdForUser(userId);
     // 1. Try to find threads (Safely)
     const threadsRef = firestoreAdmin.collection('threads');
     
@@ -57,6 +61,12 @@ export async function getUserThreads(userId: string) {
       // MAP & SERIALIZE: Convert Firestore Docs to Plain JSON
       return snapshot.docs.map(doc => {
         const data = doc.data();
+        // Backfill workspaceId for legacy threads (pre-workspace) into the user's current active workspace.
+        if (!data.workspaceId) {
+          doc.ref.set({ workspaceId }, { merge: true }).catch(() => {});
+        } else if (data.workspaceId !== workspaceId) {
+          return null;
+        }
         return {
           id: doc.id,
           userId: data.userId,
@@ -64,7 +74,7 @@ export async function getUserThreads(userId: string) {
           // CRITICAL FIX: Convert Firestore Timestamp to a plain String
           createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : new Date().toISOString() 
         } as Thread;
-      });
+      }).filter(Boolean) as Thread[];
 
     } catch (queryError) {
       console.warn("Could not fetch threads (likely missing index or collection). Returning empty list.");
@@ -77,6 +87,27 @@ export async function getUserThreads(userId: string) {
     Sentry.captureException(error, { tags: { function: 'getUserThreads', errorType: 'fatal' } });
     return []; // <--- DOUBLE SAFETY: Ensure the UI never crashes
   }
+}
+
+/**
+ * Authenticated variant for clients: verifies idToken server-side and returns workspace-scoped threads.
+ * This is the preferred call path for SaaS multi-tenant workspaces.
+ */
+export async function getUserThreadsAuthed(idToken: string) {
+  if (!idToken) return [];
+  const auth = getAuthAdmin();
+  const decoded = await auth.verifyIdToken(idToken);
+  return await getUserThreads(decoded.uid);
+}
+
+/**
+ * Authenticated variant for clients: creates a thread in the user's active workspace.
+ */
+export async function createThreadAuthed(idToken: string): Promise<string> {
+  if (!idToken) throw new Error('User not authenticated');
+  const auth = getAuthAdmin();
+  const decoded = await auth.verifyIdToken(idToken);
+  return await createThread(decoded.uid);
 }
 
 export async function transcribeAndProcessMessage(formData: FormData) {
@@ -172,12 +203,27 @@ export async function submitUserMessage(formData: FormData) {
     }
     
     const firestoreAdmin = getFirestoreAdmin();
+    const activeWorkspaceId = await getActiveWorkspaceIdForUser(userId);
     // If no threadId is provided, create a new thread.
     if (!threadId) {
         threadId = await createThread(userId);
         // Auto-generate title for the new thread
         const newTitle = messageContent ? (messageContent.substring(0, 40) + (messageContent.length > 40 ? '...' : '')) : 'Voice Note';
         await firestoreAdmin.collection('threads').doc(threadId).update({ title: newTitle });
+    }
+
+    // Resolve thread workspaceId (threads created before workspace support might not have it).
+    let threadWorkspaceId = activeWorkspaceId;
+    try {
+      const threadSnap = await firestoreAdmin.collection('threads').doc(threadId).get();
+      const tdata = threadSnap.data();
+      if (tdata?.workspaceId) {
+        threadWorkspaceId = tdata.workspaceId;
+      } else {
+        await firestoreAdmin.collection('threads').doc(threadId).set({ workspaceId: threadWorkspaceId }, { merge: true });
+      }
+    } catch {
+      // Best-effort; keep activeWorkspaceId fallback.
     }
   
     const historyCollection = firestoreAdmin.collection('history');
@@ -193,6 +239,7 @@ export async function submitUserMessage(formData: FormData) {
         createdAt: FieldValue.serverTimestamp(),
         userId: userId,
         threadId: threadId,
+        workspaceId: threadWorkspaceId,
         imageUrl: null,
         audioUrl: audioUrl || null, // Store audio URL
         source: source,

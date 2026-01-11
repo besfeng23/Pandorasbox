@@ -1,9 +1,35 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper function
+    // --- Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
     function isOwner(userId) {
-      return request.auth != null && request.auth.uid == userId;
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function platformRole() {
+      return request.auth.token.platformRole;
+    }
+
+    function isPlatformSupport() {
+      return isSignedIn() && (platformRole() == 'support' || platformRole() == 'superadmin');
+    }
+
+    function isPlatformSuperAdmin() {
+      return isSignedIn() && platformRole() == 'superadmin';
+    }
+
+    function isWorkspaceMember(workspaceId) {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid));
+    }
+
+    function isWorkspaceAdmin(workspaceId) {
+      return isWorkspaceMember(workspaceId)
+        && get(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid)).data.role == 'admin';
     }
 
     // Users collection
@@ -11,6 +37,42 @@ service cloud.firestore {
       allow read, write: if isOwner(userId);
     }
     
+    // Workspaces (multi-tenant SaaS)
+    match /workspaces/{workspaceId} {
+      allow read: if isWorkspaceMember(workspaceId);
+      allow create: if isSignedIn() && request.resource.data.createdBy == request.auth.uid;
+      allow update: if isWorkspaceAdmin(workspaceId);
+      allow delete: if false;
+
+      match /members/{memberId} {
+        allow read: if isWorkspaceMember(workspaceId);
+        allow create, update, delete: if isWorkspaceAdmin(workspaceId);
+      }
+    }
+
+    // Workspace membership index (server-managed). Clients should use users/{uid}/workspaces/* instead.
+    match /workspace_members/{membershipId} {
+      allow read, write: if false;
+    }
+
+    // Workspace invites (minimal client support; server actions handle writes)
+    match /workspace_invites/{inviteId} {
+      allow read: if isSignedIn() && (
+        // inviter can read
+        resource.data.invitedBy == request.auth.uid ||
+        // invitee can read if email matches auth token email
+        (request.auth.token.email != null && resource.data.email == request.auth.token.email)
+      );
+      allow create: if isSignedIn() && isWorkspaceAdmin(request.resource.data.workspaceId);
+      allow update: if isSignedIn() && (
+        // workspace admins can update invites
+        isWorkspaceAdmin(resource.data.workspaceId) ||
+        // invitee can accept (status transition) if email matches
+        (request.auth.token.email != null && resource.data.email == request.auth.token.email)
+      );
+      allow delete: if isWorkspaceAdmin(resource.data.workspaceId);
+    }
+
     // Settings
     match /settings/{userId} {
       allow read, write: if isOwner(userId);
@@ -18,30 +80,62 @@ service cloud.firestore {
 
     // History collection - users can only access their own messages
     match /history/{messageId} {
-      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
-      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow read: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        (resource.data.workspaceId != null && resource.data.visibility == 'workspace' && isWorkspaceMember(resource.data.workspaceId))
+      );
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && (request.resource.data.workspaceId == null || isWorkspaceMember(request.resource.data.workspaceId));
+      allow update, delete: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        (resource.data.workspaceId != null && isWorkspaceAdmin(resource.data.workspaceId))
+      );
     }
 
     // Threads collection - users can only access their own threads
     match /threads/{threadId} {
-      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
-      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow read: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        (resource.data.workspaceId != null && resource.data.visibility == 'workspace' && isWorkspaceMember(resource.data.workspaceId))
+      );
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && (request.resource.data.workspaceId == null || isWorkspaceMember(request.resource.data.workspaceId));
+      allow update, delete: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        (resource.data.workspaceId != null && isWorkspaceAdmin(resource.data.workspaceId))
+      );
     }
 
     // Artifacts collection - users can only access their own artifacts
     match /artifacts/{artifactId} {
-      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
-      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow read: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        (resource.data.workspaceId != null && resource.data.scope == 'workspace' && isWorkspaceMember(resource.data.workspaceId))
+      );
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && (request.resource.data.workspaceId == null || isWorkspaceMember(request.resource.data.workspaceId));
+      allow update, delete: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        (resource.data.workspaceId != null && isWorkspaceAdmin(resource.data.workspaceId))
+      );
     }
 
     // Memories collection (root level) - users can only access their own memories
     match /memories/{memoryId} {
-      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
-      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow read: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        (resource.data.workspaceId != null && resource.data.scope == 'workspace' && isWorkspaceMember(resource.data.workspaceId))
+      );
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && (request.resource.data.workspaceId == null || isWorkspaceMember(request.resource.data.workspaceId));
+      allow update, delete: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        (resource.data.workspaceId != null && isWorkspaceAdmin(resource.data.workspaceId))
+      );
     }
 
     // Analytics collection - users can only access their own analytics
@@ -145,6 +239,42 @@ service cloud.firestore {
     match /system_selfheal/{docId} {
       allow read: if request.auth != null; // Authenticated users can read self-healing metrics
       allow write: if false; // Only server-side writes via Admin SDK
+    }
+
+    // --- Admin cockpit collections (platformRole gated) ---
+    match /admin_audit/{docId} {
+      allow read: if isPlatformSupport();
+      allow write: if isPlatformSuperAdmin();
+    }
+
+    match /feature_flags/{flagId} {
+      allow read: if isPlatformSupport();
+      allow write: if isPlatformSuperAdmin();
+    }
+
+    match /prompt_templates/{templateId} {
+      allow read: if isPlatformSupport();
+      allow write: if isPlatformSuperAdmin();
+    }
+
+    match /model_policies/{policyId} {
+      allow read: if isPlatformSupport();
+      allow write: if isPlatformSuperAdmin();
+    }
+
+    match /moderation_queue/{itemId} {
+      allow read: if isPlatformSupport();
+      allow write: if isPlatformSupport(); // support can triage; superadmin can also
+    }
+
+    match /subscriptions/{subId} {
+      allow read: if isPlatformSupport();
+      allow write: if isPlatformSuperAdmin();
+    }
+
+    match /usage_events/{eventId} {
+      allow read: if isPlatformSupport();
+      allow write: if false; // typically server-managed
     }
   }
 }

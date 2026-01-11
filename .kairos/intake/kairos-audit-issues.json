@@ -1,0 +1,25 @@
+[
+  {
+    "schemaVersion": 1,
+    "slug": "audit-placeholder",
+    "title": "Audit Report Placeholder",
+    "severity": "medium",
+    "evidence": "Audit report content not provided. Please add audit report content to docs/14_KAIROS_AUDIT_REPORT.md and regenerate this file.",
+    "acceptanceCriteria": [
+      "Audit report content added to docs/14_KAIROS_AUDIT_REPORT.md",
+      "Issues extracted and added to this JSON file",
+      "Each issue has: slug, title, severity, evidence, acceptanceCriteria, dedupeKey"
+    ],
+    "checklist": [
+      "Add audit report content",
+      "Extract severity-ranked issues (#1-#10)",
+      "Create spec items for each issue"
+    ],
+    "dedupeKey": "kairos:audit:placeholder",
+    "priority": "low",
+    "status": "backlog",
+    "module": "ops",
+    "epic": "ops"
+  }
+]
+

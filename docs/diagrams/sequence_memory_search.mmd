@@ -1,0 +1,13 @@
+sequenceDiagram
+  participant Client as Client_UI
+  participant Action as searchMemoryAction
+  participant OpenAI as OpenAI_API
+  participant FS as Firestore
+
+  Client->>Action: searchMemoryAction(query,idToken)
+  Action->>OpenAI: generateEmbedding(query)
+  Action->>FS: findNearest(memories.embedding)
+  FS-->>Action: topK memory docs
+  Action-->>Client: SearchResult[] (memories)
+
+

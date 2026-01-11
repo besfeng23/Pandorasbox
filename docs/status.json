@@ -1,0 +1,1702 @@
+{
+  "overall": {
+    "percentComplete": 93
+  },
+  "checks": {},
+  "phases": [
+    {
+      "id": 1,
+      "title": "Core System Setup",
+      "status": "Done",
+      "percentComplete": 100,
+      "seededStatus": "Completed",
+      "statusDocStatus": "Completed",
+      "evidence": {
+        "signals": [],
+        "whereInCode": [
+          "firebase.json",
+          "next.config.ts",
+          "src/app/layout.tsx",
+          "src/firebase/",
+          "src/lib/firebase-admin.ts",
+          "src/lib/firebase.ts"
+        ],
+        "notes": []
+      }
+    },
+    {
+      "id": 2,
+      "title": "Autonomous Summarization & Insight Graph",
+      "status": "Done",
+      "percentComplete": 100,
+      "seededStatus": "Deployed",
+      "statusDocStatus": "Deployed",
+      "evidence": {
+        "signals": [],
+        "whereInCode": [
+          "src/ai/flows/summarize-long-chat.ts",
+          "src/app/graph/page.tsx",
+          "src/components/GraphView.tsx",
+          "src/lib/graph-analytics.ts"
+        ],
+        "notes": []
+      }
+    },
+    {
+      "id": 3,
+      "title": "Adaptive Context Layer",
+      "status": "In Progress",
+      "percentComplete": 89,
+      "seededStatus": "Active",
+      "statusDocStatus": "Active",
+      "evidence": {
+        "signals": [
+          {
+            "id": "phase3.contextDecayCron",
+            "ok": true,
+            "weight": 0.4,
+            "type": "file_exists",
+            "details": "src/app/api/cron/context-decay/route.ts"
+          },
+          {
+            "id": "phase3.contextManager",
+            "ok": true,
+            "weight": 0.3,
+            "type": "file_exists",
+            "details": "src/lib/context-manager.ts"
+          },
+          {
+            "id": "phase3.contextStore",
+            "ok": true,
+            "weight": 0.3,
+            "type": "file_exists",
+            "details": "src/lib/context-store.ts"
+          }
+        ],
+        "whereInCode": [
+          "src/app/api/cron/context-decay/route.ts",
+          "src/lib/context-manager.ts",
+          "src/lib/context-store.ts"
+        ],
+        "notes": []
+      }
+    },
+    {
+      "id": 4,
+      "title": "Dynamic Knowledge Graph & Relational Awareness",
+      "status": "Done",
+      "percentComplete": 100,
+      "seededStatus": "Integrated",
+      "statusDocStatus": "Integrated",
+      "evidence": {
+        "signals": [],
+        "whereInCode": [
+          "src/lib/graph-recommendations.ts",
+          "src/lib/knowledge-graph.ts",
+          "src/lib/relationship-manager.ts",
+          "src/lib/temporal-analysis.ts"
+        ],
+        "notes": []
+      }
+    },
+    {
+      "id": 5,
+      "title": "Cognitive Context Fusion",
+      "status": "Done",
+      "percentComplete": 100,
+      "seededStatus": "Live",
+      "statusDocStatus": "Live",
+      "evidence": {
+        "signals": [
+          {
+            "id": "phase5.hybrid",
+            "ok": true,
+            "weight": 0.5,
+            "type": "file_exists",
+            "details": "src/lib/hybrid-search.ts"
+          },
+          {
+            "id": "phase5.hybridLane",
+            "ok": true,
+            "weight": 0.3,
+            "type": "file_exists",
+            "details": "src/ai/flows/run-hybrid-lane.ts"
+          },
+          {
+            "id": "phase5.tavily",
+            "ok": true,
+            "weight": 0.2,
+            "type": "file_exists",
+            "details": "src/lib/tavily.ts"
+          }
+        ],
+        "whereInCode": [
+          "src/ai/flows/run-hybrid-lane.ts",
+          "src/lib/external-cache.ts",
+          "src/lib/hybrid-search.ts",
+          "src/lib/tavily.ts"
+        ],
+        "notes": []
+      }
+    },
+    {
+      "id": 6,
+      "title": "Self-Maintenance & Integrity Verification",
+      "status": "In Progress",
+      "percentComplete": 89,
+      "seededStatus": "Defined",
+      "statusDocStatus": "Defined (but has Phase 6 meta-learning features)",
+      "evidence": {
+        "signals": [
+          {
+            "id": "phase6.feedback",
+            "ok": true,
+            "weight": 0.3,
+            "type": "file_exists",
+            "details": "src/lib/feedback-manager.ts"
+          },
+          {
+            "id": "phase6.metaCron",
+            "ok": true,
+            "weight": 0.3,
+            "type": "file_exists",
+            "details": "src/app/api/cron/meta-learning/route.ts"
+          },
+          {
+            "id": "phase6.metaLearning",
+            "ok": true,
+            "weight": 0.4,
+            "type": "file_exists",
+            "details": "src/lib/meta-learning.ts"
+          }
+        ],
+        "whereInCode": [
+          "src/ai/flows/run-self-improvement.ts",
+          "src/lib/adaptive-weights.ts",
+          "src/lib/feedback-manager.ts",
+          "src/lib/meta-learning.ts",
+          "src/lib/performance-tracker.ts"
+        ],
+        "notes": [
+          "Phase 6 status shows \"Defined\" but meta-learning features (Phase 8) are implemented here."
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "title": "Self-Healing & Autonomous Recovery",
+      "status": "Planned",
+      "percentComplete": 0,
+      "seededStatus": "Running",
+      "statusDocStatus": "Running (but no actual implementation found)",
+      "evidence": {
+        "signals": [],
+        "whereInCode": [],
+        "notes": [
+          "Status shows \"Running\" but no implementation files found."
+        ]
+      }
+    },
+    {
+      "id": 8,
+      "title": "Predictive Evolution & Meta-Learning",
+      "status": "Done",
+      "percentComplete": 100,
+      "seededStatus": "Deployed",
+      "statusDocStatus": "Deployed",
+      "evidence": {
+        "signals": [],
+        "whereInCode": [
+          "src/ai/flows/run-self-improvement.ts",
+          "src/lib/adaptive-weights.ts",
+          "src/lib/meta-learning.ts",
+          "src/lib/performance-tracker.ts"
+        ],
+        "notes": [
+          "This is actually implemented in Phase 6 files, but marked as Phase 8."
+        ]
+      }
+    },
+    {
+      "id": 9,
+      "title": "Cross-System Intelligence Federation",
+      "status": "Planned",
+      "percentComplete": 0,
+      "seededStatus": "Implemented",
+      "statusDocStatus": "Implemented (but no actual implementation found)",
+      "evidence": {
+        "signals": [],
+        "whereInCode": [],
+        "notes": [
+          "Status shows \"Implemented\" but no implementation files found."
+        ]
+      }
+    },
+    {
+      "id": 10,
+      "title": "Conscious Orchestration Layer",
+      "status": "In Progress",
+      "percentComplete": 50,
+      "seededStatus": "Built",
+      "statusDocStatus": "Built",
+      "evidence": {
+        "signals": [],
+        "whereInCode": [
+          "src/ai/flows/run-answer-lane.ts",
+          "src/ai/flows/run-chat-lane.ts",
+          "src/ai/flows/run-memory-lane.ts",
+          "src/ai/flows/run-planner-lane.ts",
+          "src/ai/flows/run-reasoning-lane.ts"
+        ],
+        "notes": []
+      }
+    },
+    {
+      "id": 11,
+      "title": "Ethical Governance & Constraint Framework",
+      "status": "Planned",
+      "percentComplete": 0,
+      "seededStatus": "Seeded",
+      "statusDocStatus": "Seeded",
+      "evidence": {
+        "signals": [],
+        "whereInCode": [],
+        "notes": [
+          "Status shows \"Seeded\" but no implementation files found."
+        ]
+      }
+    },
+    {
+      "id": 12,
+      "title": "Reflection & Self-Diagnosis",
+      "status": "In Progress",
+      "percentComplete": 89,
+      "seededStatus": "Referenced",
+      "statusDocStatus": "Referenced",
+      "evidence": {
+        "signals": [
+          {
+            "id": "phase12.reflectionAgent",
+            "ok": true,
+            "weight": 0.6,
+            "type": "file_exists",
+            "details": "src/ai/agents/nightly-reflection.ts"
+          },
+          {
+            "id": "phase12.reflectionCron",
+            "ok": true,
+            "weight": 0.4,
+            "type": "file_exists",
+            "details": "src/app/api/cron/nightly-reflection/route.ts"
+          }
+        ],
+        "whereInCode": [
+          "src/ai/agents/nightly-reflection.ts",
+          "src/app/api/cron/nightly-reflection/route.ts"
+        ],
+        "notes": []
+      }
+    },
+    {
+      "id": 13,
+      "title": "Unified Cognition & Emergent Agency",
+      "status": "Planned",
+      "percentComplete": 0,
+      "seededStatus": "Stored",
+      "statusDocStatus": "Stored",
+      "evidence": {
+        "signals": [],
+        "whereInCode": [],
+        "notes": [
+          "Status shows \"Stored\" but no implementation files found."
+        ]
+      }
+    },
+    {
+      "id": 14,
+      "title": "Distributed Conscious Subnetworks",
+      "status": "Planned",
+      "percentComplete": 0,
+      "seededStatus": "Stored",
+      "statusDocStatus": "Stored",
+      "evidence": {
+        "signals": [],
+        "whereInCode": [],
+        "notes": [
+          "Status shows \"Stored\" but no implementation files found."
+        ]
+      }
+    },
+    {
+      "id": 15,
+      "title": "Unified Gateway Layer",
+      "status": "In Progress",
+      "percentComplete": 89,
+      "seededStatus": "Active",
+      "statusDocStatus": "Active",
+      "evidence": {
+        "signals": [
+          {
+            "id": "phase15.mcp",
+            "ok": true,
+            "weight": 0.5,
+            "type": "file_exists",
+            "details": "src/mcp/index.ts"
+          },
+          {
+            "id": "phase15.mcpBridge",
+            "ok": true,
+            "weight": 0.5,
+            "type": "file_exists",
+            "details": "src/app/api/mcp/[...tool]/route.ts"
+          }
+        ],
+        "whereInCode": [
+          "src/app/api/",
+          "src/app/api/mcp/",
+          "src/mcp/"
+        ],
+        "notes": []
+      }
+    }
+  ],
+  "modules": [
+    {
+      "id": "agents-cron",
+      "name": "Agents + Cron",
+      "status": "Done",
+      "percentComplete": 100,
+      "area": "backend",
+      "evidence": {
+        "signals": [
+          {
+            "id": "agent.deepResearch",
+            "ok": true,
+            "weight": 0.2,
+            "type": "file_exists",
+            "details": "src/ai/agents/deep-research.ts"
+          },
+          {
+            "id": "agent.nightlyReflection",
+            "ok": true,
+            "weight": 0.2,
+            "type": "file_exists",
+            "details": "src/ai/agents/nightly-reflection.ts"
+          },
+          {
+            "id": "cron.cleanup",
+            "ok": true,
+            "weight": 0.1,
+            "type": "file_exists",
+            "details": "src/app/api/cron/cleanup/route.ts"
+          },
+          {
+            "id": "cron.contextDecay",
+            "ok": true,
+            "weight": 0.1,
+            "type": "file_exists",
+            "details": "src/app/api/cron/context-decay/route.ts"
+          },
+          {
+            "id": "cron.dailyBriefing",
+            "ok": true,
+            "weight": 0.1,
+            "type": "file_exists",
+            "details": "src/app/api/cron/daily-briefing/route.ts"
+          },
+          {
+            "id": "cron.deepResearch",
+            "ok": true,
+            "weight": 0.1,
+            "type": "file_exists",
+            "details": "src/app/api/cron/deep-research/route.ts"
+          },
+          {
+            "id": "cron.metaLearning",
+            "ok": true,
+            "weight": 0.1,
+            "type": "file_exists",
+            "details": "src/app/api/cron/meta-learning/route.ts"
+          },
+          {
+            "id": "cron.nightlyReflection",
+            "ok": true,
+            "weight": 0.1,
+            "type": "file_exists",
+            "details": "src/app/api/cron/nightly-reflection/route.ts"
+          },
+          {
+            "id": "cron.reindexMemories",
+            "ok": true,
+            "weight": 0.1,
+            "type": "file_exists",
+            "details": "src/app/api/cron/reindex-memories/route.ts"
+          }
+        ],
+        "whereInCode": [
+          "src/ai/agents/deep-research.ts",
+          "src/ai/agents/nightly-reflection.ts",
+          "src/app/api/cron/cleanup/route.ts",
+          "src/app/api/cron/context-decay/route.ts",
+          "src/app/api/cron/daily-briefing/route.ts",
+          "src/app/api/cron/deep-research/route.ts",
+          "src/app/api/cron/meta-learning/route.ts",
+          "src/app/api/cron/nightly-reflection/route.ts",
+          "src/app/api/cron/reindex-memories/route.ts"
+        ],
+        "notes": []
+      }
+    },
+    {
+      "id": "artifacts",
+      "name": "Artifacts",
+      "status": "Done",
+      "percentComplete": 100,
+      "area": "backend",
+      "evidence": {
+        "signals": [
+          {
+            "id": "flow.answerLane",
+            "ok": true,
+            "weight": 0.25,
+            "type": "file_exists",
+            "details": "src/ai/flows/run-answer-lane.ts"
+          },
+          {
+            "id": "indexes.artifacts_user_createdAt",
+            "ok": true,
+            "weight": 0.1,
+            "type": "firestore_index_match",
+            "details": "artifacts(userId,createdAt)"
+          },
+          {
+            "id": "mcp.generateArtifact",
+            "ok": true,
+            "weight": 0.15,
+            "type": "file_exists",
+            "details": "src/mcp/tools/generate-artifact.ts"
+          },
+          {
+            "id": "rules.artifacts",
+            "ok": true,
+            "weight": 0.1,
+            "type": "firestore_rules_match",
+            "details": "artifacts"
+          },
+          {
+            "id": "tests.artifactComponents",
+            "ok": true,
+            "weight": 0.2,
+            "type": "glob_exists",
+            "details": "src/components/artifacts/*.tsx (2)"
+          },
+          {
+            "id": "ui.artifactViewer",
+            "ok": true,
+            "weight": 0.2,
+            "type": "file_exists",
+            "details": "src/components/artifacts/artifact-viewer.tsx"
+          }
+        ],
+        "whereInCode": [
+          "src/ai/flows/run-answer-lane.ts",
+          "src/components/artifacts/*.tsx",
+          "src/components/artifacts/artifact-viewer.tsx",
+          "src/mcp/tools/generate-artifact.ts"
+        ],
+        "notes": []
+      }
+    },
+    {
+      "id": "context-layer",
+      "name": "Context Layer (Phase 3)",
+      "status": "Done",
+      "percentComplete": 100,
+      "area": "backend",
+      "evidence": {
+        "signals": [
+          {
+            "id": "api.cron.contextDecay",
+            "ok": true,
+            "weight": 0.2,
+            "type": "file_exists",
+            "details": "src/app/api/cron/context-decay/route.ts"
+          },
+          {
+            "id": "lib.contextManager",
+            "ok": true,
+            "weight": 0.25,
+            "type": "file_exists",
+            "details": "src/lib/context-manager.ts"
+          },
+          {
+            "id": "lib.contextStore",
+            "ok": true,
+            "weight": 0.25,
+            "type": "file_exists",
+            "details": "src/lib/context-store.ts"
+          },
+          {
+            "id": "rules.contextStore",
+            "ok": true,
+            "weight": 0.15,
+            "type": "firestore_rules_match",
+            "details": "context_store"
+          },
+          {
+            "id": "tests.phase3",
+            "ok": true,
+            "weight": 0.15,
+            "type": "file_exists",
+            "details": "scripts/validate-phase3-context.ts"
+          }
+        ],
+        "whereInCode": [
+          "scripts/validate-phase3-context.ts",
+          "src/app/api/cron/context-decay/route.ts",
+          "src/lib/context-manager.ts",
+          "src/lib/context-store.ts"
+        ],
+        "notes": []
+      }
+    },
+    {
+      "id": "core-chat-threads",
+      "name": "Core Chat + Threads",
+      "status": "Done",
+      "percentComplete": 90,
+      "area": "backend",
+      "evidence": {
+        "signals": [
+          {
+            "id": "actions.chat",
+            "ok": true,
+            "weight": 0.2,
+            "type": "file_exists",
+            "details": "src/app/actions/chat.ts"
+          },
+          {
+            "id": "flow.chatLane",
+            "ok": true,
+            "weight": 0.2,
+            "type": "file_exists",
+            "details": "src/ai/flows/run-chat-lane.ts"
+          },
+          {
+            "id": "frontend.pandoraUiChat",
+            "ok": true,
+            "weight": 0.1,
+            "type": "glob_exists",
+            "details": "src/app/(pandora-ui)/page.tsx (1)"
+          },
+          {
+            "id": "indexes.history_thread_user_createdAt",
+            "ok": true,
+            "weight": 0.1,
+            "type": "firestore_index_match",
+            "details": "history(threadId,userId,createdAt)"
+          },
+          {
+            "id": "rules.history",
+            "ok": true,
+            "weight": 0.1,
+            "type": "firestore_rules_match",
+            "details": "history"
+          },
+          {
+            "id": "rules.threads",
+            "ok": true,
+            "weight": 0.1,
+            "type": "firestore_rules_match",
+            "details": "threads"
+          },
+          {
+            "id": "tests.graphView",
+            "ok": false,
+            "weight": 0.1,
+            "type": "test_exists",
+            "details": "src/**/__tests__/**/*.test.* (0)"
+          },
+          {
+            "id": "ui.chatHistoryHook",
+            "ok": true,
+            "weight": 0.1,
+            "type": "file_exists",
+            "details": "src/hooks/use-chat-history.ts"
+          }
+        ],
+        "whereInCode": [
+          "src/**/__tests__/**/*.test.*",
+          "src/ai/flows/run-chat-lane.ts",
+          "src/app/(pandora-ui)/page.tsx",
+          "src/app/actions/chat.ts",
+          "src/hooks/use-chat-history.ts"
+        ],
+        "notes": []
+      }
+    },
+    {
+      "id": "frontend-system",
+      "name": "Frontend System",
+      "status": "Done",
+      "percentComplete": 100,
+      "area": "frontend",
+      "evidence": {
+        "signals": [
+          {
+            "id": "ui.authGuard",
+            "ok": true,
+            "weight": 0.15,
+            "type": "file_exists",
+            "details": "src/components/auth/auth-guard.tsx"
+          },
+          {
+            "id": "ui.commandMenu",
+            "ok": true,
+            "weight": 0.1,
+            "type": "file_exists",
+            "details": "src/components/command-menu.tsx"
+          },
+          {
+            "id": "ui.graphPage",
+            "ok": true,
+            "weight": 0.1,
+            "type": "file_exists",
+            "details": "src/app/(pandora-ui)/graph/page.tsx"
+          },
+          {
+            "id": "ui.legacyPandorasBox",
+            "ok": true,
+            "weight": 0.15,
+            "type": "file_exists",
+            "details": "src/components/pandoras-box.tsx"
+          },
+          {
+            "id": "ui.pandoraUILayout",
+            "ok": true,
+            "weight": 0.2,
+            "type": "file_exists",
+            "details": "src/app/(pandora-ui)/layout.tsx"
+          },
+          {
+            "id": "ui.settingsPage",
+            "ok": true,
+            "weight": 0.2,
+            "type": "file_exists",
+            "details": "src/app/(pandora-ui)/settings/page.tsx"
+          },
+          {
+            "id": "ui.themeHook",
+            "ok": true,
+            "weight": 0.1,
+            "type": "file_exists",
+            "details": "src/hooks/use-theme.tsx"
+          }
+        ],
+        "whereInCode": [
+          "src/app/(pandora-ui)/graph/page.tsx",
+          "src/app/(pandora-ui)/layout.tsx",
+          "src/app/(pandora-ui)/settings/page.tsx",
+          "src/components/auth/auth-guard.tsx",
+          "src/components/command-menu.tsx",
+          "src/components/pandoras-box.tsx",
+          "src/hooks/use-theme.tsx"
+        ],
+        "notes": []
+      }
+    },
+    {
+      "id": "hybrid-search",
+      "name": "Hybrid Search (Phase 5)",
+      "status": "Done",
+      "percentComplete": 100,
+      "area": "backend",
+      "evidence": {
+        "signals": [
+          {
+            "id": "api.chatgpt.hybridRetrieve",
+            "ok": true,
+            "weight": 0.15,
+            "type": "file_exists",
+            "details": "src/app/api/chatgpt/hybrid-retrieve/route.ts"
+          },
+          {
+            "id": "lib.externalCache",
+            "ok": true,
+            "weight": 0.15,
+            "type": "file_exists",
+            "details": "src/lib/external-cache.ts"
+          },
+          {
+            "id": "lib.hybridSearch",
+            "ok": true,
+            "weight": 0.25,
+            "type": "file_exists",
+            "details": "src/lib/hybrid-search.ts"
+          },
+          {
+            "id": "lib.tavily",
+            "ok": true,
+            "weight": 0.15,
+            "type": "file_exists",
+            "details": "src/lib/tavily.ts"
+          },
+          {
+            "id": "rules.externalKnowledge",
+            "ok": true,
+            "weight": 0.15,
+            "type": "firestore_rules_match",
+            "details": "external_knowledge"
+          },
+          {
+            "id": "tests.hybrid",
+            "ok": true,
+            "weight": 0.15,
+            "type": "test_exists",
+            "details": "tests/lib/hybrid-search.test.ts (1)"
+          }
+        ],
+        "whereInCode": [
+          "src/app/api/chatgpt/hybrid-retrieve/route.ts",
+          "src/lib/external-cache.ts",
+          "src/lib/hybrid-search.ts",
+          "src/lib/tavily.ts",
+          "tests/lib/hybrid-search.test.ts"
+        ],
+        "notes": []
+      }
+    },
+    {
+      "id": "knowledge-graph",
+      "name": "Knowledge Graph + Analytics",
+      "status": "Done",
+      "percentComplete": 100,
+      "area": "backend",
+      "evidence": {
+        "signals": [
+          {
+            "id": "api.system.graphAnalytics",
+            "ok": true,
+            "weight": 0.1,
+            "type": "file_exists",
+            "details": "src/app/api/system/graph-analytics/route.ts"
+          },
+          {
+            "id": "api.system.knowledge",
+            "ok": true,
+            "weight": 0.1,
+            "type": "file_exists",
+            "details": "src/app/api/system/knowledge/route.ts"
+          },
+          {
+            "id": "lib.graphAnalytics",
+            "ok": true,
+            "weight": 0.2,
+            "type": "file_exists",
+            "details": "src/lib/graph-analytics.ts"
+          },
+          {
+            "id": "lib.knowledgeGraph",
+            "ok": true,
+            "weight": 0.2,
+            "type": "file_exists",
+            "details": "src/lib/knowledge-graph.ts"
+          },
+          {
+            "id": "rules.graphEdges",
+            "ok": true,
+            "weight": 0.1,
+            "type": "firestore_rules_match",
+            "details": "knowledge_edges"
+          },
+          {
+            "id": "rules.graphNodes",
+            "ok": true,
+            "weight": 0.1,
+            "type": "firestore_rules_match",
+            "details": "system_knowledge_graph"
+          },
+          {
+            "id": "ui.graphPage",
+            "ok": true,
+            "weight": 0.2,
+            "type": "glob_exists",
+            "details": "src/app/(pandora-ui)/graph/page.tsx (1)"
+          }
+        ],
+        "whereInCode": [
+          "src/app/(pandora-ui)/graph/page.tsx",
+          "src/app/api/system/graph-analytics/route.ts",
+          "src/app/api/system/knowledge/route.ts",
+          "src/lib/graph-analytics.ts",
+          "src/lib/knowledge-graph.ts"
+        ],
+        "notes": []
+      }
+    },
+    {
+      "id": "knowledge-upload",
+      "name": "Knowledge Upload",
+      "status": "Done",
+      "percentComplete": 100,
+      "area": "backend",
+      "evidence": {
+        "signals": [
+          {
+            "id": "actions.knowledge",
+            "ok": true,
+            "weight": 0.25,
+            "type": "file_exists",
+            "details": "src/app/actions/knowledge.ts"
+          },
+          {
+            "id": "lib.chunking",
+            "ok": true,
+            "weight": 0.25,
+            "type": "file_exists",
+            "details": "src/lib/chunking.ts"
+          },
+          {
+            "id": "rateLimit.uploads",
+            "ok": true,
+            "weight": 0.2,
+            "type": "file_exists",
+            "details": "src/lib/rate-limit.ts"
+          },
+          {
+            "id": "rules.storage",
+            "ok": true,
+            "weight": 0.1,
+            "type": "file_exists",
+            "details": "storage.rules"
+          },
+          {
+            "id": "ui.knowledgeUploadComponent",
+            "ok": true,
+            "weight": 0.2,
+            "type": "file_exists",
+            "details": "src/components/settings/knowledge-upload.tsx"
+          }
+        ],
+        "whereInCode": [
+          "src/app/actions/knowledge.ts",
+          "src/components/settings/knowledge-upload.tsx",
+          "src/lib/chunking.ts",
+          "src/lib/rate-limit.ts",
+          "storage.rules"
+        ],
+        "notes": []
+      }
+    },
+    {
+      "id": "mcp-integrations",
+      "name": "MCP + Integrations",
+      "status": "Done",
+      "percentComplete": 100,
+      "area": "backend",
+      "evidence": {
+        "signals": [
+          {
+            "id": "api.chatgpt.retrieve",
+            "ok": true,
+            "weight": 0.1,
+            "type": "file_exists",
+            "details": "src/app/api/chatgpt/retrieve-memories/route.ts"
+          },
+          {
+            "id": "api.chatgpt.store",
+            "ok": true,
+            "weight": 0.1,
+            "type": "file_exists",
+            "details": "src/app/api/chatgpt/store-memory/route.ts"
+          },
+          {
+            "id": "api.mcp.bridge",
+            "ok": true,
+            "weight": 0.15,
+            "type": "file_exists",
+            "details": "src/app/api/mcp/[...tool]/route.ts"
+          },
+          {
+            "id": "api.mcp.openapi",
+            "ok": true,
+            "weight": 0.1,
+            "type": "file_exists",
+            "details": "src/app/api/mcp/openapi/route.ts"
+          },
+          {
+            "id": "api.mcp.runFlow",
+            "ok": true,
+            "weight": 0.1,
+            "type": "file_exists",
+            "details": "src/app/api/mcp/runFlow/route.ts"
+          },
+          {
+            "id": "mcp.server",
+            "ok": true,
+            "weight": 0.2,
+            "type": "file_exists",
+            "details": "src/mcp/index.ts"
+          },
+          {
+            "id": "openapi.mcp",
+            "ok": true,
+            "weight": 0.15,
+            "type": "glob_exists",
+            "details": "public/openapi-mcp.yaml (1)"
+          }
+        ],
+        "whereInCode": [
+          "public/openapi-mcp.yaml",
+          "src/app/api/chatgpt/retrieve-memories/route.ts",
+          "src/app/api/chatgpt/store-memory/route.ts",
+          "src/app/api/mcp/[...tool]/route.ts",
+          "src/app/api/mcp/openapi/route.ts",
+          "src/app/api/mcp/runFlow/route.ts",
+          "src/mcp/index.ts"
+        ],
+        "notes": []
+      }
+    },
+    {
+      "id": "memory-embeddings",
+      "name": "Memory + Embeddings",
+      "status": "Done",
+      "percentComplete": 100,
+      "area": "backend",
+      "evidence": {
+        "signals": [
+          {
+            "id": "actions.knowledge",
+            "ok": true,
+            "weight": 0.15,
+            "type": "file_exists",
+            "details": "src/app/actions/knowledge.ts"
+          },
+          {
+            "id": "findNearest.used",
+            "ok": true,
+            "weight": 0.15,
+            "type": "import_used",
+            "details": "src/lib/vector.ts contains findNearest"
+          },
+          {
+            "id": "indexes.memories_vector",
+            "ok": true,
+            "weight": 0.1,
+            "type": "firestore_index_match",
+            "details": "memories(__name__,embedding)"
+          },
+          {
+            "id": "lib.memoryUtils",
+            "ok": true,
+            "weight": 0.25,
+            "type": "file_exists",
+            "details": "src/lib/memory-utils.ts"
+          },
+          {
+            "id": "lib.vector",
+            "ok": true,
+            "weight": 0.25,
+            "type": "file_exists",
+            "details": "src/lib/vector.ts"
+          },
+          {
+            "id": "rules.memories",
+            "ok": true,
+            "weight": 0.1,
+            "type": "firestore_rules_match",
+            "details": "memories"
+          }
+        ],
+        "whereInCode": [
+          "src/app/actions/knowledge.ts",
+          "src/lib/memory-utils.ts",
+          "src/lib/vector.ts"
+        ],
+        "notes": []
+      }
+    },
+    {
+      "id": "meta-learning-feedback",
+      "name": "Meta-learning + Feedback (Phase 6)",
+      "status": "Done",
+      "percentComplete": 100,
+      "area": "backend",
+      "evidence": {
+        "signals": [
+          {
+            "id": "api.cron.metaLearning",
+            "ok": true,
+            "weight": 0.1,
+            "type": "file_exists",
+            "details": "src/app/api/cron/meta-learning/route.ts"
+          },
+          {
+            "id": "api.feedback",
+            "ok": true,
+            "weight": 0.1,
+            "type": "file_exists",
+            "details": "src/app/api/feedback/route.ts"
+          },
+          {
+            "id": "lib.adaptiveWeights",
+            "ok": true,
+            "weight": 0.15,
+            "type": "file_exists",
+            "details": "src/lib/adaptive-weights.ts"
+          },
+          {
+            "id": "lib.feedbackManager",
+            "ok": true,
+            "weight": 0.15,
+            "type": "file_exists",
+            "details": "src/lib/feedback-manager.ts"
+          },
+          {
+            "id": "lib.metaLearning",
+            "ok": true,
+            "weight": 0.2,
+            "type": "file_exists",
+            "details": "src/lib/meta-learning.ts"
+          },
+          {
+            "id": "rules.metaLearningState",
+            "ok": true,
+            "weight": 0.15,
+            "type": "firestore_rules_match",
+            "details": "meta_learning_state"
+          },
+          {
+            "id": "rules.performanceMetrics",
+            "ok": true,
+            "weight": 0.15,
+            "type": "firestore_rules_match",
+            "details": "performance_metrics"
+          }
+        ],
+        "whereInCode": [
+          "src/app/api/cron/meta-learning/route.ts",
+          "src/app/api/feedback/route.ts",
+          "src/lib/adaptive-weights.ts",
+          "src/lib/feedback-manager.ts",
+          "src/lib/meta-learning.ts"
+        ],
+        "notes": []
+      }
+    },
+    {
+      "id": "security-ops",
+      "name": "Security + Ops",
+      "status": "Done",
+      "percentComplete": 100,
+      "area": "infra",
+      "evidence": {
+        "signals": [
+          {
+            "id": "apphosting",
+            "ok": true,
+            "weight": 0.15,
+            "type": "file_exists",
+            "details": "apphosting.yaml"
+          },
+          {
+            "id": "deploy.runbook",
+            "ok": true,
+            "weight": 0.2,
+            "type": "glob_exists",
+            "details": "DEPLOYMENT_RUNBOOK*.md (2)"
+          },
+          {
+            "id": "indexes.firestore",
+            "ok": true,
+            "weight": 0.15,
+            "type": "file_exists",
+            "details": "firestore.indexes.json"
+          },
+          {
+            "id": "rules.firestore",
+            "ok": true,
+            "weight": 0.2,
+            "type": "file_exists",
+            "details": "firestore.rules"
+          },
+          {
+            "id": "rules.storage",
+            "ok": true,
+            "weight": 0.1,
+            "type": "file_exists",
+            "details": "storage.rules"
+          },
+          {
+            "id": "sentry",
+            "ok": true,
+            "weight": 0.2,
+            "type": "glob_exists",
+            "details": "sentry.*.config.ts (3)"
+          }
+        ],
+        "whereInCode": [
+          "DEPLOYMENT_RUNBOOK*.md",
+          "apphosting.yaml",
+          "firestore.indexes.json",
+          "firestore.rules",
+          "sentry.*.config.ts",
+          "storage.rules"
+        ],
+        "notes": []
+      }
+    },
+    {
+      "id": "tests",
+      "name": "Tests",
+      "status": "In Progress",
+      "percentComplete": 70,
+      "area": "docs",
+      "evidence": {
+        "signals": [
+          {
+            "id": "jest.config",
+            "ok": true,
+            "weight": 0.4,
+            "type": "file_exists",
+            "details": "jest.config.js"
+          },
+          {
+            "id": "tests.repo",
+            "ok": true,
+            "weight": 0.3,
+            "type": "test_exists",
+            "details": "tests/**/*.test.* (3)"
+          },
+          {
+            "id": "tests.src",
+            "ok": false,
+            "weight": 0.3,
+            "type": "test_exists",
+            "details": "src/**/__tests__/**/*.test.* (0)"
+          }
+        ],
+        "whereInCode": [
+          "jest.config.js",
+          "src/**/__tests__/**/*.test.*",
+          "tests/**/*.test.*"
+        ],
+        "notes": []
+      }
+    },
+    {
+      "id": "ui-ux",
+      "name": "UI/UX — Digital Void Shell + Pages",
+      "status": "In Progress",
+      "percentComplete": 42,
+      "area": "frontend",
+      "evidence": {
+        "signals": [
+          {
+            "id": "ui.appShellLayout",
+            "ok": true,
+            "weight": 0.15,
+            "type": "file_exists",
+            "details": "src/app/(pandora-ui)/layout.tsx"
+          },
+          {
+            "id": "ui.artifactsPage",
+            "ok": false,
+            "weight": 0.1,
+            "type": "file_exists",
+            "details": "src/app/(pandora-ui)/artifacts/page.tsx"
+          },
+          {
+            "id": "ui.chatPage",
+            "ok": true,
+            "weight": 0.1,
+            "type": "file_exists",
+            "details": "src/app/(pandora-ui)/page.tsx"
+          },
+          {
+            "id": "ui.graphPage",
+            "ok": true,
+            "weight": 0.05,
+            "type": "file_exists",
+            "details": "src/app/(pandora-ui)/graph/page.tsx"
+          },
+          {
+            "id": "ui.inspectorDrawer",
+            "ok": false,
+            "weight": 0.1,
+            "type": "glob_exists",
+            "details": "src/app/(pandora-ui)/components/InspectorDrawer.tsx (0)"
+          },
+          {
+            "id": "ui.knowledgePage",
+            "ok": false,
+            "weight": 0.1,
+            "type": "file_exists",
+            "details": "src/app/(pandora-ui)/knowledge/page.tsx"
+          },
+          {
+            "id": "ui.memoriesPage",
+            "ok": false,
+            "weight": 0.1,
+            "type": "file_exists",
+            "details": "src/app/(pandora-ui)/memories/page.tsx"
+          },
+          {
+            "id": "ui.pandoraDashboardPage",
+            "ok": false,
+            "weight": 0.1,
+            "type": "file_exists",
+            "details": "src/app/(pandora-ui)/pandora-ui/page.tsx"
+          },
+          {
+            "id": "ui.sharedComponents",
+            "ok": true,
+            "weight": 0.05,
+            "type": "glob_exists",
+            "details": "src/components/ui/*.tsx (35)"
+          },
+          {
+            "id": "ui.themeHook",
+            "ok": true,
+            "weight": 0.05,
+            "type": "file_exists",
+            "details": "src/hooks/use-theme.tsx"
+          },
+          {
+            "id": "ui.themeTokens",
+            "ok": false,
+            "weight": 0.1,
+            "type": "file_exists",
+            "details": "src/styles/digital-void.css"
+          },
+          {
+            "id": "ui.threadSidebar",
+            "ok": false,
+            "weight": 0.1,
+            "type": "glob_exists",
+            "details": "src/app/(pandora-ui)/components/ThreadSidebar.tsx (0)"
+          },
+          {
+            "id": "ui.topbar",
+            "ok": true,
+            "weight": 0.1,
+            "type": "glob_exists",
+            "details": "src/app/(pandora-ui)/components/Topbar.tsx (1)"
+          }
+        ],
+        "whereInCode": [
+          "src/app/(pandora-ui)/artifacts/page.tsx",
+          "src/app/(pandora-ui)/components/InspectorDrawer.tsx",
+          "src/app/(pandora-ui)/components/ThreadSidebar.tsx",
+          "src/app/(pandora-ui)/components/Topbar.tsx",
+          "src/app/(pandora-ui)/graph/page.tsx",
+          "src/app/(pandora-ui)/knowledge/page.tsx",
+          "src/app/(pandora-ui)/layout.tsx",
+          "src/app/(pandora-ui)/memories/page.tsx",
+          "src/app/(pandora-ui)/page.tsx",
+          "src/app/(pandora-ui)/pandora-ui/page.tsx",
+          "src/components/ui/*.tsx",
+          "src/hooks/use-theme.tsx",
+          "src/styles/digital-void.css"
+        ],
+        "notes": []
+      }
+    }
+  ],
+  "topNextActions": [
+    {
+      "id": "module-tests-raise",
+      "title": "Raise module completion: Tests",
+      "rationale": "Module currently 70% (In Progress). See docs/11_LINEAR_PROJECT_PLAN.md for acceptance criteria."
+    },
+    {
+      "id": "module-ui-ux-raise",
+      "title": "Raise module completion: UI/UX — Digital Void Shell + Pages",
+      "rationale": "Module currently 42% (In Progress). See docs/11_LINEAR_PROJECT_PLAN.md for acceptance criteria."
+    },
+    {
+      "id": "phase-10-advance",
+      "title": "Advance Phase 10: Conscious Orchestration Layer",
+      "rationale": "Current status: In Progress (50%). See docs/09_ROADMAP_AND_STATUS.md and PHASE_IMPLEMENTATION_STATUS.md for gaps."
+    },
+    {
+      "id": "phase-11-advance",
+      "title": "Advance Phase 11: Ethical Governance & Constraint Framework",
+      "rationale": "Current status: Planned (0%). See docs/09_ROADMAP_AND_STATUS.md and PHASE_IMPLEMENTATION_STATUS.md for gaps."
+    },
+    {
+      "id": "phase-3-advance",
+      "title": "Advance Phase 3: Adaptive Context Layer",
+      "rationale": "Current status: In Progress (89%). See docs/09_ROADMAP_AND_STATUS.md and PHASE_IMPLEMENTATION_STATUS.md for gaps."
+    },
+    {
+      "id": "phase-6-advance",
+      "title": "Advance Phase 6: Self-Maintenance & Integrity Verification",
+      "rationale": "Current status: In Progress (89%). See docs/09_ROADMAP_AND_STATUS.md and PHASE_IMPLEMENTATION_STATUS.md for gaps."
+    },
+    {
+      "id": "phase-7-advance",
+      "title": "Advance Phase 7: Self-Healing & Autonomous Recovery",
+      "rationale": "Current status: Planned (0%). See docs/09_ROADMAP_AND_STATUS.md and PHASE_IMPLEMENTATION_STATUS.md for gaps."
+    },
+    {
+      "id": "phase-9-advance",
+      "title": "Advance Phase 9: Cross-System Intelligence Federation",
+      "rationale": "Current status: Planned (0%). See docs/09_ROADMAP_AND_STATUS.md and PHASE_IMPLEMENTATION_STATUS.md for gaps."
+    }
+  ],
+  "topRisks": [
+    {
+      "id": "firestore-rules-gaps",
+      "title": "Potential Firestore rules coverage gaps",
+      "severity": "high",
+      "details": "Collections referenced in code but not matched by an explicit rules stanza: learning_queue."
+    },
+    {
+      "id": "hardcoded-email-defaults",
+      "title": "Hardcoded email defaults present",
+      "severity": "high",
+      "details": "Detected hardcoded emails in code paths (example(s): user@example.com in public/openapi-mcp.json; user@example.com in public/openapi-mcp.yaml; joven.ong23@gmail.com in src/app/api/chatgpt/hybrid-retrieve/route.ts). Risk: portability + privacy. Follow-up: move to DEFAULT_CHATGPT_USER_EMAIL env var."
+    },
+    {
+      "id": "hardcoded-urls",
+      "title": "Hardcoded URLs/endpoints present",
+      "severity": "medium",
+      "details": "Detected hardcoded URL(s) in code or OpenAPI (example(s): http://localhost:9002 in public/openapi-mcp.json; http://localhost:9002 in public/openapi-mcp.yaml; https://studio-sg--seismic-vista-480710-q5.asia-southeast1.hosted.app in src/app/api/chatgpt/openapi.yaml). Risk: environment drift across dev/stage/prod."
+    }
+  ],
+  "repoInventory": {
+    "repoRoot": "C:/Users/Administrator/Downloads/New folder",
+    "packageJson": {
+      "name": "nextn",
+      "version": "0.1.0",
+      "scripts": [
+        "build",
+        "deploy",
+        "dev",
+        "docs:status",
+        "genkit:dev",
+        "genkit:watch",
+        "kairos:intake",
+        "linear:sync",
+        "lint",
+        "mcp:dev",
+        "mcp:generate-schema",
+        "mcp:start",
+        "save-settings-memories",
+        "seed:phases",
+        "start",
+        "test",
+        "test-tavily",
+        "test:coverage",
+        "test:mcp-e2e",
+        "test:mcp-server",
+        "test:memory",
+        "test:watch",
+        "typecheck",
+        "verify",
+        "verify:all-memories",
+        "verify:mcp-memory",
+        "verify:memory"
+      ],
+      "dependencies": [
+        "@genkit-ai/firebase",
+        "@genkit-ai/google-genai",
+        "@genkit-ai/vertexai",
+        "@google-cloud/firestore",
+        "@hookform/resolvers",
+        "@modelcontextprotocol/sdk",
+        "@opentelemetry/winston-transport",
+        "@radix-ui/react-accordion",
+        "@radix-ui/react-alert-dialog",
+        "@radix-ui/react-avatar",
+        "@radix-ui/react-checkbox",
+        "@radix-ui/react-collapsible",
+        "@radix-ui/react-dialog",
+        "@radix-ui/react-dropdown-menu",
+        "@radix-ui/react-label",
+        "@radix-ui/react-menubar",
+        "@radix-ui/react-popover",
+        "@radix-ui/react-progress",
+        "@radix-ui/react-radio-group",
+        "@radix-ui/react-scroll-area",
+        "@radix-ui/react-select",
+        "@radix-ui/react-separator",
+        "@radix-ui/react-slider",
+        "@radix-ui/react-slot",
+        "@radix-ui/react-switch",
+        "@radix-ui/react-tabs",
+        "@radix-ui/react-toast",
+        "@radix-ui/react-tooltip",
+        "@sentry/nextjs",
+        "@tavily/core",
+        "class-variance-authority",
+        "clsx",
+        "cmdk",
+        "dagre",
+        "date-fns",
+        "dotenv",
+        "embla-carousel-react",
+        "firebase",
+        "firebase-admin",
+        "framer-motion",
+        "genkit",
+        "lucide-react",
+        "next",
+        "openai",
+        "patch-package",
+        "pdf-parse",
+        "react",
+        "react-day-picker",
+        "react-dom",
+        "react-dropzone",
+        "react-hook-form",
+        "react-icons",
+        "react-markdown",
+        "react-syntax-highlighter",
+        "reactflow",
+        "recharts",
+        "remark-gfm",
+        "server-only",
+        "tailwind-merge",
+        "tailwindcss-animate",
+        "uuid",
+        "zod",
+        "zustand"
+      ],
+      "devDependencies": [
+        "@octokit/rest",
+        "@tailwindcss/typography",
+        "@testing-library/jest-dom",
+        "@testing-library/react",
+        "@testing-library/user-event",
+        "@types/jest",
+        "@types/js-yaml",
+        "@types/node",
+        "@types/pdf-parse",
+        "@types/react",
+        "@types/react-dom",
+        "@types/react-syntax-highlighter",
+        "@types/uuid",
+        "cross-env",
+        "genkit-cli",
+        "jest",
+        "jest-environment-jsdom",
+        "js-yaml",
+        "postcss",
+        "tailwindcss",
+        "tsconfig-paths",
+        "tsx",
+        "typescript"
+      ]
+    },
+    "configsPresent": [
+      {
+        "path": "API_DOCUMENTATION.md",
+        "sha256": "abbbf5f1f7d79f6b0ed962ecb8a985133dae3a91658e86ce5ff2ca49399b1dea"
+      },
+      {
+        "path": "apphosting.yaml",
+        "sha256": "46aa8d9f7320a8c05c7f1b37803ef58b34445f6e2c27bfb5099a8b04615f6bd1"
+      },
+      {
+        "path": "ARCHITECTURE.md",
+        "sha256": "d28192f37fa9c8c5b053ce676e23d5cb5787f25c454fef8493b17050a6df3dbf"
+      },
+      {
+        "path": "DEPLOYMENT_RUNBOOK_V2.md",
+        "sha256": "7f3b62aea12f907b30edc7bd643b6766ec5111d77d4ea9a7cecbe7c26410f57e"
+      },
+      {
+        "path": "DEPLOYMENT_RUNBOOK.md",
+        "sha256": "21d9801021be2e49dc8a012b9facc474788137731232b919cfd38c332520152e"
+      },
+      {
+        "path": "firebase.json",
+        "sha256": "ea0a4de20279107d79c97e6308b901328ebac6c259b1d8fac059ece26b6602b7"
+      },
+      {
+        "path": "firestore.indexes.json",
+        "sha256": "a3eead8feed080bce224dbe862dea6f4c0294a386a695c953ee03fcf7a03001d"
+      },
+      {
+        "path": "firestore.rules",
+        "sha256": "f4d38450acbfa195b1a8947c12b6d2eff2733ccc3cd533f2f62530adcd9f46bc"
+      },
+      {
+        "path": "jest.config.js",
+        "sha256": "479710a5f6c1ebf3599acd82c09e704887fdaba5399c557ae69ee1e70b745307"
+      },
+      {
+        "path": "next.config.ts",
+        "sha256": "519c13d51ef34f88c80abb65cb7950ebde00407078f4e3c79295d57ea7cceaa6"
+      },
+      {
+        "path": "PHASE_IMPLEMENTATION_STATUS.md",
+        "sha256": "f84f02c8d77b70ff067cb9981deeff2e7a22e7304a39cd7584a08b5fdcfae688"
+      },
+      {
+        "path": "storage.rules",
+        "sha256": "ccc21f4fb7b6df4fd083161f13b1282b22e33012ea637dd8f1b975d68171b2ac"
+      },
+      {
+        "path": "tailwind.config.ts",
+        "sha256": "9209f904ca7462bd6c55dcc86ce1e24733047854f7b559feb0ef21e437bb1968"
+      },
+      {
+        "path": "tsconfig.json",
+        "sha256": "c56c78f703ad6904d1ff780df31a3471e59bca73103ca18139e0ecd4eaaa8f40"
+      }
+    ],
+    "apiRoutes": [
+      "src/app/api/chatgpt/hybrid-retrieve/route.ts",
+      "src/app/api/chatgpt/retrieve-memories/route.ts",
+      "src/app/api/chatgpt/store-memory/route.ts",
+      "src/app/api/cron/cleanup/route.ts",
+      "src/app/api/cron/context-decay/route.ts",
+      "src/app/api/cron/daily-briefing/route.ts",
+      "src/app/api/cron/deep-research/route.ts",
+      "src/app/api/cron/meta-learning/route.ts",
+      "src/app/api/cron/nightly-reflection/route.ts",
+      "src/app/api/cron/reindex-memories/route.ts",
+      "src/app/api/feedback/route.ts",
+      "src/app/api/mcp/[...tool]/route.ts",
+      "src/app/api/mcp/openapi/route.ts",
+      "src/app/api/mcp/runFlow/route.ts",
+      "src/app/api/system/graph-analytics/route.ts",
+      "src/app/api/system/knowledge/route.ts"
+    ],
+    "serverActions": [
+      "src/app/actions/brain-actions.ts",
+      "src/app/actions/chat.ts",
+      "src/app/actions/knowledge.ts",
+      "src/app/actions/user.ts"
+    ],
+    "flows": [
+      "src/ai/flows/index.ts",
+      "src/ai/flows/run-answer-lane.ts",
+      "src/ai/flows/run-chat-lane.ts",
+      "src/ai/flows/run-hybrid-lane.ts",
+      "src/ai/flows/run-memory-lane.ts",
+      "src/ai/flows/run-planner-lane.ts",
+      "src/ai/flows/run-reasoning-lane.ts",
+      "src/ai/flows/run-self-improvement.ts",
+      "src/ai/flows/suggest-follow-up-questions.ts",
+      "src/ai/flows/summarize-long-chat.ts"
+    ],
+    "agents": [
+      "src/ai/agents/deep-research.ts",
+      "src/ai/agents/nightly-reflection.ts"
+    ],
+    "mcp": [
+      "src/mcp/tools/add-memory.ts",
+      "src/mcp/tools/generate-artifact.ts",
+      "src/mcp/tools/search-knowledge.ts",
+      "public/openapi-mcp.json",
+      "public/openapi-mcp.yaml"
+    ],
+    "firestore": {
+      "rulesPath": "firestore.rules",
+      "indexesPath": "firestore.indexes.json",
+      "collectionsUsed": [
+        "artifacts",
+        "context_store",
+        "history",
+        "learning_queue",
+        "memories",
+        "settings",
+        "state",
+        "threads",
+        "users"
+      ],
+      "envVarsUsed": [
+        "CHATGPT_API_KEY",
+        "CRON_SECRET",
+        "ENABLE_DEEP_RESEARCH",
+        "MCP_API_KEY",
+        "NODE_ENV",
+        "OPENAI_API_KEY"
+      ]
+    },
+    "tests": [
+      "tests/api/hybrid-retrieve.test.ts",
+      "tests/lib/external-cache.test.ts",
+      "tests/lib/hybrid-search.test.ts"
+    ],
+    "hardcodedFindings": {
+      "emails": [
+        {
+          "file": "public/openapi-mcp.json",
+          "value": "user@example.com"
+        },
+        {
+          "file": "public/openapi-mcp.yaml",
+          "value": "user@example.com"
+        },
+        {
+          "file": "src/app/api/chatgpt/hybrid-retrieve/route.ts",
+          "value": "joven.ong23@gmail.com"
+        },
+        {
+          "file": "src/app/api/chatgpt/openapi.yaml",
+          "value": "joven.ong23@gmail.com"
+        },
+        {
+          "file": "src/app/api/chatgpt/retrieve-memories/route.ts",
+          "value": "joven.ong23@gmail.com"
+        },
+        {
+          "file": "src/app/api/chatgpt/store-memory/route.ts",
+          "value": "joven.ong23@gmail.com"
+        },
+        {
+          "file": "src/app/api/feedback/route.ts",
+          "value": "joven.ong23@gmail.com"
+        },
+        {
+          "file": "src/app/api/feedback/route.ts",
+          "value": "user@example.com"
+        },
+        {
+          "file": "src/app/api/mcp/runFlow/route.ts",
+          "value": "user@example.com"
+        }
+      ],
+      "urls": [
+        {
+          "file": "public/openapi-mcp.json",
+          "value": "http://localhost:9002"
+        },
+        {
+          "file": "public/openapi-mcp.yaml",
+          "value": "http://localhost:9002"
+        },
+        {
+          "file": "src/app/api/chatgpt/openapi.yaml",
+          "value": "https://studio-sg--seismic-vista-480710-q5.asia-southeast1.hosted.app"
+        },
+        {
+          "file": "src/app/api/cron/cleanup/route.ts",
+          "value": "https://your-app-url/api/cron/cleanup"
+        },
+        {
+          "file": "src/app/api/cron/daily-briefing/route.ts",
+          "value": "https://your-app-url/api/cron/daily-briefing"
+        },
+        {
+          "file": "src/app/api/cron/deep-research/route.ts",
+          "value": "https://your-app-url/api/cron/deep-research"
+        },
+        {
+          "file": "src/app/api/cron/nightly-reflection/route.ts",
+          "value": "https://your-app-url/api/cron/nightly-reflection"
+        },
+        {
+          "file": "src/app/api/cron/reindex-memories/route.ts",
+          "value": "https://your-app-url/api/cron/reindex-memories"
+        }
+      ]
+    }
+  }
+}

@@ -1,11 +1,11 @@
 "use client";
 
-import { InputHTMLAttributes } from "react";
+import { TextareaHTMLAttributes, useEffect, useRef } from "react";
 
-interface ChatInputProps extends InputHTMLAttributes<HTMLInputElement> {
+interface ChatInputProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   placeholder?: string;
 }
 
@@ -17,14 +17,26 @@ export default function ChatInput({
   disabled,
   ...props
 }: ChatInputProps) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Autosize (mobile-friendly, video-like)
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
+  }, [value]);
+
   return (
-    <input
-      className="flex-1 bg-black/60 rounded-md px-4 py-2 outline-none text-white placeholder:text-gray-500 disabled:opacity-50 border border-transparent focus:border-white/10"
+    <textarea
+      ref={textareaRef}
+      className="flex-1 bg-transparent rounded-full px-4 py-3 outline-none text-white placeholder:text-white/40 disabled:opacity-50 border border-transparent focus:border-white/10 resize-none leading-relaxed"
       placeholder={placeholder}
       value={value}
       onChange={onChange}
       onKeyDown={onKeyDown}
       disabled={disabled}
+      rows={1}
       {...props}
     />
   );

@@ -1,0 +1,392 @@
+[
+  {
+    "schemaVersion": 1,
+    "slug": "app-shell-layout",
+    "title": "App Shell Layout",
+    "module": "frontend",
+    "phaseIds": [],
+    "whereInCode": [
+      "src/app/(pandora-ui)/layout.tsx"
+    ],
+    "acceptanceCriteria": [
+      "Shell renders on /, /settings, /graph, /pandora-ui, etc.",
+      "No page reimplements layout manually",
+      "Responsive: sidebar becomes overlay drawer at <lg, inspector becomes bottom sheet"
+    ],
+    "checklist": [
+      "Create shell grid: ThreadSidebar + Topbar + Main + InspectorDrawer",
+      "Add responsive behavior for mobile",
+      "Provide context providers: UIStateProvider, AuthProvider, ThemeProvider",
+      "Implement keyboard shortcuts: Cmd/Ctrl+K, Cmd/Ctrl+B, Esc"
+    ],
+    "dedupeKey": "pb:uiux:app-shell-layout",
+    "priority": "high",
+    "status": "backlog"
+  },
+  {
+    "schemaVersion": 1,
+    "slug": "thread-sidebar",
+    "title": "Thread Sidebar Component",
+    "module": "frontend",
+    "phaseIds": [],
+    "whereInCode": [
+      "src/app/(pandora-ui)/components/ThreadSidebar.tsx"
+    ],
+    "acceptanceCriteria": [
+      "Thread switching is instant",
+      "Active thread is always clear",
+      "Loading states: skeleton rows",
+      "Empty state: 'No threads yet' + CTA"
+    ],
+    "checklist": [
+      "Thread list sections: Pinned (if enabled), Recent",
+      "Controls: 'New Thread' button, search box",
+      "Thread row content: Title, UpdatedAt, Active highlight, Context menu",
+      "Loading and empty states"
+    ],
+    "dedupeKey": "pb:uiux:thread-sidebar",
+    "priority": "high",
+    "status": "backlog"
+  },
+  {
+    "schemaVersion": 1,
+    "slug": "topbar",
+    "title": "Topbar Component",
+    "module": "frontend",
+    "phaseIds": [],
+    "whereInCode": [
+      "src/app/(pandora-ui)/components/Topbar.tsx"
+    ],
+    "acceptanceCriteria": [
+      "Topbar stays consistent across all pages",
+      "Never duplicates functionality in multiple places",
+      "Mobile: collapse actions into overflow sheet"
+    ],
+    "checklist": [
+      "Left: Breadcrumb or page/thread title area",
+      "Center: Quick search input (optional if relying on Cmd+K)",
+      "Right: Command menu button, Inspector toggle, Theme toggle, Profile menu",
+      "Tooltips for icons"
+    ],
+    "dedupeKey": "pb:uiux:topbar",
+    "priority": "high",
+    "status": "backlog"
+  },
+  {
+    "schemaVersion": 1,
+    "slug": "inspector-drawer",
+    "title": "Inspector Drawer Component",
+    "module": "frontend",
+    "phaseIds": [],
+    "whereInCode": [
+      "src/app/(pandora-ui)/components/InspectorDrawer.tsx"
+    ],
+    "acceptanceCriteria": [
+      "For every assistant response, user can inspect 'what was used' without leaving chat",
+      "Empty states per tab (clean, no dead UI)",
+      "Mobile: becomes bottom sheet with tabs"
+    ],
+    "checklist": [
+      "Tabs: Context, Memories, Sources, Logs (optional)",
+      "Inputs: threadId, activeMessageId",
+      "Mobile behavior: bottom sheet",
+      "Empty states per tab"
+    ],
+    "dedupeKey": "pb:uiux:inspector-drawer",
+    "priority": "medium",
+    "status": "backlog"
+  },
+  {
+    "schemaVersion": 1,
+    "slug": "command-menu",
+    "title": "Global Command Menu",
+    "module": "frontend",
+    "phaseIds": [],
+    "whereInCode": [
+      "src/components/command-menu.tsx"
+    ],
+    "acceptanceCriteria": [
+      "Feels instant and useful",
+      "Fastest way to operate Pandora's Box",
+      "Keyboard navigation: arrow up/down, enter executes, esc closes"
+    ],
+    "checklist": [
+      "Sections: Threads, Memories, Knowledge Base, Actions",
+      "Debounced search for memories (250-350ms)",
+      "Loading skeleton in results",
+      "No results empty state"
+    ],
+    "dedupeKey": "pb:uiux:command-menu",
+    "priority": "high",
+    "status": "backlog"
+  },
+  {
+    "schemaVersion": 1,
+    "slug": "chat-page",
+    "title": "Chat Page (Home)",
+    "module": "frontend",
+    "phaseIds": [],
+    "whereInCode": [
+      "src/app/(pandora-ui)/page.tsx"
+    ],
+    "acceptanceCriteria": [
+      "Messages stream reliably",
+      "Composer is always reachable",
+      "Empty state looks premium"
+    ],
+    "checklist": [
+      "Render: MessageList, FloatingComposer, FollowUpChips, optional CubeEmptyState",
+      "Hooks: subscribe to messages for current threadId",
+      "Handle: new thread creation when no threadId"
+    ],
+    "dedupeKey": "pb:uiux:chat-page",
+    "priority": "high",
+    "status": "backlog"
+  },
+  {
+    "schemaVersion": 1,
+    "slug": "message-list",
+    "title": "Message List Component",
+    "module": "frontend",
+    "phaseIds": [],
+    "whereInCode": [
+      "src/app/(pandora-ui)/components/MessageList.tsx"
+    ],
+    "acceptanceCriteria": [
+      "No jank",
+      "No repeated 'jumping'",
+      "Error states are recoverable"
+    ],
+    "checklist": [
+      "Render message types: user, assistant, system, briefing",
+      "Status: processing → skeleton + 'Processing', error → error card + Retry",
+      "Anchoring: auto-scroll on new messages unless user scrolled up"
+    ],
+    "dedupeKey": "pb:uiux:message-list",
+    "priority": "high",
+    "status": "backlog"
+  },
+  {
+    "schemaVersion": 1,
+    "slug": "message-card",
+    "title": "Message Card Component",
+    "module": "frontend",
+    "phaseIds": [],
+    "whereInCode": [
+      "src/app/(pandora-ui)/components/MessageCard.tsx"
+    ],
+    "acceptanceCriteria": [
+      "Assistant messages always expose evidence",
+      "User messages remain minimal"
+    ],
+    "checklist": [
+      "Props: message, onRetry, onSaveArtifact",
+      "Assistant message includes: content, AssistantEvidenceBlock (collapsible), Actions row",
+      "Timestamp formatting"
+    ],
+    "dedupeKey": "pb:uiux:message-card",
+    "priority": "high",
+    "status": "backlog"
+  },
+  {
+    "schemaVersion": 1,
+    "slug": "floating-composer",
+    "title": "Floating Composer Component",
+    "module": "frontend",
+    "phaseIds": [],
+    "whereInCode": [
+      "src/app/(pandora-ui)/components/FloatingComposer.tsx"
+    ],
+    "acceptanceCriteria": [
+      "Composer feels like premium app control (not basic textbox glued to bottom)",
+      "Floating, expanding, supports voice/image"
+    ],
+    "checklist": [
+      "Inputs: threadId, onSend",
+      "UI: multiline textarea auto-grow, helper text, left icons (voice + image), right send button",
+      "Voice: hold-to-record or click-to-record",
+      "Image: file picker, preview chip with remove",
+      "Rate limit: show inline + countdown"
+    ],
+    "dedupeKey": "pb:uiux:floating-composer",
+    "priority": "high",
+    "status": "backlog"
+  },
+  {
+    "schemaVersion": 1,
+    "slug": "settings-page",
+    "title": "Settings Page",
+    "module": "frontend",
+    "phaseIds": [],
+    "whereInCode": [
+      "src/app/(pandora-ui)/settings/page.tsx"
+    ],
+    "acceptanceCriteria": [
+      "No accidental destructive actions",
+      "API keys handled safely (masked default)"
+    ],
+    "checklist": [
+      "Sections: Model, Reply style, System prompt override, API key, Appearance, Notifications, Data management",
+      "Forms: Save state feedback (toast), Validate lengths",
+      "Danger zone: clear memory requires confirm modal, clear all data requires confirm modal"
+    ],
+    "dedupeKey": "pb:uiux:settings-page",
+    "priority": "medium",
+    "status": "backlog"
+  },
+  {
+    "schemaVersion": 1,
+    "slug": "knowledge-base-page",
+    "title": "Knowledge Base Page",
+    "module": "frontend",
+    "phaseIds": [],
+    "whereInCode": [
+      "src/app/(pandora-ui)/knowledge/page.tsx"
+    ],
+    "acceptanceCriteria": [
+      "Upload feedback is clear",
+      "Processing feels trustworthy"
+    ],
+    "checklist": [
+      "Upload dropzone + 'Upload' button",
+      "File list view (table desktop, cards mobile)",
+      "Processing status per upload: parsing → chunking → embedding → complete",
+      "Search bar for KB"
+    ],
+    "dedupeKey": "pb:uiux:knowledge-base-page",
+    "priority": "medium",
+    "status": "backlog"
+  },
+  {
+    "schemaVersion": 1,
+    "slug": "memories-page",
+    "title": "Memories Page",
+    "module": "frontend",
+    "phaseIds": [],
+    "whereInCode": [
+      "src/app/(pandora-ui)/memories/page.tsx"
+    ],
+    "acceptanceCriteria": [
+      "Users can manage memory systematically, not just via sidebar"
+    ],
+    "checklist": [
+      "Tabs: Recent / Profile / Rules (Validated optional later)",
+      "Pagination (or infinite scroll)",
+      "Bulk actions (optional, but 'Clear all memories' belongs here or Settings)"
+    ],
+    "dedupeKey": "pb:uiux:memories-page",
+    "priority": "medium",
+    "status": "backlog"
+  },
+  {
+    "schemaVersion": 1,
+    "slug": "artifacts-page",
+    "title": "Artifacts Page",
+    "module": "artifacts",
+    "phaseIds": [],
+    "whereInCode": [
+      "src/app/(pandora-ui)/artifacts/page.tsx"
+    ],
+    "acceptanceCriteria": [
+      "You can find anything you generated in seconds"
+    ],
+    "checklist": [
+      "List artifacts by newest",
+      "Filters: type (code/markdown), thread, date range",
+      "Click opens viewer"
+    ],
+    "dedupeKey": "pb:uiux:artifacts-page",
+    "priority": "medium",
+    "status": "backlog"
+  },
+  {
+    "schemaVersion": 1,
+    "slug": "artifact-viewer",
+    "title": "Artifact Viewer Component",
+    "module": "artifacts",
+    "phaseIds": [],
+    "whereInCode": [
+      "src/app/(pandora-ui)/components/ArtifactViewer.tsx"
+    ],
+    "acceptanceCriteria": [
+      "Artifacts feel like first-class saved outputs, not just copied text"
+    ],
+    "checklist": [
+      "Split view: left code/markdown editor, right rendered preview (markdown)",
+      "Actions: copy, export artifact file, version history placeholder (future)"
+    ],
+    "dedupeKey": "pb:uiux:artifact-viewer",
+    "priority": "medium",
+    "status": "backlog"
+  },
+  {
+    "schemaVersion": 1,
+    "slug": "graph-page",
+    "title": "Graph Page",
+    "module": "graph",
+    "phaseIds": [],
+    "whereInCode": [
+      "src/app/(pandora-ui)/graph/page.tsx"
+    ],
+    "acceptanceCriteria": [
+      "Graph is informative, not decorative",
+      "Supports navigation back to chat/memories"
+    ],
+    "checklist": [
+      "Graph canvas (pan/zoom)",
+      "Node click opens details panel",
+      "Search node",
+      "Filter by time range"
+    ],
+    "dedupeKey": "pb:uiux:graph-page",
+    "priority": "low",
+    "status": "backlog"
+  },
+  {
+    "schemaVersion": 1,
+    "slug": "pandora-ui-dashboard",
+    "title": "PandoraUI Dashboard",
+    "module": "pandora-ui",
+    "phaseIds": [],
+    "whereInCode": [
+      "src/app/(pandora-ui)/pandora-ui/page.tsx"
+    ],
+    "acceptanceCriteria": [
+      "Dashboard tells you 'what's healthy / what's broken / what changed' at a glance"
+    ],
+    "checklist": [
+      "Phase grid from system_phases",
+      "Status badges map to PRD statuses",
+      "Telemetry tiles: response time, retrieval hit rate, cron job last run statuses",
+      "Cube hero visual (should never block reading the dashboard)"
+    ],
+    "dedupeKey": "pb:uiux:pandora-ui-dashboard",
+    "priority": "medium",
+    "status": "backlog"
+  },
+  {
+    "schemaVersion": 1,
+    "slug": "theme-system",
+    "title": "Theme System",
+    "module": "theme",
+    "phaseIds": [],
+    "whereInCode": [
+      "src/lib/theme.ts",
+      "src/styles/digital-void.css",
+      "tailwind.config.ts"
+    ],
+    "acceptanceCriteria": [
+      "Theme changes instantly without layout shift",
+      "Intensity affects glows/borders consistently"
+    ],
+    "checklist": [
+      "Support: dark/light, intensity: Subtle/Neon/Ultra",
+      "Writes to localStorage",
+      "Applies CSS variables to :root or [data-theme]"
+    ],
+    "dedupeKey": "pb:uiux:theme-system",
+    "priority": "medium",
+    "status": "backlog"
+  }
+]
+

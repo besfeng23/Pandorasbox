@@ -4,14 +4,17 @@ import { createContext, useContext, useState, ReactNode, useCallback } from "rea
 
 type UIState = {
   sidebarOpen: boolean;
+  sidebarCollapsed: boolean;
   settingsOpen: boolean;
   phaseDashboardOpen: boolean;
   pandoraMenuOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
+  setSidebarCollapsed: (collapsed: boolean) => void;
   setSettingsOpen: (open: boolean) => void;
   setPhaseDashboardOpen: (open: boolean) => void;
   setPandoraMenuOpen: (open: boolean) => void;
   toggleSidebar: () => void;
+  toggleSidebarCollapsed: () => void;
   toggleSettings: () => void;
 };
 
@@ -19,6 +22,7 @@ const UIStateContext = createContext<UIState | null>(null);
 
 export function UIStateProvider({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [phaseDashboardOpen, setPhaseDashboardOpen] = useState(false);
   const [pandoraMenuOpen, setPandoraMenuOpen] = useState(false);
@@ -33,6 +37,10 @@ export function UIStateProvider({ children }: { children: ReactNode }) {
       }
       return !prev;
     });
+  }, []);
+
+  const toggleSidebarCollapsed = useCallback(() => {
+    setSidebarCollapsed((prev) => !prev);
   }, []);
 
   const toggleSettings = useCallback(() => {
@@ -51,14 +59,17 @@ export function UIStateProvider({ children }: { children: ReactNode }) {
     <UIStateContext.Provider
       value={{
         sidebarOpen,
+        sidebarCollapsed,
         settingsOpen,
         phaseDashboardOpen,
         pandoraMenuOpen,
         setSidebarOpen,
+        setSidebarCollapsed,
         setSettingsOpen,
         setPhaseDashboardOpen,
         setPandoraMenuOpen,
         toggleSidebar,
+        toggleSidebarCollapsed,
         toggleSettings,
       }}
     >

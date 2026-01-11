@@ -1,0 +1,18 @@
+sequenceDiagram
+  participant Client as Client_UI
+  participant Action as uploadKnowledge
+  participant Storage as Firebase_Storage
+  participant Chunk as chunking
+  participant OpenAI as OpenAI_API
+  participant FS as Firestore
+
+  Client->>Action: uploadKnowledge(formData)
+  Action->>Storage: upload file(bytes)
+  Action->>Chunk: chunk text into segments
+  loop for each chunk
+    Action->>OpenAI: generateEmbedding(text-embedding-3-small)
+    Action->>FS: persist chunk record(history or memories)
+  end
+  Action-->>Client: success + counts
+
+

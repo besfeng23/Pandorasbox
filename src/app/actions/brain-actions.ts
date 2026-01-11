@@ -1,6 +1,7 @@
 'use server';
 
 import { getFirestoreAdmin } from '@/lib/firebase-admin';
+import { getAuthAdmin } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { saveMemory } from '@/lib/memory-utils';
 import { runReflectionFlow } from '@/ai/agents/nightly-reflection';
@@ -120,6 +121,32 @@ export async function triggerDeepResearch(userId: string | undefined | null): Pr
       message: error?.message || 'Deep research failed.',
     };
   }
+}
+
+/**
+ * Token-verified wrappers (preferred). These enforce identity server-side like the other actions.
+ */
+async function getUserIdFromToken(idToken: string): Promise<string> {
+  if (!idToken) {
+    throw new Error('User not authenticated.');
+  }
+  const decoded = await getAuthAdmin().verifyIdToken(idToken);
+  return decoded.uid;
+}
+
+export async function seedIdentityProfileAuthed(idToken: string): Promise<BrainActionResult> {
+  const userId = await getUserIdFromToken(idToken);
+  return seedIdentityProfile(userId);
+}
+
+export async function triggerReflectionAuthed(idToken: string): Promise<BrainActionResult> {
+  const userId = await getUserIdFromToken(idToken);
+  return triggerReflection(userId);
+}
+
+export async function triggerDeepResearchAuthed(idToken: string): Promise<BrainActionResult> {
+  const userId = await getUserIdFromToken(idToken);
+  return triggerDeepResearch(userId);
 }
 
 
