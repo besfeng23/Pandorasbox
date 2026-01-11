@@ -26,6 +26,7 @@ jest.mock('@/hooks/use-chat-history', () => ({
 
 jest.mock('@/app/actions', () => ({
   createThread: async () => 'thread-1',
+  createThreadAuthed: async () => 'thread-1',
   submitUserMessage: async () => ({ threadId: 'thread-1' }),
   transcribeAndProcessMessage: async () => ({ success: true, threadId: 'thread-1' }),
 }));
@@ -41,7 +42,7 @@ describe('Chat composer mic↔send swap', () => {
     expect(screen.getByLabelText(/start recording/i)).toBeInTheDocument();
     expect(screen.queryByLabelText(/send message/i)).not.toBeInTheDocument();
 
-    const textarea = screen.getByPlaceholderText('Ask Pandora…');
+    const textarea = await screen.findByPlaceholderText(/pandora/i);
     await user.type(textarea, 'hi');
 
     // Text present => SEND only

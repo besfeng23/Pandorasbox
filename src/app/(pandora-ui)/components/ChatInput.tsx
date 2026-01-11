@@ -30,13 +30,14 @@ export default function ChatInput({
   return (
     <textarea
       ref={textareaRef}
-      className="flex-1 bg-transparent rounded-full px-4 py-3 outline-none text-white placeholder:text-white/40 disabled:opacity-50 border border-transparent focus:border-white/10 resize-none leading-relaxed"
+      className="flex-1 bg-transparent rounded-xl px-2 py-2 outline-none text-foreground placeholder:text-muted-foreground disabled:opacity-50 border border-transparent focus:border-transparent resize-none leading-relaxed min-h-[44px]"
       placeholder={placeholder}
       value={value}
       onChange={onChange}
       onKeyDown={onKeyDown}
       disabled={disabled}
       rows={1}
+      style={{ fontSize: "16px" }}
       {...props}
     />
   );

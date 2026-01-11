@@ -68,38 +68,29 @@ export default function GraphPage() {
 
   if (isUserLoading || isLoading) {
     return (
-      <div className="flex min-h-[100dvh] items-center justify-center bg-black">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+      <div className="flex min-h-[60dvh] items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   return (
-    <div className="h-full bg-black text-white flex flex-col">
-      {/* Page Header */}
-      <div className="border-b border-white/10 px-4 py-3 bg-black flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <h1 className="text-xl font-medium text-white">Knowledge Graph</h1>
-          <span className="text-sm text-white/60">
-            ({nodes.length} nodes, {edges.length} edges)
-          </span>
+    <div className="mx-auto w-full max-w-6xl px-4 py-8 space-y-4">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">Knowledge Graph</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {nodes.length} nodes • {edges.length} edges
+          </p>
         </div>
-        <Button
-          onClick={fetchGraphData}
-          disabled={isLoading}
-          variant="outline"
-          className="bg-black border-white/10 text-white hover:bg-white/10"
-        >
+        <Button onClick={fetchGraphData} disabled={isLoading} variant="outline">
           <RefreshCw className={cn('h-4 w-4 mr-2', isLoading && 'animate-spin')} />
           Refresh
         </Button>
       </div>
 
-      {/* Graph Visualization */}
-      <div className="flex-1 p-4 sm:px-6 lg:px-8 bg-black overflow-hidden">
-        <div className="h-full w-full">
-          <GraphView nodes={nodes} edges={edges} className="h-full" />
-        </div>
+      <div className="rounded-xl border border-border bg-card/30 overflow-hidden h-[calc(100dvh-220px)] min-h-[520px]">
+        <GraphView nodes={nodes} edges={edges} className="h-full" />
       </div>
     </div>
   );

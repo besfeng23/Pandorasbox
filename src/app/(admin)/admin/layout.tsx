@@ -12,7 +12,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <AuthGuard>
       <AdminGuard>
-        <div className="flex h-screen w-screen bg-black text-white overflow-hidden">
+        <div className="flex h-screen w-screen bg-background text-foreground overflow-hidden">
           <AdminSidebar mobileOpen={mobileNavOpen} onMobileOpenChange={setMobileNavOpen} />
           <div className="flex flex-col flex-1 min-w-0">
             <AdminTopbar onOpenSidebar={() => setMobileNavOpen(true)} />

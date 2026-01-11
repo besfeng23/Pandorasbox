@@ -57,7 +57,7 @@ export function AdminGuard({ children }: { children: React.ReactNode }) {
   if (isLoading || roleLoading) {
     return (
       <div className="flex h-screen w-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-white/70" />
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -66,16 +66,16 @@ export function AdminGuard({ children }: { children: React.ReactNode }) {
   if (!allowed) {
     return (
       <div className="flex h-screen w-screen items-center justify-center p-6">
-        <div className="max-w-md w-full glass-panel-strong rounded-2xl border border-white/10 p-6 text-center">
-          <ShieldAlert className="h-10 w-10 mx-auto mb-3 text-white/70" />
-          <h1 className="text-lg font-semibold text-white">Access denied</h1>
-          <p className="mt-2 text-sm text-white/60">
+        <div className="max-w-md w-full rounded-2xl border border-border bg-card/30 p-6 text-center">
+          <ShieldAlert className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
+          <h1 className="text-lg font-semibold text-foreground">Access denied</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
             You don&apos;t have permission to access the admin cockpit.
           </p>
           <div className="mt-4">
             <Link
               href="/"
-              className="inline-flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/15 transition-colors px-4 py-2 text-sm text-white"
+              className="inline-flex items-center justify-center rounded-lg bg-muted/40 hover:bg-muted/60 transition-colors px-4 py-2 text-sm text-foreground"
             >
               Return to app
             </Link>

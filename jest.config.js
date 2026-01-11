@@ -13,6 +13,9 @@ const customJestConfig = {
     '^@/(.*)$': '<rootDir>/src/$1',
     // lucide-react ships ESM builds; map to a lightweight test stub to avoid ESM-in-jest issues.
     '^lucide-react$': '<rootDir>/src/__mocks__/lucide-react.tsx',
+    // react-markdown (and some plugins) ship ESM; stub for Jest.
+    '^react-markdown$': '<rootDir>/src/__mocks__/react-markdown.tsx',
+    '^remark-gfm$': '<rootDir>/src/__mocks__/remark-gfm.ts',
   },
   modulePathIgnorePatterns: [
     '<rootDir>/.firebase/',

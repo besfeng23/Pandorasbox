@@ -47,13 +47,19 @@ export default function PandoraChatPage() {
   // Merge real messages with optimistic ones
   const chatMessages = [
     ...messages.map((msg: Message) => ({
+      id: msg.id,
       role: msg.role,
       content: msg.content || "",
+      status: msg.status,
+      progress_log: msg.progress_log,
       isOptimistic: false,
     })),
     ...optimisticMessages.map((msg: Message) => ({
+      id: msg.id,
       role: msg.role,
       content: msg.content || "",
+      status: msg.status,
+      progress_log: msg.progress_log,
       isOptimistic: true,
     }))
   ];
@@ -137,28 +143,28 @@ export default function PandoraChatPage() {
   };
 
   return (
-    <div className="relative flex flex-col h-full bg-black text-white">
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto bg-black pb-40">
-        {!isEmptyThread && (
-          <ChatMessages 
-            messages={chatMessages} 
-            isLoading={isLoading || isSending} 
-          />
-        )}
-      </div>
+    <div className="flex flex-col min-h-full">
+      {/* Empty hero */}
+      {isEmptyThread ? (
+        <div className="flex-1 flex items-center justify-center px-4">
+          <div className="w-full max-w-2xl text-center">
+            <div className="mx-auto h-20 w-20 rounded-2xl border border-border bg-card/40 overflow-hidden">
+              <img src="/cube2.png" alt="Pandora" className="h-20 w-20 object-cover" />
+            </div>
+            <h1 className="mt-5 text-2xl font-semibold text-foreground">Pandora</h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Ask anything. Your workspaces, memories, and evidence stay connected.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <ChatMessages messages={chatMessages} isLoading={isLoading || isSending} />
+      )}
 
-      {/* Floating Composer (video-like). Empty thread centers it; otherwise it docks to bottom. */}
-      <div
-        className={[
-          "pointer-events-none absolute inset-x-0",
-          isEmptyThread
-            ? "top-1/2 -translate-y-1/2"
-            : "bottom-0 pb-[calc(env(safe-area-inset-bottom)+24px)]",
-        ].join(" ")}
-      >
-        <div className="pointer-events-auto mx-auto w-full max-w-[520px] px-4">
-          <div className="flex items-end gap-2 rounded-full border border-white/10 bg-black/40 backdrop-blur-md shadow-[0_0_24px_rgba(167,139,250,0.22)] px-3">
+      {/* Composer (ChatGPT-like pinned bottom) */}
+      <div className="sticky bottom-0 border-t border-border bg-background/70 backdrop-blur-sm pb-[calc(env(safe-area-inset-bottom)+8px)]">
+        <div className="mx-auto w-full max-w-3xl px-4 pt-4">
+          <div className="flex items-end gap-2 rounded-2xl border border-border bg-card/30 px-3 py-2">
             <ChatInput
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -168,11 +174,11 @@ export default function PandoraChatPage() {
                   handleSend();
                 }
               }}
-              placeholder="Ask Pandora…"
+              placeholder="Message Pandora…"
               disabled={isBusy || !userId}
             />
 
-            {/* NON-NEGOTIABLE: mic ↔ send swap (value.trim().length) with fade+scale */}
+            {/* MIC ↔ SEND swap (kept; will be refined in elite polish) */}
             <AnimatePresence mode="wait" initial={false}>
               {hasText ? (
                 <motion.button
@@ -184,7 +190,7 @@ export default function PandoraChatPage() {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.92 }}
                   transition={{ duration: 0.18, ease: "easeOut" }}
-                  className="mb-1 p-3 rounded-full bg-white/10 hover:bg-white/15 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-white"
+                  className="mb-1 p-3 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   aria-label="Send message"
                 >
                   <ArrowUp className="w-5 h-5" />
@@ -207,6 +213,9 @@ export default function PandoraChatPage() {
                 </motion.div>
               )}
             </AnimatePresence>
+          </div>
+          <div className="mt-2 text-xs text-muted-foreground text-center">
+            Pandora can make mistakes. Verify important info.
           </div>
         </div>
       </div>

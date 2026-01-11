@@ -1,0 +1,156 @@
+[
+  {
+    "schemaVersion": 1,
+    "slug": "elite-theme-system",
+    "title": "Elite Theme System (Pandora Premium Dark)",
+    "module": "frontend",
+    "phaseIds": [],
+    "whereInCode": [
+      "src/app/globals.css",
+      "tailwind.config.ts",
+      "cube2.png"
+    ],
+    "acceptanceCriteria": [
+      "All pages render with the new premium dark tokens (neutral surfaces, clean borders, minimal effects)",
+      "No legacy neon/glow styling is required for readability or focus indication",
+      "Brand accents (cube2 cyan/violet) are applied sparingly: primary action, focus ring, brand moments"
+    ],
+    "checklist": [
+      "Replace CSS variables in globals.css (background/surface/border/input/ring/typography defaults)",
+      "Update tailwind.config.ts palette + shadows to match premium system",
+      "Normalize shared utilities (glass panels, inputs, scrollbars) to avoid neon noise",
+      "Audit and remove/replace legacy neon classes across components"
+    ],
+    "dedupeKey": "pb:elite:theme",
+    "priority": "high",
+    "status": "done"
+  },
+  {
+    "schemaVersion": 1,
+    "slug": "elite-app-shell",
+    "title": "Elite App Shell (ChatGPT-like Navigation + Mobile Drawer)",
+    "module": "frontend",
+    "phaseIds": [],
+    "whereInCode": [
+      "src/app/(pandora-ui)/layout.tsx",
+      "src/app/(pandora-ui)/components/Sidebar.tsx",
+      "src/app/(pandora-ui)/components/Topbar.tsx"
+    ],
+    "acceptanceCriteria": [
+      "All app pages use the new shell (no per-page bespoke navigation)",
+      "Sidebar + topbar feel minimal, stable, and fast (ChatGPT-like)",
+      "Mobile navigation uses a polished drawer/sheet with correct safe-area + tap targets"
+    ],
+    "checklist": [
+      "Create new shell components (AppSidebar, AppTopbar, AppFrame) and wire them into layout.tsx",
+      "Move workspace switch + thread list into new sidebar with premium list styling",
+      "Ensure consistent scroll containment (sidebar scroll, main scroll, no double scrollbars)"
+    ],
+    "dedupeKey": "pb:elite:shell",
+    "priority": "high",
+    "status": "done"
+  },
+  {
+    "schemaVersion": 1,
+    "slug": "elite-chat-flagship",
+    "title": "Elite Chat Flagship (Messages + Composer + Evidence)",
+    "module": "frontend",
+    "phaseIds": [],
+    "whereInCode": [
+      "src/app/(pandora-ui)/page.tsx",
+      "src/app/(pandora-ui)/components/ChatMessages.tsx",
+      "src/components/chat/voice-input.tsx"
+    ],
+    "acceptanceCriteria": [
+      "Chat feels flagship: perfect typography/spacing, stable layout, no blank states or jank",
+      "Assistant placeholder renders as a premium \"thinking\" state (never a blank bubble)",
+      "Evidence blocks are readable, collapsible, and visually integrated"
+    ],
+    "checklist": [
+      "Rebuild message rendering (centered column, readable markdown, clear roles)",
+      "Rebuild composer interactions (predictable, tactile, safe-area correct)",
+      "Use cube2 motif subtly for assistant identity (avatar/mark)",
+      "Ensure processing messages show spinner/progress instead of empty content"
+    ],
+    "dedupeKey": "pb:elite:chat",
+    "priority": "high",
+    "status": "done"
+  },
+  {
+    "schemaVersion": 1,
+    "slug": "elite-pages-redesign",
+    "title": "Elite Pages Redesign (Workspaces, Knowledge, Memories, Artifacts, Graph, Settings)",
+    "module": "frontend",
+    "phaseIds": [],
+    "whereInCode": [
+      "src/app/(pandora-ui)/settings/page.tsx",
+      "src/app/(pandora-ui)/graph/page.tsx"
+    ],
+    "acceptanceCriteria": [
+      "No legacy UI remains across the entire app (settings included)",
+      "All pages are mobile-first, with polished empty/loading/error states",
+      "Workspace-scoped UX is consistent across modules"
+    ],
+    "checklist": [
+      "Redesign Settings IA (left-nav on desktop, stacked sections on mobile)",
+      "Redesign module pages with premium tables/cards and consistent actions",
+      "Ensure all lists have skeletons, empty states, and error recovery"
+    ],
+    "dedupeKey": "pb:elite:pages",
+    "priority": "high",
+    "status": "done"
+  },
+  {
+    "schemaVersion": 1,
+    "slug": "elite-admin-cockpit",
+    "title": "Elite Admin Cockpit (Support/Ops/Config)",
+    "module": "frontend",
+    "phaseIds": [],
+    "whereInCode": [
+      "src/app/(admin)/admin/layout.tsx",
+      "src/app/(admin)/admin/components/AdminSidebar.tsx",
+      "src/app/(admin)/admin/components/AdminTopbar.tsx"
+    ],
+    "acceptanceCriteria": [
+      "Admin cockpit matches premium system with higher-density layouts",
+      "Tables collapse to cards on mobile and use drawers for detail views",
+      "RBAC visibility is correct (no admin affordances for non-admins)"
+    ],
+    "checklist": [
+      "Reskin admin shell to premium system",
+      "Implement table->drawer patterns for Users/Orgs/Logs",
+      "Add consistent audit logging UI patterns"
+    ],
+    "dedupeKey": "pb:elite:admin",
+    "priority": "medium",
+    "status": "done"
+  },
+  {
+    "schemaVersion": 1,
+    "slug": "elite-polish-qa",
+    "title": "Elite Polish + QA (Microinteractions, Mobile, Reduced Motion)",
+    "module": "frontend",
+    "phaseIds": [],
+    "whereInCode": [
+      "src/app/globals.css",
+      "src/components/ui/"
+    ],
+    "acceptanceCriteria": [
+      "Consistent empty/loading/error states across all surfaces",
+      "Microinteractions feel refined (150–220ms), no jitter or layout shift",
+      "Mobile QA passes for safe-area, scroll, and keyboard behaviors",
+      "Reduced-motion users get a calm experience"
+    ],
+    "checklist": [
+      "Unify skeletons + empty states",
+      "Tune transitions and remove visual noise",
+      "Run a dedicated mobile QA pass and fix scroll/keyboard edge cases",
+      "Verify prefers-reduced-motion paths"
+    ],
+    "dedupeKey": "pb:elite:polish",
+    "priority": "medium",
+    "status": "in_progress"
+  }
+]
+
+

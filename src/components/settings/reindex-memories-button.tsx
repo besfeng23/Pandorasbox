@@ -51,11 +51,11 @@ export function ReindexMemoriesButton({ userId }: ReindexMemoriesButtonProps) {
   };
 
   return (
-    <div className="glass-panel-strong border-glow-cyan rounded-xl p-6 shadow-xl">
+    <div className="rounded-xl border border-border bg-card/30 p-5">
       <div className="flex items-center justify-between">
         <div className="flex-1">
-          <h3 className="text-lg font-semibold mb-2 neon-text-cyan">Re-index Memories</h3>
-          <p className="text-sm text-white/70">
+          <h3 className="text-sm font-semibold text-foreground">Re-index memories</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
             Generate embeddings for memories that are missing them. This is needed for vector search to work.
             Memories that already have embeddings will be skipped.
           </p>
@@ -65,7 +65,7 @@ export function ReindexMemoriesButton({ userId }: ReindexMemoriesButtonProps) {
             <Button
               variant="outline"
               disabled={isPending}
-              className="ml-4 border-cyan-400/30 text-cyan-400 hover:bg-cyan-400/10"
+              className="ml-4"
             >
               {isPending ? (
                 <>
@@ -80,10 +80,10 @@ export function ReindexMemoriesButton({ userId }: ReindexMemoriesButtonProps) {
               )}
             </Button>
           </AlertDialogTrigger>
-          <AlertDialogContent className="glass-panel-strong border border-cyan-400/30">
+          <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle className="neon-text-cyan">Re-index Memories</AlertDialogTitle>
-              <AlertDialogDescription className="text-white/70">
+              <AlertDialogTitle>Re-index memories</AlertDialogTitle>
+              <AlertDialogDescription>
                 This will generate embeddings for all memories that are missing them. This process may take a few minutes
                 depending on how many memories need to be re-indexed. Memories that already have embeddings will be skipped.
               </AlertDialogDescription>
@@ -93,7 +93,7 @@ export function ReindexMemoriesButton({ userId }: ReindexMemoriesButtonProps) {
               <AlertDialogAction
                 onClick={handleReindex}
                 disabled={isPending}
-                className="bg-cyan-500 hover:bg-cyan-600 text-white"
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
               >
                 {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Start Re-indexing

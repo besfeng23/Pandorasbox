@@ -35,6 +35,7 @@ const REPO_ROOT = process.cwd();
 const INTAKE_DIR = path.join(REPO_ROOT, '.kairos', 'intake');
 const UIUX_SPEC_PATH = path.join(INTAKE_DIR, 'pandora-uiux-spec-items.json');
 const AUDIT_ISSUES_PATH = path.join(INTAKE_DIR, 'kairos-audit-issues.json');
+const ELITE_REDESIGN_PATH = path.join(INTAKE_DIR, 'elite-redesign-items.json');
 
 const GATEWAY_URL = process.env.KAIROS_EVENT_GATEWAY_URL;
 const GOOGLE_ID_TOKEN = process.env.GOOGLE_ID_TOKEN;
@@ -238,11 +239,13 @@ async function main() {
   // Read intake files
   const uiuxSpecItems = await readJson<SpecItem[]>(UIUX_SPEC_PATH);
   const auditIssues = await readJson<SpecItem[]>(AUDIT_ISSUES_PATH);
+  const eliteRedesignItems = await readJson<SpecItem[]>(ELITE_REDESIGN_PATH);
 
-  if (!uiuxSpecItems && !auditIssues) {
+  if (!uiuxSpecItems && !auditIssues && !eliteRedesignItems) {
     console.error('❌ No intake files found');
     console.error(`   Expected: ${path.relative(REPO_ROOT, UIUX_SPEC_PATH)}`);
     console.error(`   Expected: ${path.relative(REPO_ROOT, AUDIT_ISSUES_PATH)}`);
+    console.error(`   Expected: ${path.relative(REPO_ROOT, ELITE_REDESIGN_PATH)}`);
     process.exit(1);
   }
 
@@ -268,6 +271,12 @@ async function main() {
     }
   }
 
+  if (eliteRedesignItems && Array.isArray(eliteRedesignItems)) {
+    for (const item of eliteRedesignItems.slice().sort((a, b) => a.slug.localeCompare(b.slug))) {
+      events.push(specItemToEvent(item, 'uiux'));
+    }
+  }
+
   if (auditIssues && Array.isArray(auditIssues)) {
     for (const item of auditIssues.slice().sort((a, b) => a.slug.localeCompare(b.slug))) {
       events.push(specItemToEvent(item, 'audit'));
@@ -281,6 +290,7 @@ async function main() {
 
   console.log(`📊 Found ${events.length} events to send`);
   console.log(`   UI/UX spec items: ${Array.isArray(uiuxSpecItems) ? uiuxSpecItems.length : 0}`);
+  console.log(`   Elite redesign items: ${Array.isArray(eliteRedesignItems) ? eliteRedesignItems.length : 0}`);
   console.log(`   Audit issues: ${Array.isArray(auditIssues) ? auditIssues.length : 0}`);
   console.log('');
 

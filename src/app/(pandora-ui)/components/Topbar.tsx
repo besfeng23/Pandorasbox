@@ -1,17 +1,18 @@
 "use client";
 import React from "react";
-import { Menu, Plus } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { Menu, Plus, Search } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
 import { useUser } from "@/firebase";
 import { createThreadAuthed } from "@/app/actions";
 import { useUIState } from "./useUIState";
-import PhaseIndicator from "./PhaseIndicator";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Button } from "@/components/ui/button";
 
 export default function Topbar({ setOpen }: { setOpen: (o: boolean) => void }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { user } = useUser();
-  const { toggleSidebar, toggleSidebarCollapsed } = useUIState();
+  const { sidebarOpen, setSidebarOpen, toggleSidebarCollapsed } = useUIState();
   const isMobile = useIsMobile();
 
   const handleNewChat = async () => {
@@ -26,36 +27,58 @@ export default function Topbar({ setOpen }: { setOpen: (o: boolean) => void }) {
     }
   };
 
-  // Video-aligned behavior:
-  // - Mobile: Topbar is hidden by layout, so this path is mostly desktop/tablet.
-  // - Desktop: Menu button collapses/expands the persistent sidebar.
   const handleMenuClick = () => {
     if (isMobile) {
-      toggleSidebar();
+      setSidebarOpen(!sidebarOpen);
     } else {
       toggleSidebarCollapsed();
     }
   };
 
+  const title =
+    pathname === "/settings"
+      ? "Settings"
+      : pathname === "/graph"
+        ? "Graph"
+        : pathname === "/workspaces"
+          ? "Workspaces"
+          : pathname === "/knowledge"
+            ? "Knowledge"
+            : pathname === "/memories"
+              ? "Memories"
+              : pathname === "/artifacts"
+                ? "Artifacts"
+                : "Chat";
+
   return (
-    <header className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-black/60 backdrop-blur">
-      <div className="flex items-center gap-3">
-        <button 
-          onClick={handleMenuClick} 
-          className="text-white hover:text-white/80 transition-colors p-1.5 hover:bg-white/10 rounded-lg"
-          aria-label="Open sidebar"
-        >
-          <Menu className="w-5 h-5" />
-        </button>
-        <PhaseIndicator />
-      </div>
-      <button 
-        onClick={handleNewChat}
-        className="text-white hover:text-white/80 transition-colors p-1.5 hover:bg-white/10 rounded-lg"
-        aria-label="New chat"
+    <header className="flex items-center gap-3 px-4 py-3 border-b border-border bg-background/60 backdrop-blur-sm">
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={handleMenuClick}
+        aria-label="Open navigation"
+        className="md:hidden"
       >
+        <Menu className="w-5 h-5" />
+      </Button>
+
+      <div className="flex-1 min-w-0">
+        <div className="text-sm font-medium text-foreground truncate">{title}</div>
+      </div>
+
+      <div className="hidden sm:flex items-center gap-2">
+        <div className="relative w-[260px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <input
+            className="w-full h-9 rounded-full bg-muted/40 border border-border px-9 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
+            placeholder="Search… (Cmd+K)"
+          />
+        </div>
+      </div>
+
+      <Button variant="ghost" size="icon" onClick={handleNewChat} aria-label="New chat">
         <Plus className="w-5 h-5" />
-      </button>
+      </Button>
     </header>
   );
 }
