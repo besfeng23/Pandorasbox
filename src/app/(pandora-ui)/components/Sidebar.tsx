@@ -43,12 +43,17 @@ function NavItem({
     <button
       onClick={onClick}
       className={[
-        "w-full flex items-center gap-2 rounded-md px-2.5 py-2 text-sm transition-colors",
-        active ? "bg-muted/60 text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted/40",
+        "w-full flex items-center gap-2 rounded-md px-2.5 py-2 text-sm transition-all relative",
+        active 
+          ? "bg-muted/60 text-foreground border border-primary/30 ring-1 ring-primary/10" 
+          : "text-muted-foreground hover:text-foreground hover:bg-muted/40 border border-transparent",
       ].join(" ")}
     >
-      <Icon className="h-4 w-4" />
-      <span className="truncate">{label}</span>
+      {active && (
+        <div className="absolute inset-0 rounded-md bg-gradient-to-r from-primary/10 via-secondary/5 to-primary/10 pointer-events-none" />
+      )}
+      <Icon className={["h-4 w-4 relative z-10", active ? "text-primary" : ""].join(" ")} />
+      <span className={["truncate relative z-10", active ? "font-medium" : ""].join(" ")}>{label}</span>
     </button>
   );
 }
@@ -92,7 +97,7 @@ function SidebarBody({
     <div className="h-full flex flex-col">
       <div className="p-3">
         <div className="flex items-center justify-between">
-          <div className="text-sm font-semibold text-foreground">Pandora</div>
+          <div className="text-sm font-semibold gradient-text-cyan">Pandora</div>
           <div className="text-xs text-muted-foreground">Elite</div>
         </div>
 
@@ -120,7 +125,11 @@ function SidebarBody({
           </DropdownMenu>
         </div>
 
-        <Button onClick={onNewChat} className="mt-3 w-full justify-start gap-2" variant="secondary">
+        <Button 
+          onClick={onNewChat} 
+          className="mt-3 w-full justify-start gap-2 bg-primary/10 hover:bg-primary/20 text-primary border-primary/20 hover:border-primary/30 transition-all" 
+          variant="outline"
+        >
           <Plus className="h-4 w-4" /> New chat
         </Button>
 
@@ -341,7 +350,7 @@ export default function Sidebar() {
   return (
     <>
       {/* Desktop */}
-      <aside className="hidden md:block w-[280px] h-screen border-r border-border bg-background/70">
+      <aside className="hidden md:block w-[280px] h-screen border-r border-border bg-background/70 circuit-texture">
         {content}
       </aside>
 

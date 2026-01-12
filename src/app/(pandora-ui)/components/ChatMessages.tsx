@@ -59,7 +59,7 @@ export default function ChatMessages({ messages, isLoading }: ChatMessagesProps)
           className={m.isAssistant ? "flex gap-3 py-4" : "flex justify-end py-4"}
         >
           {m.isAssistant ? (
-            <div className="mt-1 h-8 w-8 rounded-full border border-border bg-muted/30 overflow-hidden flex items-center justify-center shrink-0">
+            <div className="mt-1 h-8 w-8 rounded-full border border-primary/30 bg-muted/30 overflow-hidden flex items-center justify-center shrink-0 ring-1 ring-primary/10">
               <img src="/cube2.png" alt="Pandora" className="h-8 w-8 object-cover" />
             </div>
           ) : null}
@@ -68,13 +68,15 @@ export default function ChatMessages({ messages, isLoading }: ChatMessagesProps)
             <div
               className={[
                 "rounded-2xl px-4 py-3 border",
-                m.isAssistant ? "bg-card/40 border-border" : "bg-muted/40 border-border",
+                m.isAssistant 
+                  ? "bg-card/40 border-border/50 ring-1 ring-primary/5" 
+                  : "bg-muted/40 border-border/50",
                 m.isOptimistic ? "opacity-70" : "",
               ].join(" ")}
             >
               {m.isAssistant && m.isProcessing ? (
                 <div className="flex items-center gap-3">
-                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
                   <div className="min-w-0">
                     <div className="text-sm text-foreground">Thinking…</div>
                     {m.lastProgress ? (

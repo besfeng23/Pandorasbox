@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowUp } from "lucide-react";
+import { ArrowUp, Loader2 } from "lucide-react";
 import ChatMessages from "@/app/(pandora-ui)/components/ChatMessages";
 import ChatInput from "@/app/(pandora-ui)/components/ChatInput";
 import { submitUserMessage, transcribeAndProcessMessage } from "@/app/actions";
@@ -13,7 +13,7 @@ import { Message } from "@/lib/types";
 import { VoiceInput } from "@/components/chat/voice-input";
 import { useSearchParams } from "next/navigation";
 
-export default function PandoraChatPage() {
+function PandoraChatPageContent() {
   const { user } = useUser();
   const userId = user?.uid || null;
   const [threadId, setThreadId] = useState<string | null>(null);
@@ -22,22 +22,33 @@ export default function PandoraChatPage() {
   const [isTranscribing, setIsTranscribing] = useState(false);
   const searchParams = useSearchParams();
 
-  // Initialize thread on mount
+  // Initialize thread on mount and when searchParams change
   useEffect(() => {
     const paramThreadId = searchParams.get("threadId");
+    
+    // If URL has threadId, use it
     if (paramThreadId) {
-      setThreadId(paramThreadId);
+      if (paramThreadId !== threadId) {
+        setThreadId(paramThreadId);
+      }
       return;
     }
 
+    // Only create a new thread if we don't have one and user is available
     if (user && userId && !threadId) {
       user
         .getIdToken()
         .then((token) => createThreadAuthed(token))
-        .then(setThreadId)
+        .then((newThreadId) => {
+          setThreadId(newThreadId);
+          // Update URL without creating navigation entry
+          const url = new URL(window.location.href);
+          url.searchParams.set("threadId", newThreadId);
+          window.history.replaceState({}, "", url);
+        })
         .catch(console.error);
     }
-  }, [user, userId, threadId, searchParams]);
+  }, [user, userId, searchParams, threadId]);
 
   // Fetch real-time messages using the existing hook
   const { messages, isLoading } = useChatHistory(userId, threadId);
@@ -146,15 +157,17 @@ export default function PandoraChatPage() {
     <div className="flex flex-col min-h-full">
       {/* Empty hero */}
       {isEmptyThread ? (
-        <div className="flex-1 flex items-center justify-center px-4">
-          <div className="w-full max-w-2xl text-center">
-            <div className="mx-auto h-20 w-20 rounded-2xl border border-border bg-card/40 overflow-hidden">
+        <div className="flex-1 flex items-center justify-center px-4 circuit-texture">
+          <div className="w-full max-w-2xl text-center space-y-6">
+            <div className="mx-auto h-24 w-24 rounded-2xl gradient-border overflow-hidden bg-card/40 flex items-center justify-center">
               <img src="/cube2.png" alt="Pandora" className="h-20 w-20 object-cover" />
             </div>
-            <h1 className="mt-5 text-2xl font-semibold text-foreground">Pandora</h1>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Ask anything. Your workspaces, memories, and evidence stay connected.
-            </p>
+            <div>
+              <h1 className="text-3xl font-semibold gradient-text-cyan mb-2">Pandora</h1>
+              <p className="text-sm text-muted-foreground">
+                Ask anything. Your workspaces, memories, and evidence stay connected.
+              </p>
+            </div>
           </div>
         </div>
       ) : (
@@ -162,9 +175,9 @@ export default function PandoraChatPage() {
       )}
 
       {/* Composer (ChatGPT-like pinned bottom) */}
-      <div className="sticky bottom-0 border-t border-border bg-background/70 backdrop-blur-sm pb-[calc(env(safe-area-inset-bottom)+8px)]">
+      <div className="sticky bottom-0 border-t border-border/50 bg-background/70 backdrop-blur-sm pb-[calc(env(safe-area-inset-bottom)+8px)]">
         <div className="mx-auto w-full max-w-3xl px-4 pt-4">
-          <div className="flex items-end gap-2 rounded-2xl border border-border bg-card/30 px-3 py-2">
+          <div className="flex items-end gap-2 rounded-2xl border border-border/50 bg-card/30 px-3 py-2 ring-1 ring-primary/5 hover:ring-primary/10 transition-all">
             <ChatInput
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -190,7 +203,7 @@ export default function PandoraChatPage() {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.92 }}
                   transition={{ duration: 0.18, ease: "easeOut" }}
-                  className="mb-1 p-3 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="mb-1 p-3 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   aria-label="Send message"
                 >
                   <ArrowUp className="w-5 h-5" />
@@ -220,6 +233,20 @@ export default function PandoraChatPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PandoraChatPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex flex-col min-h-full items-center justify-center">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      }
+    >
+      <PandoraChatPageContent />
+    </Suspense>
   );
 }
 
