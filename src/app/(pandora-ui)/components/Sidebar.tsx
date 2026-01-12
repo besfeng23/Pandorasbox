@@ -16,6 +16,9 @@ import {
 } from "@/app/actions";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useUIState } from "./useUIState";
+import { ThreadMenu } from "@/components/chat/thread-menu";
+import { formatMessageTime } from "@/lib/utils";
+import { collection, query, where, orderBy, limit, getDocs } from "firebase/firestore";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -156,17 +159,60 @@ function SidebarBody({
           <div className="px-2.5 py-2 text-sm text-muted-foreground">Loading…</div>
         ) : filteredThreads.length > 0 ? (
           <div className="space-y-1">
-            {filteredThreads.slice(0, 50).map((t) => (
-              <button
+            {filteredThreads.slice(0, 50).map((t) => {
+              const preview = threadPreviews[t.id];
+              const lastActivityTime = preview?.lastActivity ? formatMessageTime(preview.lastActivity) : '';
+              return (
+              <div
                 key={t.id}
-                onClick={() => onSelectThread(t.id)}
-                className="w-full flex items-center gap-2 rounded-md px-2.5 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors"
-                title={t.title}
+                className="group relative w-full flex items-center gap-2 rounded-md px-2.5 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors"
               >
-                <MessageSquare className="h-4 w-4 opacity-70" />
-                <span className="truncate">{t.title}</span>
-              </button>
-            ))}
+                <button
+                  onClick={() => onSelectThread(t.id)}
+                  className="flex-1 flex items-center gap-2 min-w-0"
+                  title={t.title}
+                >
+                  <MessageSquare className="h-4 w-4 opacity-70 shrink-0" />
+                  <div className="flex-1 min-w-0 text-left">
+                    <div className="truncate font-medium">{t.title || 'New Chat'}</div>
+                    {preview?.preview && (
+                      <div className="truncate text-xs text-muted-foreground/70 mt-0.5">
+                        {preview.preview}
+                      </div>
+                    )}
+                    {lastActivityTime && (
+                      <div className="text-[10px] text-muted-foreground/50 mt-0.5">
+                        {lastActivityTime}
+                      </div>
+                    )}
+                  </div>
+                </button>
+                {user?.uid && (
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                    <ThreadMenu
+                      threadId={t.id}
+                      userId={user.uid}
+                      threadTitle={t.title}
+                      pinned={t.pinned}
+                      archived={t.archived}
+                      onRename={() => {
+                        // Refresh threads after rename
+                        if (user) {
+                          user.getIdToken().then((token) => getUserThreadsAuthed(token)).then(setThreads);
+                        }
+                      }}
+                      onDeleted={() => {
+                        // Refresh threads after delete
+                        if (user) {
+                          user.getIdToken().then((token) => getUserThreadsAuthed(token)).then(setThreads);
+                        }
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+            );
+            })}
           </div>
         ) : (
           <div className="px-2.5 py-2 text-sm text-muted-foreground">No chats yet.</div>
@@ -224,6 +270,7 @@ export default function Sidebar() {
   const [searchQuery, setSearchQuery] = useState("");
   const [workspaces, setWorkspaces] = useState<Array<{ workspaceId: string; name: string; role: string }>>([]);
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(null);
+  const [threadPreviews, setThreadPreviews] = useState<Record<string, { preview: string; lastActivity: Date | null }>>({});
 
   const [createWsOpen, setCreateWsOpen] = useState(false);
   const [newWsName, setNewWsName] = useState("");
@@ -269,10 +316,38 @@ export default function Sidebar() {
     user
       .getIdToken()
       .then((token) => getUserThreadsAuthed(token))
-      .then(setThreads)
+      .then((loadedThreads) => {
+        setThreads(loadedThreads);
+        // Load previews for each thread
+        if (user?.uid && firestore) {
+          loadedThreads.forEach(async (thread) => {
+            try {
+              const historyQuery = query(
+                collection(firestore, 'history'),
+                where('threadId', '==', thread.id),
+                where('userId', '==', user.uid),
+                orderBy('createdAt', 'desc'),
+                limit(1)
+              );
+              const snapshot = await getDocs(historyQuery);
+              if (!snapshot.empty) {
+                const lastMessage = snapshot.docs[0].data();
+                const preview = lastMessage.content?.substring(0, 60) || '';
+                const lastActivity = lastMessage.createdAt?.toDate() || null;
+                setThreadPreviews(prev => ({
+                  ...prev,
+                  [thread.id]: { preview, lastActivity }
+                }));
+              }
+            } catch (err) {
+              console.warn(`Failed to load preview for thread ${thread.id}:`, err);
+            }
+          });
+        }
+      })
       .catch(console.error)
       .finally(() => setIsLoadingThreads(false));
-  }, [user, isMobile, sidebarOpen, activeWorkspaceId]);
+  }, [user, isMobile, sidebarOpen, activeWorkspaceId, firestore]);
 
   const onNewChat = async () => {
     if (!user) return;
@@ -347,11 +422,16 @@ export default function Sidebar() {
     />
   );
 
+  const { sidebarCollapsed, setSidebarCollapsed } = useUIState();
+
   return (
     <>
       {/* Desktop */}
-      <aside className="hidden md:block w-[280px] h-screen border-r border-border bg-background/70 circuit-texture">
-        {content}
+      <aside className={[
+        "hidden md:block h-screen border-r border-border bg-background/70 circuit-texture transition-all duration-300",
+        sidebarCollapsed ? "w-0 overflow-hidden" : "w-[280px]"
+      ].join(" ")}>
+        {!sidebarCollapsed && content}
       </aside>
 
       {/* Mobile */}

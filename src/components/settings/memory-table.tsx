@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Trash2, Edit, Save, X, Search, FileText } from 'lucide-react';
+import { Loader2, Trash2, Edit, Save, X, Search, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
 import { Badge } from '../ui/badge';
@@ -39,10 +39,19 @@ export function MemoryTable({ userId }: MemoryTableProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const firestore = useFirestore();
   const { user } = useUser();
+  
+  const itemsPerPage = 10;
+  const totalPages = Math.ceil(filteredMemories.length / itemsPerPage);
+  const paginatedMemories = filteredMemories.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   // Fetch memories from memories collection (real-time listener)
   useEffect(() => {
@@ -107,6 +116,7 @@ export function MemoryTable({ userId }: MemoryTableProps) {
     }
     
     setFilteredMemories(filtered);
+    setCurrentPage(1); // Reset to first page when filter changes
   }, [memories, searchQuery]);
 
   const handleDelete = (id: string) => {
@@ -211,8 +221,22 @@ export function MemoryTable({ userId }: MemoryTableProps) {
                           className="min-h-[100px]"
                         />
                       ) : (
-                        <div>
-                          <p className="truncate-3-lines">{memory.content}</p>
+                        <div 
+                          className="cursor-pointer group"
+                          onClick={() => setExpandedId(expandedId === memory.id ? null : memory.id)}
+                          title="Click to expand/collapse"
+                        >
+                          <p className={[
+                            expandedId === memory.id ? "" : "truncate-3-lines",
+                            "group-hover:text-primary transition-colors"
+                          ].join(" ")}>
+                            {memory.content}
+                          </p>
+                          {memory.content.length > 150 && (
+                            <span className="text-xs text-muted-foreground mt-1 block">
+                              {expandedId === memory.id ? "Click to collapse" : "Click to expand"}
+                            </span>
+                          )}
                         </div>
                       )}
                     </TableCell>
@@ -244,6 +268,34 @@ export function MemoryTable({ userId }: MemoryTableProps) {
             </TableBody>
           </Table>
         </ScrollArea>
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-4 py-3 border-t">
+            <div className="text-sm text-muted-foreground">
+              Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredMemories.length)} of {filteredMemories.length} memories
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                Page {currentPage} of {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

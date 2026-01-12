@@ -1,17 +1,19 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowUp, Loader2 } from "lucide-react";
+import { ArrowUp, Loader2, Paperclip } from "lucide-react";
 import ChatMessages from "@/app/(pandora-ui)/components/ChatMessages";
 import ChatInput from "@/app/(pandora-ui)/components/ChatInput";
 import { submitUserMessage, transcribeAndProcessMessage } from "@/app/actions";
 import { useChatHistory } from "@/hooks/use-chat-history";
-import { useUser } from "@/firebase";
+import { useUser, useFirestore } from "@/firebase";
 import { createThreadAuthed } from "@/app/actions";
 import { Message } from "@/lib/types";
 import { VoiceInput } from "@/components/chat/voice-input";
 import { useSearchParams } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { doc, onSnapshot } from "firebase/firestore";
 
 function PandoraChatPageContent() {
   const { user } = useUser();
@@ -20,6 +22,10 @@ function PandoraChatPageContent() {
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
+  const [showRipple, setShowRipple] = useState(false);
+  const [followUpSuggestions, setFollowUpSuggestions] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const firestore = useFirestore();
   const searchParams = useSearchParams();
 
   // Initialize thread on mount and when searchParams change
@@ -51,8 +57,23 @@ function PandoraChatPageContent() {
   }, [user, userId, searchParams, threadId]);
 
   // Fetch real-time messages using the existing hook
-  const { messages, isLoading } = useChatHistory(userId, threadId);
+  const { messages, isLoading, thread } = useChatHistory(userId, threadId);
   const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
+
+  // Load follow-up suggestions
+  useEffect(() => {
+    if (!user?.uid || !firestore) return;
+    const suggestionsRef = doc(firestore, 'users', user.uid, 'state', 'suggestions');
+    const unsubscribe = onSnapshot(suggestionsRef, (doc) => {
+      if (doc.exists()) {
+        const data = doc.data();
+        setFollowUpSuggestions(data.suggestions || []);
+      } else {
+        setFollowUpSuggestions([]);
+      }
+    });
+    return () => unsubscribe();
+  }, [user?.uid, firestore]);
 
   // Convert Message type to simple format for ChatMessages component
   // Merge real messages with optimistic ones
@@ -81,6 +102,10 @@ function PandoraChatPageContent() {
 
   const handleSend = async () => {
     if (!input.trim() || isBusy || !userId) return;
+
+    // Show neon ripple effect
+    setShowRipple(true);
+    setTimeout(() => setShowRipple(false), 600);
 
     const messageContent = input.trim();
     setInput("");
@@ -171,13 +196,70 @@ function PandoraChatPageContent() {
           </div>
         </div>
       ) : (
-        <ChatMessages messages={chatMessages} isLoading={isLoading || isSending} />
+        <>
+          <ChatMessages messages={chatMessages} isLoading={isLoading || isSending} />
+          {thread?.summary && (
+            <div className="mx-auto w-full max-w-3xl px-4 pb-4">
+              <div className="rounded-xl border border-primary/20 bg-card/40 glass-panel p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                  <span className="text-xs font-medium text-primary">Thread Summary</span>
+                </div>
+                <p className="text-sm text-muted-foreground leading-relaxed">{thread.summary}</p>
+              </div>
+            </div>
+          )}
+          {followUpSuggestions.length > 0 && (
+            <div className="mx-auto w-full max-w-3xl px-4 pb-4">
+              <div className="flex flex-wrap gap-2">
+                {followUpSuggestions.map((suggestion, idx) => (
+                  <Button
+                    key={idx}
+                    variant="outline"
+                    size="sm"
+                    className="text-xs border-primary/20 hover:border-primary/40 hover:bg-primary/10 transition-all"
+                    onClick={() => setInput(suggestion)}
+                  >
+                    {suggestion}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
       )}
 
-      {/* Composer (ChatGPT-like pinned bottom) */}
-      <div className="sticky bottom-0 border-t border-border/50 bg-background/70 backdrop-blur-sm pb-[calc(env(safe-area-inset-bottom)+8px)]">
+      {/* Composer (ChatGPT-like pinned bottom) - Enhanced with frosted glass */}
+      <div className="sticky bottom-0 border-t border-border/50 glass-panel-strong pb-[calc(env(safe-area-inset-bottom)+8px)] shadow-2xl">
         <div className="mx-auto w-full max-w-3xl px-4 pt-4">
-          <div className="flex items-end gap-2 rounded-2xl border border-border/50 bg-card/30 px-3 py-2 ring-1 ring-primary/5 hover:ring-primary/10 transition-all">
+          <div className={[
+            "flex items-end gap-2 rounded-2xl border border-primary/20 bg-card/40 px-3 py-2 ring-1 ring-primary/10 hover:ring-primary/20 transition-all shadow-lg relative overflow-hidden",
+            showRipple ? "energy-burst" : ""
+          ].join(" ")}>
+            <input
+              type="file"
+              ref={fileInputRef}
+              className="hidden"
+              accept="image/*,.pdf,.txt,.md"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  // Handle file upload - for now just show a message
+                  console.log("File selected:", file.name);
+                  // TODO: Implement file upload
+                }
+              }}
+            />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0 hover:bg-primary/10 hover:text-primary transition-colors"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isBusy || !userId}
+              aria-label="Attach file"
+            >
+              <Paperclip className="h-4 w-4" />
+            </Button>
             <ChatInput
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -197,13 +279,20 @@ function PandoraChatPageContent() {
                 <motion.button
                   key="send"
                   type="button"
-                  onClick={handleSend}
+                  onClick={(e) => {
+                    handleSend();
+                    // Add energy burst effect
+                    e.currentTarget.classList.add('energy-burst');
+                    setTimeout(() => {
+                      e.currentTarget.classList.remove('energy-burst');
+                    }, 600);
+                  }}
                   disabled={isBusy || !userId}
                   initial={{ opacity: 0, scale: 0.92 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.92 }}
                   transition={{ duration: 0.18, ease: "easeOut" }}
-                  className="mb-1 p-3 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="mb-1 p-3 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/30 neon-glow transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   aria-label="Send message"
                 >
                   <ArrowUp className="w-5 h-5" />

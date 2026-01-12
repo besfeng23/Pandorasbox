@@ -57,13 +57,32 @@ export async function runChatLane(
 
       // 3. Run the answer lane to generate a response.
       // We pass imageBase64 directly so it doesn't need to wait for memory lane's description.
-      const answerResult = await runAnswerLane({
-        userId,
-        message: message || (audioUrl ? 'Process this audio.' : 'Describe the image.'), // Fallback if message is empty
-        imageBase64: imageBase64,
-        audioUrl: audioUrl, // Pass audioUrl
-        assistantMessageId: assistantRef.id,
-        threadId, // Pass threadId to answer lane
+      // Add timeout wrapper to prevent infinite processing
+      const answerResult = await Promise.race([
+        runAnswerLane({
+          userId,
+          message: message || (audioUrl ? 'Process this audio.' : 'Describe the image.'), // Fallback if message is empty
+          imageBase64: imageBase64,
+          audioUrl: audioUrl, // Pass audioUrl
+          assistantMessageId: assistantRef.id,
+          threadId, // Pass threadId to answer lane
+        }),
+        new Promise<{ answer: string }>((_, reject) => 
+          setTimeout(() => reject(new Error('Answer lane timeout after 120 seconds')), 120000)
+        )
+      ]).catch(async (error) => {
+        console.error('[ChatLane] Answer lane failed or timed out:', error);
+        // Mark the assistant message as error
+        try {
+          await assistantRef.update({
+            content: 'Sorry, the response took too long or encountered an error. Please try again.',
+            status: 'error',
+            progress_log: FieldValue.arrayUnion(`Timeout or error: ${error?.message || 'Unknown'}`),
+          });
+        } catch (updateError) {
+          console.error('[ChatLane] Failed to update timeout error:', updateError);
+        }
+        return { answer: 'Error: Request timed out or failed.' };
       });
 
       // 3b. If the model reports low confidence for a specific topic, enqueue it for deep research (silent).
@@ -87,22 +106,25 @@ export async function runChatLane(
         console.warn('[ChatLane] Failed to enqueue topic for deep research:', queueError);
       }
 
-      // 4. Suggest follow-up questions.
-      const suggestions = await suggestFollowUpQuestions({
+      // 4. Suggest follow-up questions (non-blocking, don't fail if this errors)
+      suggestFollowUpQuestions({
         userMessage: message,
         aiResponse: answerResult.answer,
-      });
-
-      // 5. Save suggestions to Firestore.
-      const suggestionsDocRef = firestoreAdmin.collection('users').doc(userId).collection('state').doc('suggestions');
-      await suggestionsDocRef.set({
-        id: suggestionsDocRef.id,
-        suggestions: suggestions,
-        timestamp: new Date(),
+      }).then(suggestions => {
+        // Save suggestions to Firestore
+        const suggestionsDocRef = firestoreAdmin.collection('users').doc(userId).collection('state').doc('suggestions');
+        return suggestionsDocRef.set({
+          id: suggestionsDocRef.id,
+          suggestions: suggestions,
+          timestamp: new Date(),
+        });
+      }).catch(err => {
+        console.warn('[ChatLane] Failed to generate suggestions:', err);
+        // Non-critical, continue
       });
       
-      // 6. Summarize the thread if it's long enough (non-blocking)
-      summarizeThread(threadId, userId).catch(err => console.error("Summarization failed:", err));
+      // 5. Summarize the thread if it's long enough (non-blocking)
+      summarizeThread(threadId, userId).catch(err => console.error("[ChatLane] Summarization failed:", err));
     }
   );
 

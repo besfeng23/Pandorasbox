@@ -313,23 +313,43 @@ ${memoryUsageInstructions}
                 embedding: embedding,
                 status: 'complete',
                 userId: userId,
+                threadId: threadId,
                 progress_log: FieldValue.arrayUnion('Done.'),
             });
     
+            console.log(`[AnswerLane] Successfully completed message ${assistantMessageId}`);
             return { answer: cleanResponse };
 
         } catch(error: any) {
-            console.error("Error in Answer Lane: ", error);
+            console.error("[AnswerLane] Error in Answer Lane: ", error);
             const errorMessage = error?.message || String(error) || 'Unknown error';
-             try {
+            const fullError = error?.stack || errorMessage;
+            
+            try {
                 await assistantMessageRef.update({
-                    content: "Sorry, I encountered an error.",
+                    content: `Sorry, I encountered an error: ${errorMessage.substring(0, 200)}. Please try again.`,
                     status: 'error',
                     userId: userId,
-                    progress_log: FieldValue.arrayUnion(`Error: ${errorMessage.substring(0, 100)}`),
+                    threadId: threadId,
+                    progress_log: FieldValue.arrayUnion(`Error: ${errorMessage.substring(0, 200)}`),
                 });
+                console.log(`[AnswerLane] Marked message ${assistantMessageId} as error`);
             } catch (updateError) {
-                console.error("Failed to update error message:", updateError);
+                console.error("[AnswerLane] Failed to update error message:", updateError);
+                // Try to at least set status
+                try {
+                    await assistantMessageRef.set({
+                        id: assistantMessageId,
+                        role: 'assistant',
+                        content: `Error: ${errorMessage.substring(0, 200)}`,
+                        status: 'error',
+                        userId: userId,
+                        threadId: threadId,
+                        createdAt: FieldValue.serverTimestamp(),
+                    }, { merge: true });
+                } catch (setError) {
+                    console.error("[AnswerLane] Failed to set error message:", setError);
+                }
             }
             return { answer: "Error processing request." };
         }

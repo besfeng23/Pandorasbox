@@ -446,29 +446,42 @@ export default function SettingsPage() {
 
               <Separator />
 
-              <div className="rounded-lg border border-border bg-background/40 p-4">
+              <div className="rounded-lg border border-destructive/30 bg-background/40 p-4 glass-panel">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <div className="text-sm font-medium text-foreground">Danger zone</div>
-                    <div className="text-xs text-muted-foreground">This permanently deletes your data.</div>
+                    <div className="text-xs text-muted-foreground">This permanently deletes your data. This action cannot be undone.</div>
                   </div>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="destructive">
+                      <Button variant="destructive" className="neon-glow-purple">
                         <Trash2 className="h-4 w-4" />
                         Clear all data
                       </Button>
                     </AlertDialogTrigger>
-                    <AlertDialogContent>
+                    <AlertDialogContent className="glass-panel-strong border border-destructive/30">
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Clear all data?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This deletes threads, messages, memories, artifacts, and workspace state for your user. This cannot be undone.
+                        <AlertDialogTitle className="text-destructive">Clear all data?</AlertDialogTitle>
+                        <AlertDialogDescription className="text-muted-foreground">
+                          This will permanently delete:
+                          <ul className="list-disc list-inside mt-2 space-y-1">
+                            <li>All threads and messages</li>
+                            <li>All memories</li>
+                            <li>All artifacts</li>
+                            <li>All workspace state</li>
+                            <li>All knowledge base files</li>
+                          </ul>
+                          <strong className="text-destructive block mt-3">This action cannot be undone.</strong>
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleClearAll}>Yes, delete</AlertDialogAction>
+                        <AlertDialogAction 
+                          onClick={handleClearAll}
+                          className="bg-destructive hover:bg-destructive/90"
+                        >
+                          Yes, delete everything
+                        </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>

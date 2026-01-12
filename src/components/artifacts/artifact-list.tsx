@@ -4,7 +4,7 @@ import { useFirestore } from '@/firebase';
 import type { Artifact } from '@/lib/types';
 import { useArtifactStore } from '@/store/artifacts';
 import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestore';
-import { FileCode, Loader2 } from 'lucide-react';
+import { FileCode, Loader2, FileText } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -83,10 +83,22 @@ export function ArtifactList({ userId }: ArtifactListProps) {
                 {artifacts.map(artifact => (
                 <button 
                     key={artifact.id} 
-                    className="w-full text-left p-3 rounded-lg border border-border bg-card/30 hover:bg-card/40 transition-colors group"
+                    className={[
+                      "w-full text-left p-3 rounded-lg border transition-colors group",
+                      artifact.type === 'code' 
+                        ? "border-primary/20 bg-primary/5 hover:bg-primary/10 hover:border-primary/30" 
+                        : "border-border bg-card/30 hover:bg-card/40"
+                    ].join(" ")}
                     onClick={() => setActiveArtifactId(artifact.id)}
                 >
-                    <p className="font-medium text-sm truncate text-foreground">{artifact.title}</p>
+                    <div className="flex items-center gap-2 mb-1">
+                      {artifact.type === 'code' ? (
+                        <FileCode className="h-4 w-4 text-primary shrink-0" />
+                      ) : (
+                        <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                      )}
+                      <p className="font-medium text-sm truncate text-foreground">{artifact.title}</p>
+                    </div>
                     <div className="flex justify-between items-center mt-1">
                         <p className="text-xs text-muted-foreground">
                             {artifact.createdAt ? formatDistanceToNow(
@@ -96,7 +108,15 @@ export function ArtifactList({ userId }: ArtifactListProps) {
                                 { addSuffix: true }
                             ) : 'just now'}
                         </p>
-                        <Badge variant="outline" className="text-xs font-mono">{artifact.type}</Badge>
+                        <Badge 
+                          variant="outline" 
+                          className={[
+                            "text-xs font-mono",
+                            artifact.type === 'code' ? "border-primary/30 text-primary" : ""
+                          ].join(" ")}
+                        >
+                          {artifact.type}
+                        </Badge>
                     </div>
                 </button>
                 ))}

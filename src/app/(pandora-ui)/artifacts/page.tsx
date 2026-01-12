@@ -37,15 +37,18 @@ export default function ArtifactsPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-[340px_1fr] gap-4 h-[calc(100dvh-220px)] min-h-[520px]">
-        <div className="rounded-xl border border-border bg-card/30 overflow-hidden">
+        <div className="rounded-xl border border-border glass-panel overflow-hidden">
           <ArtifactList userId={user.uid} />
         </div>
-        <div className="rounded-xl border border-border bg-card/30 overflow-hidden">
+        <div className="rounded-xl border border-border glass-panel overflow-hidden">
           {activeArtifactId ? (
             <ArtifactViewer artifactId={activeArtifactId} />
           ) : (
-            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-              Select an artifact to view it.
+            <div className="flex h-full items-center justify-center text-sm text-muted-foreground glass-panel">
+              <div className="text-center space-y-2">
+                <p className="font-medium text-foreground">No artifact selected</p>
+                <p className="text-xs">Select an artifact from the list to view its content</p>
+              </div>
             </div>
           )}
         </div>

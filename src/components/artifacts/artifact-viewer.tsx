@@ -84,8 +84,8 @@ export function ArtifactViewer({ artifactId }: ArtifactViewerProps) {
   }
 
   return (
-    <div className="flex h-full flex-col bg-card border-l border-border">
-      <header className="flex h-14 items-center justify-between border-b border-border px-4 bg-background">
+    <div className="flex h-full flex-col glass-panel">
+      <header className="flex h-14 items-center justify-between border-b border-border/50 px-4 glass-panel-strong">
         <div className="flex items-center gap-2 min-w-0 flex-1">
           <h3 className="font-semibold truncate text-foreground">{artifact.title}</h3>
           <Badge variant="outline" className="shrink-0">

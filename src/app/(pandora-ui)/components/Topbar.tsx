@@ -35,6 +35,13 @@ export default function Topbar({ setOpen }: { setOpen: (o: boolean) => void }) {
     }
   };
 
+  // Auto-collapse sidebar on mobile when screen is small
+  React.useEffect(() => {
+    if (isMobile && !sidebarOpen) {
+      // Sidebar is already handled by Sheet component on mobile
+    }
+  }, [isMobile, sidebarOpen]);
+
   const title =
     pathname === "/settings"
       ? "Settings"
