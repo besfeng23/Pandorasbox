@@ -33,7 +33,7 @@
     "kairos:progress": "tsx scripts/send-progress-events.ts",
     "kairos:status": "tsx scripts/send-status-events.ts",
     "kairos:production-fixes": "tsx scripts/send-production-fixes-events.ts",
-    "auto-commit": "node scripts/auto-commit.js || pwsh -File scripts/auto-commit-and-push.ps1",
+    "auto-commit": "tsx scripts/auto-execute-after-changes.ts",
     "post-change": "tsx scripts/post-change-hook.ts",
     "kairos:init": "tsx scripts/initialize-kairos-plan.ts"
   },
