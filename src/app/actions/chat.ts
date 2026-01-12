@@ -207,8 +207,19 @@ export async function submitUserMessage(formData: FormData) {
     // If no threadId is provided, create a new thread.
     if (!threadId) {
         threadId = await createThread(userId);
-        // Auto-generate title for the new thread
-        const newTitle = messageContent ? (messageContent.substring(0, 40) + (messageContent.length > 40 ? '...' : '')) : 'Voice Note';
+        // Auto-generate title for the new thread - use first meaningful sentence or first 50 chars
+        let newTitle = 'New Chat';
+        if (messageContent && messageContent.trim()) {
+          // Try to extract first sentence (up to 50 chars) or first 50 chars
+          const firstSentence = messageContent.split(/[.!?]\s/)[0].trim();
+          newTitle = firstSentence.length > 0 && firstSentence.length <= 50 
+            ? firstSentence 
+            : messageContent.substring(0, 50).trim() + (messageContent.length > 50 ? '...' : '');
+        } else if (audioUrl) {
+          newTitle = 'Voice Note';
+        } else if (imageBase64) {
+          newTitle = 'Image Message';
+        }
         await firestoreAdmin.collection('threads').doc(threadId).update({ title: newTitle });
     }
 
@@ -275,16 +286,42 @@ export async function submitUserMessage(formData: FormData) {
   
       // Pass the threadId to the AI lane
       after(async () => {
-        // We need to pass the audioUrl to runChatLane
-        await runChatLane({
-            userId,
-            message: messageContent,
-            messageId: userMessageId, // Pass messageId for async embedding update
-            imageBase64,
-            audioUrl: audioUrl || undefined, // Pass audioUrl
-            source,
-            threadId,
-        });
+        try {
+          // We need to pass the audioUrl to runChatLane
+          await runChatLane({
+              userId,
+              message: messageContent,
+              messageId: userMessageId, // Pass messageId for async embedding update
+              imageBase64,
+              audioUrl: audioUrl || undefined, // Pass audioUrl
+              source,
+              threadId,
+          });
+        } catch (error: any) {
+          console.error('[submitUserMessage] runChatLane failed:', error);
+          Sentry.captureException(error, { 
+            tags: { function: 'runChatLane', userId, threadId },
+            extra: { messageContent: messageContent?.substring(0, 100) }
+          });
+          
+          // Create error message in Firestore so user sees it
+          try {
+            const firestoreAdmin = getFirestoreAdmin();
+            const errorMessageRef = firestoreAdmin.collection('history').doc();
+            await errorMessageRef.set({
+              id: errorMessageRef.id,
+              role: 'assistant',
+              content: `Sorry, I encountered an error processing your message. Please try again. If this persists, check your API keys in Settings.`,
+              status: 'error',
+              progress_log: [`Error: ${error?.message || 'Unknown error'}`],
+              createdAt: FieldValue.serverTimestamp(),
+              userId: userId,
+              threadId: threadId,
+            });
+          } catch (updateError) {
+            console.error('[submitUserMessage] Failed to create error message:', updateError);
+          }
+        }
       });
       
   

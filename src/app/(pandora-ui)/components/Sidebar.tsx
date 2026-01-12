@@ -174,7 +174,7 @@ function SidebarBody({
                 >
                   <MessageSquare className="h-4 w-4 opacity-70 shrink-0" />
                   <div className="flex-1 min-w-0 text-left">
-                    <div className="truncate font-medium">{t.title || 'New Chat'}</div>
+                    <div className="truncate font-medium" title={t.title || 'New Chat'}>{t.title || 'New Chat'}</div>
                     {preview?.preview && (
                       <div className="truncate text-xs text-muted-foreground/70 mt-0.5">
                         {preview.preview}

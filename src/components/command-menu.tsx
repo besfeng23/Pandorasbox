@@ -68,12 +68,17 @@ export function CommandMenu() {
   );
 
   return (
-    <Command.Dialog open={open} onOpenChange={setOpen} label="Command Menu">
+    <Command.Dialog 
+      open={open} 
+      onOpenChange={setOpen} 
+      label="Command Menu"
+      className="glass-panel-strong border border-primary/30"
+    >
       <Command.Input
         value={query}
         onValueChange={setQuery}
         placeholder="Search memories, navigate, or type a command..."
-        className="glass-panel"
+        className="glass-panel border border-primary/20 focus:border-primary/40 focus:ring-2 focus:ring-primary/20"
       />
       <Command.List>
         {isSearching && query && <div className="p-4 flex justify-center"><Loader2 className="animate-spin text-primary" /></div>}

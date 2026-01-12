@@ -96,12 +96,12 @@ function MessageCard({ message: m, timestamp, fullTimestamp }: { message: any; t
           onMouseLeave={() => setShowActions(false)}
         >
       {m.isAssistant ? (
-        <div className="mt-1 h-8 w-8 rounded-full border border-primary/30 bg-muted/30 overflow-hidden flex items-center justify-center shrink-0 ring-1 ring-primary/10">
-          <img src="/cube2.png" alt="Pandora" className="h-8 w-8 object-cover" />
+        <div className="mt-1 h-9 w-9 rounded-full border-2 border-primary/40 bg-gradient-to-br from-primary/20 to-secondary/20 overflow-hidden flex items-center justify-center shrink-0 ring-2 ring-primary/20 shadow-neon-cyan-sm">
+          <img src="/cube2.png" alt="Pandora" className="h-9 w-9 object-cover" />
         </div>
       ) : (
-        <div className="mt-1 h-8 w-8 rounded-full border border-border/50 bg-gradient-to-br from-primary/20 to-secondary/20 overflow-hidden flex items-center justify-center shrink-0">
-          <User className="h-4 w-4 text-primary" />
+        <div className="mt-1 h-9 w-9 rounded-full border-2 border-border/60 bg-gradient-to-br from-muted/40 to-muted/60 overflow-hidden flex items-center justify-center shrink-0">
+          <User className="h-5 w-5 text-foreground/80" />
         </div>
       )}
 
@@ -123,10 +123,10 @@ function MessageCard({ message: m, timestamp, fullTimestamp }: { message: any; t
         </div>
             <div
               className={[
-                "rounded-2xl px-4 py-3 border relative glass-panel",
+                "rounded-2xl px-4 py-3 border relative",
                 m.isAssistant 
-                  ? "border-border/50 ring-1 ring-primary/5" 
-                  : "border-primary/20 ring-1 ring-primary/10",
+                  ? "glass-panel border-primary/30 ring-1 ring-primary/10 shadow-lg shadow-primary/5" 
+                  : "glass-panel border-primary/40 ring-1 ring-primary/20 shadow-lg shadow-primary/10 bg-gradient-to-br from-primary/5 to-transparent",
                 m.isOptimistic ? "opacity-70" : "",
               ].join(" ")}
             >
@@ -152,11 +152,11 @@ function MessageCard({ message: m, timestamp, fullTimestamp }: { message: any; t
           
           {m.isAssistant && m.isProcessing ? (
             <div className="flex items-center gap-3">
-              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              <Loader2 className="h-4 w-4 animate-spin text-primary neon-glow" />
               <div className="min-w-0">
-                <div className="text-sm text-foreground">Thinking…</div>
+                <div className="text-sm text-foreground font-medium">Thinking…</div>
                 {m.lastProgress ? (
-                  <div className="text-xs text-muted-foreground truncate">{m.lastProgress}</div>
+                  <div className="text-xs text-muted-foreground truncate mt-1">{m.lastProgress}</div>
                 ) : null}
               </div>
             </div>

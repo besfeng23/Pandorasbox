@@ -29,7 +29,13 @@
     "seed:phases": "tsx scripts/seed-phases.ts",
     "docs:status": "tsx scripts/generate-status.ts",
     "linear:sync": "tsx scripts/linear-sync.ts",
-    "kairos:intake": "tsx scripts/kairos-intake.ts"
+    "kairos:intake": "tsx scripts/kairos-intake.ts",
+    "kairos:progress": "tsx scripts/send-progress-events.ts",
+    "kairos:status": "tsx scripts/send-status-events.ts",
+    "kairos:production-fixes": "tsx scripts/send-production-fixes-events.ts",
+    "auto-commit": "node scripts/auto-commit.js || pwsh -File scripts/auto-commit-and-push.ps1",
+    "post-change": "tsx scripts/post-change-hook.ts",
+    "kairos:init": "tsx scripts/initialize-kairos-plan.ts"
   },
   "dependencies": {
     "@genkit-ai/firebase": "^1.27.0",

@@ -13,6 +13,7 @@ import { Message } from "@/lib/types";
 import { VoiceInput } from "@/components/chat/voice-input";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { doc, onSnapshot } from "firebase/firestore";
 
 function PandoraChatPageContent() {
@@ -229,12 +230,13 @@ function PandoraChatPageContent() {
         </>
       )}
 
-      {/* Composer (ChatGPT-like pinned bottom) - Enhanced with frosted glass */}
-      <div className="sticky bottom-0 border-t border-border/50 glass-panel-strong pb-[calc(env(safe-area-inset-bottom)+8px)] shadow-2xl">
+      {/* Composer (ChatGPT-like pinned bottom) - Enhanced with frosted glass and neon styling */}
+      <div className="sticky bottom-0 border-t border-primary/20 glass-panel-strong pb-[calc(env(safe-area-inset-bottom)+8px)] shadow-2xl bg-gradient-to-t from-background via-background/95 to-background/90 backdrop-blur-xl">
         <div className="mx-auto w-full max-w-3xl px-4 pt-4">
           <div className={[
-            "flex items-end gap-2 rounded-2xl border border-primary/20 bg-card/40 px-3 py-2 ring-1 ring-primary/10 hover:ring-primary/20 transition-all shadow-lg relative overflow-hidden",
-            showRipple ? "energy-burst" : ""
+            "flex items-end gap-2 rounded-2xl border-2 border-primary/30 bg-card/60 px-4 py-3 ring-2 ring-primary/20 hover:ring-primary/40 hover:border-primary/50 transition-all shadow-xl shadow-primary/10 relative overflow-hidden",
+            showRipple ? "energy-burst" : "",
+            "hover:shadow-2xl hover:shadow-primary/20"
           ].join(" ")}>
             <input
               type="file"
@@ -250,16 +252,23 @@ function PandoraChatPageContent() {
                 }
               }}
             />
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 shrink-0 hover:bg-primary/10 hover:text-primary transition-colors"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isBusy || !userId}
-              aria-label="Attach file"
-            >
-              <Paperclip className="h-4 w-4" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 shrink-0 hover:bg-primary/20 hover:text-primary transition-all rounded-lg border border-transparent hover:border-primary/30"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isBusy || !userId}
+                  aria-label="Attach file"
+                >
+                  <Paperclip className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Attach file</p>
+              </TooltipContent>
+            </Tooltip>
             <ChatInput
               value={input}
               onChange={(e) => setInput(e.target.value)}

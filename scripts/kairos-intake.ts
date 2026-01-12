@@ -95,8 +95,9 @@ async function getAuthToken(): Promise<string | undefined> {
   try {
     const auth = new GoogleAuth();
     const client = await auth.getIdTokenClient(GATEWAY_URL);
-    const token = await client.getAccessToken();
-    return token.token || undefined;
+    // getIdTokenClient returns a client that can get request headers with the token
+    const headers = await client.getRequestHeaders();
+    return headers.Authorization?.replace('Bearer ', '') || undefined;
   } catch (error: any) {
     console.error(`❌ Failed to get identity token: ${error.message}`);
     console.error('');
@@ -298,12 +299,24 @@ async function main() {
   let successCount = 0;
   let failCount = 0;
 
-  for (const event of events) {
+  console.log('📤 Sending events...');
+  for (let i = 0; i < events.length; i++) {
+    const event = events[i];
+    const progress = `[${i + 1}/${events.length}]`;
+    process.stdout.write(`   ${progress} ${event.dedupeKey}... `);
+    
     const success = await sendEvent(event, token);
     if (success) {
       successCount++;
+      console.log('✅');
     } else {
       failCount++;
+      console.log('❌');
+    }
+    
+    // Small delay to avoid overwhelming the gateway
+    if (i < events.length - 1) {
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
   }
 
