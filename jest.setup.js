@@ -82,3 +82,35 @@ if (typeof window !== 'undefined') {
   })
 }
 
+// Polyfill Web APIs for Next.js API route tests
+// Node.js 18+ provides fetch, Request, Response, Headers globally, but Jest may not have them
+// These polyfills ensure tests that need these globals (e.g., for OpenAI SDK) work correctly
+if (typeof globalThis !== 'undefined') {
+  // fetch is available in Node.js 18+, but ensure it's on globalThis for tests
+  if (typeof globalThis.fetch === 'undefined' && typeof fetch !== 'undefined') {
+    globalThis.fetch = fetch;
+  }
+
+  // Request/Response/Headers are available in Node.js 18+, but ensure they're on globalThis
+  if (typeof globalThis.Request === 'undefined') {
+    try {
+      // Try to use undici (Node.js 18+ uses this under the hood)
+      const { Request, Response, Headers } = require('undici');
+      globalThis.Request = Request;
+      globalThis.Response = Response;
+      globalThis.Headers = Headers;
+    } catch (e) {
+      // If undici is not available, tests should use NextRequest/NextResponse from Next.js
+      // This is fine - most tests already do
+    }
+  }
+
+  // TextEncoder/TextDecoder are available in Node.js but ensure they're on globalThis
+  if (typeof globalThis.TextEncoder === 'undefined' && typeof TextEncoder !== 'undefined') {
+    globalThis.TextEncoder = TextEncoder;
+  }
+  if (typeof globalThis.TextDecoder === 'undefined' && typeof TextDecoder !== 'undefined') {
+    globalThis.TextDecoder = TextDecoder;
+  }
+}
+
