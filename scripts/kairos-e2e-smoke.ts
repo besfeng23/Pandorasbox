@@ -16,6 +16,7 @@
  * - KAIROS_INGEST_KEY (optional; Authorization: Bearer ...)
  * - KAIROS_ENABLE_STABILIZATION=1 (optional; enable Track B register step)
  * - KAIROS_E2E_REGISTER_PLAN=1 (optional; force re-register Track A plan even if one is already active)
+ * - KAIROS_E2E_PLAN_MODE=big (optional; registers a richer Track A plan to exercise phases/deps/branches/unmapped tasks)
  */
 
 import fs from 'fs';
@@ -85,6 +86,115 @@ async function requestJson(method: 'GET' | 'POST', url: string, body?: any): Pro
 }
 
 function samplePlanPayload() {
+  const mode = (process.env.KAIROS_E2E_PLAN_MODE ?? '').trim().toLowerCase();
+  if (mode === 'big') {
+    return {
+      masterPlan: {
+        version: `pb.smoke.big.${new Date().toISOString().slice(0, 10)}`,
+        nodes: [
+          // Dependency chain A → B → C
+          {
+            nodeId: 'PB-CORE-CHAT-001', // mapped + also present in stabilization gatingRules
+            title: 'Chat core',
+            phaseId: 1,
+            dependsOn: [],
+            eventMappings: [
+              {
+                type: 'ui.chat.message_sent',
+                payloadMatch: ['threadId', 'messageId'],
+                updates: { status: 'in_progress', progressDelta: 0.2 },
+              },
+              {
+                type: 'system.chat.response_completed',
+                payloadMatch: ['threadId', 'assistantMessageId'],
+                updates: { status: 'done', progress: 1.0 },
+              },
+            ],
+          },
+          {
+            nodeId: 'PB-CORE-THREADS-001', // mapped (partial) + gated by stabilization plan
+            title: 'Threads',
+            phaseId: 1,
+            dependsOn: ['PB-CORE-CHAT-001'],
+            eventMappings: [
+              {
+                type: 'ui.thread.created',
+                payloadMatch: ['threadId'],
+                updates: { status: 'done', progress: 1.0 },
+              },
+            ],
+          },
+          {
+            nodeId: 'PB-CORE-MEMORY-001', // unmapped but gated by stabilization plan
+            title: 'Memory',
+            phaseId: 2,
+            dependsOn: ['PB-CORE-THREADS-001'],
+            // Intentionally NO eventMappings (partial mapping test)
+          },
+
+          // Parallel branch 1 (phase 2)
+          {
+            nodeId: 'PB-CORE-KB-001', // gated
+            title: 'Knowledge base',
+            phaseId: 2,
+            dependsOn: ['PB-CORE-CHAT-001'],
+            eventMappings: [
+              {
+                type: 'system.kb.upload_completed',
+                payloadMatch: ['chunkCount'],
+                updates: { status: 'done', progress: 1.0 },
+              },
+            ],
+          },
+          {
+            nodeId: 'PB-CORE-GRAPH-001', // gated
+            title: 'Graph',
+            phaseId: 2,
+            dependsOn: ['PB-CORE-CHAT-001'],
+            // Intentionally unmapped
+          },
+
+          // Parallel branch 2 (phase 3)
+          {
+            nodeId: 'PB-OPS-EXPORT-001', // gated
+            title: 'Export',
+            phaseId: 3,
+            dependsOn: ['PB-CORE-MEMORY-001', 'PB-CORE-KB-001'],
+            eventMappings: [
+              {
+                type: 'system.export.completed',
+                payloadMatch: ['userId', 'bytes'],
+                updates: { status: 'done', progress: 1.0 },
+              },
+            ],
+          },
+
+          // Unmapped + NOT referenced by stabilization gatingRules (must NOT be blocked)
+          {
+            nodeId: 'PB-UNMAPPED-OPS-001',
+            title: 'Unmapped ops task (should never be blocked by stabilization)',
+            phaseId: 3,
+            dependsOn: [],
+          },
+          {
+            nodeId: 'PB-UNMAPPED-OPS-002',
+            title: 'Unmapped ops task 2 (should never be blocked by stabilization)',
+            phaseId: 3,
+            dependsOn: ['PB-UNMAPPED-OPS-001'],
+            // Add an event mapping that is NOT in our sample ingest below (noise)
+            eventMappings: [
+              {
+                type: 'system.ratelimit.triggered',
+                payloadMatch: ['limitType'],
+                updates: { status: 'in_progress', progressDelta: 0.0 },
+              },
+            ],
+          },
+        ],
+      },
+    };
+  }
+
   return {
     masterPlan: {
       version: 'pb.smoke.v1',
@@ -109,6 +219,33 @@ function samplePlanPayload() {
   };
 }
 
+function collectBlockedNodeIdsFromStabilizationPlan(stab: any): Set<string> {
+  const out = new Set<string>();
+  const planJson = stab?.plan_json;
+  const gatingRules = Array.isArray(planJson?.gatingRules) ? planJson.gatingRules : [];
+  for (const rule of gatingRules) {
+    const blocks = Array.isArray(rule?.blocksNodes) ? rule.blocksNodes : [];
+    for (const nodeId of blocks) {
+      if (typeof nodeId === 'string' && nodeId.trim()) out.add(nodeId.trim());
+    }
+  }
+  return out;
+}
+
+type TaskLike = { id?: string; nodeId?: string; task_id?: string; blocked?: boolean; is_blocked?: boolean };
+
+function collectTasksFromActivePlanResponse(activePlan: any): TaskLike[] {
+  const rollups = activePlan?.rollups;
+  const candidates: any[] = [];
+  if (Array.isArray(rollups?.tasks)) candidates.push(...rollups.tasks);
+  if (Array.isArray(activePlan?.tasks)) candidates.push(...activePlan.tasks);
+  if (Array.isArray(activePlan?.plan?.tasks)) candidates.push(...activePlan.plan.tasks);
+  if (Array.isArray(activePlan?.plan_json?.tasks)) candidates.push(...activePlan.plan_json.tasks);
+  if (Array.isArray(activePlan?.plan?.plan_json?.nodes)) candidates.push(...activePlan.plan.plan_json.nodes);
+  if (Array.isArray(activePlan?.plan?.plan_json?.tasks)) candidates.push(...activePlan.plan.plan_json.tasks);
+  return candidates.filter((x) => x && typeof x === 'object');
+}
+
 function loadStabilizationPayloadOrNull(): any | null {
   const contractPath = path.join(process.cwd(), 'contracts', 'kairos', 'stabilization_sprint_plan.json');
   if (!fs.existsSync(contractPath)) return null;
@@ -128,6 +265,9 @@ async function main() {
   const endpoints = resolveKairosEndpoints(process.env);
   const enableStabilization = (process.env.KAIROS_ENABLE_STABILIZATION ?? '0').trim() === '1';
   const forceRegisterPlan = (process.env.KAIROS_E2E_REGISTER_PLAN ?? '0').trim() === '1';
+  const planMode = (process.env.KAIROS_E2E_PLAN_MODE ?? '').trim().toLowerCase();
+
+  let stabilizationActive: any | null = null;
 
   banner('Kairos E2E Smoke (Base44 /functions/* endpoints)');
   console.log(`Base URL: ${endpoints.baseUrl}`);
@@ -153,6 +293,7 @@ async function main() {
     if (hasActivePlan && !forceRegisterPlan) {
       console.log('✅ Active plan already present; skipping re-register.');
       console.log('   (Set KAIROS_E2E_REGISTER_PLAN=1 to force POST /functions/kairosRegisterPlan)');
+      if (planMode) console.log(`   (Note: KAIROS_E2E_PLAN_MODE=${planMode} is set, but plan register is skipped.)`);
       console.log('');
     } else {
       const res = await requestJson('POST', endpoints.planRegisterUrl, samplePlanPayload());
@@ -202,6 +343,7 @@ async function main() {
         last = res;
         if (res.ok) {
           console.log(`HTTP ${res.status} ${res.statusText} (attempt ${attempt}/${maxAttempts})`);
+          stabilizationActive = res.json ?? null;
           if (res.json) console.log(shortJson(res.json));
           console.log('');
           break;
@@ -244,18 +386,72 @@ async function main() {
   banner('3) Ingest 1 sample event (batch wrapper form)');
   {
     const nowIso = new Date().toISOString();
-    const event = {
-      event_id: 'smoke_event_001',
-      event_time: nowIso,
-      event_type: 'ui.chat.message_sent',
-      source: 'pandorasbox',
-      payload: {
-        threadId: 'smoke_thread_123',
-        messageId: 'smoke_message_456',
-        userId: 'smoke_user_789',
-      },
+    const common = {
+      threadId: 'smoke_thread_123',
+      messageId: 'smoke_message_456',
+      assistantMessageId: 'smoke_assistant_001',
+      userId: 'smoke_user_789',
     };
-    const res = await requestJson('POST', endpoints.ingestUrl, { events: [event] });
+
+    const events =
+      planMode === 'big'
+        ? [
+            // PB-CORE-CHAT-001 (mapped)
+            {
+              event_id: 'smoke_event_chat_done',
+              event_time: nowIso,
+              event_type: 'system.chat.response_completed',
+              source: 'pandorasbox',
+              payload: { threadId: common.threadId, assistantMessageId: common.assistantMessageId, userId: common.userId },
+            },
+            // PB-CORE-THREADS-001 (mapped)
+            {
+              event_id: 'smoke_event_thread_created',
+              event_time: nowIso,
+              event_type: 'ui.thread.created',
+              source: 'pandorasbox',
+              payload: { threadId: common.threadId, userId: common.userId },
+            },
+            // PB-CORE-KB-001 (mapped)
+            {
+              event_id: 'smoke_event_kb_done',
+              event_time: nowIso,
+              event_type: 'system.kb.upload_completed',
+              source: 'pandorasbox',
+              payload: { chunkCount: 7, userId: common.userId },
+            },
+            // PB-OPS-EXPORT-001 (mapped)
+            {
+              event_id: 'smoke_event_export_done',
+              event_time: nowIso,
+              event_type: 'system.export.completed',
+              source: 'pandorasbox',
+              payload: { userId: common.userId, bytes: 12345 },
+            },
+            // Noise event (not mapped in our big plan) — should not move completion unless plan maps it
+            {
+              event_id: 'smoke_event_noise',
+              event_time: nowIso,
+              event_type: 'fix.completed',
+              source: 'pandorasbox',
+              payload: { id: 'smoke_fix_001', files: ['README.md'] },
+            },
+          ]
+        : [
+            {
+              event_id: 'smoke_event_001',
+              event_time: nowIso,
+              event_type: 'ui.chat.message_sent',
+              source: 'pandorasbox',
+              payload: {
+                threadId: common.threadId,
+                messageId: common.messageId,
+                userId: common.userId,
+              },
+            },
+          ];
+
+    const res = await requestJson('POST', endpoints.ingestUrl, { events });
     console.log(`HTTP ${res.status} ${res.statusText}`);
     if (!res.ok) {
       if (res.bodyText) console.log(res.bodyText);
@@ -299,6 +495,47 @@ async function main() {
         // ignore
       }
       console.log(shortJson(res.json));
+
+      if (enableStabilization && stabilizationActive) {
+        banner('6) Assert stabilization gating is not over-blocking (repo-side check)');
+        const gatedNodeIds = collectBlockedNodeIdsFromStabilizationPlan(stabilizationActive);
+        const tasks = collectTasksFromActivePlanResponse(res.json);
+
+        const blocked = tasks.filter((t) => t.blocked === true || t.is_blocked === true);
+        const blockedIds = blocked
+          .map((t) => t.nodeId ?? t.task_id ?? t.id)
+          .filter((x): x is string => typeof x === 'string' && x.trim().length > 0)
+          .map((x) => x.trim());
+
+        const unexpectedBlocked = blockedIds.filter((id) => !gatedNodeIds.has(id));
+
+        console.log(`Tasks inspected: ${tasks.length}`);
+        console.log(`Blocked tasks found: ${blockedIds.length}`);
+        console.log(`Gated nodeIds (from stabilization plan): ${gatedNodeIds.size}`);
+
+        if (tasks.length === 0) {
+          console.log('⚠️  Could not find a task list in the active plan response to assert gating.');
+          console.log('    (Expected rollups.tasks[] or plan.plan_json.nodes[] with blocked flags.)');
+        } else if (unexpectedBlocked.length > 0) {
+          console.log('❌ FAILURE: Found blocked tasks that are NOT in stabilization gating rules:');
+          console.log(unexpectedBlocked.slice(0, 50).join(', '));
+          process.exit(3);
+        } else {
+          console.log('✅ OK: No blocked tasks outside stabilization gating rules (no over-blocking detected).');
+        }
+
+        // Hard assertion requested: unmapped tasks should not be blocked by stabilization.
+        const mustNeverBeBlocked = ['PB-UNMAPPED-OPS-001', 'PB-UNMAPPED-OPS-002'];
+        const wronglyBlockedUnmapped = mustNeverBeBlocked.filter((id) => blockedIds.includes(id));
+        if (wronglyBlockedUnmapped.length > 0) {
+          console.log('❌ FAILURE: Unmapped tasks were blocked by stabilization:');
+          console.log(wronglyBlockedUnmapped.join(', '));
+          process.exit(3);
+        } else {
+          console.log('✅ OK: Unmapped tasks were not blocked by stabilization.');
+        }
+        console.log('');
+      }
     } else if (res.bodyText) {
       console.log(res.bodyText);
     }
