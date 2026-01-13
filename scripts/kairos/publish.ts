@@ -64,6 +64,8 @@ Options:
 
 Environment:
   KAIROS_BASE_URL           Base URL for Kairos (optional; defaults to ${DEFAULT_BASE_URL})
+  KAIROS_STABILIZATION_REGISTER_URL  Full URL override (default: \${KAIROS_BASE_URL}/functions/kairosRegisterStabilization)
+  KAIROS_STABILIZATION_ACTIVE_URL    Full URL override (default: \${KAIROS_BASE_URL}/functions/kairosGetActiveStabilization)
 
 Examples:
   pnpm kairos:publish -- --dry-run
@@ -83,6 +85,8 @@ export async function cliMain(argv: string[], env: NodeJS.ProcessEnv): Promise<n
     ingestKey: env.KAIROS_INGEST_KEY,
     signingSecret: env.KAIROS_SIGNING_SECRET,
     source: 'pandorasbox',
+    stabilizationRegisterUrl: env.KAIROS_STABILIZATION_REGISTER_URL,
+    stabilizationActiveUrl: env.KAIROS_STABILIZATION_ACTIVE_URL,
   };
 
   const result = await runKairosPublish(options);

@@ -14,7 +14,7 @@
 ### 2. Publish Script
 - ✅ **Script exists**: `scripts/kairos-register-stabilization.ts`
 - ✅ Reads contract file
-- ✅ POSTs to `https://kairostrack.base44.app/api/stabilization/register`
+- ✅ POSTs to `https://kairostrack.base44.app/functions/kairosRegisterStabilization`
 - ✅ Supports auth headers and signing
 - ✅ Includes validation and error handling
 - ✅ **npm script added**: `kairos:register:stabilization`
@@ -34,13 +34,13 @@
 - [ ] Index on `is_active` for querying active plan
 
 **APIs Required:**
-- [ ] `POST /api/stabilization/register`
+- [ ] `POST /functions/kairosRegisterStabilization`
   - Validate request body
   - Deactivate existing active plans
   - Create new plan with `is_active = true`
   - Return plan ID
   
-- [ ] `GET /api/stabilization/active`
+- [ ] `GET /functions/kairosGetActiveStabilization`
   - Query for `is_active = true`
   - Return plan JSON or 404 if none active
 
@@ -52,11 +52,13 @@
 - [ ] Load active masterplan during rollup recompute
 - [ ] Load active stabilization plan (if exists)
 - [ ] For each node in masterplan:
-  - Check if blocked by any `gatingRule`
+  - Check if blocked by any `gatingRule` that maps **bug → affected nodes**
   - Node is blocked if:
-    - `gatingRule.bugId` is in `fixSequence` AND
     - `gatingRule.blocksNodes` includes node ID AND
-    - Bug status is not "fixed" (see bug tracking below)
+    - Bug status is **OPEN** (only OPEN bugs block)
+  - Optional severity support:
+    - **P0** can block phase-level gates/global rollups
+    - **P1** blocks only the affected tasks/nodes
 - [ ] Mark nodes as `blocked` if gates fail
 - [ ] **Do NOT** count stabilization as progress
 - [ ] Stabilization only affects status/eligibility
@@ -65,7 +67,8 @@
 - [ ] Create `kairos_stabilization_bugs` collection (Option A - recommended)
   - Fields: `bugId`, `status` (open/fixed/verified), `fixedAt`, `verifiedAt`, `planId`
 - [ ] OR embed bug status in plan JSON (Option B - simpler but less flexible)
-- [ ] Add endpoint: `POST /api/stabilization/bugs/:bugId/status` (if using Option A)
+- [ ] Add endpoint: `POST /functions/kairosSetStabilizationBugStatus` (or equivalent) (if using Option A)
+- [ ] Add endpoint: `POST /functions/kairosSetStabilizationBugStatus` (or equivalent) (if using Option A)
 
 **See**: `BASE44_STABILIZATION_SPEC.md` section "Gating Logic"
 
@@ -118,7 +121,7 @@ npm run kairos:register:stabilization
 
 ```bash
 # Check active plan
-curl https://kairostrack.base44.app/api/stabilization/active \
+curl https://kairostrack.base44.app/functions/kairosGetActiveStabilization \
   -H 'Authorization: Bearer YOUR_KEY'
 ```
 
@@ -156,12 +159,12 @@ Run this to check if endpoints exist:
 
 ```bash
 # Test register endpoint
-curl -X POST https://kairostrack.base44.app/api/stabilization/register \
+curl -X POST https://kairostrack.base44.app/functions/kairosRegisterStabilization \
   -H 'Content-Type: application/json' \
   -d '{"test": true}'
 
 # Test active endpoint  
-curl https://kairostrack.base44.app/api/stabilization/active
+curl https://kairostrack.base44.app/functions/kairosGetActiveStabilization
 ```
 
 - **404/501**: Endpoints not implemented yet → Implement Step 4

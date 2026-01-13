@@ -13,6 +13,8 @@ export type PublishCliOptions = {
   signingSecret?: string;
   nowIso?: string;
   source?: string;
+  stabilizationRegisterUrl?: string;
+  stabilizationActiveUrl?: string;
 };
 
 export type PublishDiagnostics = {
@@ -156,13 +158,12 @@ export function computeDiagnostics(args: {
   payload: Record<string, unknown>;
   payloadCounts?: Record<string, number>;
   dryRun: boolean;
-  endpointPath: string;
+  resolvedEndpoint: string;
 }): PublishDiagnostics {
   const contractPathRelative = path.relative(args.repoRoot, args.contractPath);
-  const resolvedEndpoint = new URL(args.endpointPath, args.baseUrl).toString();
   return {
     resolvedBaseUrl: args.baseUrl.toString().replace(/\/+$/, ''),
-    resolvedEndpoint,
+    resolvedEndpoint: args.resolvedEndpoint,
     contractPath: args.contractPath,
     contractPathRelative,
     contractSizeBytes: args.contractSizeBytes,
@@ -276,8 +277,12 @@ export async function runKairosPublish(
     const nowIso = cli.nowIso ?? new Date().toISOString();
     const source = cli.source ?? 'pandorasbox';
 
-    const endpointPath = '/api/stabilization/register';
     const payload = buildStabilizationRegisterPayload(plan, nowIso, source);
+
+    const explicitEndpoint = (cli.stabilizationRegisterUrl ?? '').trim();
+    const endpoint = explicitEndpoint
+      ? explicitEndpoint
+      : new URL('/functions/kairosRegisterStabilization', baseUrl).toString();
 
     const diagnostics = computeDiagnostics({
       repoRoot,
@@ -292,7 +297,7 @@ export async function runKairosPublish(
         fixSequence: plan.fixSequence.length,
       },
       dryRun: cli.dryRun,
-      endpointPath,
+      resolvedEndpoint: endpoint,
     });
 
     logger.log(formatDiagnostics(diagnostics));
@@ -301,7 +306,6 @@ export async function runKairosPublish(
       return { ok: true, diagnostics };
     }
 
-    const endpoint = new URL(endpointPath, baseUrl).toString();
     const body = JSON.stringify(payload);
 
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -333,12 +337,17 @@ export async function runKairosPublish(
 
     if (!res.ok) {
       const text = await res.text().catch(() => '');
+      const maybeMissingEndpoint =
+        res.status === 404 || res.status === 501 || res.status === 405 || res.status === 403;
+      const hint = maybeMissingEndpoint
+        ? ' (Base44 function endpoint may not be deployed yet: /functions/kairosRegisterStabilization)'
+        : '';
       return {
         ok: false,
         diagnostics,
         error: new KairosPublishError(
           'HTTP_ERROR',
-          `Publish failed: HTTP ${res.status} ${res.statusText}${text ? ` - ${text.slice(0, 800)}` : ''}`,
+          `Publish failed: HTTP ${res.status} ${res.statusText}${hint}${text ? ` - ${text.slice(0, 800)}` : ''}`,
           { status: res.status }
         ),
       };

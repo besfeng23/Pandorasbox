@@ -12,7 +12,7 @@ Stabilization Sprint is a **gating overlay** (Track B) that blocks masterplan no
 
 2. **Registration Script**: `scripts/kairos-register-stabilization.ts`
    - Reads contract file
-   - POSTs to Base44 Kairos `/api/stabilization/register`
+   - POSTs to Base44 Kairos `/functions/kairosRegisterStabilization`
    - Supports authentication and signing
 
 3. **Base44 Spec**: `BASE44_STABILIZATION_SPEC.md`
@@ -45,7 +45,7 @@ npm run kairos:register:stabilization
 
 ```bash
 # Check active plan
-curl https://kairostrack.base44.app/api/stabilization/active \
+curl https://kairostrack.base44.app/functions/kairosGetActiveStabilization \
   -H 'Authorization: Bearer YOUR_KEY'
 ```
 
@@ -59,7 +59,7 @@ curl https://kairostrack.base44.app/api/stabilization/active \
 ## Example Curl Command
 
 ```bash
-curl -X POST https://kairostrack.base44.app/api/stabilization/register \
+curl -X POST https://kairostrack.base44.app/functions/kairosRegisterStabilization \
   -H 'Content-Type: application/json' \
   -H 'Authorization: Bearer YOUR_KEY' \
   -d '{
@@ -96,7 +96,8 @@ curl -X POST https://kairostrack.base44.app/api/stabilization/register \
 
 After registering the plan in Base44:
 
-- [ ] **Registration succeeds**: HTTP 200 from `/api/stabilization/register`
+- [ ] **Registration succeeds**: HTTP 200 from `/functions/kairosRegisterStabilization`
+- [ ] **Registration succeeds**: HTTP 200 from `/functions/kairosRegisterStabilization`
 - [ ] **Plan stored**: Check `kairos_stabilization_plans` collection
 - [ ] **Plan active**: Only one plan with `is_active = true`
 - [ ] **Banner appears**: Stabilization banner visible on overview page

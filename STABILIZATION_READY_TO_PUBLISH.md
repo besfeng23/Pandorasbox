@@ -11,7 +11,7 @@
 - **npm command**: `npm run kairos:register:stabilization` ✅ ADDED
 - **Features**:
   - Reads contract file
-  - POSTs to `https://kairostrack.base44.app/api/stabilization/register`
+  - POSTs to `https://kairostrack.base44.app/functions/kairosRegisterStabilization`
   - Supports auth headers (`KAIROS_INGEST_KEY`)
   - Supports HMAC signing (`KAIROS_SIGNING_SECRET`)
   - Validates plan structure
@@ -57,8 +57,8 @@ If endpoints don't exist, Base44 needs to implement:
 - Index on `is_active`
 
 ### 2. APIs (1 hour)
-- `POST /api/stabilization/register` - Register and activate plan
-- `GET /api/stabilization/active` - Get active plan
+- `POST /functions/kairosRegisterStabilization` - Register and activate plan
+- `GET /functions/kairosGetActiveStabilization` - Get active plan
 
 ### 3. Gating Logic (2 hours)
 - Wire into rollup recompute
@@ -77,12 +77,12 @@ If endpoints don't exist, Base44 needs to implement:
 
 ```bash
 # Test register endpoint
-curl -X POST https://kairostrack.base44.app/api/stabilization/register \
+curl -X POST https://kairostrack.base44.app/functions/kairosRegisterStabilization \
   -H 'Content-Type: application/json' \
   -d '{"test": true}'
 
 # Test active endpoint
-curl https://kairostrack.base44.app/api/stabilization/active
+curl https://kairostrack.base44.app/functions/kairosGetActiveStabilization
 ```
 
 **Results:**
@@ -113,7 +113,7 @@ After publishing:
 
 2. **Check active plan**:
    ```bash
-   curl https://kairostrack.base44.app/api/stabilization/active
+   curl https://kairostrack.base44.app/functions/kairosGetActiveStabilization
    ```
    - [ ] Returns active plan JSON
    - [ ] All fields present

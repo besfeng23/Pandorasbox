@@ -46,8 +46,20 @@ See `BASE44_STABILIZATION_SPEC.md` for Base44 implementation requirements.
 ### Environment Variables
 
 ```bash
-# Required: Base URL for Kairos API or Event Gateway
+# Base44 Kairos (direct) — function endpoints (preferred defaults)
 KAIROS_BASE_URL=https://kairostrack.base44.app
+
+# Optional overrides (full URLs)
+KAIROS_PLAN_REGISTER_URL=https://kairostrack.base44.app/functions/kairosRegisterPlan
+KAIROS_ACTIVE_PLAN_URL=https://kairostrack.base44.app/functions/kairosGetActivePlan
+KAIROS_INGEST_URL=https://kairostrack.base44.app/functions/ingest
+KAIROS_RECOMPUTE_URL=https://kairostrack.base44.app/functions/kairosRecompute
+
+# Track B (stabilization) optional overrides
+KAIROS_STABILIZATION_REGISTER_URL=https://kairostrack.base44.app/functions/kairosRegisterStabilization
+KAIROS_STABILIZATION_ACTIVE_URL=https://kairostrack.base44.app/functions/kairosGetActiveStabilization
+
+# OR: Use Event Gateway (Cloud Run)
 # OR
 KAIROS_EVENT_GATEWAY_URL=https://kairos-event-gateway-xxx.run.app
 
@@ -234,6 +246,12 @@ Run the simulation script to test event emission:
 npm run kairos:simulate
 ```
 
+### End-to-end Smoke (Base44 functions)
+
+```bash
+./scripts/kairos-e2e-smoke.sh
+```
+
 This will:
 1. Generate sample events for key workflows
 2. Send them to Kairos
@@ -369,5 +387,5 @@ If events fail validation:
 
 - Kairos Masterplan: `tesy` (PRD file contains masterplan JSON)
 - Event Gateway: `services/kairos-event-gateway/`
-- Base44 API: `https://kairostrack.base44.app`
+- Base44 (functions): `https://kairostrack.base44.app/functions/*`
 

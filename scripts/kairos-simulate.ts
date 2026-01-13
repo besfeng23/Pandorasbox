@@ -10,6 +10,7 @@
  * 
  * Environment Variables:
  *   KAIROS_BASE_URL or KAIROS_EVENT_GATEWAY_URL (required)
+ *   KAIROS_INGEST_URL (optional; overrides `${KAIROS_BASE_URL}/functions/ingest`)
  *   KAIROS_INGEST_KEY (optional)
  *   KAIROS_SIGNING_SECRET (optional)
  */
@@ -17,6 +18,7 @@
 import fs from 'fs';
 import path from 'path';
 import { sendKairosEvent, initKairosClient } from '../src/lib/kairosClient';
+import { resolveKairosEndpoints } from '../src/lib/kairosEndpoints';
 import { GoogleAuth } from 'google-auth-library';
 
 const REPO_ROOT = process.cwd();
@@ -180,17 +182,42 @@ function generateCurlCommand(
   eventType: string,
   payload: Record<string, any>,
   endpoint: string,
-  ingestKey?: string
+  ingestKey?: string,
+  mode: 'base44' | 'gateway' = 'base44'
 ): string {
-  const eventPayload = {
-    event_id: 'sample_event_id',
-    event_time: new Date().toISOString(),
-    event_type: eventType,
-    source: 'pandorasbox',
-    payload,
-  };
+  const nowIso = new Date().toISOString();
+  const eventPayload =
+    mode === 'gateway'
+      ? {
+          timestamp: nowIso,
+          schemaVersion: 1,
+          dedupeKey: `simulate:${eventType}:${Date.now()}`,
+          source: 'pandorasbox',
+          action: eventType,
+          status: 'ok',
+          refType: 'event',
+          refId: 'sample_event_id',
+          metadata: {
+            ...payload,
+            event_type: eventType,
+          },
+        }
+      : {
+          event_id: 'sample_event_id',
+          event_time: nowIso,
+          event_type: eventType,
+          source: 'pandorasbox',
+          payload,
+        };
 
-  const body = JSON.stringify(eventPayload);
+  const body =
+    mode === 'base44'
+      ? // Base44 ingest accepts BOTH:
+        // - Single event object
+        // - Batch wrapper: { events: [event, ...] }
+        // For simulation we emit the batch-wrapper form to match production ingest usage.
+        JSON.stringify({ events: [eventPayload] })
+      : JSON.stringify(eventPayload);
   const headers: string[] = ["'Content-Type: application/json'"];
   
   if (ingestKey) {
@@ -208,6 +235,7 @@ async function main() {
 
   // Initialize client
   initKairosClient();
+  const endpoints = resolveKairosEndpoints(process.env);
   
   const gatewayUrl = process.env.KAIROS_EVENT_GATEWAY_URL;
   const baseUrl = process.env.KAIROS_BASE_URL;
@@ -220,7 +248,7 @@ async function main() {
     process.exit(1);
   }
 
-  const endpoint = gatewayUrl || baseUrl;
+  const endpoint = gatewayUrl ? `${gatewayUrl}/v1/event` : endpoints.ingestUrl;
   console.log(`📍 Endpoint: ${endpoint}`);
   if (gatewayUrl) {
     console.log('   Using Event Gateway (IAM auth)');
@@ -297,7 +325,8 @@ async function main() {
         event.eventType,
         event.payload,
         endpoint,
-        process.env.KAIROS_INGEST_KEY
+        process.env.KAIROS_INGEST_KEY,
+        gatewayUrl ? 'gateway' : 'base44'
       );
       curlCommands.push(`# ${event.description}\n${curl}\n`);
     } catch (error: any) {

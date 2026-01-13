@@ -36,6 +36,7 @@
     "kairos:production-fixes": "tsx scripts/send-production-fixes-events.ts",
     "kairos:simulate": "tsx scripts/kairos-simulate.ts",
     "kairos:register:stabilization": "tsx scripts/kairos-register-stabilization.ts",
+    "kairos:register:plan": "tsx scripts/kairos-register-plan.ts",
     "kairos:publish": "tsx scripts/kairos/publish.ts",
     "kairos:publish:dry-run": "tsx scripts/kairos/publish.ts --dry-run",
     "auto-commit": "tsx scripts/auto-execute-after-changes.ts",

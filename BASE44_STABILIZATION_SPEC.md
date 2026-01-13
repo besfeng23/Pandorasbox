@@ -39,7 +39,7 @@ interface StabilizationPlan {
 
 ## API Endpoints
 
-### POST `/api/stabilization/register`
+### POST `/functions/kairosRegisterStabilization`
 
 Registers a new stabilization plan and sets it as active (deactivates previous).
 
@@ -80,7 +80,7 @@ Registers a new stabilization plan and sets it as active (deactivates previous).
 3. Create new document with `is_active = true`
 4. Return plan ID
 
-### GET `/api/stabilization/active`
+### GET `/functions/kairosGetActiveStabilization`
 
 Returns the currently active stabilization plan (if any).
 
@@ -119,11 +119,15 @@ Returns the currently active stabilization plan (if any).
 
 1. **Read active stabilization plan** (if exists)
 2. **For each node in masterplan**:
-   - Check if node is blocked by any `gatingRule`
+   - Check if node is blocked by any `gatingRule` **that maps the bug → affected nodes**
    - A node is blocked if:
-     - `gatingRule.bugId` is in the `fixSequence` AND
      - `gatingRule.blocksNodes` includes the node ID AND
-     - Bug is not yet marked as "fixed" (see bug status tracking below)
+     - Bug status is **OPEN** (see bug status tracking below)
+   - **No over-blocking**: do not block unrelated nodes just because some bug is open.
+
+3. **Severity / priority support (recommended)**
+   - **P0** bugs can block **phase gates** (or global rollups) in addition to affected tasks/nodes
+   - **P1** bugs should block **only affected tasks/nodes**
 
 3. **Display gate status**:
    - Node shows "Blocked by stabilization gate" if blocked
@@ -242,12 +246,12 @@ Add a section to mark bugs as fixed/verified:
 
 - [ ] Create `kairos_stabilization_plans` collection
 - [ ] Create `kairos_stabilization_bugs` collection (if using Option A)
-- [ ] Implement `POST /api/stabilization/register`
+- [ ] Implement `POST /functions/kairosRegisterStabilization`
   - [ ] Validate request body
   - [ ] Deactivate existing active plans
   - [ ] Create new plan document
   - [ ] Initialize bug status tracking
-- [ ] Implement `GET /api/stabilization/active`
+- [ ] Implement `GET /functions/kairosGetActiveStabilization`
   - [ ] Query for `is_active = true`
   - [ ] Return plan JSON
 - [ ] Implement gating logic in progress computation
@@ -255,7 +259,7 @@ Add a section to mark bugs as fixed/verified:
   - [ ] Check each node against gating rules
   - [ ] Mark nodes as blocked if bugs not fixed
 - [ ] Add bug status update endpoint (if using Option A)
-  - [ ] `POST /api/stabilization/bugs/:bugId/status`
+  - [ ] `POST /functions/kairosSetStabilizationBugStatus` (or equivalent)
   - [ ] Update bug status (open → fixed → verified)
 
 ### Frontend (Base44)
@@ -279,7 +283,7 @@ Add a section to mark bugs as fixed/verified:
 ### Register Plan
 
 ```bash
-curl -X POST https://kairostrack.base44.app/api/stabilization/register \
+curl -X POST https://kairostrack.base44.app/functions/kairosRegisterStabilization \
   -H 'Content-Type: application/json' \
   -H 'Authorization: Bearer YOUR_KEY' \
   -d '{
@@ -297,17 +301,18 @@ curl -X POST https://kairostrack.base44.app/api/stabilization/register \
 ### Get Active Plan
 
 ```bash
-curl https://kairostrack.base44.app/api/stabilization/active \
+curl https://kairostrack.base44.app/functions/kairosGetActiveStabilization \
   -H 'Authorization: Bearer YOUR_KEY'
 ```
 
 ### Update Bug Status (if using Option A)
 
 ```bash
-curl -X POST https://kairostrack.base44.app/api/stabilization/bugs/PBX-002/status \
+curl -X POST https://kairostrack.base44.app/functions/kairosSetStabilizationBugStatus \
   -H 'Content-Type: application/json' \
   -H 'Authorization: Bearer YOUR_KEY' \
   -d '{
+    "bugId": "PBX-002",
     "status": "fixed",
     "fixedAt": "2026-01-13T14:00:00Z"
   }'
@@ -328,7 +333,7 @@ After implementing in Base44:
 
 2. **Check active plan**:
    ```bash
-   curl https://kairostrack.base44.app/api/stabilization/active
+   curl https://kairostrack.base44.app/functions/kairosGetActiveStabilization
    ```
    - [ ] Returns active plan JSON
    - [ ] All fields present

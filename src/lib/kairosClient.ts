@@ -5,13 +5,15 @@
  * Events include proof/evidence fields required by proof_requirements so Kairos can mark tasks "done" automatically.
  * 
  * Environment Variables:
- * - KAIROS_BASE_URL: Base URL for Kairos API (e.g., https://kairostrack.base44.app)
+ * - KAIROS_BASE_URL: Base URL for Kairos (used to derive default /functions endpoints)
+ * - KAIROS_INGEST_URL: Override full ingest URL (default: `${KAIROS_BASE_URL}/functions/ingest`)
  * - KAIROS_INGEST_KEY: Optional API key for authentication
  * - KAIROS_SIGNING_SECRET: Optional secret for HMAC signing
  * - KAIROS_EVENT_GATEWAY_URL: Optional gateway URL (alternative to direct Base44)
  */
 
 import { v4 as uuidv4 } from 'uuid';
+import { resolveKairosEndpoints } from './kairosEndpoints';
 
 // Event types from kairos_masterplan_v2.eventMappings
 export type KairosEventType =
@@ -358,18 +360,11 @@ export async function sendKairosEvent(
     payload,
   };
 
-  // Determine endpoint - prefer gateway, fallback to direct Base44
-  const endpoint = config.gatewayUrl
-    ? `${config.gatewayUrl}/v1/event`
-    : config.baseUrl
-    ? `${config.baseUrl}/functions/ingest`  // Base44 uses /functions/ingest, not /api/events/ingest
-    : null;
-
-  if (!endpoint) {
-    const error = 'KAIROS_BASE_URL or KAIROS_EVENT_GATEWAY_URL must be set';
-    console.error(`[Kairos] ${error}`);
-    return { success: false, error };
-  }
+  // Determine endpoint:
+  // - Prefer gateway when configured (IAM)
+  // - Otherwise use Base44 function ingest URL (defaults to https://kairostrack.base44.app/functions/ingest)
+  const endpoints = resolveKairosEndpoints(process.env);
+  const endpoint = config.gatewayUrl ? `${config.gatewayUrl}/v1/event` : endpoints.ingestUrl;
 
   // Transform payload format based on endpoint
   // Gateway expects: { action, source, dedupeKey, timestamp, schemaVersion, metadata, ... }
