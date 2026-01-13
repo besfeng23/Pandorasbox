@@ -1,107 +1,85 @@
-Perfect — if you already stored the **stabilization_sprint_plan** in Cursor/repo, then you’re past the “create the file” step ✅ Now you just need to **publish it into Kairos (Base44)** and **make Kairos actually use it**.
+## Kairos Stabilization Publish — production-grade checklist (cross-platform)
 
-Here’s the exact “what now” checklist (no questions, just actions):
-
----
-
-## ✅ 1) Verify the file is really in the repo
-
-Make sure this exists (or equivalent path):
-
-* `contracts/kairos/stabilization_sprint_plan.json`
-
-If it’s there, good. Move on.
+This repo now has a **deterministic, CI-safe Kairos publish pipeline** that will not fail due to missing env defaults, missing/empty contract files, or shell differences (PowerShell vs bash).
 
 ---
 
-## ✅ 2) Add a publish script (so you can push it to Base44 Kairos)
+## ✅ 1) Verify the contract is in-repo
 
-Even if the plan exists locally, Kairos won’t know it unless you send it.
+Expected path:
 
-Create:
+- `contracts/kairos/stabilization_sprint_plan.json`
 
-* `scripts/kairos-register-stabilization.ts`
+If it’s missing or empty, publishing will **fail fast** with a non-zero exit code.
 
-It should:
+---
 
-* read the JSON file
-* POST to: `https://kairostrack.base44.app/api/stabilization/register` (or your actual endpoint)
-* include auth header if you use one
+## ✅ 2) Run a dry-run first (recommended)
 
-Add npm script:
-
-* `"kairos:register:stabilization": "tsx scripts/kairos-register-stabilization.ts"`
-
-Then run:
+Dry-run performs **all validations** and prints a diagnostics block, but **does not send** any network requests:
 
 ```bash
-npm run kairos:register:stabilization
+corepack enable
+pnpm install
+pnpm run kairos:publish:dry-run
+```
+
+Diagnostics include:
+- Resolved `KAIROS_BASE_URL`
+- Contract file path (absolute + relative)
+- Contract file size + SHA-256 hash
+- Payload key count + counts for bugClusters/fixSequence/gatingRules
+
+---
+
+## ✅ 3) Publish for real (sends request)
+
+```bash
+pnpm run kairos:publish
+```
+
+Notes:
+- Uses `KAIROS_BASE_URL` if set, otherwise defaults to `https://kairostrack.base44.app`
+- Retries network errors **3 times** with exponential backoff
+- Does **not** retry 4xx errors (except **429**)
+- Exits with **0** on success, **1** on failure (CI-safe)
+
+---
+
+## ✅ 4) (Optional) Override base URL / contract path
+
+```bash
+pnpm run kairos:publish -- --base-url https://kairostrack.base44.app --contract contracts/kairos/stabilization_sprint_plan.json
 ```
 
 ---
 
-## ✅ 3) Implement the Base44 endpoints + storage (if not already done)
+## ✅ 5) Run the unit tests for publish determinism
 
-Kairos needs these, otherwise your POST won’t land:
+We intentionally isolate these from the broader test suite (which may have unrelated failures):
 
-### Storage
-
-* `kairos_stabilization_plans` table/collection
-
-  * `id`, `created_at`, `source`, `is_active`, `plan_json`
-
-### APIs
-
-* `POST /api/stabilization/register`
-* `GET /api/stabilization/active`
+```bash
+pnpm run test:kairos
+```
 
 ---
 
-## ✅ 4) Wire stabilization into rollups as a gating overlay
+## ✅ 6) Backwards compatibility
 
-This is the “it actually matters” step.
+The legacy command still works, but now delegates to the hardened publish CLI:
 
-During rollup recompute:
-
-* load active masterplan
-* load active stabilization plan
-* apply gating:
-
-  * mark impacted tasks `blocked` if gates fail
-  * do **not** count stabilization as progress
-  * stabilization only affects *status/eligibility* and denominator rules (per your formulas)
+```bash
+pnpm run kairos:register:stabilization
+```
 
 ---
 
-## ✅ 5) Add the UI banner so you *see* it
+## ✅ 7) Auto-commit workflow
 
-In Kairos Overview:
+After any file changes, this repo is configured to auto-stage/commit/push and emit Kairos events:
 
-* “Stabilization Sprint” banner
-* show:
+```bash
+npm run auto-commit
+```
 
-  * open P0/P1 count (or “unknown” until bug events exist)
-  * top root-cause clusters
-  * current gate status (pass/fail)
-
----
-
-## ✅ 6) Then run a single end-to-end proof test
-
-1. Register masterplan (already done ✅)
-2. Register stabilization plan (this step)
-3. Run `npm run kairos:simulate`
-4. Confirm in Kairos:
-
-   * Live Activity shows events
-   * Tasks reflect gating (blocked where appropriate)
-
----
-
-### The key point 🧠
-
-**Having it “stored in Cursor” only means it’s in your repo.**
-To make it real, you must:
-✅ **publish it to Kairos** + ✅ **wire Kairos rollups/UI to read it**.
-
-If you want the fastest next move: tell Cursor to implement steps **2–5** exactly (publish script + Base44 endpoints + gating overlay + banner).
+This is cross-platform and will run Kairos scripts using the detected package manager (`pnpm`/`yarn`/`npm`) to avoid env/shell issues.
