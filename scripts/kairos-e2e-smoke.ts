@@ -15,6 +15,7 @@
  * - KAIROS_STABILIZATION_REGISTER_URL / KAIROS_STABILIZATION_ACTIVE_URL (optional overrides)
  * - KAIROS_INGEST_KEY (optional; Authorization: Bearer ...)
  * - KAIROS_ENABLE_STABILIZATION=1 (optional; enable Track B register step)
+ * - KAIROS_E2E_REGISTER_PLAN=1 (optional; force re-register Track A plan even if one is already active)
  */
 
 import fs from 'fs';
@@ -126,6 +127,7 @@ function loadStabilizationPayloadOrNull(): any | null {
 async function main() {
   const endpoints = resolveKairosEndpoints(process.env);
   const enableStabilization = (process.env.KAIROS_ENABLE_STABILIZATION ?? '0').trim() === '1';
+  const forceRegisterPlan = (process.env.KAIROS_E2E_REGISTER_PLAN ?? '0').trim() === '1';
 
   banner('Kairos E2E Smoke (Base44 /functions/* endpoints)');
   console.log(`Base URL: ${endpoints.baseUrl}`);
@@ -140,19 +142,33 @@ async function main() {
 
   banner('1) Register Track A plan');
   {
-    const res = await requestJson('POST', endpoints.planRegisterUrl, samplePlanPayload());
-    console.log(`HTTP ${res.status} ${res.statusText}`);
-    if (!res.ok) {
-      const hint =
-        res.status === 404 || res.status === 501 || res.status === 405
-          ? 'Base44 function endpoint may not be deployed yet (expected: /functions/kairosRegisterPlan).'
-          : '';
-      if (hint) console.log(`Hint: ${hint}`);
-      if (res.bodyText) console.log(res.bodyText);
-      process.exit(1);
+    // Safety: do not overwrite an existing active plan unless explicitly requested.
+    const existing = await requestJson('GET', endpoints.activePlanUrl);
+    const hasActivePlan =
+      existing.ok &&
+      existing.json &&
+      typeof existing.json === 'object' &&
+      (existing.json.plan || existing.json.active_plan || existing.json.plan_json);
+
+    if (hasActivePlan && !forceRegisterPlan) {
+      console.log('✅ Active plan already present; skipping re-register.');
+      console.log('   (Set KAIROS_E2E_REGISTER_PLAN=1 to force POST /functions/kairosRegisterPlan)');
+      console.log('');
+    } else {
+      const res = await requestJson('POST', endpoints.planRegisterUrl, samplePlanPayload());
+      console.log(`HTTP ${res.status} ${res.statusText}`);
+      if (!res.ok) {
+        const hint =
+          res.status === 404 || res.status === 501 || res.status === 405
+            ? 'Base44 function endpoint may not be deployed yet (expected: /functions/kairosRegisterPlan).'
+            : '';
+        if (hint) console.log(`Hint: ${hint}`);
+        if (res.bodyText) console.log(res.bodyText);
+        process.exit(1);
+      }
+      if (res.json) console.log(shortJson(res.json));
+      console.log('');
     }
-    if (res.json) console.log(shortJson(res.json));
-    console.log('');
   }
 
   banner('2) (Optional) Register Track B stabilization');
@@ -171,6 +187,21 @@ async function main() {
       } else {
         if (res.json) console.log(shortJson(res.json));
       }
+    }
+    console.log('');
+    banner('2b) Confirm Track B active');
+    {
+      const res = await requestJson('GET', endpoints.stabilizationActiveUrl);
+      console.log(`HTTP ${res.status} ${res.statusText}`);
+      if (!res.ok) {
+        console.log(
+          '❌ Track B active check failed. If you saw 404/KeyError, Base44 has not registered/deployed kairosGetActiveStabilization.'
+        );
+        if (res.bodyText) console.log(res.bodyText);
+        process.exit(2);
+      }
+      if (res.json) console.log(shortJson(res.json));
+      console.log('');
     }
   } else {
     console.log('Skipping (set KAIROS_ENABLE_STABILIZATION=1 to enable).');
@@ -224,6 +255,16 @@ async function main() {
     if (res.json) {
       const top = res.json && typeof res.json === 'object' ? Object.keys(res.json) : [];
       console.log(`Top-level keys: ${top.join(', ')}`);
+      // Best-effort: summarize possible blocking signals if present.
+      try {
+        const jsonText = JSON.stringify(res.json);
+        const hasBlocked = jsonText.includes('"blocked"') || jsonText.includes('"BLOCKED"');
+        if (hasBlocked) {
+          console.log('🔎 Detected "blocked" in active plan response (best-effort heuristic).');
+        }
+      } catch {
+        // ignore
+      }
       console.log(shortJson(res.json));
     } else if (res.bodyText) {
       console.log(res.bodyText);
