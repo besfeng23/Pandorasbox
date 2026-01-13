@@ -39,6 +39,7 @@
     "kairos:register:plan": "tsx scripts/kairos-register-plan.ts",
     "kairos:publish": "tsx scripts/kairos/publish.ts",
     "kairos:publish:dry-run": "tsx scripts/kairos/publish.ts --dry-run",
+    "kairos:e2e": "tsx scripts/kairos-e2e-smoke.ts",
     "auto-commit": "tsx scripts/auto-execute-after-changes.ts",
     "post-change": "tsx scripts/post-change-hook.ts",
     "store:design-memory": "tsx scripts/store-design-memory-simple.ts",
