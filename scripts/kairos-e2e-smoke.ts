@@ -191,17 +191,50 @@ async function main() {
     console.log('');
     banner('2b) Confirm Track B active');
     {
-      const res = await requestJson('GET', endpoints.stabilizationActiveUrl);
-      console.log(`HTTP ${res.status} ${res.statusText}`);
-      if (!res.ok) {
-        console.log(
-          '❌ Track B active check failed. If you saw 404/KeyError, Base44 has not registered/deployed kairosGetActiveStabilization.'
-        );
-        if (res.bodyText) console.log(res.bodyText);
+      // Some deployments may take a moment to surface the newly-activated plan.
+      // Poll briefly for eventual-consistency without masking real failures.
+      const maxAttempts = 8;
+      const delayMs = 750;
+      let last: HttpResult | null = null;
+
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        const res = await requestJson('GET', endpoints.stabilizationActiveUrl);
+        last = res;
+        if (res.ok) {
+          console.log(`HTTP ${res.status} ${res.statusText} (attempt ${attempt}/${maxAttempts})`);
+          if (res.json) console.log(shortJson(res.json));
+          console.log('');
+          break;
+        }
+
+        const body = (res.bodyText ?? '').trim();
+        const isNoActive =
+          res.status === 404 &&
+          (body.includes('NO_ACTIVE_STABILIZATION') ||
+            (res.json && typeof res.json === 'object' && (res.json.error === 'NO_ACTIVE_STABILIZATION')));
+
+        if (!isNoActive) {
+          console.log(`HTTP ${res.status} ${res.statusText} (attempt ${attempt}/${maxAttempts})`);
+          console.log(
+            '❌ Track B active check failed. If you saw 404/KeyError, Base44 has not registered/deployed kairosGetActiveStabilization.'
+          );
+          if (res.bodyText) console.log(res.bodyText);
+          process.exit(2);
+        }
+
+        if (attempt < maxAttempts) {
+          console.log(`HTTP ${res.status} ${res.statusText} (attempt ${attempt}/${maxAttempts}) - waiting...`);
+          await new Promise((r) => setTimeout(r, delayMs));
+          continue;
+        }
+      }
+
+      if (last && !last.ok) {
+        console.log(`HTTP ${last.status} ${last.statusText} (attempt ${maxAttempts}/${maxAttempts})`);
+        console.log('❌ Track B active never became available after register.');
+        if (last.bodyText) console.log(last.bodyText);
         process.exit(2);
       }
-      if (res.json) console.log(shortJson(res.json));
-      console.log('');
     }
   } else {
     console.log('Skipping (set KAIROS_ENABLE_STABILIZATION=1 to enable).');
