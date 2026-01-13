@@ -20,6 +20,7 @@ const customJestConfig = {
   modulePathIgnorePatterns: [
     '<rootDir>/.firebase/',
     '<rootDir>/.next/',
+    '<rootDir>/packages/',
   ],
   testMatch: [
     '**/__tests__/**/*.[jt]s?(x)',
