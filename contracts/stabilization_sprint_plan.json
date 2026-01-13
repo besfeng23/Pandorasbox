@@ -1,0 +1,104 @@
+{
+  "sprintName": "Stabilization Sprint - Post-v1 Bug Fixes",
+  "bugClusters": [
+    {
+      "rootCauseCategory": "UI/UX Incomplete or Incorrect",
+      "description": "UI state management and feature implementation issues leading to missing or broken functionality in the interface.",
+      "bugIds": ["PBX-001", "PBX-003", "PBX-004", "PBX-005", "PBX-006", "PBX-007", "PBX-008", "PBX-009", "PBX-010"]
+    },
+    {
+      "rootCauseCategory": "Backend Integration Failure",
+      "description": "Backend process or integration (AI response generation) not completing or not notifying UI properly.",
+      "bugIds": ["PBX-002"]
+    }
+  ],
+  "fixSequence": [
+    "PBX-002",
+    "PBX-001",
+    "PBX-004",
+    "PBX-009",
+    "PBX-003",
+    "PBX-007",
+    "PBX-008",
+    "PBX-006",
+    "PBX-005",
+    "PBX-010"
+  ],
+  "gatingRules": [
+    {
+      "bugId": "PBX-002",
+      "blocksNodes": ["PB-CORE-CHAT-001", "PB-LANES-ORCH-001", "PB-LANES-ANS-001"],
+      "explanation": "Chat interface and orchestrator cannot be considered done while AI responses hang. Bug PBX-002 must be resolved for these to function as intended."
+    },
+    {
+      "bugId": "PBX-001",
+      "blocksNodes": ["PB-CORE-CHAT-001"],
+      "explanation": "Chat UI is not delivering message history. PB-CORE-CHAT-001 acceptance (message feed real-time) is not met until PBX-001 is fixed."
+    },
+    {
+      "bugId": "PBX-003",
+      "blocksNodes": ["PB-CORE-CHAT-001", "PB-COPY-CONTENT-001"],
+      "explanation": "Lack of role differentiation/timestamps means the chat UI isn't meeting UX standards. Also violates consistent terminology/tone goals. Fix PBX-003 to complete Chat UI polish and Copy consistency."
+    },
+    {
+      "bugId": "PBX-004",
+      "blocksNodes": ["PB-CORE-THREADS-001"],
+      "explanation": "Thread management incomplete (titles all 'New Chat', no rename) until PBX-004 is fixed, since auto-title and rename are part of the acceptance criteria."
+    },
+    {
+      "bugId": "PBX-005",
+      "blocksNodes": ["PB-COPY-CONTENT-001"],
+      "explanation": "Responsive design issues mean UI isn't fully delivered for all devices. While not tied to one node's criteria, we consider overall UI polish incomplete until PBX-005 is resolved."
+    },
+    {
+      "bugId": "PBX-006",
+      "blocksNodes": ["PB-CORE-MEMORY-001"],
+      "explanation": "Memory UI lacks filtering/pagination and has overflow issues, failing usability acceptance. Fix PBX-006 before declaring Memory Management UI done."
+    },
+    {
+      "bugId": "PBX-007",
+      "blocksNodes": ["PB-CORE-KB-001"],
+      "explanation": "Knowledge Base feature doesn't show uploaded files, so it's half-delivered. PBX-007 fix (file list & management) is required to meet KB acceptance criteria."
+    },
+    {
+      "bugId": "PBX-008",
+      "blocksNodes": ["PB-CORE-ARTIFACTS-001", "PB-CORE-GRAPH-001"],
+      "explanation": "Artifacts and Graph UIs are placeholders. The corresponding features are not usable. PBX-008 must be addressed to complete those feature implementations."
+    },
+    {
+      "bugId": "PBX-009",
+      "blocksNodes": ["PB-CORE-SETTINGS-001", "PB-OPS-EXPORT-001"],
+      "explanation": "Destructive actions in Settings lack confirmations, violating acceptance (clear memory requires confirm). PBX-009 fix gates Settings completion (and safe export/delete processes)."
+    },
+    {
+      "bugId": "PBX-010",
+      "blocksNodes": ["PB-COPY-CONTENT-001"],
+      "explanation": "Brand styling mismatch means UI is off from intended design. While not a functional blocker, it prevents us from considering the 'Content/Copy System' (which covers tone/appearance) fully done."
+    }
+  ],
+  "regressionChecklist": [
+    "Verify sending a message yields an assistant response within expected time (no indefinite stall).",
+    "Verify selecting an existing thread loads its past messages (welcome card is replaced by actual content).",
+    "Check that user and assistant messages in a chat are visually distinct (alignment, background) and each shows a timestamp and sender label ('You' vs assistant name).",
+    "Create multiple threads and ensure each gets a unique title (auto-generated after first message or manual rename) and that renaming a thread persists after refresh.",
+    "Attempt to send >30 messages/min and >10 file uploads/hour to confirm rate limiting now triggers appropriate error messages.",
+    "Test the responsiveness: shrink window to mobile size - sidebars should collapse and toggles appear; ensure chat input and messages still usable without layout breakage.",
+    "Memory page: with >1 long memory entries, ensure they are truncated with ellipsis, no text overflow; test the search bar returns relevant results and highlights or filters correctly.",
+    "Knowledge page: upload a file and see it listed with status; delete a file and confirm it's removed from list and underlying data; ensure no file can be uploaded once hitting rate limit (with clear error).",
+    "Artifacts page: after generating a code block via chat, confirm an artifact entry appears in list; click it to view content and try copy/download functions; ensure no placeholder text remains and guidance is provided if no artifacts.",
+    "Graph page: on a dataset (simulate or use existing small graph), ensure nodes and edges render and basic interactions (zoom/pan, click node to see detail) work without console errors; confirm performance is acceptable loading ~1k nodes.",
+    "Settings: click 'Generate API Key' and confirm a key is shown and stored; click 'Regenerate' and confirm old key becomes invalid (e.g., test an API call with it); toggle theme and ensure UI colors swap appropriately; toggle any setting and refresh to ensure persistence.",
+    "Settings destructive actions: click 'Clear all data', ensure confirmation modal appears; cancel and verify data still intact; then confirm deletion and verify threads, memories, artifacts are all wiped (and user is maybe logged out or sees onboarding state).",
+    "Confirmations: trigger each critical action (clear data, regen key) and verify that without confirmation nothing happens, with confirmation action completes, and a success feedback is given.",
+    "UI text audit: scan through UI text (buttons, labels, empty states) to confirm terms like 'Thread', 'Memory', etc., are used consistently (no stray terminology). Check error messages are friendly and not leaking tech details.",
+    "Monitor browser console and server logs during testing for any new errors or warnings introduced by fixes; none should be present (ensuring no regression in background errors)."
+  ],
+  "rollbackStrategy": [
+    "Maintain the last stable deployment (v1.0) ready for rollback: if v2.0 causes a major failure, re-deploy v1.0 immediately via our CI/CD pipeline, which can be done within minutes.",
+    "Use feature flags for new or risky features (e.g., the graph visualization) so they can be turned off without a full rollback if they misbehave. For example, if the graph causes issues, hide its menu entry via config.",
+    "If a specific fix introduces a severe bug, revert that specific commit in the codebase and deploy a hotfix release. For instance, if PBX-008 fix (graph/artifact UI) crashes the app, remove or fix that module and redeploy.",
+    "Because no schema changes were made to the database, rolling back the frontend/backend to v1.0 will not require any data migration. All data created under v2.0 (e.g., thread titles, etc.) is compatible or simply ignored by v1.0 (e.g., v1.0 will just show 'New Chat' if it doesn't use the title field).",
+    "Communicate clearly: if rollback is initiated, alert the team:contentReference[oaicite:31]{index=31}eded inform users via an in-app notice or status page that we're reverting to a stable version due to issues, and that a fix is underway.",
+    "Post-rollback, analyze logs and user reports from the failed deployment to pinpoint the cause, then address that issue in a patched version (v2.0.1) and roll forward again once ready. Ensure to add test cases around the failure to prevent recurrence."
+  ]
+}

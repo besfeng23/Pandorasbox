@@ -1,0 +1,939 @@
+{
+  "masterPlan": {
+    "version": "pb.prd.v2.0.generated.2026-01-13",
+    "checksumInput": "Pandora's Box PRD v1.0 + updates (v2 includes bugfix scope and design system integration)",
+    "nodes": [
+      {
+        "nodeId": "PB-CORE-CHAT-001",
+        "title": "Chat Interface (Threaded Chat UI)",
+        "description": "Primary chat page with message feed, input box, real-time updates, image upload, voice input option, follow-up suggestions, and an empty state with 3D model.",
+        "owner": "Frontend Team",
+        "weight": 2,
+        "dependencies": ["PB-DATA-MSG-001", "PB-SEC-AUTH-001"],
+        "acceptanceCriteria": [
+          "Given an authenticated user, selecting a thread loads all its Messages in the chat feed within 2s (if any exist).",
+          "Sending a message creates a ':contentReference[oaicite:13]{index=13}ge document in Firestore with status=complete and it appears in the UI immediately.",
+          "An assistant placeholder message is shown with status=processing ('Thinking...') and transitions to complete with the final response content.",
+          "Message stream updates the client in real time via Firestore listener (UI reflects new messages or status changes within 2s).",
+          "Empty thread shows the Pandora Box 3D model and a prompt to start the conversation."
+        ],
+        "eventMappings": [
+          {
+            "type": "ui.chat.message_sent",
+            "payloadMatch": ["threadId", "messageId"],
+            "updates": { "status": "in_progress", "progressDelta": 0.2 }
+          },
+          {
+            "type": "system.chat.response_completed",
+            "payloadMatch": ["threadId", "assistantMessageId"],
+            "updates": { "status": "done", "progress": 1.0 }
+          },
+          {
+            "type": "system.ratelimit.triggered",
+            "payloadMatch": ["limitType"],
+            "updates": { "status": "blocked", "progressDelta": 0.0 }
+          },
+          {
+            "type": "system.error.logged",
+            "payloadMatch": ["code"],
+            "updates": { "status": "error", "progressDelta": 0.0 }
+          }
+        ]
+      },
+      {
+        "nodeId": "PB-CORE-THREADS-001",
+        "title": "Thread Management",
+        "description": "Create and list chat threads, auto-generate titles, show summaries for long threads, sidebar navigation, search/filter, pin/archive (partial per PRD).",
+        "owner": "Frontend Team",
+        "weight": 1.5,
+        "dependencies": ["PB-SEC-AUTH-001", "PB-DATA-THREAD-001"],
+        "acceptanceCriteria": [
+          "Creating a new thread returns a threadId and persists a Thread record with userId and a default title (e.g., 'New Chat' until updated).",
+          "Thread list sidebar shows all threads sorted by updatedAt (most recent first), including auto-generated titles after the first few messages.",
+          "User can rename a thread; the new title persists in the Thread record and updates in the UI.",
+          "Selecting a thread loads its messages (filtered by that threadId).",
+          "If a thread has >=10 messages, a summarization job can be triggered and the summary stored on the Thread for display."
+        ],
+        "eventMappings": [
+          {
+            "type": "ui.thread.created",
+            "payloadMatch": ["threadId"],
+            "updates": { "status": "done", "progress": 1.0 }
+          },
+          {
+            "type": "system.thread.summary_generated",
+            "payloadMatch": ["threadId"],
+            "updates": { "status": "done", "progressDelta": 0.3 }
+          }
+        ]
+      },
+      {
+        "nodeId": "PB-CORE-MEMORY-001",
+        "title": "Memory Management UI",
+        "description": "Memory inspector page to view, search, edit, and delete memory entries; clear-all function with confirmation; shows indexing status and search results.",
+        "owner": "Frontend Team",
+        "weight": 2,
+        "dependencies": ["PB-CORE-SEARCH-001", "PB-DATA-MEM-001", "PB-SEC-RULES-001"],
+        "acceptanceCriteria": [
+          "Memory page lists user memory entries with content snippet, timestamp, and actions (edit/delete). Long entries are truncated in the list with tooltip or detail view for full content.",
+          "Memory search (keyword or semantic) returns top relevant results ordered by similarity and displays them with context (highlight or score).",
+          "Editing a memory updates its Firestore document; the change is reflected in the UI within 2s and reindexing occurs (embedding updated or flagged).",
+          "Deleting a memory removes it from the datastore; it no longer appears in the list or search results.",
+          "Clear All Memories requires a confirmation prompt (e.g., user must confirm irreversible action). Upon confirmation, all user-s:contentReference[oaicite:14]{index=14}es (and related artifacts/messages if specified in spec) are permanently deleted and UI reflects an empty state."
+        ],
+        "eventMappings": [
+          {
+            "type": "ui.memory.search",
+            "payloadMatch": ["query"],
+            "updates": { "status": "in_progress", "progressDelta": 0.2 }
+          },
+          {
+            "type": "system.memory.index_updated",
+            "payloadMatch": ["userId"],
+            "updates": { "status": "done", "progress": 1.0 }
+          },
+          {
+            "type": "system.clear_memory.completed",
+            "payloadMatch": ["userId"],
+            "updates": { "status": "done", "progress": 1.0 }
+          }
+        ]
+      },
+      {
+        "nodeId": "PB-CORE-ARTIFACTS-001",
+        "title": "Artifact Generation & Viewer",
+        "description": "Capture code/markdown artifacts from assistant responses, list artifacts, split-view viewer with copy/download, version tracking hooks in place.",
+        "owner": "Frontend Team",
+        "weight": 1.5,
+        "dependencies": ["PB-DATA-ART-001", "PB-CORE-CHAT-001"],
+        "acceptanceCriteria": [
+          "When the assistant's response contains code blocks or other identifiable artifacts (e.g., images or markdown content), at least one Artifact record is created with appropriate type and content, linked to the source message/thread.",
+          "The Artifact list page (or modal) shows all artifacts for the user, filtered by userId and sorted by createdAt (newest first). Each entry displays title or type, source info, and creation time.",
+          "Selecting an artifact opens a viewer showing the content (rendered markdow:contentReference[oaicite:15]{index=15}h syntax highlighting). The viewer provides a Copy-to-Clipboard button and a Download option for the artifact content.",
+          "Artifact records include a version field (starting at 1). If an artifact is updated or regenerated (future feature), the version increments and the viewer can access previous versions when implemented.",
+          "Artifacts in the UI are clearly linked to their originating thread/message (e.g., via metadata or a 'Go to source' link)."
+        ],
+        "eventMappings": [
+          {
+            "type": "system.artifact.extracted",
+            "payloadMatch": ["artifactId", "messageId"],
+            "updates": { "status": "done", "progress": 1.0 }
+          },
+          {
+            "type": "system.artifact.persisted",
+            "payloadMatch": ["artifactId"],
+            "updates": { "status": "done", "progressDelta": 0.2 }
+          }
+        ]
+      },
+      {
+        "nodeId": "PB-CORE-:contentReference[oaicite:16]{index=16}      "title": "Knowledge Base Upload & Search",
+        "description": "Allow users to upload PDF or text files, chunk them (1000 chars with ~200 overlap), generate embeddings for each chunk, store chunks, and make them searchable via vector search.",
+        "owner": "Frontend Team",
+        "weight": 2,
+        "dependencies": ["PB-CORE-SEARCH-001", "PB-OPS-RATE-001"],
+        "acceptanceCriteria": [
+          "Uploading a PDF or text file (<50MB) results in it being broken into chunks (each <=1000 chars with overlap). The chunk count is >0 for non-empty files, and each chunk is stored as a knowledge_chunk record linked to the user/document.",
+          "Each chunk gets an embedding (1536-dim using text-embedding-3-small). If embedding generation fails for some chunks, the system logs an error and those chunks are marked accordingly (degraded mode), but the upload still completes for the others.",
+          "After upload completion, the document's chunks are available in search results for relevant:contentReference[oaicite:17]{index=17}:contentReference[oaicite:18]{index=18}ity) within 5s. The user can query and retrieve information from the uploaded document via the Memory search interface or dedicated KB search.",
+          "The Knowledge Base page displays a list of uploaded documents with metadata: file name, size, upload date, number of chunks, and status (e.g., 'Indexed' or 'Error'). Users can delete an uploaded document, which removes its chunks and prevents it from appearing in future searches.",
+          "File uploads are rate-limited to 10 uploads per hour per user. If the limit is exceeded, the UI shows an error with a retry-after time, and no further uploads are processed until the window resets."
+        ],
+        "eventMappings": [
+          {
+            "type": "ui.kb.upload_started",
+            "payloadMatch": ["filename"],
+       :contentReference[oaicite:19]{index=19}es": { "status": "in_progress", "progressDelta": 0.2 }
+          },
+          {
+            "type": "system.kb.upload_completed",
+            "payloadMatch": ["chunkCount"],
+            "updates": { "status": "done", "progress": 1.0 }
+          }
+        ]
+      },
+      {
+        "nodeId": "PB-CORE-SETTINGS-001",
+        "title": "Settings (Model, Style, API Key, Data)",
+        "description": "Settings page with model selection, reply style preferences, prompt prefix override, API key management, theme toggle, notification prefs, data export, and clear memory actions.",
+        "owner": "Frontend Team",
+        "weight": 1.5,
+        "dependencies": ["PB-SEC-AUTH-001", "PB-SEC-APIKEY-00:contentReference[oaicite:20]{index=20}XPORT-001"],
+        "acceptanceCriteria": [
+          "Model selection (e.g., GPT-4 vs GPT-3.5) persists to the user's settings and is used for subsequent assistant responses (the system prompt or API call uses the selected model). Changing this setting immediately affects new chats.",
+          "Reply style (e.g., terse vs verbose or creative vs formal) persists and influences the assistant's response style (either through system prompt modifiers or post-processing).",
+          "An API key management section allows generating a personal API key (prefixed pb_live_*) which is stored securely. The UI shows the key masked by default with an option to reveal/copy. Regenerating a key invalidates the old one (confirmed by a prompt) and displays a new key.",
+          "Theme toggle allows switching between at least Dark and Light mode (and possibly a Neon theme). The UI updates accordingly (e.g., dark mode with neon accents vs light mode). The choice persists to user settings.",
+          "Data management: 'Export Data' lets the user download a JSON file of all their data (threads, messages, memories, artifacts, settings) excluding any large embeddings arrays. 'Clear All Data' requires a strong confirmation (e.g., modal requiring user to confirm) and upon confirmation, permanently deletes all user-scoped data (threads, messages, memories, artifacts) except minimal account info. After clear, the user's UI is reset (no threads, etc.)."
+        ],
+        "eventMappings": [
+          {
+            "type": "ui.settings.updated",
+            "payloadMatch": ["userId"],
+            "updates": { "status": "done", "progress": 1.0 }
+          },
+          {
+            "type": "system.export.completed",
+            "payloadMatch": ["userId", "bytes"],
+            "updates": { "status": "done", "progress": 1.0 }
+          },
+          {
+            "type": "system.clear_memory.completed",
+            "payloadMatch": ["userId"],
+            "updates": { "status": "done", "progress": 1.0 }
+          }
+        ]
+      },
+      {
+        "nodeId": "PB-CORE-GRAPH-001",
+        "title": "Knowledge Graph Visualization (Phase 2)",
+        "description": "Interactive graph view showing knowledge nodes and edges; includes node detail panel, analytics panel with metrics, and temporal filtering.",
+        "owner": "Frontend Team",
+        "weight": 1,
+        "dependencies": ["PB-DATA-GRAPH-001", "PB-CORE-SEARCH-001"],
+        "acceptanceCriteria": [
+          "The Graph view renders nodes and edges from the system_knowledge_graph and knowledge_edges collections, filtered to the user's scope where applicable (or global if it's a global knowledge graph). Nodes are displayed with labels and edges connecting related nodes.",
+          "Clicking or selecting a node shows a node details panel (with metadata like description and list of directly linked nodes or related memories).",
+          "The graph has basic interaction: zoom/pan, and it only renders a subset if extremely large (using pagination or view frustum culling to ensure performance for 1k+ nodes). Initial load of 1k nodes completes within 3 seconds on a typical device (by either limiting to a subgraph or using a performant rendering technique).",
+          "A graph analytics panel is available, showing at least one computed metric about the graph. For example, it might show the distribution of node degrees (e.g., average connections per node, or highlight the most connected node), or other metrics like number of compo:contentReference[oaicite:21]{index=21}:contentReference[oaicite:22]{index=22}tched from an API or computed on load.",
+          "An optional temporal analysis control allows the user to filter or animate the graph based on timestamps (e.g., slider to show how knowledge nodes were added over time), if data includes timestamps. (If not implemented in Phase 2, this criterion can be marked N/A but reserved for future.)"
+        ],
+        "eventMappings": [
+          {
+            "type": "ui.graph.opened",
+            "payloadMatch": ["userId"],
+            "updates": { "status": "in_progress", "progressDelta": 0.2 }
+          },
+          {
+            "type": "system.graph.render_ok",
+            "payloadMatch": ["nodeCount"],
+            "updates": { "status": "done", "progress": 1.0 }
+          }
+        ]
+      },
+      {
+        "nodeId": "PB-DASH-PANDORAUI-001",
+        "title": "PandoraUI Dashboard Mode",
+        "description": "Special admin/dashboard view showing all 14 phase statuses, project telemetry, an interactive Pandora Box 3D model, and phase metrics.",
+        "owner": "Frontend Team",
+        "weight": 1,
+        "dependencies": ["PB-DATA-PHASE-001", "PB-OPS-LOGS-001"],
+        "acceptanceCriteria": [
+          "Dashboard displays all 14 project phases with their names, current status labels (e.g., Not Started, In Progress, Done), and last updated timestamps, sourced from the system_phases collection.",
+          "A telemetry panel shows key usage and performance stats: at minimum, last user activity timestamp, total number of messages processed, total memories stored, and average assistant response time (if calculable) for the current user or system-wide.",
+          "The Pandora Box 3D model is embedded in the dashboard and is interactive or animated, providing a visual centerpiece (and the same model is used in the chat empty state for consistency).",
+          "Phase status updates (when a phase moves to a new status or is completed) reflect on the dashboard within 2s via realtime updates (listener on system_phases). For example, when the final phase is marked completed in the database, the dashboard phase list updates to show all completed, and possibly triggers a celebratory animation.",
+          "The dashboard is readable by unauthenticated users (public status page) but only shows phase statuses and generic telemetry (no private user data). Any user-specific data on the dashboard is only shown if authenticated."
+        ],
+        "eventMappings": [
+          {
+            "type": "system.phase.updated",
+            "payloadMatch": ["phaseId", "status"],
+            "updates": { "status": "in_progress", "progressDelta": 0.05 }
+          },
+          {
+            "type": "system.phase.all_completed",
+            "payloadMatch": ["count"],
+            "updates": { "status": "done", "progress": 1.0 }
+          }
+        ]
+      },
+      {
+        "nodeId": "PB-LANES-ORCH-001",
+        "title": "Chat Lane Orchestrator (runChatLane)",
+        "description": "Server orchestrator coordinating Memory Lane, Answer Lane, and Follow-up suggestion generation; ensures outputs are persisted and clients updated in real-time.",
+        "owner": "Backend Team",
+        "weight": 2,
+        "dependencies": ["PB-LANES-MEM-001", "PB-LANES-ANS-001", "PB-CORE-CHAT-001"],
+        "acceptanceCriteria": [
+          "The orchestrator (Chat Lane) invokes the sub-lanes in a deterministic order: first Memory Lane, then Answer Lane, then the Follow-up suggestion generator. This sequence is followed for every new user message.",
+          "If any sub-lane fails or times out, the orchestrator logs an error and the user receives a degraded response. Specifically, if the Answer Lane fails to get a model response, the orchestrator should return a friendly error message to the user and mark the assistant message with status=error (after any retry logic is exhausted). No infinite hangs.",
+          "Progress events or logs are appended to the message's progress_log during processing (e.g., 'Memory search complete', 'AI model responding', etc.), which can be used for debugging or UI status messages ('Searching memory...', 'Generating answer...').",
+          "When the assistant response is obtained, the orchestrator persists it as a message with role=assistant, content filled, status=complete, and an embedding generated for the message content (for future search). The message is linked to the correct thread and user.",
+          "The orchestrator ensures that any follow-up suggestions (next user questions) are generated and available if specified by the PRD (perhaps appended to the response or stored separately), without blocking the main response delivery."
+        ],
+        "eventMappings": [
+          {
+            "type": "system.lane.chat.started",
+            "payloadMatch": ["threadId", "messageId"],
+            "updates": { "status": "in_progress", "progressDelta": 0.2 }
+          },
+          {
+            "type": "system.lane.chat.completed",
+            "payloadMatch": ["assistantMessageId"],
+            "updates": { "status": "done", "progress": 1.0 }
+          },
+          {
+            "type": "system.error.logged",
+            "payloadMatch": ["code", "threadId", "messageId"],
+            "updates": { "status": "error", "progressDelta": 0.0 }
+          }
+        ]
+      },
+      {
+        "nodeId": "PB-LANES-MEM-001",
+        "title": "Memory Lane (runMemoryLane)",
+        "description": "Processes user message to create memory entries and context notes: generates search queries, indexes new memory, up:contentReference[oaicite:23]{index=23}ntext state.",
+        "owner": "Backend Team",
+        "weight": 1.5,
+        "dependencies": ["PB-DATA-MEM-001", "PB-CORE-SEARCH-001"],
+        "acceptanceCriteria": [
+          "For each user message processed, Memory Lane produces at least one memory entry (unless rules suppress it). The memory entry is saved to the memories collection with userId, content (key info from the conversation or AI result), createdAt timestamp, and source reference (which message/thread it came from).",
+          "Memory Lane updates the context note in UserState (a short summary or important facts from recent conversation) after each message, which can be used by Answer Lane or display.",
+          "If multiple memory candidates exist (e.g., multiple facts), it can save multiple memory entries, or a combined entry, as appropriate. Each should be clearly attributed.",
+          "Memory entries include an embedding vector (computed via Embedding Pipeline) unless the embedding service fails. If embedding generation fails for a memory, the system stores the memory content with a flag indicating no embedding (so search can skip it) and logs the error. The pipeline does not block the main flow - conversation continues (degraded mode for that memory).",
+          "All memory entries and context updates are scoped to the userId and do not leak to other users' data."
+        ],
+        "eventMappings": [
+          {
+            "type": "system.lane.memory.created",
+            "payloadMatch": ["memoryId"],
+            "updates": { "status": "done", "progressDelta": 0.5 }
+          },
+          {
+            "type": "system.memory.persisted",
+            "payloadMatch": ["memoryId"],
+            "updates": { "status": "done", "progressDelta": 0.2 }
+          }
+        ]
+      },
+      {
+        "nodeId": "PB-LANES-ANS-001",
+        "title": "Answer Lane (runAnswerLane)",
+        "description": "Handles retrieval of relevant context (short-term and long-term memory), constructs the system prompt, calls the AI model for an answer, and extracts any artifacts or follow-up prompts.",
+        "owner": "Backend Team",
+        "weight": 2,
+        "dependencies": ["PB-CORE-SEARCH-001", "PB-CORE-ARTIFACTS-001"],
+        "acceptanceCriteria": [
+          "The Answer Lane includes the last N messages from the thread (e.g., N=6 or configurable) as short-term context when building the prompt, to maintain continuity in conversation.",
+          "It performs a vector search against user’s memory/history/KB to retrieve the top 5 (configurable) most relevant items. These retrieved items are included in the system or context prompt for the AI model, annotated with their source if needed.",
+          "The system prompt is built according to the chosen model and style, including instructions and any retrieved context. It then calls the AI model (OpenAI API or Claude etc.) with this prompt to generate the assistant response.",
+          "The assistant response is captured and persisted as a message (role=assistant) with content. If the response contains any code blocks, images, or markdown sections, the Answer Lane invokes the Artifact generation to extract those into Artifact records (linking them to the message).",
+          "Once the model returns, the lane attaches an embedding to the assistant message content for future searchability (via the Embedding Pipeline). If the model call fails or times out, the lane returns an error indicatio:contentReference[oaicite:24]{index=24}:contentReference[oaicite:25]{index=25}handle it (e.g., mark message error)."
+        ],
+        "eventMappings": [
+          {
+            "type": "system.lane.answer.retrieval_done",
+            "payloadMatch": ["resultCount"],
+            "updates": { "status": "in_progress", "progressDelta": 0.3 }
+          },
+          {
+            "type": "system.lane.answer.completed",
+            "payloadMatch": ["assistantMessageId"],
+            "updates": { "status": "done", "progress": 1.0 }
+          },
+          {
+            "type": "system.artifact.extracted",
+            "payloadMatch": ["artifactId", "messageId"],
+            "updates": { "status": "done", "progressDelta": 0.1 }
+          }
+        ]
+      },
+      {
+        "nodeId": "PB-CORE-SEARCH-001",
+        "title": "Vector Search Engine (Memory/History/KB)",
+        "description": "Embedding generation and vector similarity search service with userId-based filtering; supports hybrid search with external knowledge in Phase 5.",
+        "owner": "Backend Team",
+        "weight": 2,
+        "dependencies": ["PB-OPS-EMBED-001", "PB-SEC-RULES-001"],
+        "acceptanceCriteria": [
+          "The search service generates an embedding (1536-dim) for each query using the OpenAI text-embedding-ada-002 (or text-embedding-3-small as specified). This is done quickly (typical latency << 1s). The resulting vector is used to query the vector database.",
+          "Vector search results are filtered by userId, meaning a user’s query only searches vectors (memories, messages, knowledge chunks) that belong to that user (plus any global/system entries intended for all users). Results are returned ordered by cosine similarity (or equivalent), highest first.",
+          "The typical response time for a search query with a moderate dataset (say 1000 vectors) is <3 seconds at p95. If the dataset is large (tens of thousands), the system should still target <3s by using approximate search or indexing as needed.",
+          "In hybrid mode (Phase 5), the search service can also retrieve external knowledge results (e.g., from an external API or cached web search results). These external results are merged with internal results, each annotated with a confidence score. The combined results are returned to the caller with flags indicating source (internal vs external). The merging strategy ensures that highly relevant internal results and external ones are both represented if applicable.",
+          "The search endpoint provides consistent results; any failure in embedding generation or search is handled gracefully (e.g., returns no results or an error message, but does not crash the system)."
+        ],
+        "eventMappings": [
+          {
+            "type": "system.search.completed",
+            "payloadMatch": ["query", "latencyMs"],
+            "updates": { "status": "done", "progress": 1.0 }
+          },
+          {
+            "type": "system.embedding.generated",
+            "payloadMatch": ["entityType", "entityId"],
+            "updates": { "status": "done", "progressDelta": 0.1 }
+          }
+        ]
+      },
+      {
+        "nodeId": "PB-INTEG-MCP-001",
+        "title": "MCP Server & HTTP Bridge (Claude Desktop integration)",
+        "description": "Standalone MCP (Multi-Component Pipeline) server with a stdio interface and an HTTP bridge to support tool APIs: search_knowledge_base, add_memory, generate_artifact; includes auto-generated OpenAPI schema.",
+        "owner": "Backend Team",
+        "weight": 1.5,
+        "dependencies": ["PB-SEC-APIKEY-001", "PB-CORE-SEARCH-001", "PB-CORE-ARTIFACTS-001"],
+        "acceptanceCriteria": [
+          "The MCP server runs as a separate process (Claude or similar AI assistant context) and provides at least the tools: search_knowledge_base, add_memory, generate_artifact, accessible via a defined protocol (stdio or HTTP). The HTTP bridge exposes these tools as endpoints for easier integration.",
+          "API key authentication is enforced for all MCP calls: the HTTP requests must include a valid pb_live_* API key associated with a user. Unauthorized requests receive 401/403.",
+          "There is an OpenAPI (Swagger) schema available (e.g., at /api/mcp/schema) that describes all the available MCP tools and their request/response formats. This allows other systems or the ChatGPT plugin interface to understand how to call them.",
+          "Each tool call performs the correct read/write: e.g., search_knowledge_base returns vector search results from the user's KB, add_memory creates a memory entry (with proper user scoping), generate_artifact triggers artifact extraction for given content. The MCP server communicates with Firestore or internal services to do these actions.",
+          "All outputs of tools are consistent with the main app's data. For example, if add_memory is called via MCP, the memory appears in the main app’s memory list instantly (same Firestore)."
+        ],
+        "eventMappings": [
+          {
+            "type": "system.mcp.tool_called",
+            "payloadMatch": ["toolName"],
+            "updates": { "status": "done", "progressDelta": 0.25 }
+          },
+          {
+            "type": "system.mcp.tool_called",
+            "payloadMatch": ["toolName", "error"],
+            "updates": { "status": "error", "progressDelta": 0.0 }
+          }
+        ]
+      },
+      {
+        "nodeId": "PB-INTEG-ACTIONS-001",
+        "title": "ChatGPT Actions Integration",
+        "description": "Provide HTTP endpoints compatible with OpenAI ChatGPT Actions: store-memory, retrieve-memories, hybrid-retrieve, etc., to allow ChatGPT to use Pandora's data.",
+        "owner": "Backend Team",
+        "weight": 1,
+        "dependencies": ["PB-SEC-APIKEY-001", "PB-CORE-SEARCH-001"],
+        "acceptanceCriteria": [
+          "POST /api/chatgpt/store-memory: Saves a given memory content (and optional metadata) to the user's memory store. Requires an API key for authentication. Returns a success confirmation with memoryId or relevant info.",
+          "POST /api/chatgpt/retrieve-memories: Accepts a query (and optional filters) and returns top-k relevant memory entries for that user. The response includes memory content, timestamps, and similarity scores.",
+          "POST /api/chatgpt/hybrid-retrieve: Returns combined internal memories and external knowledge results. For example, it may accept a query and return a JSON with two arrays: 'internal_memories' and 'external_results', each with entries and a confidence or score. This allows ChatGPT to get both sources in one call.",
+          "All endpoints respond with proper JSON and appropriate HTTP status codes. For instance, 401 for missing/invalid API key, 400 for malformed requests, and 200 for success. They do not do any UI rendering (pure JSON APIs).",
+          "The JSON response shapes are stable and documented. e.g., retrieve-memories returns [{memoryId, content, createdAt, source}, ...]. These endpoints are tested with the ChatGPT Actions sandbox to ensure compatibility."
+        ],
+        "eventMappings": [
+          {
+            "type": "system.actions.request_ok",
+            "payloadMatch": ["endpoint"],
+            "updates": { "status": "done", "progressDelta": 0.2 }
+          },
+          {
+            "type": "system.actions.request_ok",
+            "payloadMatch": ["endpoint", "error"],
+            "updates": { "status": "error", "progressDelta": 0.0 }
+          }
+        ]
+      },
+      {
+        "nodeId": "PB-OPS-CRON-001",
+        "title": "Scheduled Tasks (Cron Jobs)",
+        "description": "Set of cron-triggered endpoints for maintenance and automated tasks: cleanup, daily briefing, nightly reflection, deep research, context decay, reindex memories, meta-learning.",
+        "owner": "Backend Team",
+        "weight": 1.5,
+        "dependencies": ["PB-OPS-LOGS-001", "PB-OPS-RATE-001", "PB-CORE-SEARCH-001"],
+        "acceptanceCriteria": [
+          "Each cron job endpoint is protected by a secret or secure mechanism (e.g., require a CRON_SECRET key in the request) to prevent unauthorized invocation. Calls without the secret are rejected.",
+          "daily-briefing: for active users (e.g., those who used the app in last 24h), generates a summary of recent activity or new info and stores a 'briefing' message in their thread or a special place. It runs once per day.",
+          "nightly-reflection: for each user (or active user), triggers the reflection agent to analyze the day’s interactions and produce insights (could store as memory or artifact).",
+          "deep-research: goes through flagged low-confidence topics or unanswered questions and attempts to find answers (likely using external resources), storing results for user review. This is heavy and may run less frequently or for specific users.",
+          "cleanup: removes or archives data per retention settings (e.g., delete messages older than X days if user’s retention policy, or remove soft-deleted items, etc.). Ensures the database doesn’t grow unbounded and privacy requests are honored.",
+          "reindex-memories: scans for memories or other items that need embeddings (e.g., new ones that failed or items marked for reindex) and regenerates embeddings in batch. Logs success/failure for each.",
+          "Each cron logs to system_logs on start and upon completion (success or failure) with details (e.g., jobName, duration, items processed). Failures do not crash the server; they are caught and logged.",
+          "Cron jobs do not interfere with interactive usage (they run at off-peak hours or in controlled batches). They respect rate limits and quotas (e.g., reindex will not overwhelm the embedding API beyond allowed rate)."
+        ],
+        "eventMappings": [
+          {
+            "type": "system.cron.executed",
+            "payloadMatch": ["jobName", "success"],
+            "updates": { "status": "done", "progressDelta": 0.15 }
+          },
+          {
+            "type": "system.cron.executed",
+            "payloadMatch": ["jobName", "success", "false"],
+            "updates": { "status": "error", "progressDelta": 0.0 }
+          }
+        ]
+      },
+      {
+        "nodeId": "PB-OPS-AGENTS-001",
+        "title": "Background Agents (Reflection & Deep Research)",
+        "description": "Automated agents that run in the background: a nightly reflection agent that produces insights for the user, and a deep research agent that investigates flagged topics. Both write outputs to history or memory.",
+        "owner": "Backend Team",
+        "weight": 1,
+        "dependencies": ["PB-OPS-CRON-001", "PB-CORE-MEMORY-001"],
+        "acceptanceCriteria": [
+          "The Nightly Reflection agent runs (triggered by cron) for users who had activity, and produces at least one insight artifact or memory. For example, it might summarize the user’s interactions and highlight a learning or suggest a tip, storing it as a special 'reflection' memory or artifact.",
+          "The Deep Research agent runs on demand or via cron for topics that the assistant marked with low confidence or the user flagged. It performs extended processing (possibly calling external APIs or doing multiple steps) to gather more information. It then stores its findings, which could include a summary and sources (as artifact or memory), and possibly a follow-up message in the thread indicating results.",
+          "These agents run asynchronously and do not block the main chat. Failures in agents (exceptions, timeouts) are caught and logged; they do not bubble up to the user as chat errors. At most, the user might not see an expected insight if an agent failed quietly.",
+          "All outputs from agents are clearly attributed as such and scoped to the user. E.g., a reflection memory will have a field indicating it was system-generated. The user can view these in the UI (perhaps marked with an icon or special tag).",
+          "Agent runs are rate-limited and controlled; e.g:contentReference[oaicite:26]{index=26} runs at most once per night per user, deep research maybe limited per topic. This prevents runaway behavior."
+        ],
+        "eventMappings": [
+          {
+            "type": "system.agent.completed",
+            "payloadMatch": ["agentName", "userId"],
+            "updates": { "status": "done", "progressDelta": 0.25 }
+          },
+          {
+            "type": "system.error.logged",
+            "payloadMatch": ["agentName", "error"],
+            "updates": { "status": "error", "progressDelta": 0.0 }
+          }
+        ]
+      },
+      {
+        "nodeId": "PB-SEC-AUTH-001",
+        "title": "Authentication (Firebase Auth)",
+        "description": "User authentication via Firebase: support Email/Password and Google OAuth login, maintain session state, and restrict access to authenticated areas.",
+        "owner": "Backend Team",
+        "weight": 1.5,
+        "dependencies": [],
+        "acceptanceCriteria": [
+          "Unauthenticated users cannot access any user-specific pages (chat, memory, etc.). If a user is not logged in and tries to navigate to an app page, they are redirected to the login page.",
+          "After login (with email/password or Google OAuth), the user gets a Firebase auth token and a session is established. The userId (UID) is available in all secured API calls and Firestore rules to validate data access.",
+          "Firebase tokens refresh transparently in the background when nearing expiration, so an active user session remains valid without forcing re-login frequently.",
+          "Logout function fully clears the session (Firebase sign-out, local storage tokens removed) and redirects to the login screen.",
+          "All Firebase auth errors (wrong password, network issues) are handled gracefully with user-friendly messages."
+        ],
+        "eventMappings": [
+          {
+            "type": "system.auth.login_success",
+            "payloadMatch": ["userId"],
+            "updates": { "status": "done", "progress": 1.0 }
+          },
+          {
+            "type": "system.auth.login_failure",
+            "payloadMatch": ["errorCode"],
+            "updates": { "status": "in_progress", "progressDelta": 0.0 }
+          }
+        ]
+      },
+      {
+        "nodeId": "PB-SEC-RULES-001",
+:contentReference[oaicite:27]{index=27}e": "Firestore Security Rules (User Scope Enforcement)",
+        "description": "Security rules to enforce that each user's data in Firestore is only accessible by that authenticated user (or public collections where intended). Vector search queries similarly must filter by user scope.",
+        "owner": "Backend Team",
+        "weight": 2,
+        "dependencies": ["PB-SEC-AUTH-001"],
+        "acceptanceCriteria": [
+          "Any attempt to read another user's data (thread, message, memory, artifact, etc.) is denied by Firestore rules. For example, a query for messages requires `request.auth.uid == resource.data.userId` on each returned document.",
+          "Write operations also enforce that the authenticated user's uid matches the userId field being written. No cross-user writes are allowed (except for certain system collections like system_phases which are read-only to users).",
+          "Unauthenticated read access is only allowed for explicitly whitelisted resources (like system_phases for the public dashboard). All other reads/writes require authentication.",
+          "Vector search endpoints or functions include a userId filter by design (e.g., using namespace per user in the vector DB or filtering results post-query). This ensures even if the vector DB is separate, the app logic doesn't return someone else's vectors.",
+          "Security rules are tested via a test suite that tries valid and invalid accesses to confirm the rules behave as expected (as indicated by an event system.security.rules_verified when tests pass)."
+        ],
+        "eventMappings": [
+          {
+            "type": "system.security.rules_verified",
+            "payloadMatch": ["testSuiteId"],
+            "updates": { "status": "done", "progress": 1.0 }
+          },
+          {
+            "type": "system.security.violation",
+            "payloadMatch": ["ruleId"],
+            "updates": { "status": "blocked", "progressDelta": 0.0 }
+          }
+        ]
+      },
+      {
+        "nodeId": "PB-SEC-APIKEY-001",
+        "title": "Personal API Key Generation & Enforcement",
+        "description": "Allows users to generate personal API keys (prefixed pb_live_...), store them, regenerate/revoke, and enforce API key auth on integration endpoints (MCP, Actions).",
+        "owner": "Backend Team",
+        "weight": 1,
+        "dependencies": ["PB-SEC-AUTH-001"],
+        "acceptanceCriteria": [
+          "A user can request an API key. The system generates a random key (with prefix 'pb_live_' and a secure random suffix), stores it in the user's settings (or a dedicated collection) hashed or encrypted, and returns the plain key to the user **once**. The UI shows the key in a masked format after creation (only last few characters visible) with an option to reveal temporarily.",
+          "The API key is treated like a password: it can be used to authenticate to certain endpoints (MCP, ChatGPT Actions). The server checks that the key in the request matches a key on record for some user and grants access as that user if valid.",
+          "The user can regenerate their API key. Regeneration immediately invalidates the old key (which is removed or marked inactive) and creates a new one. The UI warns the user that old integrations will stop working and asks for confirmation before regenerating.",
+          "Any request to the protected API endpoints without a valid API key results in a 401 Unauthorized error. With a valid key but lacking required permissions (if we had scoped keys), results in 403 Forbidden.",
+          "The API key is not stored in cleartext in the database (to prevent leakage if DB is compromised). If a hash is used, the lookup is done by hashing incoming keys too. Alternatively, using Firestore with security rules to allow matching, but likely we'll store a hashed value."
+        ],
+        "eventMappings": [
+          {
+            "type": "system.apikey.generated",
+            "payloadMatch": ["userId"],
+            "updates": { "status": "done", "progress": 1.0 }
+          },
+          {
+            "type": "system.apikey.revoked",
+            "payloadMatch": ["userId"],
+            "updates": { "status": "done", "progressDelta": 0.5 }
+          }
+        ]
+      },
+      {
+        "nodeId": "PB-OPS-RATE-001",
+        "title": "Rate Limiting (Token Bucket)",
+        "description": "Per-user rate limiting using token bucket algorithms for:contentReference[oaicite:28]{index=28}tions (messages, uploads, embeddings) with graceful enforcement.",
+        "owner": "Backend Team",
+        "weight": 1,
+        "dependencies": ["PB-SEC-AUTH-001"],
+        "acceptanceCriteria": [
+          "If a user sends more than 30 messages in a rolling 1-minute window (for example), further send attempts are rejected with a rate limit error. The error includes a retry-after header or message indicating when they can try again.",
+          "If a user attempts to upload more than 10 files in an hour, additional uploads are immediately rejected with a similar rate limit message. The UI should handle this by informing the user they've hit the limit.",
+          "Embedding generation (an expensive operation) is limited: e.g., no more than 100 embeddings per hour per user (exact numbers per PRD). If exceeded, any process trying to generate additional embeddings gets an error and possibly queues them for later or just fails with an informative message.",
+          "Rate limits are enforced server-side strictly (even if the UI doesn't prevent the action, the server will). They cannot be bypassed by modifying the client. This ensures fairness and protects system resources.",
+          "The system tracks usage counts in memory or a fast :contentReference[oaicite:29]{index=29}dis or Firestore counters) and resets them appropriately over time. All limits and events of triggering are logged (system.ratelimit.triggered events with type of limit)."
+        ],
+        "eventMappings": [
+          {
+            "type": "system.ratelimit.triggered",
+            "payloadMatch": ["limitType"],
+            "updates": { "status": "blocked", "progressDelta": 0.0 }
+          },
+          {
+            "type": "system.ratelimit.cleared",
+            "payloadMatch": ["limitType"],
+            "updates": { "status": "in_progress", "progressDelta": 0.0 }
+          }
+        ]
+      },
+      {
+        "nodeId": "PB-OPS-EMBED-001",
+        "title": "Embedding Pipeline",
+        "description": "Service to generate and store embeddings for various content (messages, memories, KB chunks) using OpenAI's embedding API; handles batching for bulk tasks and ensures vectors are stored without exposing them in exports.",
+        "owner": "Backend Team",
+        "weight": 2,
+        "dependencies": ["PB-OPS-RATE-001"],
+        "acceptanceCriteria": [
+          "All embeddings generated are 1536-dimensional float vectors (for compatibility with text-embedding-ada-002). They are stored alongside the item (in Firestore or a vector DB reference) so that search can use them. For example, a Memory document may have an 'embedding' field (array of floats or reference) that is populated by this pipeline.",
+          "The pipeline supports batch embedding requests, particularly for Knowledge Base uploads where there could be hundreds of chunks. It will send chunks in batches to the OpenAI API to optimize throughput and respect rate limits. If any chunk fails to get an embedding (API error), it logs the error, and that chunk can be retried later (but the upload process still completes for others).",
+          "If embedding generation fails (API down or returns error), the system logs the failure with details. The item is stored with perhaps a null or placeholder embedding and a flag 'n:contentReference[oaicite:30]{index=30}g=true'. A background job (e.g., reindex-memories cron) will later retry those. This way, a failure does not block the user's overall action (they can still see the text), just search might not include it until fixed.",
+          "Embeddings are **excluded** from user data exports for privacy and size reasons. The export function deliberately omits the embedding arrays. (Instead, if needed, it could include a note or just exclude the field entirely.) This meets GDPR concerns that vector data (which could indirectly contain information) isn't given out.",
+          "The embedding pipeline is optimized not to duplicate work: if an item’s content hasn’t changed, we avoid regenerating the embedding (unless forced via reindex). It may use a hash of content to decide if it needs a new embedding on edits."
+        ],
+        "eventMappings": [
+          {
+            "type": "system.embedding.generated",
+            "payloadMatch": ["entityType", "entityId"],
+            "updates": { "status": "done", "progressDelta": 0.1 }
+          },
+          {
+            "type": "system.embedding.failed",
+            "payloadMatch": ["entityType", "entityId"],
+            "updates": { "status": "in_progress", "progressDelta": 0.0 }
+          }
+        ]
+      },
+      {
+        "nodeId": "PB-OPS-EXPORT-001",
+        "title": "GDPR Export & Data Deletion",
+        "description": "Allow users to export all their data (in JSON format) excluding embeddings, and to delete (forget) all their data. Ensure compliance with data privacy laws.",
+        "owner": "Backend Team",
+        "weight": 1,
+        "dependencies": ["PB-SEC-AUTH-001", "PB-SEC-RULES-001"],
+        "acceptanceCriteria": [
+          "Exporting data produces a single JSON file named like `pandoras-box-export-{userId}-{timestamp}.json`. This file includes the user's threads, messages, memories, artifacts, and settings in a structured format. Embeddings arrays or other non-essential large fields are omitted to keep file size reasonable and avoid leaking vector data.",
+          "The export JSON structure is documented (so users can understand it). It should be logically organized (e.g., a list of threads with their messages, separate list of memories, etc.). The export process respects security (only the requesting user can export their data) and is done on demand (not automatically due to privacy request UI triggered).",
+          "Clear Memory / Data deletion: When the user confirms deletion of their data, the system deletes all personal collections (threads, messages, memories, artifacts) for that user. If using Firestore, it will delete documents or mark them deleted (depending on retention strategy). The operation is irreversible from the user's perspective.",
+          "The UI double-confirms with the user before deletion (e.g., type 'DELETE' to confirm), given the irreversibility. After deletion, the user's remaining data is basically just their account and maybe settings (which can be kept for re-onboarding or also wiped as needed). The user is presented a final confirmation that data was wiped.",
+          "Appropriate log entries are made for export and deletion events (for auditing). The deletion process also ensures that any external indices (vector DB entries, cached data) is also removed or scheduled for removal."
+        ],
+        "eventMappings": [
+          {
+            "type": "system.export.completed",
+            "payloadMatch": ["userId", "bytes"],
+            "updates": { "status": "done", "progress": 1.0 }
+          },
+          {
+            "type": "system.clear_memory.completed",
+            "payloadMatch": ["userId"],
+            "updates": { "status": "done", "progress": 1.0 }
+          }
+        ]
+      },
+      {
+        "nodeId": "PB-OPS-LOGS-001",
+        "title": "System Logs & Error Handling",
+        "description": "Central logging of system events and errors; optional Sentry integration; user-friendly error messages and automated retries for transient failures; ensure no sensitive info leaks in errors.",
+        "owner": "Backend Team",
+        "weight": 1,
+        "dependencies": ["PB-SEC-RULES-001"],
+        "acceptanceCriteria": [
+          "The server writes structured logs to a Firestore collection (system_logs) or an external logging service for significant events and all errors. Each log entry includes severity (INFO, WARN, ERROR), a code or type, timestamp, and context (e.g., which user or thread if applicable, error details).",
+          "The client displays user-friendly error messages when things go wrong. For example, network issues show 'Network error, please check connection', rate limit errors show 'You are going too fast, please wait X seconds', auth errors show 'Session expired, please login again'. These messages avoid technical jargon or internal details.",
+          "For AI API failures or other transient errors, the system automatically retries up to 3 times (if idempotent). E.g., if OpenAI returns a rate limit error or a transient 500, we wait a bit and retry. If after retries it still fails, then we mark the message as error and inform the user politely ('The assistant is having trouble right now...').",
+          "No PII or sensitive user data is included in any error messages visible to other users or in logs that developers see without sanitization. For example, an error log might reference a userId but not the user's personal info or message content (except maybe truncated if needed for debug). This ensures compliance and privacy.",
+          "All critical errors (those indicating something is broken in functionality) trigger an alert (if Sentry or similar is configured, it would send an email/slack). This ensures the team can respond to issues quickly. Less critical issues are just logged for later analysis."
+        ],
+        "eventMappings": [
+          {
+            "type": "system.error.logged",
+            "payloadMatch": ["severity", "code"],
+            "updates": { "status": "in_progress", "progressDelta": 0.0 }
+          },
+          {
+            "type": "system.error.logged",
+            "payloadMatch": ["severity", "code", "resolved"],
+            "updates": { "status": "done", "progressDelta": 0.0 }
+          }
+        ]
+      },
+      {
+        "nodeId": "PB-DATA-MSG-001",
+        "title": "Message Data Model & Persistence",
+        "description": "Schema for messages (user and assistant) including fields for role, content, status, timestamps, thread linkage, and optional embedding or media; ensure Firestore writes and reads are efficient.",
+        "owner": "Backend Team",
+        "weight": 1.5,
+        "dependencies": ["PB-SEC-RULES-001", "PB-OPS-EMBED-001"],
+        "acceptanceCriteria": [
+          "Message documents include at least: userId (owner), threadId (to group messages), role (user or assistant or system), content (text of the message, possibly segmented for very long content), createdAt timestamp, and status (e.g., 'processing', 'complete', or 'error').",
+          "Assistant messages support status transitions: initially saved as status=processing (when generation begins), then updated to status=complete when the final content is saved, or status=error if generation failed. These transitions are atomic or controlled to avoid partial saves (two-step process if needed).",
+          "If an image is attached to a user message, an imageUrl is stored (pointing to Firebase Storage or external link), and optionally an imageDescription (alt text or caption generated by AI). The system ensures this is displayed appropriately in the UI.",
+          "Embeddings are stored only for messages that are meant to be searchable (likely assistant messages or knowledge content). Typically user queries might not be stored with embeddings unless needed for search context. If stored, the embedding field is separate and possibly not retrieved on every query (to reduce payload). Also, these embeddings are excluded from exports as per Embedding Pipeline rules.",
+          "All Message writes and reads enforce user scoping (via Firestore rules). The data model is indexed properly: for example, indexing on threadId for quick retrieval of messages in a thread sorted by createdAt."
+        ],
+        "eventMappings": [
+          {
+            "type": "system.message.persisted",
+            "payloadMatch": ["messageId", "role"],
+            "updates": { "status": "done", "progressDelta": 0.1 }
+          },
+          {
+            "type": "system.message.updated",
+            "payloadMatch": ["messageId", "status"],
+            "updates": { "status": "in_progress", "progressDelta": 0.0 }
+          }
+        ]
+      },
+      {
+        "nodeId": "PB-DATA-THREAD-001",
+        "title": "Thread Data Model & Persistence",
+        "description": "Schema for threads (conversation sessions) including title, summary, pinned status, archived status, timestamps; support create, update (rename, pin, archive), delete.",
+        "owner": "Backend Team",
+        "weight": 1,
+        "dependencies": ["PB-SEC-RULES-001"],
+        "acceptanceCriteria": [
+          "Thread create, list, update, delete operations all succeed through the API or Firestore rules for the authenticated user. Creating a thread sets userId, generates a unique threadId, and sets createdAt (and updatedAt initially same).",
+          "The thread model includes updatedAt which is updated whenever a new message is added to the thread (so we can sort by recent activity). This should be done either via a Cloud Function trigger or client update to ensure accuracy.",
+          "Auto-title generation: after at most 3 messages in a new thread (or when the first assistant answer is available), the system generates a title for the thread (summarizing the topic). If available server-side (maybe using OpenAI), it saves it to the thread document. The title is non-empty and descriptive. If generation fails, the thread might keep a default name until user renames.",
+          "Thread summary field is present and can store a concise summary for long threads. When the summary job runs (if thread >=10 messages or on demand), it updates this field. The summary is shown in UI in appropriate places (like hover or sidebar).",
+          "Pinned and archived: the schema has boolean fields for pinned and archived. Pinning a thread might cause it to sort separately (e.g., pinned ones at top). Archiving might hide it from default list (maybe accessible via a filter). These actions update the fields and UI reacts accordingly (though full UI support might be partial if specified)."
+        ],
+        "eventMappings": [
+          {
+            "type": "system.thread.persisted",
+            "payloadMatch": ["threadId"],
+            "updates": { "status": "done", "progressDelta": 0.2 }
+          },
+          {
+            "type": "system.thread.updated",
+            "payloadMatch": ["threadId", "title"],
+            "updates": { "status": "in_progress", "progressDelta": 0.1 }
+          }
+        ]
+      },
+      {
+        "nodeId": "PB-DATA-MEM-001",
+        "title": "Memory Data Model & Vector Storage",
+        "description": "Schema for memory entries (personal knowledge) including content, embedding vector, createdAt, userId, source link; supports CRUD and integration with search.",
+        "owner": "Backend Team",
+        "weight": 1.5,
+        "dependencies": ["PB-OPS-EMBED-001", "PB-SEC-RULES-001"],
+        "acceptanceCriteria": [
+          "Creating a memory entry stores a document with fields: userId, content (the textual memory or fact), createdAt timestamp, source (e.g., which thread/message or agent generated it), and an embedding vector (if immediately available). It returns a memoryId to the client if needed.",
+          "Editing a memory updates the content. On edit, the system either updates the embedding immediately or sets a flag like needReindex=true for the Embedding Pipeline to handle. If immediate embedding update is configured, it does so (with potential slight delay). The updated content should reflect in search results after reindex.",
+          "Deleting a memory removes it from the memories collection (or marks deleted). It should also remove or invalidate its embedding in the vector index. After deletion, searching should no longer return that memory.",
+          "Memory search queries (via PB-CORE-SEARCH-001) filter results by userId inherently. The data model might store embeddings in a centralized vector store keyed by user. Regardless, the integration ensures one user's memory never appears in another's results.",
+          "The memory data model may include metadata like tags or categories in the future (not in current scope unless PRD specified), but even if present, security and search integration remain properly scoped."
+        ],
+        "eventMappings": [
+          {
+            "type": "system.memory.persisted",
+            "payloadMatch": ["memoryId"],
+            "updates": { "status": "done", "progressDelta": 0.2 }
+          },
+          {
+            "type": "system.memory.updated",
+            "payloadMatch": ["memoryId"],
+            "updates": { "status": "in_progress", "progressDelta": 0.1 }
+          }
+        ]
+      },
+      {
+        "nodeId": "PB-DATA-ART-001",
+        "title": "Artifact Data Model & Versioning Readiness",
+        "description": "Schema for artifacts (code snippets, images, etc.) including type, content, version, createdAt, userId, and optional title; prepare for future versioning feature in data structure.",
+        "owner": "Backend Team",
+        "weight": 1,
+        "dependencies": ["PB-SEC-RULES-001"],
+        "acceptanceCriteria": [
+          "Artifacts are stored with essential fields: userId (owner), type (e.g., 'code', 'image', 'markdown'), content (the actual snippet text, or URL for an image if stored in bucket), createdAt timestamp, and an optional title or description. If an artifact is derived from a message, a reference to that message/thread can be stored as metadata.",
+          "The Artifact viewer can load an artifact by its ID, given the user has access (security rules enforce matching userId). This ensures that even if someone guesses an artifact ID, they cannot retrieve it unless logged in as the owner.",
+          "A 'version' field exists on artifacts. Initially it's 1 for first creation. If in the future an artifact is regenerated or edited, a new document or version entry would be created and version incremented. For now, since versioning isn't implemented, the field simply allows for extension; the UI may not expose multiple versions yet.",
+          "Artifacts can be downloaded (if it's text, then as a file; if image, as image file, etc.). This means we store enough info to reconstruct a file (for text, content + a suggested filename and type, for images, an actual file link).",
+          "Copy-to-clipboard is supported for textual artifacts directly from the UI (doesn't affect data model, but part of functionality)."
+        ],
+        "eventMappings": [
+          {
+            "type": "system.artifact.persisted",
+            "payloadMatch": ["artifactId"],
+            "updates": { "status": "done", "progressDelta": 0.2 }
+          },
+          {
+            "type": "system.artifact.updated",
+            "payloadMatch": ["artifactId", "version"],
+            "updates": { "status": "in_progress", "progressDelta": 0.1 }
+          }
+        ]
+      },
+      {
+        "nodeId": "PB-DATA-GRAPH-001",
+        "title": "Knowledge Graph Data Model",
+        "description": "Schema for knowledge graph: system_knowledge_graph nodes and knowledge_edges edges collections; supports storing relationships and computing analytics.",
+        "owner": "Backend Team",
+        "weight": 0.8,
+        "dependencies": ["PB-SEC-RULES-001"],
+        "acceptanceCriteria": [
+          "Knowledge Graph Node documents exist with unique IDs and metadata (e.g., nodeId, name, type, description, createdAt). They represent entities or concepts discovered or used by the system. The system can create nodes for key terms (e.g., topics of conversation, entities extracted from content).",
+          "Knowledge Edge documents represent relationships between nodes, with fields like fromNodeId, toNodeId, relationshipType (e.g., 'related_to', 'mentions', 'follows_from'), and possibly a weight or timestamp. These edges might be created by the system as it learns connections (like connecting a memory to a knowledge topic node).",
+          "An API endpoint or function allows retrieval of a subgraph (all nodes and edges) or a page of nodes/edges, so that the Graph Visualization can fetch data. It should support pagination or filtering (e.g., get 100 nodes at a time, or get all nodes of a certain type).",
+          "Graph view (in UI) can consume this data to render. The data model is designed such that even if nodes=1000+, the queries remain efficient (indexed by something if needed). Possibly only global, since system_phases suggests unauthenticated read, but in general ensure no user can modify this data unless authorized (likely only system or admin can add nodes/edges).",
+          "We can compute simple analytics on this data model, like node degree distribution or find isolated subgraphs. The data model supports such queries (e.g., edges indexed by nodeId so counting degrees is easy)."
+        ],
+        "eventMappings": [
+          {
+            "type": "system.graph.persisted",
+            "payloadMatch": ["nodeCount", "edgeCount"],
+            "updates": { "status": "done", "progress": 1.0 }
+          },
+          {
+            "type": "system.graph.analysis_complete",
+            "payloadMatch": ["metric"],
+            "updates": { "status": "in_progress", "progressDelta": 0.05 }
+          }
+        ]
+      },
+      {
+        "nodeId": "PB-DATA-PHASE-001",
+        "title": "System Phase Tracking (14 Phases)",
+        "description": "system_phases collection to track the 14 defined phases of the project, each with status, description, metrics, updatedAt. Readable by unauthenticated (public status).",
+        "owner": "Backend Team",
+        "weight": 0.8,
+        "dependencies": ["PB-SEC-RULES-001"],
+        "acceptanceCriteria": [
+          "The system_phases collection contains 14 documents (phase1...phase14 for example) each with at least: phaseId (1-14 or a code), name, status, description, and updatedAt timestamp. Initially these are configured as per the project plan (could be manually entered for now).",
+          "Unauthenticated clients can read the system_phases collection (security rules allow read for this collection specifically), but cannot write. This enables a public status view or the login screen to possibly show project completion status.",
+          "Updating a phase (status change) updates its updatedAt. This should happen via admin action or automation when certain milestones are hit (e.g., when all tasks in Phase 1 are done, we mark Phase 1 completed). The UI dashboard listens and updates within 2s of this change being in Firestore.",
+          "The phase document includes a metrics field which can store arbitrary key-values, like 'tasks': X, 'completedTasks': Y, or domain-specific metrics. The system can update these as needed to show progress per phase or other stats on the dashboard.",
+          "Phase status values are likely enumerated (e.g., not_started, in_progress, completed, maybe blocked if a phase is waiting on something). These should be used consistently so the dashboard can color-code or sort accordingly."
+        ],
+        "eventMappings": [
+          {
+            "type": "system.phase.persisted",
+            "payloadMatch": ["phaseId"],
+            "updates": { "status": "done", "progressDelta": 0.05 }
+          },
+          {
+            "type": "system.phase.updated",
+            "payloadMatch": ["phaseId", "status"],
+            "updates": { "status": "in_progress", "progressDelta": 0.0 }
+          }
+        ]
+      },
+      {
+        "nodeId": "PB-COPY-CONTENT-001",
+        "title": "Content/Copy System (Tone & States)",
+        "description": "Ensure consistent terminology and tone across UI: uses defined glossary terms, professional but approachable technical tone. Implement helper texts, tooltips, empty state messages, and any legal/privacy text.",
+        "owner": "Frontend Team",
+        "weight": 0.7,
+        "dependencies": ["PB-CORE-CHAT-001", "PB-CORE-SETTINGS-001"],
+        "acceptanceCriteria": [
+          "All user-facing text uses the agreed terminology from the product glossary. E.g., use 'Thread' not 'Conversation' (if that's defined), 'Memory' not 'Note', 'Knowledge Base' not 'Files', etc. This consistency should be verified via a content audit of all screens.",
+          "The tone of copy is professional and technical, yet user-friendly. Error messages follow a consistent format: a short title (e.g., 'Network Error'), a description in lay terms, and an action or suggestion if appropriate ('Please check your connection and try again.'). They do not expose raw error codes or stack traces to the user.",
+          "Empty states are provided for all main views: if no threads, the threads list area says something like 'No conversations yet'. If a thread has no messages (aside from system welcome), the chat area shows a helpful message or the 3D box. If no memories, memory page says 'No memories saved'. No artifacts: 'No artifacts generated yet'. No KB files: 'No documents uploaded'. These give users guidance on what to do next (like 'Try asking a question to create a thread.').",
+          "Tooltip or help text is available for any non-obvious controls. For example, a tooltip on the API key field explaining it, or on the model selection explaining differences. The content team reviewed these for clarity.",
+          "Any required legal copy or links (privacy policy, terms of service, attribution for AI) are present in the app (commonly in the settings or footer). Also, a brief security note is shown near API keys (like 'Keep this key secret; it has the same access as your account') and near the Clear Data button ('This action is irreversible')."
+        ],
+        "eventMappings": [
+          {
+            "type": "ui.copy.audit_passed",
+            "payloadMatch": ["screenCount"],
+            "updates": { "status": "done", "progress": 1.0 }
+          },
+          {
+            "type": "ui.copy.updated",
+            "payloadMatch": ["componentId"],
+            "updates": { "status": "in_progress", "progressDelta": 0.1 }
+          }
+        ]
+      }
+    ]
+  },
+  "Node ID Rules": {
+    "format": "PB-{DOMAIN}-{AREA}-{NNN}",
+    "domains": {
+      "CORE": "User-facing core modules (chat UI, threads, memory UI, artifacts UI, knowledge base UI, settings UI, graph UI)",
+      "DASH": "Dashboards and special UI modes (PandoraUI overall dashboard)",
+      "LANES": "Server-side processing lanes and orchestrators",
+      "INTEG": "Integrations with external systems (MCP tools, ChatGPT Actions API)",
+      "OPS": "Operational features (cron jobs, background agents, logging, rate limiting, export, embeddings)",
+      "SEC": "Security and authentication modules (auth, rules, api keys)",
+      "DATA": "Data model and persistence schemas"
+    },
+    "area": "Short functional area key (e.g., CHAT, THREADS, MEMORY, ARTIFACTS, KB, SETTINGS, GRAPH, PHASE, ORCH, MCP, ACTIONS, CRON, AGENTS, AUTH, RULES, APIKEY, RATE, EMBED, EXPORT, LOGS, COPY)",
+    "stability": [
+      "Node IDs are deterministic and permanent: once assigned to a functionality, the ID never changes across versions. They serve as consistent references for tracking.",
+      "New scope items introduced in future versions get new IDs appended; existing node IDs are not repurposed or renumbered, even if some items are completed or removed.",
+      "If a single scope item splits into multiple sub-items, the original node remains as a parent or overall tracker, and new nodes are created for the sub-parts, referencing the parent in their dependencies."
+    ],
+    "deterministicGeneration": [
+      "Module and workflow breakdown was derived from PRD v1.0 structure (headings, module lists, and described features). Each distinct feature or sub-module was mapped to a Node.",
+      "The DOMAIN and AREA codes were chosen based on context (e.g., all Chat UI-related under CORE-CHAT). The NNN sequence follows the introduction order in the PRD document.",
+      "We aimed for feature-granular nodes that can be independently developed and tested. Some broad PRD items were split to ensure each node is testable (e.g., separate node for data model vs UI for a feature, where applicable)."
+    ]
+  },
+  "Coverage Report": {
+    "nodeCount": 26,
+    "missingOwnersCount": 0,
+    "missingOwnersNodeIds": [],
+    "missingAcceptanceCriteriaCount": 0,
+    "resolvedAmbiguities": [
+      {
+        "item": "PandoraUI 14 phases list",
+        "resolution": "Defined a placeholder phaseRegistry with 14 entries (Phase 1 through Phase 14) in master plan. Each phase has an ID, name, and status field, which can be updated. Specific phase names from the PRD were not provided, so generic names are used for now with the understanding they correspond to project milestones."
+      },
+      {
+        "item": "Graph analytics exact metrics",
+        "resolution": "Chose 'average node degree distribution' as the default metric to display in the graph analytics panel. This provides at least one concrete metric (avg connections per node and highlighting max degree) as a proxy for graph analytics. More metrics can be added later, but this satisfies the requirement."
+      },
+      {
+        "item": "Notifications triggers",
+        "resolution": "No active notification feature implemented in this version. Notification triggers are deferred (possibly a future feature outside v2 scope). The UI has placeholders for notification settings but no actual trigger logic. We explicitly note this is not in current scope to set correct expectations."
+      },
+      {
+        "item": "Audit logs",
+        "resolution": "No dedicated 'audit log' user interface is included in current scope. However, system_logs capture events and errors internally. If needed, an admin can query system_logs for audit purposes. Essentially, we consider system_logs as serving the audit log purpose for now, with no separate UI module."
+      },
+      {
+        "item": "Hybrid search external provider (Tavily)",
+        "resolution": "For hybrid search (Phase 5), assume integration with a single external knowledge provider (e.g., an API like Tavily or similar), merging results with internal search. We set a basic merging strategy (combine results with simple ranking) and a cache TTL of 24 hours for external results. Detailed ranking algorithms are left configurable/tunable as needed."
+      }
+    ]
+  },
+  "phaseRegistry": [
+    { "phaseId": 1, "name": "Phase 1 - Core MVP", "status": "completed" },
+    { "phaseId": 2, "name": "Phase 2 - Knowledge Graph", "status": "in_progress" },
+    { "phaseId": 3, "name": "Phase 3 - Extended Memory", "status": "not_started" },
+    { "phaseId": 4, "name": "Phase 4 - Knowledge Base", "status": "not_started" },
+    { "phaseId": 5, "name": "Phase 5 - Hybrid Search", "status": "not_started" },
+    { "phaseId": 6, "name": "Phase 6 - Intelligent Agents", "status": "not_started" },
+    { "phaseId": 7, "name": "Phase 7 - Integrations", "status": "not_started" },
+    { "phaseId": 8, "name": "Phase 8 - UI/UX Enhancements", "status": "not_started" },
+    { "phaseId": 9, "name": "Phase 9 - Performance & Scale", "status": "not_started" },
+    { "phaseId": 10, "name": "Phase 10 - Compliance & Security", "status": "not_started" },
+    { "phaseId": 11, "name": "Phase 11 - Beta Launch Prep", "status": "not_started" },
+    { "phaseId": 12, "name": "Phase 12 - Beta Feedback Iteration", "status": "not_started" },
+    { "phaseId": 13, "name": "Phase 13 - Public Launch Prep", "status": "not_started" },
+    { "phaseId": 14, "name": "Phase 14 - Public Launch & Beyond", "status": "not_started" }
+  ],
+  "assumptions": [
+    {
+      "context": "Missing owners in v1",
+      "assumption": "Assigned 'Frontend Team' as owner for all UI-centric nodes (CORE, DASH, COPY domains) and 'Backend Team' for server-centric nodes (LANES, INTEG, OPS, SEC, DATA domains) to fill missing owner fields."
+    },
+    {
+      "context": "Phase list names",
+      "assumption": "Used placeholder phase names (Phase 1, Phase 2, etc.) with generic descriptors where possible, since the PRD did not enumerate all 14 phase names. These can be updated when the canonical list is available."
+    },
+    {
+      "context": "Design token integration",
+      "assumption": "In implementing brand styling (neon glassmorphism), we assumed creation of design tokens for colors, opacity, blur, etc., and applied them globally. This required minor CSS refactoring but no back-end changes."
+    },
+    {
+      "context": "External hybrid search",
+      "assumption": "Assumed a single external knowledge API integration for hybrid search with simple result merging and a 24h cache. Did not integrate a specific provider (Tavily) in code since details are not fully specified."
+    },
+    {
+      "context": "Notifications & audit logs",
+      "assumption": "Treated notifications and audit logging as out-of-scope for this version. No user-facing notification system is active; system_logs serve internal audit purposes. These can be revisited in a future phase."
+    }
+  ]
+}
