@@ -1,0 +1,107 @@
+Perfect — if you already stored the **stabilization_sprint_plan** in Cursor/repo, then you’re past the “create the file” step ✅ Now you just need to **publish it into Kairos (Base44)** and **make Kairos actually use it**.
+
+Here’s the exact “what now” checklist (no questions, just actions):
+
+---
+
+## ✅ 1) Verify the file is really in the repo
+
+Make sure this exists (or equivalent path):
+
+* `contracts/kairos/stabilization_sprint_plan.json`
+
+If it’s there, good. Move on.
+
+---
+
+## ✅ 2) Add a publish script (so you can push it to Base44 Kairos)
+
+Even if the plan exists locally, Kairos won’t know it unless you send it.
+
+Create:
+
+* `scripts/kairos-register-stabilization.ts`
+
+It should:
+
+* read the JSON file
+* POST to: `https://kairostrack.base44.app/api/stabilization/register` (or your actual endpoint)
+* include auth header if you use one
+
+Add npm script:
+
+* `"kairos:register:stabilization": "tsx scripts/kairos-register-stabilization.ts"`
+
+Then run:
+
+```bash
+npm run kairos:register:stabilization
+```
+
+---
+
+## ✅ 3) Implement the Base44 endpoints + storage (if not already done)
+
+Kairos needs these, otherwise your POST won’t land:
+
+### Storage
+
+* `kairos_stabilization_plans` table/collection
+
+  * `id`, `created_at`, `source`, `is_active`, `plan_json`
+
+### APIs
+
+* `POST /api/stabilization/register`
+* `GET /api/stabilization/active`
+
+---
+
+## ✅ 4) Wire stabilization into rollups as a gating overlay
+
+This is the “it actually matters” step.
+
+During rollup recompute:
+
+* load active masterplan
+* load active stabilization plan
+* apply gating:
+
+  * mark impacted tasks `blocked` if gates fail
+  * do **not** count stabilization as progress
+  * stabilization only affects *status/eligibility* and denominator rules (per your formulas)
+
+---
+
+## ✅ 5) Add the UI banner so you *see* it
+
+In Kairos Overview:
+
+* “Stabilization Sprint” banner
+* show:
+
+  * open P0/P1 count (or “unknown” until bug events exist)
+  * top root-cause clusters
+  * current gate status (pass/fail)
+
+---
+
+## ✅ 6) Then run a single end-to-end proof test
+
+1. Register masterplan (already done ✅)
+2. Register stabilization plan (this step)
+3. Run `npm run kairos:simulate`
+4. Confirm in Kairos:
+
+   * Live Activity shows events
+   * Tasks reflect gating (blocked where appropriate)
+
+---
+
+### The key point 🧠
+
+**Having it “stored in Cursor” only means it’s in your repo.**
+To make it real, you must:
+✅ **publish it to Kairos** + ✅ **wire Kairos rollups/UI to read it**.
+
+If you want the fastest next move: tell Cursor to implement steps **2–5** exactly (publish script + Base44 endpoints + gating overlay + banner).

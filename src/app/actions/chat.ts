@@ -15,6 +15,7 @@ import { checkRateLimit } from '@/lib/rate-limit';
 import { trackEvent } from '@/lib/analytics';
 import { v4 as uuidv4 } from 'uuid';
 import { getActiveWorkspaceIdForUser } from '@/lib/workspaces';
+import { sendKairosEvent } from '@/lib/kairosClient';
 
 // Lazy initialization to avoid build-time errors
 function getOpenAI() {
@@ -36,6 +37,13 @@ export async function createThread(userId: string): Promise<string> {
         title: 'New Chat',
         createdAt: FieldValue.serverTimestamp(),
     });
+    
+    // Emit Kairos event: thread created
+    sendKairosEvent('ui.thread.created', {
+        threadId: threadRef.id,
+        userId,
+    }).catch(err => console.warn('Failed to emit thread.created event:', err));
+    
     return threadRef.id;
 }
 
@@ -190,6 +198,12 @@ export async function submitUserMessage(formData: FormData) {
     // Check rate limit for messages
     const rateLimitCheck = await checkRateLimit(userId, 'messages');
     if (!rateLimitCheck.success) {
+      // Emit Kairos event: rate limit triggered
+      sendKairosEvent('system.ratelimit.triggered', {
+        limitType: 'messages',
+        userId,
+      }).catch(err => console.warn('Failed to emit ratelimit.triggered event:', err));
+      
       return { 
         messageId: undefined, 
         threadId: undefined,
@@ -264,6 +278,19 @@ export async function submitUserMessage(formData: FormData) {
       // Track analytics
       await trackEvent(userId, 'message_sent', { threadId, hasImage: !!imageBase64, hasAudio: !!audioUrl });
       // await trackEvent(userId, 'embedding_generated'); // Removed as it's now async
+  
+      // Emit Kairos events
+      sendKairosEvent('ui.chat.message_sent', {
+        threadId,
+        messageId: userMessageId,
+        userId,
+      }, { correlationId: threadId }).catch(err => console.warn('Failed to emit message_sent event:', err));
+      
+      sendKairosEvent('system.message.persisted', {
+        messageId: userMessageId,
+        role: 'user',
+        userId,
+      }, { correlationId: threadId }).catch(err => console.warn('Failed to emit message.persisted event:', err));
   
       console.log(`Successfully wrote message to thread ${threadId} for user: ${userId}`);
   
@@ -359,6 +386,12 @@ export async function summarizeThread(threadId: string, userId: string): Promise
         const { summary } = await summarizeLongChat({ chatHistory });
         if (summary) {
             await threadRef.update({ summary });
+            
+            // Emit Kairos event: thread summary generated
+            sendKairosEvent('system.thread.summary_generated', {
+                threadId,
+                userId,
+            }).catch(err => console.warn('Failed to emit thread.summary_generated event:', err));
         }
     } catch (error) {
         console.error('Failed to summarize thread:', error);
@@ -386,6 +419,16 @@ export async function updateThread(threadId: string, userId: string, updates: { 
         }
 
         await threadRef.update(updates);
+        
+        // Emit Kairos event: thread updated
+        if (updates.title) {
+            sendKairosEvent('system.thread.updated', {
+                threadId,
+                title: updates.title,
+                userId,
+            }).catch(err => console.warn('Failed to emit thread.updated event:', err));
+        }
+        
         revalidatePath('/');
         return { success: true, message: 'Thread updated successfully.' };
     } catch (error) {

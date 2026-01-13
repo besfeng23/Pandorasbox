@@ -146,6 +146,13 @@ export async function runAnswerLane(
             
             console.log(`[AnswerLane] Memory search results: history=${historyResults.length}, memories=${memoriesResults.length}`);
             
+            // Emit Kairos event: retrieval done
+            const { sendKairosEvent } = await import('@/lib/kairosClient');
+            sendKairosEvent('system.lane.answer.retrieval_done', {
+                resultCount: historyResults.length + memoriesResults.length,
+                userId,
+            }, { correlationId: threadId }).catch(err => console.warn('Failed to emit lane.answer.retrieval_done event:', err));
+            
             const allCandidates = [...historyResults, ...memoriesResults];
             let topResults = allCandidates;
 
@@ -316,6 +323,13 @@ ${memoryUsageInstructions}
                 threadId: threadId,
                 progress_log: FieldValue.arrayUnion('Done.'),
             });
+    
+            // Emit Kairos event: answer lane completed
+            const { sendKairosEvent } = await import('@/lib/kairosClient');
+            sendKairosEvent('system.lane.answer.completed', {
+                assistantMessageId,
+                userId,
+            }, { correlationId: threadId }).catch(err => console.warn('Failed to emit lane.answer.completed event:', err));
     
             console.log(`[AnswerLane] Successfully completed message ${assistantMessageId}`);
             return { answer: cleanResponse };

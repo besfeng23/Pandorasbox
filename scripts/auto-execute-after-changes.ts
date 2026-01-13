@@ -32,6 +32,13 @@ function getChangedFiles(): string[] {
   }
 }
 
+function getPackageRunner(): string {
+  const ua = (process.env.npm_config_user_agent || '').toLowerCase();
+  if (ua.includes('pnpm')) return 'pnpm -s';
+  if (ua.includes('yarn')) return 'yarn -s';
+  return 'npm';
+}
+
 async function autoCommitAndPush() {
   // Check if we're in a git repo
   if (!existsSync(join(GIT_DIR, '.git'))) {
@@ -68,7 +75,8 @@ async function autoCommitAndPush() {
 
   // Send events to Kairos (non-blocking)
   try {
-    execSync('npm run kairos:production-fixes', { cwd: GIT_DIR, stdio: 'pipe' });
+    const runner = getPackageRunner();
+    execSync(`${runner} run kairos:production-fixes`, { cwd: GIT_DIR, stdio: 'pipe' });
   } catch {
     // Silent fail for events
   }

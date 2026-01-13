@@ -24,6 +24,7 @@
     "test:memory": "tsx scripts/test-memory-usage.ts",
     "verify": "npm run verify:mcp-memory && npm run verify:all-memories",
     "test": "jest",
+    "test:kairos": "jest --runTestsByPath src/__tests__/kairos-publish.test.ts",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "seed:phases": "tsx scripts/seed-phases.ts",
@@ -33,8 +34,13 @@
     "kairos:progress": "tsx scripts/send-progress-events.ts",
     "kairos:status": "tsx scripts/send-status-events.ts",
     "kairos:production-fixes": "tsx scripts/send-production-fixes-events.ts",
+    "kairos:simulate": "tsx scripts/kairos-simulate.ts",
+    "kairos:register:stabilization": "tsx scripts/kairos-register-stabilization.ts",
+    "kairos:publish": "tsx scripts/kairos/publish.ts",
+    "kairos:publish:dry-run": "tsx scripts/kairos/publish.ts --dry-run",
     "auto-commit": "tsx scripts/auto-execute-after-changes.ts",
     "post-change": "tsx scripts/post-change-hook.ts",
+    "store:design-memory": "tsx scripts/store-design-memory-simple.ts",
     "kairos:init": "tsx scripts/initialize-kairos-plan.ts"
   },
   "dependencies": {

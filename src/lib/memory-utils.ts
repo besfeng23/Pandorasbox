@@ -12,6 +12,8 @@ import { generateEmbedding, generateEmbeddingsBatch } from './vector';
 import { FieldValue } from 'firebase-admin/firestore';
 import { trackEvent } from './analytics';
 import { updateKnowledgeGraphFromMemory } from './knowledge-graph';
+import { sendKairosEvent } from './kairosClient';
+import { sendKairosEvent } from './kairosClient';
 
 export interface MemoryData {
   content: string;
@@ -64,6 +66,17 @@ export async function saveMemory(memoryData: MemoryData): Promise<MemoryResult> 
 
     // Update with the ID
     await memoryRef.update({ id: memoryRef.id });
+
+    // Emit Kairos events
+    sendKairosEvent('system.lane.memory.created', {
+      memoryId: memoryRef.id,
+      userId: memoryData.userId,
+    }).catch(err => console.warn('Failed to emit lane.memory.created event:', err));
+    
+    sendKairosEvent('system.memory.persisted', {
+      memoryId: memoryRef.id,
+      userId: memoryData.userId,
+    }).catch(err => console.warn('Failed to emit memory.persisted event:', err));
 
     await updateKnowledgeGraphFromMemory({
       userId: memoryData.userId,
@@ -150,6 +163,7 @@ export async function saveMemoriesBatch(memories: MemoryData[]): Promise<{
     const batch = firestoreAdmin.batch();
     let saved = 0;
     let failed = 0;
+    const savedMemoryIds: string[] = [];
 
     const knowledgeUpdates: Array<Promise<unknown>> = [];
 
@@ -169,6 +183,8 @@ export async function saveMemoriesBatch(memories: MemoryData[]): Promise<{
           type: memoryData.type || 'normal', // Memory type: insight, question_to_ask, or normal
           ...memoryData.metadata,
         });
+
+        savedMemoryIds.push(docRef.id);
 
         knowledgeUpdates.push(
           updateKnowledgeGraphFromMemory({
@@ -190,9 +206,24 @@ export async function saveMemoriesBatch(memories: MemoryData[]): Promise<{
       await batch.commit();
       await Promise.all(knowledgeUpdates);
       
+      // Emit Kairos events for each saved memory
+      const userId = validMemories[0]?.userId;
+      if (userId) {
+        for (const memoryId of savedMemoryIds) {
+          sendKairosEvent('system.lane.memory.created', {
+            memoryId,
+            userId,
+          }).catch(err => console.warn('Failed to emit lane.memory.created event:', err));
+          
+          sendKairosEvent('system.memory.persisted', {
+            memoryId,
+            userId,
+          }).catch(err => console.warn('Failed to emit memory.persisted event:', err));
+        }
+      }
+      
       // Track analytics
       try {
-        const userId = validMemories[0]?.userId;
         if (userId) {
           await trackEvent(userId, 'memory_created', { 
             count: saved,

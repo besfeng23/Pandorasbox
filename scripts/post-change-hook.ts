@@ -33,6 +33,13 @@ function getChangedFiles(): string[] {
   }
 }
 
+function getPackageRunner(): string {
+  const ua = (process.env.npm_config_user_agent || '').toLowerCase();
+  if (ua.includes('pnpm')) return 'pnpm -s';
+  if (ua.includes('yarn')) return 'yarn -s';
+  return 'npm';
+}
+
 async function main() {
   console.log('🔄 Post-Change Hook: Auto-commit, push, and send events');
   console.log('');
@@ -89,7 +96,8 @@ async function main() {
   console.log('');
   console.log('📡 Sending events to Kairos...');
   try {
-    execSync('npm run kairos:production-fixes', { cwd: GIT_DIR, stdio: 'inherit' });
+    const runner = getPackageRunner();
+    execSync(`${runner} run kairos:production-fixes`, { cwd: GIT_DIR, stdio: 'inherit' });
   } catch (error: any) {
     console.warn('⚠️  Kairos events failed (non-critical):', error.message);
   }

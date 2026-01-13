@@ -9,6 +9,7 @@ import { runAnswerLane } from './run-answer-lane';
 import { suggestFollowUpQuestions } from './suggest-follow-up-questions';
 import { FieldValue } from 'firebase-admin/firestore';
 import { summarizeThread } from '@/app/actions';
+import { sendKairosEvent } from '@/lib/kairosClient';
 
 const ChatLaneInputSchema = z.object({
   userId: z.string(),
@@ -31,6 +32,16 @@ export async function runChatLane(
     },
     async ({ userId, message, messageId, imageBase64, audioUrl, source, threadId }) => {
       const firestoreAdmin = getFirestoreAdmin();
+      
+      // Emit Kairos event: chat lane started
+      if (messageId) {
+        sendKairosEvent('system.lane.chat.started', {
+          threadId,
+          messageId,
+          userId,
+        }, { correlationId: threadId }).catch(err => console.warn('Failed to emit lane.chat.started event:', err));
+      }
+      
       // 1. Create a placeholder for the assistant's response in the correct subcollection.
       const assistantRef = firestoreAdmin.collection('history').doc();
       await assistantRef.set({
@@ -66,6 +77,22 @@ export async function runChatLane(
           audioUrl: audioUrl, // Pass audioUrl
           assistantMessageId: assistantRef.id,
           threadId, // Pass threadId to answer lane
+        }).then(result => {
+          // Emit Kairos event: chat lane completed
+          sendKairosEvent('system.lane.chat.completed', {
+            assistantMessageId: assistantRef.id,
+            threadId,
+            userId,
+          }, { correlationId: threadId }).catch(err => console.warn('Failed to emit lane.chat.completed event:', err));
+          
+          // Emit response completed event
+          sendKairosEvent('system.chat.response_completed', {
+            threadId,
+            assistantMessageId: assistantRef.id,
+            userId,
+          }, { correlationId: threadId }).catch(err => console.warn('Failed to emit chat.response_completed event:', err));
+          
+          return result;
         }),
         new Promise<{ answer: string }>((_, reject) => 
           setTimeout(() => reject(new Error('Answer lane timeout after 120 seconds')), 120000)

@@ -1,5 +1,4 @@
 import { GoogleAuth } from 'google-auth-library';
-import fetch from 'node-fetch';
 
 const GATEWAY_URL = process.env.KAIROS_EVENT_GATEWAY_URL || 'https://kairos-event-gateway-axypi7xsha-as.a.run.app';
 const GOOGLE_ID_TOKEN = process.env.GOOGLE_ID_TOKEN;
