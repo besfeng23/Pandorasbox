@@ -32,6 +32,8 @@ type HttpResult = {
   json?: any;
 };
 
+type TaskRollup = { nodeId?: string; task_id?: string; id?: string; blocked?: boolean; is_blocked?: boolean; blockedByBugIds?: string[] };
+
 function banner(title: string) {
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log(title);
@@ -46,6 +48,14 @@ function shortJson(obj: any, max = 1200): string {
   } catch {
     return String(obj);
   }
+}
+
+function fail(message: string, details?: any, exitCode = 1): never {
+  console.error(`❌ ${message}`);
+  if (details !== undefined) {
+    console.error(shortJson(details, 5000));
+  }
+  process.exit(exitCode);
 }
 
 async function requestJson(method: 'GET' | 'POST', url: string, body?: any): Promise<HttpResult> {
@@ -219,6 +229,32 @@ function samplePlanPayload() {
   };
 }
 
+function planRegisterPayloadCandidates(payload: any): any[] {
+  // Base44 has historically accepted multiple shapes. We try:
+  // 1) { masterPlan: { version, nodes } } (repo-side canonical)
+  // 2) { version, nodes } (flattened)
+  // 3) { plan_version, nodes } (some validators look for plan_version)
+  const mp = payload?.masterPlan;
+  const version = mp?.version ?? payload?.version ?? payload?.plan_version;
+  const nodes = mp?.nodes ?? payload?.nodes;
+  const flattened = version && nodes ? { version, nodes } : null;
+  const flattenedPlanVersion = version && nodes ? { plan_version: version, nodes } : null;
+  return [payload, ...(flattened ? [flattened] : []), ...(flattenedPlanVersion ? [flattenedPlanVersion] : [])];
+}
+
+function isPlanRegisterRetryable(res: HttpResult): boolean {
+  if (res.ok) return false;
+  // If the endpoint is changing shape, we retry on these common signals.
+  if (res.status === 400) {
+    const txt = (res.bodyText ?? '').toLowerCase();
+    if (txt.includes('missing version') || txt.includes('plan_version') || txt.includes('invalid plan json')) return true;
+    if (txt.includes('invalid json')) return true;
+  }
+  // Some Base44 errors surface as 500 for shape mismatches.
+  if (res.status === 500) return true;
+  return false;
+}
+
 function collectBlockedNodeIdsFromStabilizationPlan(stab: any): Set<string> {
   const out = new Set<string>();
   const planJson = stab?.plan_json;
@@ -246,6 +282,22 @@ function collectTasksFromActivePlanResponse(activePlan: any): TaskLike[] {
   return candidates.filter((x) => x && typeof x === 'object');
 }
 
+function normalizeNodeId(x: unknown): string | null {
+  if (typeof x !== 'string') return null;
+  const t = x.trim();
+  return t ? t : null;
+}
+
+function taskNodeId(t: TaskRollup | TaskLike): string | null {
+  return normalizeNodeId((t as any).nodeId ?? (t as any).task_id ?? (t as any).id);
+}
+
+function getRollupTasks(activePlan: any): TaskRollup[] {
+  const tasks = activePlan?.rollups?.tasks;
+  if (!Array.isArray(tasks)) return [];
+  return tasks.filter((t: any) => t && typeof t === 'object');
+}
+
 function loadStabilizationPayloadOrNull(): any | null {
   const contractPath = path.join(process.cwd(), 'contracts', 'kairos', 'stabilization_sprint_plan.json');
   if (!fs.existsSync(contractPath)) return null;
@@ -268,6 +320,15 @@ async function main() {
   const planMode = (process.env.KAIROS_E2E_PLAN_MODE ?? '').trim().toLowerCase();
 
   let stabilizationActive: any | null = null;
+  let expectedNodeIds: string[] = [];
+  let expectedNodeCount: number | null = null;
+  let recomputeTasksProcessed: number | null = null;
+  let rollupsTasksLength: number | null = null;
+  let overblockingMismatches: number | null = null;
+  let unmappedBlocked: Record<string, boolean | null> = {
+    'PB-UNMAPPED-OPS-001': null,
+    'PB-UNMAPPED-OPS-002': null,
+  };
 
   banner('Kairos E2E Smoke (Base44 /functions/* endpoints)');
   console.log(`Base URL: ${endpoints.baseUrl}`);
@@ -282,6 +343,27 @@ async function main() {
 
   banner('1) Register Track A plan');
   {
+    const payload = samplePlanPayload();
+    const nodes = payload?.masterPlan?.nodes;
+    if (Array.isArray(nodes)) {
+      expectedNodeIds = nodes
+        .map((n: any) => normalizeNodeId(n?.nodeId))
+        .filter((x: any): x is string => typeof x === 'string');
+      expectedNodeCount = expectedNodeIds.length;
+    }
+
+    if (planMode === 'big' && !forceRegisterPlan) {
+      // Hard contract: the validation is based on the plan we register.
+      // Avoid accidental comparisons against a previously-active plan.
+      fail(
+        'KAIROS_E2E_PLAN_MODE=big requires KAIROS_E2E_REGISTER_PLAN=1 (to avoid validating against a stale active plan).',
+        {
+          KAIROS_E2E_PLAN_MODE: planMode,
+          KAIROS_E2E_REGISTER_PLAN: process.env.KAIROS_E2E_REGISTER_PLAN ?? '',
+        }
+      );
+    }
+
     // Safety: do not overwrite an existing active plan unless explicitly requested.
     const existing = await requestJson('GET', endpoints.activePlanUrl);
     const hasActivePlan =
@@ -296,19 +378,39 @@ async function main() {
       if (planMode) console.log(`   (Note: KAIROS_E2E_PLAN_MODE=${planMode} is set, but plan register is skipped.)`);
       console.log('');
     } else {
-      const res = await requestJson('POST', endpoints.planRegisterUrl, samplePlanPayload());
-      console.log(`HTTP ${res.status} ${res.statusText}`);
-      if (!res.ok) {
+      const candidates = planRegisterPayloadCandidates(payload);
+
+      let last: HttpResult | null = null;
+      for (let i = 0; i < candidates.length; i++) {
+        const attemptPayload = candidates[i];
+        const res = await requestJson('POST', endpoints.planRegisterUrl, attemptPayload);
+        last = res;
+        console.log(`HTTP ${res.status} ${res.statusText}${candidates.length > 1 ? ` (shape ${i + 1}/${candidates.length})` : ''}`);
+        if (res.ok) {
+          if (res.json) console.log(shortJson(res.json));
+          console.log('');
+          last = null;
+          break;
+        }
+
         const hint =
           res.status === 404 || res.status === 501 || res.status === 405
             ? 'Base44 function endpoint may not be deployed yet (expected: /functions/kairosRegisterPlan).'
             : '';
         if (hint) console.log(`Hint: ${hint}`);
         if (res.bodyText) console.log(res.bodyText);
+
+        if (i < candidates.length - 1 && isPlanRegisterRetryable(res)) {
+          console.log('↩️  Retrying with alternate plan JSON shape...');
+          continue;
+        }
+        console.log('');
+        break;
+      }
+
+      if (last) {
         process.exit(1);
       }
-      if (res.json) console.log(shortJson(res.json));
-      console.log('');
     }
   }
 
@@ -470,6 +572,28 @@ async function main() {
       process.exit(1);
     }
     if (res.json) console.log(shortJson(res.json));
+
+    // Hard contract checks (big plan mode)
+    if (planMode === 'big') {
+      if (!res.json || typeof res.json !== 'object') {
+        fail('Recompute response did not contain JSON', { status: res.status, bodyText: res.bodyText });
+      }
+      const tp = (res.json as any).tasks_processed;
+      if (typeof tp !== 'number') {
+        fail('Recompute response is missing numeric tasks_processed', res.json);
+      }
+      recomputeTasksProcessed = tp;
+      if (expectedNodeCount == null) {
+        fail('Internal error: expectedNodeCount not computed from registered big plan');
+      }
+      if (tp !== expectedNodeCount) {
+        fail('Recompute did not process ALL nodes (tasks_processed mismatch)', {
+          expectedNodeCount,
+          tasks_processed: tp,
+          planNodeIds: expectedNodeIds,
+        });
+      }
+    }
     console.log('');
   }
 
@@ -499,15 +623,37 @@ async function main() {
       if (enableStabilization && stabilizationActive) {
         banner('6) Assert stabilization gating is not over-blocking (repo-side check)');
         const gatedNodeIds = collectBlockedNodeIdsFromStabilizationPlan(stabilizationActive);
-        const tasks = collectTasksFromActivePlanResponse(res.json);
+
+        // Hard contract: rollups.tasks must exist (big plan mode)
+        const rollupTasks = getRollupTasks(res.json);
+        rollupsTasksLength = rollupTasks.length;
+
+        if (planMode === 'big') {
+          if (!res.json.rollups || !Array.isArray(res.json.rollups.tasks)) {
+            fail('Active plan is missing rollups.tasks[]', res.json);
+          }
+          if (expectedNodeCount == null) {
+            fail('Internal error: expectedNodeCount not computed from registered big plan');
+          }
+          if (rollupTasks.length !== expectedNodeCount) {
+            const taskIds = rollupTasks.map((t) => taskNodeId(t)).filter((x): x is string => !!x);
+            const missing = expectedNodeIds.filter((id) => !taskIds.includes(id));
+            fail('Active plan rollups.tasks length mismatch (must be 1 per node)', {
+              expectedNodeCount,
+              rollupsTasksLength: rollupTasks.length,
+              missingNodeIds: missing,
+              presentTaskIdsSample: taskIds.slice(0, 50),
+            });
+          }
+        }
+
+        const tasks = rollupTasks.length > 0 ? rollupTasks : collectTasksFromActivePlanResponse(res.json);
 
         const blocked = tasks.filter((t) => t.blocked === true || t.is_blocked === true);
-        const blockedIds = blocked
-          .map((t) => t.nodeId ?? t.task_id ?? t.id)
-          .filter((x): x is string => typeof x === 'string' && x.trim().length > 0)
-          .map((x) => x.trim());
+        const blockedIds = blocked.map((t) => taskNodeId(t as any)).filter((x): x is string => !!x);
 
         const unexpectedBlocked = blockedIds.filter((id) => !gatedNodeIds.has(id));
+        overblockingMismatches = unexpectedBlocked.length;
 
         console.log(`Tasks inspected: ${tasks.length}`);
         console.log(`Blocked tasks found: ${blockedIds.length}`);
@@ -527,6 +673,11 @@ async function main() {
         // Hard assertion requested: unmapped tasks should not be blocked by stabilization.
         const mustNeverBeBlocked = ['PB-UNMAPPED-OPS-001', 'PB-UNMAPPED-OPS-002'];
         const wronglyBlockedUnmapped = mustNeverBeBlocked.filter((id) => blockedIds.includes(id));
+        for (const id of mustNeverBeBlocked) {
+          const t = tasks.find((x: any) => taskNodeId(x) === id) as any;
+          const b = t ? (t.blocked === true || t.is_blocked === true) : null;
+          unmappedBlocked[id] = b;
+        }
         if (wronglyBlockedUnmapped.length > 0) {
           console.log('❌ FAILURE: Unmapped tasks were blocked by stabilization:');
           console.log(wronglyBlockedUnmapped.join(', '));
@@ -542,8 +693,15 @@ async function main() {
     console.log('');
   }
 
-  banner('Done');
-  console.log('✅ Kairos E2E smoke completed (plan + events + recompute + active plan fetched).');
+  banner('PASS summary');
+  if (planMode === 'big') {
+    console.log(`expectedNodeCount     : ${expectedNodeCount ?? 'unknown'}`);
+    console.log(`tasks_processed       : ${recomputeTasksProcessed ?? 'unknown'}`);
+    console.log(`rollups.tasks length  : ${rollupsTasksLength ?? 'unknown'}`);
+    console.log(`overblocking mismatches: ${overblockingMismatches ?? 'unknown'}`);
+    console.log(`unmapped blocked flags: ${JSON.stringify(unmappedBlocked)}`);
+  }
+  console.log('✅ Kairos E2E smoke completed.');
 }
 
 main().catch((err: any) => {

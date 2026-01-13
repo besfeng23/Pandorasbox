@@ -1,0 +1,21 @@
+﻿{
+    "version":  "pb.debug",
+    "nodes":  [
+                  {
+                      "nodeId":  "PB-CORE-CHAT-001",
+                      "eventMappings":  [
+                                            {
+                                                "payloadMatch":  [
+                                                                     "threadId",
+                                                                     "messageId"
+                                                                 ],
+                                                "updates":  {
+                                                                "progressDelta":  0.2,
+                                                                "status":  "in_progress"
+                                                            },
+                                                "type":  "ui.chat.message_sent"
+                                            }
+                                        ]
+                  }
+              ]
+}
