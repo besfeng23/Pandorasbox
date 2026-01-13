@@ -95,6 +95,13 @@ async function requestJson(method: 'GET' | 'POST', url: string, body?: any): Pro
   };
 }
 
+function isAuthRequiredResponse(res: HttpResult): boolean {
+  const body = (res.bodyText ?? '').toLowerCase();
+  if (body.includes('authentication required')) return true;
+  if (res.status === 401 || res.status === 403) return true;
+  return false;
+}
+
 function samplePlanPayload() {
   const mode = (process.env.KAIROS_E2E_PLAN_MODE ?? '').trim().toLowerCase();
   if (mode === 'big') {
@@ -602,6 +609,13 @@ async function main() {
     const res = await requestJson('GET', endpoints.activePlanUrl);
     console.log(`HTTP ${res.status} ${res.statusText}`);
     if (!res.ok) {
+      if (isAuthRequiredResponse(res) && !(process.env.KAIROS_INGEST_KEY ?? '').trim()) {
+        fail('Active plan fetch failed (auth required). Set KAIROS_INGEST_KEY and retry.', {
+          status: res.status,
+          bodyText: res.bodyText?.slice(0, 1200),
+          requiredEnv: ['KAIROS_INGEST_KEY'],
+        });
+      }
       if (res.bodyText) console.log(res.bodyText);
       process.exit(1);
     }

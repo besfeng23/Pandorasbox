@@ -1,0 +1,285 @@
+{
+  "masterPlan": {
+    "version": "pb.master.full.2026-01-13.v2",
+    "name": "Pandora’s Box — Master Plan (Track A)",
+    "description": "Full plan tree for Kairos Plan Explorer: phases → milestones → tasks/nodes, with dependencies and weights. Stable IDs use nodeId and id=nodeId.",
+    "phases": [
+      {
+        "phaseId": 1,
+        "title": "Core System Setup",
+        "milestones": [
+          {
+            "milestoneId": "MS-P1-CORE-CHAT",
+            "title": "Core chat + threads baseline",
+            "tasks": [
+              {
+                "nodeId": "PB-CORE-CHAT-001",
+                "id": "PB-CORE-CHAT-001",
+                "title": "Chat core (send/receive + completion proof)",
+                "weight": 1.0,
+                "dependsOn": [],
+                "eventMappings": [
+                  {
+                    "type": "ui.chat.message_sent",
+                    "payloadMatch": ["threadId", "messageId"],
+                    "updates": { "status": "in_progress", "progressDelta": 0.2 }
+                  },
+                  {
+                    "type": "system.chat.response_completed",
+                    "payloadMatch": ["threadId", "assistantMessageId"],
+                    "updates": { "status": "done", "progress": 1.0 }
+                  }
+                ]
+              },
+              {
+                "nodeId": "PB-CORE-THREADS-001",
+                "id": "PB-CORE-THREADS-001",
+                "title": "Threads (create + summarize)",
+                "weight": 0.8,
+                "dependsOn": ["PB-CORE-CHAT-001"],
+                "eventMappings": [
+                  {
+                    "type": "ui.thread.created",
+                    "payloadMatch": ["threadId"],
+                    "updates": { "status": "done", "progress": 1.0 }
+                  },
+                  {
+                    "type": "system.thread.summary_generated",
+                    "payloadMatch": ["threadId"],
+                    "updates": { "status": "done", "progressDelta": 0.3 }
+                  }
+                ]
+              },
+              {
+                "nodeId": "PB-DATA-THREAD-001",
+                "id": "PB-DATA-THREAD-001",
+                "title": "Thread persistence",
+                "weight": 0.6,
+                "dependsOn": ["PB-CORE-THREADS-001"],
+                "eventMappings": [
+                  {
+                    "type": "system.thread.persisted",
+                    "payloadMatch": ["threadId"],
+                    "updates": { "status": "done", "progressDelta": 0.2 }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phaseId": 2,
+        "title": "Autonomous Summarization & Insight Graph",
+        "milestones": [
+          {
+            "milestoneId": "MS-P2-GRAPH",
+            "title": "Graph + analytics",
+            "tasks": [
+              {
+                "nodeId": "PB-CORE-GRAPH-001",
+                "id": "PB-CORE-GRAPH-001",
+                "title": "Graph UI proof (render ok)",
+                "weight": 0.8,
+                "dependsOn": ["PB-CORE-CHAT-001"],
+                "eventMappings": [
+                  {
+                    "type": "system.graph.render_ok",
+                    "payloadMatch": ["nodeCount"],
+                    "updates": { "status": "done", "progress": 1.0 }
+                  }
+                ]
+              },
+              {
+                "nodeId": "PB-DATA-GRAPH-001",
+                "id": "PB-DATA-GRAPH-001",
+                "title": "Graph persistence + analysis",
+                "weight": 0.7,
+                "dependsOn": ["PB-CORE-GRAPH-001"],
+                "eventMappings": [
+                  {
+                    "type": "system.graph.persisted",
+                    "payloadMatch": ["nodeCount", "edgeCount"],
+                    "updates": { "status": "done", "progress": 1.0 }
+                  },
+                  {
+                    "type": "system.graph.analysis_complete",
+                    "payloadMatch": ["metric"],
+                    "updates": { "status": "in_progress", "progressDelta": 0.05 }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phaseId": 3,
+        "title": "Adaptive Context Layer",
+        "milestones": [
+          {
+            "milestoneId": "MS-P3-MEMORY",
+            "title": "Memory layer",
+            "tasks": [
+              {
+                "nodeId": "PB-CORE-MEMORY-001",
+                "id": "PB-CORE-MEMORY-001",
+                "title": "Memory indexing proof",
+                "weight": 0.9,
+                "dependsOn": ["PB-CORE-THREADS-001"],
+                "eventMappings": [
+                  {
+                    "type": "system.memory.index_updated",
+                    "payloadMatch": ["userId"],
+                    "updates": { "status": "done", "progress": 1.0 }
+                  }
+                ]
+              },
+              {
+                "nodeId": "PB-DATA-MEM-001",
+                "id": "PB-DATA-MEM-001",
+                "title": "Memory persistence",
+                "weight": 0.7,
+                "dependsOn": ["PB-CORE-MEMORY-001"],
+                "eventMappings": [
+                  {
+                    "type": "system.memory.persisted",
+                    "payloadMatch": ["memoryId"],
+                    "updates": { "status": "done", "progressDelta": 0.2 }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phaseId": 4,
+        "title": "Dynamic Knowledge Graph & Relational Awareness",
+        "milestones": [
+          {
+            "milestoneId": "MS-P4-KB",
+            "title": "Knowledge base ingestion",
+            "tasks": [
+              {
+                "nodeId": "PB-CORE-KB-001",
+                "id": "PB-CORE-KB-001",
+                "title": "Knowledge upload completion",
+                "weight": 0.8,
+                "dependsOn": ["PB-CORE-CHAT-001"],
+                "eventMappings": [
+                  {
+                    "type": "system.kb.upload_completed",
+                    "payloadMatch": ["chunkCount"],
+                    "updates": { "status": "done", "progress": 1.0 }
+                  }
+                ]
+              },
+              {
+                "nodeId": "PB-CORE-ARTIFACTS-001",
+                "id": "PB-CORE-ARTIFACTS-001",
+                "title": "Artifact extraction + persistence",
+                "weight": 0.6,
+                "dependsOn": ["PB-CORE-CHAT-001"],
+                "eventMappings": [
+                  {
+                    "type": "system.artifact.extracted",
+                    "payloadMatch": ["artifactId", "messageId"],
+                    "updates": { "status": "done", "progress": 1.0 }
+                  },
+                  {
+                    "type": "system.artifact.persisted",
+                    "payloadMatch": ["artifactId"],
+                    "updates": { "status": "done", "progressDelta": 0.2 }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phaseId": 5,
+        "title": "Cognitive Context Fusion",
+        "milestones": [
+          {
+            "milestoneId": "MS-P5-SEARCH",
+            "title": "Search + embeddings",
+            "tasks": [
+              {
+                "nodeId": "PB-CORE-SEARCH-001",
+                "id": "PB-CORE-SEARCH-001",
+                "title": "Search completion proof",
+                "weight": 0.8,
+                "dependsOn": ["PB-CORE-MEMORY-001"],
+                "eventMappings": [
+                  {
+                    "type": "system.search.completed",
+                    "payloadMatch": ["query", "latencyMs"],
+                    "updates": { "status": "done", "progress": 1.0 }
+                  }
+                ]
+              },
+              {
+                "nodeId": "PB-OPS-EMBED-001",
+                "id": "PB-OPS-EMBED-001",
+                "title": "Embedding generation proof",
+                "weight": 0.6,
+                "dependsOn": ["PB-CORE-SEARCH-001"],
+                "eventMappings": [
+                  {
+                    "type": "system.embedding.generated",
+                    "payloadMatch": ["entityType", "entityId"],
+                    "updates": { "status": "done", "progressDelta": 0.1 }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "phaseId": 6,
+        "title": "Self-Maintenance & Integrity Verification",
+        "milestones": [
+          {
+            "milestoneId": "MS-P6-SEC",
+            "title": "Security + integrity",
+            "tasks": [
+              {
+                "nodeId": "PB-SEC-RULES-001",
+                "id": "PB-SEC-RULES-001",
+                "title": "Security rules verified",
+                "weight": 0.8,
+                "dependsOn": ["PB-CORE-CHAT-001"],
+                "eventMappings": [
+                  {
+                    "type": "system.security.rules_verified",
+                    "payloadMatch": ["testSuiteId"],
+                    "updates": { "status": "done", "progress": 1.0 }
+                  }
+                ]
+              },
+              {
+                "nodeId": "PB-SEC-AUTH-001",
+                "id": "PB-SEC-AUTH-001",
+                "title": "Auth login success proof",
+                "weight": 0.5,
+                "dependsOn": ["PB-SEC-RULES-001"],
+                "eventMappings": [
+                  {
+                    "type": "system.auth.login_success",
+                    "payloadMatch": ["userId"],
+                    "updates": { "status": "done", "progress": 1.0 }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
+
+

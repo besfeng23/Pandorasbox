@@ -37,6 +37,7 @@
     "kairos:simulate": "tsx scripts/kairos-simulate.ts",
     "kairos:register:stabilization": "tsx scripts/kairos-register-stabilization.ts",
     "kairos:register:plan": "tsx scripts/kairos-register-plan.ts",
+    "kairos:masterplan:push": "tsx scripts/kairos-masterplan-push.ts",
     "kairos:publish": "tsx scripts/kairos/publish.ts",
     "kairos:publish:dry-run": "tsx scripts/kairos/publish.ts --dry-run",
     "kairos:e2e": "tsx scripts/kairos-e2e-smoke.ts",
