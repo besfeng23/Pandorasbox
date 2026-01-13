@@ -1,0 +1,435 @@
+{
+  "meta": {
+    "product_name": "Pandora's Box",
+    "version": "1.0",
+    "release_date": "2025-01-01",
+    "author": "Product Team / Development Team",
+    "status": "Complete",
+    "last_updated": "2025-01-01"
+  },
+  "product_intent": {
+    "summary": "AI-powered chat app with persistent long-term memory. Solves context window limitations by using vector embeddings and semantic search. Enables context-aware conversations that build upon entire interaction history.",
+    "personas": [
+      {
+        "id": "persona_knowledge_worker",
+        "role": "Knowledge Worker / Researcher",
+        "why": "Build cumulative knowledge, reference past conversations, maintain context",
+        "skill_level": "Intermediate to Advanced"
+      },
+      {
+        "id": "persona_developer_engineer",
+        "role": "Developer / Engineer",
+        "why": "Remember coding discussions, document solutions, track technical decisions",
+        "skill_level": "Advanced"
+      },
+      {
+        "id": "persona_productivity",
+        "role": "Personal Productivity User",
+        "why": "Daily planning, personal notes, organization with AI memory",
+        "skill_level": "Beginner to Intermediate"
+      },
+      {
+        "id": "persona_power_user",
+        "role": "Power User / Early Adopter",
+        "why": "Extend with external AI agents, build custom workflows",
+        "skill_level": "Expert"
+      }
+    ],
+    "top_jobs": [
+      "Continue conversations from weeks/months ago",
+      "Build cumulative knowledge base",
+      "Find specific past conversations",
+      "Get personalized daily briefings",
+      "Organize thoughts into threads",
+      "Upload documents for AI to remember",
+      "Generate and save artifacts",
+      "Voice-based interactions",
+      "Integrate with other AI tools",
+      "Export data for portability"
+    ],
+    "success_metrics": {
+      "memory_retrieval_time_sec": 3,
+      "users_reference_past_conversation_pct": 80,
+      "user_satisfaction_pct": 70,
+      "engagement_avg_messages": 10,
+      "engagement_sessions_per_week": 3,
+      "knowledge_base_upload_pct": 40,
+      "threads_per_user_avg": 5,
+      "daily_briefing_read_pct": 60,
+      "support_tickets_forgotten_pct": 5,
+      "retention_30_day_pct": 60,
+      "api_usage_pct": 20
+    },
+    "non_goals": [
+      "Multi-user collaboration",
+      "Real-time collaborative editing",
+      "Video/audio file processing",
+      "Built-in calendar/email integration",
+      "Mobile native apps",
+      "Enterprise SSO/SAML",
+      "Advanced analytics dashboards",
+      "Payment processing",
+      "Content moderation",
+      "Multi-language UI"
+    ]
+  },
+  "modules": [
+    {
+      "module_id": "mod_chat",
+      "name": "Chat Interface",
+      "description": "Main conversation view, message input (text, voice), image upload, streaming, thread navigation.",
+      "endpoints": [
+        "endpoint_submit_user_message",
+        "endpoint_transcribe_and_process",
+        "endpoint_create_thread",
+        "endpoint_get_user_threads"
+      ],
+      "collections": ["history", "threads"],
+      "acceptance_tests": [
+        "Send text message → assistant responds, message and response saved to history, embeddings generated",
+        "Send voice message → transcription is correct, assistant responds, message flow matches text",
+        "Image upload with message → image stored, description generated, context updated",
+        "New thread created if threadId missing, shown in sidebar"
+      ]
+    },
+    {
+      "module_id": "mod_memory",
+      "name": "Memory Management",
+      "description": "Memory inspector, semantic search, edit/delete, clear memory, memory indexing.",
+      "endpoints": [
+        "endpoint_search_memory",
+        "endpoint_update_memory",
+        "endpoint_delete_memory",
+        "endpoint_clear_memory"
+      ],
+      "collections": ["memories"],
+      "acceptance_tests": [
+        "Search for term returns top 10 semantically similar memories",
+        "Edit memory content and search again reflects update",
+        "Delete memory removes it from results",
+        "Clear memory removes all user's memories, confirmed in collection"
+      ]
+    },
+    {
+      "module_id": "mod_threads",
+      "name": "Thread Management",
+      "description": "Create/list threads, titles, summaries, pin/archive (future).",
+      "endpoints": ["endpoint_create_thread", "endpoint_get_user_threads"],
+      "collections": ["threads"],
+      "acceptance_tests": [
+        "User creates thread, appears in sidebar and threads collection",
+        "Thread title auto-generated from initial message",
+        "Pin/archive (future): status changes reflected in UI and collection"
+      ]
+    },
+    {
+      "module_id": "mod_artifacts",
+      "name": "Artifact Generation",
+      "description": "Extract code/markdown, view artifacts, versioning.",
+      "endpoints": ["endpoint_submit_user_message", "endpoint_get_artifacts"],
+      "collections": ["artifacts"],
+      "acceptance_tests": [
+        "Assistant response with code block auto-creates artifact, visible in artifact viewer",
+        "Artifacts are versioned on update (future)",
+        "Download and copy to clipboard works"
+      ]
+    },
+    {
+      "module_id": "mod_knowledge_base",
+      "name": "Knowledge Base",
+      "description": "Upload PDF/text files, chunk, embed, search.",
+      "endpoints": ["endpoint_upload_knowledge"],
+      "collections": ["history"],
+      "acceptance_tests": [
+        "Upload valid PDF/text splits into chunks, all stored and embedded",
+        "Uploading unsupported file returns error",
+        "Searching after upload includes knowledge chunks in results"
+      ]
+    },
+    {
+      "module_id": "mod_settings",
+      "name": "Settings",
+      "description": "Model selection, reply style, API key, theme, notifications, data management.",
+      "endpoints": [
+        "endpoint_update_settings",
+        "endpoint_generate_user_api_key",
+        "endpoint_export_user_data"
+      ],
+      "collections": ["settings"],
+      "acceptance_tests": [
+        "Change active_model reflects immediately in responses",
+        "Generate/regenerate API key and use it in MCP integration",
+        "Export data returns all user data as valid JSON file"
+      ]
+    },
+    {
+      "module_id": "mod_graph",
+      "name": "Graph Visualization",
+      "description": "Knowledge graph, relationship viz, analytics.",
+      "endpoints": ["endpoint_get_graph_analytics", "endpoint_get_knowledge"],
+      "collections": ["system_knowledge_graph", "knowledge_edges"],
+      "acceptance_tests": [
+        "Graph view loads, nodes and edges correspond to memories and relationships",
+        "Node details show all linked memories"
+      ]
+    },
+    {
+      "module_id": "mod_pandora_ui",
+      "name": "PandoraUI Dashboard",
+      "description": "Phase status indicators, system telemetry, interactive dashboard.",
+      "endpoints": [],
+      "collections": ["system_phases"],
+      "acceptance_tests": [
+        "Phase indicators reflect correct phase status for each of 14 phases",
+        "Telemetry data is displayed from collection"
+      ]
+    },
+    {
+      "module_id": "mod_mcp_server",
+      "name": "MCP Server",
+      "description": "Model Context Protocol for Claude Desktop, HTTP bridge, OpenAPI schema.",
+      "endpoints": [
+        "endpoint_mcp_http_bridge",
+        "endpoint_mcp_openapi",
+        "endpoint_mcp_run_flow"
+      ],
+      "collections": [],
+      "acceptance_tests": [
+        "MCP HTTP bridge executes tool requests from Claude Desktop",
+        "OpenAPI schema is returned and valid",
+        "MCP server can call Genkit flow and return results"
+      ]
+    },
+    {
+      "module_id": "mod_chatgpt_actions",
+      "name": "ChatGPT Actions Integration",
+      "description": "APIs for memory store/retrieve, hybrid search.",
+      "endpoints": [
+        "endpoint_store_memory",
+        "endpoint_retrieve_memories",
+        "endpoint_hybrid_retrieve"
+      ],
+      "collections": ["memories", "external_knowledge"],
+      "acceptance_tests": [
+        "Store-memory endpoint creates new memory for user",
+        "Retrieve-memories endpoint returns correct semantic matches",
+        "Hybrid-retrieve endpoint combines internal/external sources"
+      ]
+    },
+    {
+      "module_id": "mod_cron",
+      "name": "Scheduled Tasks (Cron Jobs)",
+      "description": "Cleanup, daily briefing, reflection, research, context decay, reindex, meta-learning.",
+      "endpoints": [
+        "endpoint_cron_cleanup",
+        "endpoint_cron_daily_briefing",
+        "endpoint_cron_nightly_reflection",
+        "endpoint_cron_deep_research",
+        "endpoint_cron_context_decay",
+        "endpoint_cron_reindex_memories",
+        "endpoint_cron_meta_learning"
+      ],
+      "collections": [
+        "history",
+        "memories",
+        "system_logs",
+        "performance_metrics",
+        "meta_learning_state"
+      ],
+      "acceptance_tests": [
+        "Daily-briefing cron generates and stores summaries for active users",
+        "Cleanup cron deletes old/unused data as scheduled",
+        "Reindex cron updates all memory embeddings"
+      ]
+    }
+  ],
+  "routes": [
+    {
+      "page_id": "page_chat",
+      "path": "/",
+      "components": [
+        "comp_thread_sidebar",
+        "comp_chat_feed",
+        "comp_memory_inspector",
+        "comp_chat_input",
+        "comp_followup_suggestions"
+      ],
+      "endpoints": [
+        "endpoint_submit_user_message",
+        "endpoint_create_thread",
+        "endpoint_get_user_threads",
+        "endpoint_search_memory"
+      ],
+      "collections": ["history", "threads", "memories"]
+    },
+    {
+      "page_id": "page_settings",
+      "path": "/settings",
+      "components": [
+        "comp_model_selector",
+        "comp_reply_style_toggle",
+        "comp_system_prompt_override",
+        "comp_api_key_manager",
+        "comp_theme_toggle",
+        "comp_notifications_toggle",
+        "comp_data_retention_toggle",
+        "comp_export_data_button",
+        "comp_clear_memory_button"
+      ],
+      "endpoints": [
+        "endpoint_update_settings",
+        "endpoint_generate_user_api_key",
+        "endpoint_export_user_data",
+        "endpoint_clear_memory"
+      ],
+      "collections": ["settings"]
+    },
+    {
+      "page_id": "page_graph",
+      "path": "/graph",
+      "components": ["comp_graph_view", "comp_node_details", "comp_graph_analytics_panel"],
+      "endpoints": ["endpoint_get_graph_analytics", "endpoint_get_knowledge"],
+      "collections": ["system_knowledge_graph", "knowledge_edges"]
+    },
+    {
+      "page_id": "page_pandora_ui",
+      "path": "/pandora-ui",
+      "components": [
+        "comp_phase_indicators",
+        "comp_telemetry_display",
+        "comp_pandora_box_3d",
+        "comp_phase_dashboard"
+      ],
+      "endpoints": [],
+      "collections": ["system_phases"]
+    }
+  ],
+  "components": [
+    { "component_id": "comp_thread_sidebar", "name": "Thread Sidebar", "description": "Lists threads, create button, search/filter" },
+    { "component_id": "comp_chat_feed", "name": "Chat Feed", "description": "Displays user and assistant messages in a thread" },
+    { "component_id": "comp_memory_inspector", "name": "Memory Inspector", "description": "View, search, edit, delete memories" },
+    { "component_id": "comp_chat_input", "name": "Chat Input", "description": "Input box for sending messages, voice input, image upload" },
+    { "component_id": "comp_followup_suggestions", "name": "Follow-up Suggestions", "description": "Displays suggested follow-up questions" },
+    { "component_id": "comp_model_selector", "name": "Model Selector", "description": "Select AI model for responses" },
+    { "component_id": "comp_reply_style_toggle", "name": "Reply Style Toggle", "description": "Toggle between concise and detailed replies" },
+    { "component_id": "comp_system_prompt_override", "name": "System Prompt Override", "description": "Textarea to customize AI behavior" },
+    { "component_id": "comp_api_key_manager", "name": "API Key Manager", "description": "Generate and manage personal API key" },
+    { "component_id": "comp_theme_toggle", "name": "Theme Toggle", "description": "Switch between dark/light themes" },
+    { "component_id": "comp_notifications_toggle", "name": "Notifications Toggle", "description": "Enable or disable browser notifications" },
+    { "component_id": "comp_data_retention_toggle", "name": "Data Retention Toggle", "description": "Toggle preference for data retention" },
+    { "component_id": "comp_export_data_button", "name": "Export Data Button", "description": "Exports all user data as JSON" },
+    { "component_id": "comp_clear_memory_button", "name": "Clear Memory Button", "description": "Delete all user data (irreversible)" },
+    { "component_id": "comp_graph_view", "name": "Graph View", "description": "Interactive knowledge graph visualization" },
+    { "component_id": "comp_node_details", "name": "Node Details", "description": "Displays info about selected node" },
+    { "component_id": "comp_graph_analytics_panel", "name": "Graph Analytics Panel", "description": "Shows analytics for the knowledge graph" },
+    { "component_id": "comp_phase_indicators", "name": "Phase Indicators", "description": "Shows 14 phase statuses" },
+    { "component_id": "comp_telemetry_display", "name": "Telemetry Display", "description": "Displays live system metrics" },
+    { "component_id": "comp_pandora_box_3d", "name": "Pandora Box 3D", "description": "Interactive 3D model of the Pandora Box" },
+    { "component_id": "comp_phase_dashboard", "name": "Phase Dashboard", "description": "Dashboard for phase-specific metrics" }
+  ],
+  "bugs": {
+    "source": "contracts/kairos/stabilization_sprint_plan.json",
+    "stabilization_plan": {
+      "sprintName": "Stabilization Sprint - Post-v1 Bug Fixes",
+      "bugClusters": [
+        {
+          "rootCauseCategory": "UI/UX Incomplete or Incorrect",
+          "description": "UI state management and feature implementation issues leading to missing or broken functionality in the interface.",
+          "bugIds": ["PBX-001", "PBX-003", "PBX-004", "PBX-005", "PBX-006", "PBX-007", "PBX-008", "PBX-009", "PBX-010"]
+        },
+        {
+          "rootCauseCategory": "Backend Integration Failure",
+          "description": "Backend process or integration (AI response generation) not completing or not notifying UI properly.",
+          "bugIds": ["PBX-002"]
+        }
+      ],
+      "fixSequence": ["PBX-002", "PBX-001", "PBX-004", "PBX-009", "PBX-003", "PBX-007", "PBX-008", "PBX-006", "PBX-005", "PBX-010"],
+      "gatingRules": [
+        { "bugId": "PBX-002", "blocksNodes": ["PB-CORE-CHAT-001", "PB-LANES-ORCH-001", "PB-LANES-ANS-001"] },
+        { "bugId": "PBX-001", "blocksNodes": ["PB-CORE-CHAT-001"] },
+        { "bugId": "PBX-003", "blocksNodes": ["PB-CORE-CHAT-001", "PB-COPY-CONTENT-001"] },
+        { "bugId": "PBX-004", "blocksNodes": ["PB-CORE-THREADS-001"] },
+        { "bugId": "PBX-005", "blocksNodes": ["PB-COPY-CONTENT-001"] },
+        { "bugId": "PBX-006", "blocksNodes": ["PB-CORE-MEMORY-001"] },
+        { "bugId": "PBX-007", "blocksNodes": ["PB-CORE-KB-001"] },
+        { "bugId": "PBX-008", "blocksNodes": ["PB-CORE-ARTIFACTS-001", "PB-CORE-GRAPH-001"] },
+        { "bugId": "PBX-009", "blocksNodes": ["PB-CORE-SETTINGS-001", "PB-OPS-EXPORT-001"] },
+        { "bugId": "PBX-010", "blocksNodes": ["PB-COPY-CONTENT-001"] }
+      ]
+    },
+    "items": [
+      {
+        "bug_id": "PBX-001",
+        "severity": "P1",
+        "status": "open",
+        "root_cause_category": "UI/UX Incomplete or Incorrect",
+        "blocksNodes": ["PB-CORE-CHAT-001"]
+      },
+      {
+        "bug_id": "PBX-002",
+        "severity": "P0",
+        "status": "open",
+        "root_cause_category": "Backend Integration Failure",
+        "blocksNodes": ["PB-CORE-CHAT-001", "PB-LANES-ORCH-001", "PB-LANES-ANS-001"]
+      },
+      {
+        "bug_id": "PBX-003",
+        "severity": "P1",
+        "status": "open",
+        "root_cause_category": "UI/UX Incomplete or Incorrect",
+        "blocksNodes": ["PB-CORE-CHAT-001", "PB-COPY-CONTENT-001"]
+      },
+      {
+        "bug_id": "PBX-004",
+        "severity": "P1",
+        "status": "open",
+        "root_cause_category": "UI/UX Incomplete or Incorrect",
+        "blocksNodes": ["PB-CORE-THREADS-001"]
+      },
+      {
+        "bug_id": "PBX-005",
+        "severity": "P1",
+        "status": "open",
+        "root_cause_category": "UI/UX Incomplete or Incorrect",
+        "blocksNodes": ["PB-COPY-CONTENT-001"]
+      },
+      {
+        "bug_id": "PBX-006",
+        "severity": "P1",
+        "status": "open",
+        "root_cause_category": "UI/UX Incomplete or Incorrect",
+        "blocksNodes": ["PB-CORE-MEMORY-001"]
+      },
+      {
+        "bug_id": "PBX-007",
+        "severity": "P1",
+        "status": "open",
+        "root_cause_category": "UI/UX Incomplete or Incorrect",
+        "blocksNodes": ["PB-CORE-KB-001"]
+      },
+      {
+        "bug_id": "PBX-008",
+        "severity": "P1",
+        "status": "open",
+        "root_cause_category": "UI/UX Incomplete or Incorrect",
+        "blocksNodes": ["PB-CORE-ARTIFACTS-001", "PB-CORE-GRAPH-001"]
+      },
+      {
+        "bug_id": "PBX-009",
+        "severity": "P1",
+        "status": "open",
+        "root_cause_category": "UI/UX Incomplete or Incorrect",
+        "blocksNodes": ["PB-CORE-SETTINGS-001", "PB-OPS-EXPORT-001"]
+      },
+      {
+        "bug_id": "PBX-010",
+        "severity": "P1",
+        "status": "open",
+        "root_cause_category": "UI/UX Incomplete or Incorrect",
+        "blocksNodes": ["PB-COPY-CONTENT-001"]
+      }
+    ]
+  }
+}
+
+

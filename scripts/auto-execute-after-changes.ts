@@ -25,7 +25,10 @@ function getChangedFiles(): string[] {
   try {
     const output = execSync('git diff --name-only', { cwd: GIT_DIR, encoding: 'utf-8' });
     const staged = execSync('git diff --cached --name-only', { cwd: GIT_DIR, encoding: 'utf-8' });
-    const all = new Set([...output.trim().split('\n'), ...staged.trim().split('\n')].filter(Boolean));
+    const untracked = execSync('git ls-files --others --exclude-standard', { cwd: GIT_DIR, encoding: 'utf-8' });
+    const all = new Set(
+      [...output.trim().split('\n'), ...staged.trim().split('\n'), ...untracked.trim().split('\n')].filter(Boolean)
+    );
     return Array.from(all);
   } catch {
     return [];
