@@ -1,0 +1,43 @@
+{
+  "event_time": "2026-01-13T22:30:00Z",
+  "event_type": "research.deep_plan_ingested",
+  "actor": "system",
+  "source": "deep_research",
+  "node_id": "PB-OPS-RESEARCH-001",
+  "confidence": 0.95,
+  "payload": {
+    "research_version": "2026-01-13",
+    "sections_analyzed": 14,
+    "key_insights": {
+      "architecture_confirmed": "Next.js 15 + Firebase + Gemini stack matches existing codebase",
+      "design_system_spec": "Digital Void theme (colors, typography, spacing) defined in Section 3",
+      "api_contract_catalog": "Full endpoint catalog in Section 5 (23 endpoints documented)",
+      "test_plan_outline": "Unit/Integration/E2E strategy in Section 10",
+      "data_model_spec": "Firestore collections, indexes, security rules in Section 6"
+    },
+    "actionable_gaps_identified": [
+      "Tests module: 70% → target 80%+ (edge cases, E2E gaps)",
+      "UI/UX module: 42% → target 100% (design tokens, Settings page)",
+      "Firestore rules: learning_queue collection missing",
+      "Hardcoded emails/URLs: DEFAULT_CHATGPT_USER_EMAIL and endpoint URLs"
+    ],
+    "conflicts_noted": {
+      "phase_structure": "Research describes 14-phase plan; codebase uses different phase IDs (research is blueprint, codebase already built)",
+      "resolution": "Extract architectural/design patterns from research, apply to current gaps"
+    },
+    "evidence_pointers": {
+      "architecture": "Research Section 1 (Architecture Map)",
+      "design_tokens": "Research Section 3 (Design System)",
+      "api_catalog": "Research Section 5 (Full API Contract)",
+      "data_model": "Research Section 6 (Firestore Data Model)",
+      "test_plan": "Research Section 10 (Test Plan)",
+      "kairos_plan": "Research Section 12 (Kairos Track A Plan JSON)"
+    },
+    "next_tasks": [
+      "PB-OPS-TEST-001: Complete test coverage to 80%+",
+      "PB-UI-DS-003: Finish UI/UX polish (design tokens, Settings page)",
+      "PB-OPS-RULES-001: Fix Firestore security rules gaps"
+    ]
+  }
+}
+
