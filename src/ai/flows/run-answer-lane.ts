@@ -137,7 +137,6 @@ export async function runAnswerLane(
             console.log(`[AnswerLane] Memory search results: history=${historyResults.length}, memories=${memoriesResults.length}`);
             
             // Emit Kairos event: retrieval done
-            const { sendKairosEvent } = await import('@/lib/kairosClient');
             sendKairosEvent('system.lane.answer.retrieval_done', {
                 resultCount: historyResults.length + memoriesResults.length,
                 userId,
