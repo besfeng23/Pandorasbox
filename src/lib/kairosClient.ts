@@ -85,7 +85,9 @@ export type KairosEventType =
   | 'system.security.violation'
   // API Key Events
   | 'system.apikey.generated'
-  | 'system.apikey.revoked';
+  | 'system.apikey.revoked'
+  // Research Events
+  | 'research.deep_plan_ingested';
 
 /**
  * Base event payload structure
@@ -104,7 +106,7 @@ export interface KairosEventPayload {
  * Event types that mark tasks "done" (proof events)
  * vs informational events (live feed only)
  */
-const PROOF_EVENTS: Set<KairosEventType> = new Set([
+const PROOF_EVENTS = new Set<KairosEventType>([
   'system.chat.response_completed',
   'system.thread.summary_generated',
   'system.memory.index_updated',
@@ -190,6 +192,7 @@ const REQUIRED_FIELDS: Record<KairosEventType, string[]> = {
   'system.apikey.revoked': ['userId'],
   'ui.copy.audit_passed': ['screenCount'],
   'ui.copy.updated': ['componentId'],
+  'research.deep_plan_ingested': ['research_version', 'node_id'],
 };
 
 /**

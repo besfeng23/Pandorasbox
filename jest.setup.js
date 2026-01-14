@@ -1,3 +1,29 @@
+// Mock Genkit/Firebase telemetry BEFORE any imports to prevent open handles
+// This prevents @genkit-ai/firebase from initializing telemetry in tests
+jest.mock('@genkit-ai/firebase', () => ({
+  enableFirebaseTelemetry: jest.fn(() => {}),
+}));
+
+// Mock Genkit core to prevent telemetry initialization
+jest.mock('genkit', () => {
+  const mockGenkit = jest.fn((config) => ({
+    model: jest.fn(),
+    flow: jest.fn(),
+    prompt: jest.fn(),
+  }));
+  return {
+    genkit: mockGenkit,
+  };
+});
+
+// Mock Vertex AI to prevent initialization
+jest.mock('@genkit-ai/vertexai', () => ({
+  vertexAI: jest.fn(() => ({
+    embedder: jest.fn(),
+    model: jest.fn(),
+  })),
+}));
+
 // Learn more: https://github.com/testing-library/jest-dom
 import '@testing-library/jest-dom'
 
@@ -191,4 +217,23 @@ if (typeof globalThis !== 'undefined') {
     global.TextDecoder = TextDecoder;
   }
 }
+
+// Ensure WebCrypto exists for HMAC/signing code paths
+try {
+  const { webcrypto } = require('crypto');
+  if (!global.crypto) {
+    global.crypto = webcrypto;
+  }
+  if (!globalThis.crypto) {
+    globalThis.crypto = webcrypto;
+  }
+} catch (_) {}
+
+// Global safety net: Clean up any leaked timers/mocks after each test
+afterEach(() => {
+  // If any test switched to fake timers and forgot to revert, revert here.
+  try { jest.useRealTimers(); } catch {}
+  try { jest.clearAllTimers(); } catch {}
+  try { jest.restoreAllMocks(); } catch {}
+});
 

@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const query = searchParams.get('query') || '';
-    const userEmail = searchParams.get('user_email') || 'joven.ong23@gmail.com';
+    const userEmail = searchParams.get('user_email') || process.env.DEFAULT_CHATGPT_USER_EMAIL || 'user@example.com';
     const limit = Math.min(parseInt(searchParams.get('limit') || '10'), 50);
     const mode = searchParams.get('mode') || 'baseline'; // 'baseline' or 'context'
 
@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { query, user_email, limit, mode } = body;
 
-    const userEmail = user_email || 'joven.ong23@gmail.com';
+    const userEmail = user_email || process.env.DEFAULT_CHATGPT_USER_EMAIL || 'user@example.com';
     const searchQuery = query || '';
     const resultLimit = Math.min(limit || 10, 50);
     const recallMode = mode || 'baseline'; // 'baseline' or 'context'

@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const userEmail = user_email || 'joven.ong23@gmail.com';
+    const userEmail = user_email || process.env.DEFAULT_CHATGPT_USER_EMAIL || 'user@example.com';
     const resultLimit = Math.min(limit || 10, 50);
 
     // Get Firebase user by email
@@ -122,7 +122,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const query = searchParams.get('query') || '';
-    const userEmail = searchParams.get('user_email') || 'joven.ong23@gmail.com';
+    const userEmail = searchParams.get('user_email') || process.env.DEFAULT_CHATGPT_USER_EMAIL || 'user@example.com';
     const limit = Math.min(parseInt(searchParams.get('limit') || '10'), 50);
 
     if (!query.trim()) {

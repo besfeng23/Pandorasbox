@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Default to configured email if not provided
-    const targetEmail = user_email || 'joven.ong23@gmail.com';
+    const targetEmail = user_email || process.env.DEFAULT_CHATGPT_USER_EMAIL || 'user@example.com';
 
     // Get Firebase user by email
     const authAdmin = getAuthAdmin();

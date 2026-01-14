@@ -152,7 +152,7 @@ export async function GET(request: NextRequest) {
         flow: 'reason',
         input: {
           query: 'test query',
-          userEmail: 'user@example.com',
+          userEmail: process.env.DEFAULT_CHATGPT_USER_EMAIL || 'user@example.com',
         },
       },
     },

@@ -4,6 +4,7 @@ import { getFirestoreAdmin, getAuthAdmin } from '@/lib/firebase-admin';
 import { revalidatePath } from 'next/cache';
 import { randomBytes } from 'crypto';
 import * as Sentry from '@sentry/nextjs';
+import { sendKairosEvent } from '@/lib/kairosClient';
 
 async function getUserIdFromToken(token: string): Promise<string> {
     try {
@@ -34,6 +35,13 @@ export async function updateSettings(formData: FormData) {
         const firestoreAdmin = getFirestoreAdmin();
         await firestoreAdmin.collection('settings').doc(userId).set(settingsData, { merge: true });
         revalidatePath('/settings');
+        
+        // Emit Kairos event
+        sendKairosEvent('ui.settings.updated', {
+          userId,
+          success: true,
+        }).catch(err => console.warn('Failed to emit settings.updated event:', err));
+        
         return { success: true, message: 'Settings updated successfully.' };
     } catch (error) {
         console.error('Error updating settings:', error);
@@ -56,6 +64,13 @@ export async function generateUserApiKey(idToken: string): Promise<{ success: bo
       await settingsRef.set({ personal_api_key: apiKey }, { merge: true });
       
       revalidatePath('/settings');
+      
+      // Emit Kairos event
+      sendKairosEvent('system.apikey.generated', {
+        userId,
+        success: true,
+      }).catch(err => console.warn('Failed to emit apikey.generated event:', err));
+      
       return { success: true, apiKey: apiKey };
 
     } catch (error) {
@@ -157,6 +172,23 @@ export async function exportUserData(idToken: string): Promise<{ success: boolea
         stateSnapshot.docs.forEach(doc => {
             exportData.userState[doc.id] = doc.data();
         });
+
+        // Calculate export size (approximate)
+        const exportJson = JSON.stringify(exportData);
+        const bytes = Buffer.byteLength(exportJson, 'utf8');
+
+        // Emit Kairos event
+        sendKairosEvent('system.export.completed', {
+          userId,
+          bytes,
+          success: true,
+          itemCounts: {
+            threads: exportData.threads.length,
+            messages: exportData.messages.length,
+            memories: exportData.memories.length,
+            artifacts: exportData.artifacts.length,
+          },
+        }).catch(err => console.warn('Failed to emit export.completed event:', err));
 
         return { success: true, data: exportData };
     } catch (error) {

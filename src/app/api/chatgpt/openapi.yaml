@@ -26,17 +26,17 @@ paths:
                   description: The memory content to store (e.g., "User prefers dark mode", "User's favorite programming language is TypeScript")
                 user_email:
                   type: string
-                  description: User email address (defaults to joven.ong23@gmail.com if not provided)
-                  default: joven.ong23@gmail.com
+                  description: User email address (defaults to DEFAULT_CHATGPT_USER_EMAIL env var if not provided)
+                  default: user@example.com
             examples:
               example1:
                 value:
                   memory: "User prefers dark mode interface"
-                  user_email: "joven.ong23@gmail.com"
+                  user_email: "user@example.com"
               example2:
                 value:
                   memory: "User is working on a Next.js project with Firebase App Hosting"
-                  user_email: "joven.ong23@gmail.com"
+                  user_email: "user@example.com"
       security:
         - ApiKeyAuth: []
       responses:
@@ -157,7 +157,7 @@ paths:
               example1:
                 value:
                   query: "user preferences"
-                  user_email: "joven.ong23@gmail.com"
+                  user_email: "user@example.com"
                   limit: 5
               example2:
                 value:

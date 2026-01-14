@@ -10,6 +10,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import * as Sentry from '@sentry/nextjs';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { trackEvent } from '@/lib/analytics';
+import { sendKairosEvent } from '@/lib/kairosClient';
 
 async function getUserIdFromToken(token: string): Promise<string> {
     try {
@@ -115,7 +116,24 @@ export async function clearMemory(idToken: string) {
         });
         await threadsBatch.commit();
 
+        // Count deleted items for event
+        const deletedCounts = {
+          threads: threadsSnapshot.docs.length,
+          messages: historySnapshot.docs.length,
+          memories: memoriesSnapshot.docs.length,
+          artifacts: artifactsSnapshot.docs.length,
+          state: stateSnapshot.docs.length,
+        };
+
         revalidatePath('/settings');
+        
+        // Emit Kairos event
+        sendKairosEvent('system.clear_memory.completed', {
+          userId,
+          success: true,
+          deletedCounts,
+        }).catch(err => console.warn('Failed to emit clear_memory.completed event:', err));
+        
         return { success: true, message: 'Memory cleared successfully.' };
     } catch (error) {
         console.error('Error clearing memory:', error);

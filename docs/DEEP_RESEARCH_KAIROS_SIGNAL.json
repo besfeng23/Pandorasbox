@@ -1,43 +1,124 @@
 {
-  "event_time": "2026-01-13T22:30:00Z",
+  "event_time": "2026-01-14T00:00:00Z",
   "event_type": "research.deep_plan_ingested",
   "actor": "system",
-  "source": "deep_research",
+  "source": "pandorasbox",
   "node_id": "PB-OPS-RESEARCH-001",
   "confidence": 0.95,
+  "correlation_id": "deep-research-2026-01-14",
+  "dedupe_key": "deep-research-signal-2026-01-14-PB-OPS-RESEARCH-001",
   "payload": {
-    "research_version": "2026-01-13",
+    "research_version": "2026-01-14",
     "sections_analyzed": 14,
     "key_insights": {
-      "architecture_confirmed": "Next.js 15 + Firebase + Gemini stack matches existing codebase",
-      "design_system_spec": "Digital Void theme (colors, typography, spacing) defined in Section 3",
-      "api_contract_catalog": "Full endpoint catalog in Section 5 (23 endpoints documented)",
-      "test_plan_outline": "Unit/Integration/E2E strategy in Section 10",
-      "data_model_spec": "Firestore collections, indexes, security rules in Section 6"
+      "architecture_confirmed": "Next.js 15 + Firebase + Gemini stack matches existing codebase (docs/01_ARCHITECTURE.md, ARCHITECTURE.md)",
+      "design_system_spec": "Digital Void theme (colors, typography, spacing) defined in Section 3, needs audit against tailwind.config.ts",
+      "api_contract_catalog": "Full endpoint catalog in Section 5 (23 endpoints documented, verify against public/openapi.yaml)",
+      "test_plan_outline": "Unit/Integration/E2E strategy in Section 10, current coverage 70% (docs/DR_STEP1_COVERAGE_AUDIT.md)",
+      "data_model_spec": "Firestore collections, indexes, security rules in Section 6, learning_queue missing rules (firestore.rules)"
     },
     "actionable_gaps_identified": [
-      "Tests module: 70% → target 80%+ (edge cases, E2E gaps)",
-      "UI/UX module: 42% → target 100% (design tokens, Settings page)",
-      "Firestore rules: learning_queue collection missing",
-      "Hardcoded emails/URLs: DEFAULT_CHATGPT_USER_EMAIL and endpoint URLs"
+      {
+        "gap": "Tests module: 70% → target 80%+ (edge cases, E2E gaps)",
+        "evidence": "docs/DR_STEP1_COVERAGE_AUDIT.md, docs/DR_STEP3_COVERAGE_STATUS.md",
+        "files": [
+          "src/lib/hybrid-search.ts (0% coverage)",
+          "src/lib/memory-utils.ts (0% coverage)",
+          "src/lib/vector.ts (0% coverage)",
+          "src/app/api/cron/*/route.ts (all 0% coverage)"
+        ]
+      },
+      {
+        "gap": "UI/UX module: 42% → target 100% (design tokens, Settings page)",
+        "evidence": "docs/STATUS.md, tailwind.config.ts",
+        "files": [
+          "tailwind.config.ts (needs audit vs research Section 3)",
+          "src/components/settings/APIKeyManager.tsx (missing)",
+          "src/components/settings/ExportButton.tsx (missing)",
+          "src/components/settings/ClearMemoryButton.tsx (missing)"
+        ]
+      },
+      {
+        "gap": "Firestore rules: learning_queue collection missing",
+        "evidence": "firestore.rules (no match stanza), docs/STATUS.md (Top Risks section)",
+        "files": ["firestore.rules"]
+      },
+      {
+        "gap": "Hardcoded emails/URLs: DEFAULT_CHATGPT_USER_EMAIL and endpoint URLs",
+        "evidence": "docs/STATUS.md (Top Risks section)",
+        "files": [
+          "public/openapi-mcp.json",
+          "public/openapi-mcp.yaml",
+          "src/app/api/chatgpt/hybrid-retrieve/route.ts",
+          "src/app/api/chatgpt/openapi.yaml"
+        ]
+      }
     ],
     "conflicts_noted": {
       "phase_structure": "Research describes 14-phase plan; codebase uses different phase IDs (research is blueprint, codebase already built)",
-      "resolution": "Extract architectural/design patterns from research, apply to current gaps"
+      "resolution": "Extract architectural/design patterns from research, apply to current gaps (ignore phase ID mismatch)"
     },
     "evidence_pointers": {
-      "architecture": "Research Section 1 (Architecture Map)",
-      "design_tokens": "Research Section 3 (Design System)",
-      "api_catalog": "Research Section 5 (Full API Contract)",
-      "data_model": "Research Section 6 (Firestore Data Model)",
-      "test_plan": "Research Section 10 (Test Plan)",
-      "kairos_plan": "Research Section 12 (Kairos Track A Plan JSON)"
+      "architecture": "Research Section 1 (Architecture Map) → docs/01_ARCHITECTURE.md, ARCHITECTURE.md",
+      "design_tokens": "Research Section 3 (Design System) → tailwind.config.ts (needs audit)",
+      "api_catalog": "Research Section 5 (Full API Contract) → public/openapi.yaml, public/openapi-mcp.yaml",
+      "data_model": "Research Section 6 (Firestore Data Model) → firestore.rules, firestore.indexes.json, docs/02_DATA_MODEL.md",
+      "test_plan": "Research Section 10 (Test Plan) → docs/08_TEST_STRATEGY.md, jest.config.cjs, jest.setup.js",
+      "kairos_plan": "Research Section 12 (Kairos Track A Plan JSON) → contracts/kairos_masterplan_v2.json, docs/11_LINEAR_PROJECT_PLAN.md"
     },
     "next_tasks": [
-      "PB-OPS-TEST-001: Complete test coverage to 80%+",
-      "PB-UI-DS-003: Finish UI/UX polish (design tokens, Settings page)",
-      "PB-OPS-RULES-001: Fix Firestore security rules gaps"
+      {
+        "task_id": "PB-OPS-TEST-001",
+        "title": "Complete test coverage to 80%+",
+        "files": [
+          "src/__tests__/lib/memory-search-edge.test.ts",
+          "src/__tests__/lib/llm-provider-error.test.ts",
+          "src/__tests__/api/cron-*.test.ts",
+          "tests/lib/hybrid-search.test.ts",
+          "src/lib/__tests__/memory-utils.test.ts"
+        ],
+        "acceptance": "npm test -- --coverage shows >80% overall, all tests pass"
+      },
+      {
+        "task_id": "PB-UI-DS-003",
+        "title": "Finish UI/UX polish (design tokens, Settings page)",
+        "files": [
+          "tailwind.config.ts",
+          "src/components/settings/APIKeyManager.tsx",
+          "src/components/settings/ExportButton.tsx",
+          "src/components/settings/ClearMemoryButton.tsx",
+          "src/app/(pandora-ui)/settings/page.tsx"
+        ],
+        "acceptance": "Settings page shows API key (masked), export works, clear memory confirms, design tokens match spec"
+      },
+      {
+        "task_id": "PB-OPS-RULES-001",
+        "title": "Fix Firestore security rules gaps",
+        "files": ["firestore.rules"],
+        "acceptance": "firebase deploy --only firestore:rules succeeds, learning_queue covered or exclusion documented"
+      },
+      {
+        "task_id": "PB-OPS-ENV-001",
+        "title": "Replace hardcoded emails/URLs with env vars",
+        "files": [
+          "public/openapi-mcp.json",
+          "public/openapi-mcp.yaml",
+          "src/app/api/chatgpt/hybrid-retrieve/route.ts",
+          "src/app/api/chatgpt/openapi.yaml"
+        ],
+        "acceptance": "npm run build succeeds, no hardcoded emails/URLs (grep verification)"
+      }
+    ],
+    "top_findings": [
+      "Test coverage at 70% with critical gaps: hybrid-search (0%), memory-utils (0%), all cron routes (0%)",
+      "UI/UX at 42% with missing Settings components: APIKeyManager, ExportButton, ClearMemoryButton",
+      "Firestore rules gap: learning_queue collection has no rules stanza (security risk)",
+      "Hardcoded credentials: user@example.com, joven.ong23@gmail.com, localhost URLs in OpenAPI files"
+    ],
+    "top_gaps": [
+      "Tests: 6 cron routes have 0% coverage, hybrid-search test fails, memory-utils needs edge cases",
+      "UI: Settings page missing 3 components, Tailwind tokens need audit vs research Section 3",
+      "Security: learning_queue collection unprotected, hardcoded emails/URLs present"
     ]
   }
 }
-

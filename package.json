@@ -44,7 +44,8 @@
     "auto-commit": "tsx scripts/auto-execute-after-changes.ts",
     "post-change": "tsx scripts/post-change-hook.ts",
     "store:design-memory": "tsx scripts/store-design-memory-simple.ts",
-    "kairos:init": "tsx scripts/initialize-kairos-plan.ts"
+    "kairos:init": "tsx scripts/initialize-kairos-plan.ts",
+    "kairos:deep-research-signal": "tsx scripts/send-deep-research-signal.ts"
   },
   "dependencies": {
     "@genkit-ai/firebase": "^1.27.0",

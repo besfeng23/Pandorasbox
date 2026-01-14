@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const userEmail = user_email || 'joven.ong23@gmail.com';
+    const userEmail = user_email || process.env.DEFAULT_CHATGPT_USER_EMAIL || 'user@example.com';
     const authAdmin = getAuthAdmin();
     let firebaseUser;
     
@@ -120,7 +120,7 @@ export async function GET(request: NextRequest) {
     }
 
     const searchParams = request.nextUrl.searchParams;
-    const userEmail = searchParams.get('user_email') || 'joven.ong23@gmail.com';
+    const userEmail = searchParams.get('user_email') || process.env.DEFAULT_CHATGPT_USER_EMAIL || 'user@example.com';
 
     const authAdmin = getAuthAdmin();
     let firebaseUser;

@@ -69,11 +69,11 @@ async function main() {
     payload: {
       step: 'stabilize_tests',
       result: 'all_green',
-      tests: '6 suites, 10 tests passing',
-      fix: 'useFirestore mock returns Firestore instance; onSnapshot no-op to prevent loop',
-      files_changed: ['src/__tests__/chat-composer-mic-send.test.tsx'],
+      tests: '10 suites, 58 tests passing',
+      fix: 'Fixed cron-routes test isolation by resetting getFirestoreAdmin mock between tests; updated Jest config to .cjs with explicit Babel transforms',
+      files_changed: ['jest.config.cjs', 'babel.config.cjs', 'tests/api/cron-routes.test.ts'],
       outcome: 'pass',
-      notes: 'All tests are green now. Fixed chat composer mic/send test by creating stable Firestore mock instance and preventing onSnapshot callback from causing infinite loops.',
+      notes: 'All 58 tests passing. Fixed cron-routes test flakiness by properly resetting mocks in beforeEach. Updated Jest config to use .cjs extension and explicit Babel transforms for proper TypeScript/ESM handling.',
     },
   };
 

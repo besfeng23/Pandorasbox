@@ -2,22 +2,17 @@
 
 import React, { useEffect, useMemo, useState, useTransition } from "react";
 import {
-  Check,
-  Copy,
-  Download,
-  KeyRound,
   Loader2,
   Shield,
   SlidersHorizontal,
   Sparkles,
-  Trash2,
 } from "lucide-react";
 
 import { useUser } from "@/firebase";
 import { useSettings } from "@/hooks/use-settings";
 import { useToast } from "@/hooks/use-toast";
 
-import { updateSettings, clearMemory, exportUserData, generateUserApiKey } from "@/app/actions";
+import { updateSettings } from "@/app/actions";
 import {
   seedIdentityProfileAuthed,
   triggerDeepResearchAuthed,
@@ -31,21 +26,13 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 
 import { KnowledgeUpload } from "@/components/settings/knowledge-upload";
 import { MemoryTable } from "@/components/settings/memory-table";
 import { ReindexMemoriesButton } from "@/components/settings/reindex-memories-button";
+import { APIKeyManager } from "@/components/settings/api-key-manager";
+import { ExportMemoriesButton } from "@/components/settings/export-memories-button";
+import { ClearMemoryButton } from "@/components/settings/clear-memory-button";
 
 type SettingsSection = "general" | "model" | "knowledge" | "memories" | "security" | "advanced";
 
@@ -62,8 +49,6 @@ export default function SettingsPage() {
 
   const [section, setSection] = useState<SettingsSection>("general");
   const [isPending, startTransition] = useTransition();
-  const [isKeyPending, startKeyTransition] = useTransition();
-  const [isExportPending, startExportTransition] = useTransition();
 
   const [draft, setDraft] = useState<AppSettings>({
     active_model: "gpt-4o",
@@ -82,7 +67,6 @@ export default function SettingsPage() {
     return false;
   });
 
-  const [hasCopiedKey, setHasCopiedKey] = useState(false);
 
   useEffect(() => {
     if (!settings) return;
@@ -137,56 +121,8 @@ export default function SettingsPage() {
     });
   };
 
-  const handleGenerateApiKey = async () => {
-    if (!user) return;
-    const token = await user.getIdToken();
-    startKeyTransition(async () => {
-      const result = await generateUserApiKey(token);
-      if (result.success && result.apiKey) {
-        setDraft((d) => ({ ...d, personal_api_key: result.apiKey || "" }));
-        toast({ title: "API key generated", description: "Stored in your settings." });
-      } else {
-        toast({ variant: "destructive", title: "Failed", description: result.message || "Could not generate key." });
-      }
-    });
-  };
-
-  const handleCopyKey = async () => {
-    if (!draft.personal_api_key) return;
-    await navigator.clipboard.writeText(draft.personal_api_key);
-    setHasCopiedKey(true);
-    setTimeout(() => setHasCopiedKey(false), 1000);
-  };
-
-  const handleExport = async () => {
-    if (!user) return;
-    const token = await user.getIdToken();
-    startExportTransition(async () => {
-      const result = await exportUserData(token);
-      if (!result.success || !result.data) {
-        toast({ variant: "destructive", title: "Export failed", description: result.message || "Try again." });
-        return;
-      }
-      const blob = new Blob([JSON.stringify(result.data, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `pandora-export-${Date.now()}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-      toast({ title: "Exported", description: "Downloaded your data as JSON." });
-    });
-  };
-
-  const handleClearAll = async () => {
-    if (!user) return;
-    const token = await user.getIdToken();
-    const result = await clearMemory(token);
-    if (result.success) {
-      toast({ title: "Cleared", description: result.message });
-    } else {
-      toast({ variant: "destructive", title: "Failed", description: result.message });
-    }
+  const handleKeyUpdated = (newKey: string) => {
+    setDraft((d) => ({ ...d, personal_api_key: newKey }));
   };
 
   const callBrainAction = async (action: "seed" | "reflect" | "research") => {
@@ -409,27 +345,10 @@ export default function SettingsPage() {
               </div>
               <Separator />
 
-              <div className="space-y-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <div className="text-sm font-medium text-foreground">Personal API key</div>
-                    <div className="text-xs text-muted-foreground">
-                      Used for integrations. Keep it secret.
-                    </div>
-                  </div>
-                  <Button onClick={handleGenerateApiKey} disabled={isKeyPending || !user}>
-                    {isKeyPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
-                    Generate
-                  </Button>
-                </div>
-
-                <div className="flex gap-2">
-                  <Input value={draft.personal_api_key || ""} readOnly placeholder="No key generated yet" />
-                  <Button variant="outline" onClick={handleCopyKey} disabled={!draft.personal_api_key}>
-                    {hasCopiedKey ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                  </Button>
-                </div>
-              </div>
+              <APIKeyManager 
+                currentKey={draft.personal_api_key || ""} 
+                onKeyUpdated={handleKeyUpdated}
+              />
 
               <Separator />
 
@@ -438,10 +357,7 @@ export default function SettingsPage() {
                   <div className="text-sm font-medium text-foreground">Export data</div>
                   <div className="text-xs text-muted-foreground">Downloads a JSON snapshot of your data.</div>
                 </div>
-                <Button variant="outline" onClick={handleExport} disabled={isExportPending || !user}>
-                  {isExportPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                  Export
-                </Button>
+                <ExportMemoriesButton />
               </div>
 
               <Separator />
@@ -452,39 +368,7 @@ export default function SettingsPage() {
                     <div className="text-sm font-medium text-foreground">Danger zone</div>
                     <div className="text-xs text-muted-foreground">This permanently deletes your data. This action cannot be undone.</div>
                   </div>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="destructive" className="neon-glow-purple">
-                        <Trash2 className="h-4 w-4" />
-                        Clear all data
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent className="glass-panel-strong border border-destructive/30">
-                      <AlertDialogHeader>
-                        <AlertDialogTitle className="text-destructive">Clear all data?</AlertDialogTitle>
-                        <AlertDialogDescription className="text-muted-foreground">
-                          This will permanently delete:
-                          <ul className="list-disc list-inside mt-2 space-y-1">
-                            <li>All threads and messages</li>
-                            <li>All memories</li>
-                            <li>All artifacts</li>
-                            <li>All workspace state</li>
-                            <li>All knowledge base files</li>
-                          </ul>
-                          <strong className="text-destructive block mt-3">This action cannot be undone.</strong>
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction 
-                          onClick={handleClearAll}
-                          className="bg-destructive hover:bg-destructive/90"
-                        >
-                          Yes, delete everything
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                  <ClearMemoryButton />
                 </div>
               </div>
             </div>
