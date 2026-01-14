@@ -8,66 +8,69 @@
  * - /api/cron/meta-learning
  * - /api/cron/nightly-reflection
  * - /api/cron/reindex-memories
+ * 
+ * @jest-environment node
  */
-
-// Import OpenAI shim for fetch API - must be before any Next.js imports
-import 'openai/shims/node';
 
 // Mock Next.js server types BEFORE importing routes to prevent Request initialization issues
 jest.mock('next/server', () => {
   // Create minimal Request/Response/Headers classes for Next.js
-  class MockRequest {
-    constructor(input: string | { url: string }, init?: { method?: string; headers?: Record<string, string> }) {
-      if (typeof input === 'string') {
-        this.url = input;
-      } else {
-        this.url = input.url;
-      }
-      this.method = (init?.method || 'GET').toUpperCase();
-      const headersMap = new Map(Object.entries(init?.headers || {}));
-      this.headers = {
-        get: (name: string) => headersMap.get(name.toLowerCase()) || null,
-      } as any;
+  function MockRequest(input, init) {
+    if (typeof input === 'string') {
+      this.url = input;
+    } else if (input && input.url) {
+      this.url = input.url;
+    } else {
+      this.url = 'http://localhost:3000/api/cron/test';
     }
+    this.method = ((init && init.method) || 'GET').toUpperCase();
+    const headersMap = new Map(Object.entries((init && init.headers) || {}));
+    this.headers = {
+      get: function(name) {
+        return headersMap.get(name.toLowerCase()) || null;
+      },
+    };
   }
 
-  class MockResponse {
-    constructor(body?: any, init?: { status?: number; headers?: Record<string, string> }) {
-      this.body = body;
-      this.status = init?.status || 200;
-      this.headers = new Map(Object.entries(init?.headers || {}));
-    }
-    
-    json() {
-      return Promise.resolve(this.body);
-    }
+  function MockResponse(body, init) {
+    this.body = body;
+    this.status = (init && init.status) || 200;
+    this.headers = new Map(Object.entries((init && init.headers) || {}));
   }
+  
+  MockResponse.prototype.json = function() {
+    return Promise.resolve(this.body);
+  };
 
   return {
     NextRequest: MockRequest,
     NextResponse: {
-      json: (body: any, init?: { status?: number }) => new MockResponse(body, init),
+      json: function(body, init) {
+        return new MockResponse(body, init);
+      },
     },
   };
 });
 
 // Mock firebase-admin/firestore before other mocks
-const createMockTimestampInstance = (date: Date) => ({
-  toDate: () => date,
-  seconds: Math.floor(date.getTime() / 1000),
-  nanoseconds: (date.getTime() % 1000) * 1000000,
-});
+const createMockTimestampInstance = function(date) {
+  return {
+    toDate: function() { return date; },
+    seconds: Math.floor(date.getTime() / 1000),
+    nanoseconds: (date.getTime() % 1000) * 1000000,
+  };
+};
 
 jest.mock('firebase-admin/firestore', () => {
   const mockTimestamp = {
-    fromDate: jest.fn((date: Date) => createMockTimestampInstance(date)),
-    now: jest.fn(() => createMockTimestampInstance(new Date())),
+    fromDate: jest.fn(function(date) { return createMockTimestampInstance(date); }),
+    now: jest.fn(function() { return createMockTimestampInstance(new Date()); }),
   };
   return {
     FieldValue: {
-      serverTimestamp: jest.fn(() => ({ _methodName: 'serverTimestamp' })),
-      increment: jest.fn((n: number) => ({ _methodName: 'increment', _value: n })),
-      delete: jest.fn(() => ({ _methodName: 'delete' })),
+      serverTimestamp: jest.fn(function() { return { _methodName: 'serverTimestamp' }; }),
+      increment: jest.fn(function(n) { return { _methodName: 'increment', _value: n }; }),
+      delete: jest.fn(function() { return { _methodName: 'delete' }; }),
     },
     Timestamp: mockTimestamp,
   };
@@ -76,101 +79,150 @@ jest.mock('firebase-admin/firestore', () => {
 // Mock firebase-admin module - must export the same Timestamp structure
 jest.mock('firebase-admin', () => {
   const mockTimestamp = {
-    fromDate: jest.fn((date: Date) => createMockTimestampInstance(date)),
-    now: jest.fn(() => createMockTimestampInstance(new Date())),
+    fromDate: jest.fn(function(date) { return createMockTimestampInstance(date); }),
+    now: jest.fn(function() { return createMockTimestampInstance(new Date()); }),
   };
-  return {
-    default: {
-      firestore: {
-        Timestamp: mockTimestamp,
-      },
-      apps: [],
+  const mockAdmin = {
+    firestore: {
+      Timestamp: mockTimestamp,
     },
+    apps: [],
   };
+  // Return both as default export and as the object itself for compatibility
+  return mockAdmin;
 });
 
 // Mock dependencies BEFORE imports to prevent module initialization
-jest.mock('@/lib/firebase-admin', () => {
-  // Create chainable query mock
-  const createQueryMock = () => {
-    const query = {
-      where: jest.fn(() => query),
-      orderBy: jest.fn(() => query),
-      limit: jest.fn(() => query),
-      startAfter: jest.fn(() => query),
-      get: jest.fn(() => Promise.resolve({ docs: [], empty: true, size: 0 })),
+// Use relative path for jest.mock as path aliases may not work in jest.mock
+jest.mock('../../src/lib/firebase-admin', function() {
+  // Create a mock document with ref
+  function createMockDoc(id) {
+    if (id === undefined) id = 'doc-id';
+    var ref = { id: id, path: 'collection/' + id };
+    return {
+      id: id,
+      ref: ref,
+      data: jest.fn(function() { return { createdAt: new Date(), importance: 0.5 }; }),
+      exists: true,
+    };
+  }
+
+  // Create chainable query mock that returns empty snapshots by default
+  function createQueryMock(docs) {
+    if (docs === undefined) docs = [];
+    var query = {
+      where: jest.fn(function() { return query; }),
+      orderBy: jest.fn(function() { return query; }),
+      limit: jest.fn(function() { return query; }),
+      startAfter: jest.fn(function() { return query; }),
+      get: jest.fn(function() { 
+        return Promise.resolve({ 
+          docs: docs, 
+          empty: docs.length === 0, 
+          size: docs.length 
+        }); 
+      }),
     };
     return query;
-  };
+  }
 
-  const createCollectionMock = () => {
-    const query = createQueryMock();
+  function createCollectionMock() {
+    var query = createQueryMock([]);
     return {
-      ...query,
-      get: jest.fn(() => Promise.resolve({ docs: [], empty: true, size: 0 })),
-      doc: jest.fn(() => ({
-        id: 'doc-id',
-        get: jest.fn(() => Promise.resolve({ exists: false, data: () => null, id: 'doc-id' })),
-        set: jest.fn(() => Promise.resolve()),
-        update: jest.fn(() => Promise.resolve()),
-        delete: jest.fn(() => Promise.resolve()),
-        ref: { id: 'doc-id' },
-        collection: jest.fn(() => createCollectionMock()),
-      })),
-      add: jest.fn(() => Promise.resolve({ id: 'new-doc-id' })),
+      where: query.where,
+      orderBy: query.orderBy,
+      limit: query.limit,
+      startAfter: query.startAfter,
+      get: jest.fn(function() { return Promise.resolve({ docs: [], empty: true, size: 0 }); }),
+      doc: jest.fn(function(docId) {
+        var id = docId || 'doc-id';
+        var ref = { id: id, path: 'collection/' + id };
+        return {
+          id: id,
+          ref: ref,
+          get: jest.fn(function() { 
+            return Promise.resolve({ 
+              exists: false, 
+              data: function() { return null; }, 
+              id: id 
+            }); 
+          }),
+          set: jest.fn(function() { return Promise.resolve(); }),
+          update: jest.fn(function() { return Promise.resolve(); }),
+          delete: jest.fn(function() { return Promise.resolve(); }),
+          collection: jest.fn(function() { return createCollectionMock(); }),
+        };
+      }),
+      add: jest.fn(function() { return Promise.resolve({ id: 'new-doc-id' }); }),
     };
-  };
+  }
 
   return {
-    getFirestoreAdmin: jest.fn(() => ({
-      collection: jest.fn(() => createCollectionMock()),
-      batch: jest.fn(() => ({
-        delete: jest.fn(),
-        update: jest.fn(),
-        set: jest.fn(),
-        commit: jest.fn(() => Promise.resolve()),
-      })),
-    })),
+    getFirestoreAdmin: jest.fn(function() {
+      return {
+        collection: jest.fn(function() { return createCollectionMock(); }),
+        batch: jest.fn(function() {
+          return {
+            delete: jest.fn(),
+            update: jest.fn(),
+            set: jest.fn(),
+            commit: jest.fn(function() { return Promise.resolve(); }),
+          };
+        }),
+      };
+    }),
   };
 });
 
-jest.mock('@/lib/vector', () => ({
-  generateEmbedding: jest.fn(() => Promise.resolve(new Array(1536).fill(0.1))),
-}));
+jest.mock('../../src/lib/vector', function() {
+  return {
+    generateEmbedding: jest.fn(function() { return Promise.resolve(new Array(1536).fill(0.1)); }),
+  };
+});
 
-jest.mock('@/lib/memory-utils', () => ({
-  saveInsightMemory: jest.fn(() => Promise.resolve({ success: true, id: 'insight-id' })),
-  saveQuestionMemory: jest.fn(() => Promise.resolve({ success: true, id: 'question-id' })),
-}));
+jest.mock('../../src/lib/memory-utils', function() {
+  return {
+    saveInsightMemory: jest.fn(function() { return Promise.resolve({ success: true, id: 'insight-id' }); }),
+    saveQuestionMemory: jest.fn(function() { return Promise.resolve({ success: true, id: 'question-id' }); }),
+  };
+});
 
-jest.mock('@/ai/agents/nightly-reflection', () => ({
-  runReflectionFlow: jest.fn(() => Promise.resolve({
-    processedCount: 5,
-    insights: ['Insight 1', 'Insight 2'],
-    weakAnswer: {
-      topic: 'Test Topic',
-      question: 'Test Question',
-    },
-  })),
-}));
+jest.mock('../../src/ai/agents/nightly-reflection', function() {
+  return {
+    runReflectionFlow: jest.fn(function() {
+      return Promise.resolve({
+        processedCount: 5,
+        insights: ['Insight 1', 'Insight 2'],
+        weakAnswer: {
+          topic: 'Test Topic',
+          question: 'Test Question',
+        },
+      });
+    }),
+  };
+});
 
-jest.mock('@/ai/flows/run-self-improvement', () => ({
-  runSelfImprovement: jest.fn(() => Promise.resolve({
-    usersAnalyzed: 10,
-    usersUpdated: 8,
-    avgSatisfactionChange: 0.05,
-    systemStats: {
-      totalSearches: 100,
-      avgResponseTime: 200,
-    },
-    performanceAnalysis: {
-      recommendations: ['Recommendation 1'],
-    },
-    feedbackAnalysis: {
-      improvementSuggestions: ['Suggestion 1'],
-    },
-  })),
-}));
+jest.mock('../../src/ai/flows/run-self-improvement', function() {
+  return {
+    runSelfImprovement: jest.fn(function() {
+      return Promise.resolve({
+        usersAnalyzed: 10,
+        usersUpdated: 8,
+        avgSatisfactionChange: 0.05,
+        systemStats: {
+          totalSearches: 100,
+          avgResponseTime: 200,
+        },
+        performanceAnalysis: {
+          recommendations: ['Recommendation 1'],
+        },
+        feedbackAnalysis: {
+          improvementSuggestions: ['Suggestion 1'],
+        },
+      });
+    }),
+  };
+});
 
 jest.mock('openai', () => {
   return jest.fn().mockImplementation(() => ({
@@ -188,7 +240,9 @@ jest.mock('openai', () => {
   }));
 });
 
-// Import routes
+// Import routes - must use import statements so Next.js Jest can transform TypeScript
+// These imports are after all mocks, so the mocks will be in place
+import { NextRequest } from 'next/server';
 import { POST as cleanupPOST, GET as cleanupGET } from '@/app/api/cron/cleanup/route';
 import { POST as contextDecayPOST, GET as contextDecayGET } from '@/app/api/cron/context-decay/route';
 import { POST as dailyBriefingPOST, GET as dailyBriefingGET } from '@/app/api/cron/daily-briefing/route';
@@ -197,13 +251,9 @@ import { POST as nightlyReflectionPOST, GET as nightlyReflectionGET } from '@/ap
 import { POST as reindexMemoriesPOST, GET as reindexMemoriesGET } from '@/app/api/cron/reindex-memories/route';
 
 describe('Cron Routes', () => {
-  const createMockRequest = (options: {
-    method?: string;
-    headers?: Record<string, string>;
-    body?: any;
-  } = {}): any => {
+  const createMockRequest = function(options) {
+    if (options === undefined) options = {};
     const url = 'http://localhost:3000/api/cron/test';
-    const { NextRequest } = require('next/server');
     
     return new NextRequest(url, {
       method: options.method || 'POST',
@@ -216,6 +266,86 @@ describe('Cron Routes', () => {
     jest.clearAllMocks();
     // Reset CRON_SECRET for tests
     delete process.env.CRON_SECRET;
+    
+    // Reset getFirestoreAdmin mock to use default implementation
+    // This ensures that tests that override mockReturnValue don't affect subsequent tests
+    const { getFirestoreAdmin } = require('../../src/lib/firebase-admin');
+    getFirestoreAdmin.mockReset();
+    // Restore the default implementation from the jest.mock() setup
+    getFirestoreAdmin.mockImplementation(function() {
+      // Recreate the default mock structure (same as in jest.mock above)
+      function createMockDoc(id) {
+        if (id === undefined) id = 'doc-id';
+        var ref = { id: id, path: 'collection/' + id };
+        return {
+          id: id,
+          ref: ref,
+          data: jest.fn(function() { return { createdAt: new Date(), importance: 0.5 }; }),
+          exists: true,
+        };
+      }
+
+      function createQueryMock(docs) {
+        if (docs === undefined) docs = [];
+        var query = {
+          where: jest.fn(function() { return query; }),
+          orderBy: jest.fn(function() { return query; }),
+          limit: jest.fn(function() { return query; }),
+          startAfter: jest.fn(function() { return query; }),
+          get: jest.fn(function() { 
+            return Promise.resolve({ 
+              docs: docs, 
+              empty: docs.length === 0, 
+              size: docs.length 
+            }); 
+          }),
+        };
+        return query;
+      }
+
+      function createCollectionMock() {
+        var query = createQueryMock([]);
+        return {
+          where: query.where,
+          orderBy: query.orderBy,
+          limit: query.limit,
+          startAfter: query.startAfter,
+          get: jest.fn(function() { return Promise.resolve({ docs: [], empty: true, size: 0 }); }),
+          doc: jest.fn(function(docId) {
+            var id = docId || 'doc-id';
+            var ref = { id: id, path: 'collection/' + id };
+            return {
+              id: id,
+              ref: ref,
+              get: jest.fn(function() { 
+                return Promise.resolve({ 
+                  exists: false, 
+                  data: function() { return null; }, 
+                  id: id 
+                }); 
+              }),
+              set: jest.fn(function() { return Promise.resolve(); }),
+              update: jest.fn(function() { return Promise.resolve(); }),
+              delete: jest.fn(function() { return Promise.resolve(); }),
+              collection: jest.fn(function() { return createCollectionMock(); }),
+            };
+          }),
+          add: jest.fn(function() { return Promise.resolve({ id: 'new-doc-id' }); }),
+        };
+      }
+
+      return {
+        collection: jest.fn(function() { return createCollectionMock(); }),
+        batch: jest.fn(function() {
+          return {
+            delete: jest.fn(),
+            update: jest.fn(),
+            set: jest.fn(),
+            commit: jest.fn(function() { return Promise.resolve(); }),
+          };
+        }),
+      };
+    });
   });
 
   describe('/api/cron/cleanup', () => {
@@ -241,13 +371,13 @@ describe('Cron Routes', () => {
     });
 
     it('should handle errors gracefully', async () => {
-      const { getFirestoreAdmin } = require('@/lib/firebase-admin');
+      const { getFirestoreAdmin } = require('../../src/lib/firebase-admin');
       const mockFirestore = {
         collection: jest.fn(() => {
           throw new Error('Database error');
         }),
       };
-      (getFirestoreAdmin as jest.Mock).mockReturnValue(mockFirestore);
+      getFirestoreAdmin.mockReturnValue(mockFirestore);
 
       const request = createMockRequest({ method: 'POST' });
       const response = await cleanupPOST(request);
@@ -323,7 +453,7 @@ describe('Cron Routes', () => {
     });
 
     it('should handle errors gracefully', async () => {
-      const { getFirestoreAdmin } = require('@/lib/firebase-admin');
+      const { getFirestoreAdmin } = require('../../src/lib/firebase-admin');
       const mockFirestore = {
         collection: jest.fn(() => {
           throw new Error('Database error');
@@ -333,7 +463,7 @@ describe('Cron Routes', () => {
           commit: jest.fn(() => Promise.reject(new Error('Batch error'))),
         })),
       };
-      (getFirestoreAdmin as jest.Mock).mockReturnValue(mockFirestore);
+      getFirestoreAdmin.mockReturnValue(mockFirestore);
 
       const request = createMockRequest({ method: 'POST' });
       const response = await contextDecayPOST(request);
@@ -346,7 +476,7 @@ describe('Cron Routes', () => {
 
   describe('/api/cron/daily-briefing', () => {
     it('should return 200 on successful briefing generation', async () => {
-      const { getFirestoreAdmin } = require('@/lib/firebase-admin');
+      const { getFirestoreAdmin } = require('../../src/lib/firebase-admin');
       const mockDoc = {
         exists: true,
         data: () => ({ note: 'Test context' }),
@@ -358,7 +488,7 @@ describe('Cron Routes', () => {
       };
       
       const mockFirestore = {
-        collection: jest.fn((collectionName: string) => {
+        collection: jest.fn(function(collectionName) {
           if (collectionName === 'users') {
             return {
               get: jest.fn(() => Promise.resolve(mockUsersSnapshot)),
@@ -375,7 +505,7 @@ describe('Cron Routes', () => {
           return {};
         }),
       };
-      (getFirestoreAdmin as jest.Mock).mockReturnValue(mockFirestore);
+      getFirestoreAdmin.mockReturnValue(mockFirestore);
 
       const request = createMockRequest({ method: 'POST' });
       const response = await dailyBriefingPOST(request);
@@ -388,13 +518,13 @@ describe('Cron Routes', () => {
     });
 
     it('should return 200 when no users found', async () => {
-      const { getFirestoreAdmin } = require('@/lib/firebase-admin');
+      const { getFirestoreAdmin } = require('../../src/lib/firebase-admin');
       const mockFirestore = {
         collection: jest.fn(() => ({
           get: jest.fn(() => Promise.resolve({ empty: true })),
         })),
       };
-      (getFirestoreAdmin as jest.Mock).mockReturnValue(mockFirestore);
+      getFirestoreAdmin.mockReturnValue(mockFirestore);
 
       const request = createMockRequest({ method: 'POST' });
       const response = await dailyBriefingPOST(request);
@@ -407,13 +537,13 @@ describe('Cron Routes', () => {
     });
 
     it('should support GET method', async () => {
-      const { getFirestoreAdmin } = require('@/lib/firebase-admin');
+      const { getFirestoreAdmin } = require('../../src/lib/firebase-admin');
       const mockFirestore = {
         collection: jest.fn(() => ({
           get: jest.fn(() => Promise.resolve({ empty: true })),
         })),
       };
-      (getFirestoreAdmin as jest.Mock).mockReturnValue(mockFirestore);
+      getFirestoreAdmin.mockReturnValue(mockFirestore);
 
       const request = createMockRequest({ method: 'GET' });
       const response = await dailyBriefingGET(request);
@@ -422,13 +552,13 @@ describe('Cron Routes', () => {
     });
 
     it('should handle errors gracefully', async () => {
-      const { getFirestoreAdmin } = require('@/lib/firebase-admin');
+      const { getFirestoreAdmin } = require('../../src/lib/firebase-admin');
       const mockFirestore = {
         collection: jest.fn(() => {
           throw new Error('Database error');
         }),
       };
-      (getFirestoreAdmin as jest.Mock).mockReturnValue(mockFirestore);
+      getFirestoreAdmin.mockReturnValue(mockFirestore);
 
       const request = createMockRequest({ method: 'POST' });
       const response = await dailyBriefingPOST(request);
@@ -496,8 +626,8 @@ describe('Cron Routes', () => {
     });
 
     it('should handle errors gracefully', async () => {
-      const { runSelfImprovement } = require('@/ai/flows/run-self-improvement');
-      (runSelfImprovement as jest.Mock).mockRejectedValue(new Error('Self-improvement failed'));
+      const { runSelfImprovement } = require('../../src/ai/flows/run-self-improvement');
+      runSelfImprovement.mockRejectedValue(new Error('Self-improvement failed'));
 
       const request = createMockRequest({ method: 'GET' });
       const response = await metaLearningGET(request);
@@ -511,7 +641,7 @@ describe('Cron Routes', () => {
 
   describe('/api/cron/nightly-reflection', () => {
     it('should return 200 on successful reflection', async () => {
-      const { getFirestoreAdmin } = require('@/lib/firebase-admin');
+      const { getFirestoreAdmin } = require('../../src/lib/firebase-admin');
       const mockUserDoc = { id: 'user-1' };
       const mockUsersSnapshot = {
         empty: false,
@@ -523,7 +653,7 @@ describe('Cron Routes', () => {
           get: jest.fn(() => Promise.resolve(mockUsersSnapshot)),
         })),
       };
-      (getFirestoreAdmin as jest.Mock).mockReturnValue(mockFirestore);
+      getFirestoreAdmin.mockReturnValue(mockFirestore);
 
       const request = createMockRequest({ method: 'POST' });
       const response = await nightlyReflectionPOST(request);
@@ -538,13 +668,13 @@ describe('Cron Routes', () => {
     });
 
     it('should return 200 when no users found', async () => {
-      const { getFirestoreAdmin } = require('@/lib/firebase-admin');
+      const { getFirestoreAdmin } = require('../../src/lib/firebase-admin');
       const mockFirestore = {
         collection: jest.fn(() => ({
           get: jest.fn(() => Promise.resolve({ empty: true })),
         })),
       };
-      (getFirestoreAdmin as jest.Mock).mockReturnValue(mockFirestore);
+      getFirestoreAdmin.mockReturnValue(mockFirestore);
 
       const request = createMockRequest({ method: 'POST' });
       const response = await nightlyReflectionPOST(request);
@@ -557,13 +687,13 @@ describe('Cron Routes', () => {
     });
 
     it('should support GET method', async () => {
-      const { getFirestoreAdmin } = require('@/lib/firebase-admin');
+      const { getFirestoreAdmin } = require('../../src/lib/firebase-admin');
       const mockFirestore = {
         collection: jest.fn(() => ({
           get: jest.fn(() => Promise.resolve({ empty: true })),
         })),
       };
-      (getFirestoreAdmin as jest.Mock).mockReturnValue(mockFirestore);
+      getFirestoreAdmin.mockReturnValue(mockFirestore);
 
       const request = createMockRequest({ method: 'GET' });
       const response = await nightlyReflectionGET(request);
@@ -572,13 +702,13 @@ describe('Cron Routes', () => {
     });
 
     it('should handle errors gracefully', async () => {
-      const { getFirestoreAdmin } = require('@/lib/firebase-admin');
+      const { getFirestoreAdmin } = require('../../src/lib/firebase-admin');
       const mockFirestore = {
         collection: jest.fn(() => {
           throw new Error('Database error');
         }),
       };
-      (getFirestoreAdmin as jest.Mock).mockReturnValue(mockFirestore);
+      getFirestoreAdmin.mockReturnValue(mockFirestore);
 
       const request = createMockRequest({ method: 'POST' });
       const response = await nightlyReflectionPOST(request);
@@ -591,7 +721,7 @@ describe('Cron Routes', () => {
 
   describe('/api/cron/reindex-memories', () => {
     it('should return 200 on successful reindexing', async () => {
-      const { getFirestoreAdmin } = require('@/lib/firebase-admin');
+      const { getFirestoreAdmin } = require('../../src/lib/firebase-admin');
       const mockDoc = {
         id: 'memory-1',
         data: () => ({
@@ -622,7 +752,7 @@ describe('Cron Routes', () => {
           commit: jest.fn(() => Promise.resolve()),
         })),
       };
-      (getFirestoreAdmin as jest.Mock).mockReturnValue(mockFirestore);
+      getFirestoreAdmin.mockReturnValue(mockFirestore);
 
       const request = createMockRequest({ method: 'POST' });
       const response = await reindexMemoriesPOST(request);
@@ -636,7 +766,7 @@ describe('Cron Routes', () => {
     });
 
     it('should skip memories that already have valid embeddings', async () => {
-      const { getFirestoreAdmin } = require('@/lib/firebase-admin');
+      const { getFirestoreAdmin } = require('../../src/lib/firebase-admin');
       const validEmbedding = new Array(1536).fill(0.5); // Valid embedding
       const mockDoc = {
         id: 'memory-1',
@@ -668,7 +798,7 @@ describe('Cron Routes', () => {
           commit: jest.fn(() => Promise.resolve()),
         })),
       };
-      (getFirestoreAdmin as jest.Mock).mockReturnValue(mockFirestore);
+      getFirestoreAdmin.mockReturnValue(mockFirestore);
 
       const request = createMockRequest({ method: 'POST' });
       const response = await reindexMemoriesPOST(request);
@@ -680,7 +810,7 @@ describe('Cron Routes', () => {
     });
 
     it('should support GET method', async () => {
-      const { getFirestoreAdmin } = require('@/lib/firebase-admin');
+      const { getFirestoreAdmin } = require('../../src/lib/firebase-admin');
       const mockFirestore = {
         collection: jest.fn(() => ({
           orderBy: jest.fn(() => ({
@@ -690,7 +820,7 @@ describe('Cron Routes', () => {
           })),
         })),
       };
-      (getFirestoreAdmin as jest.Mock).mockReturnValue(mockFirestore);
+      getFirestoreAdmin.mockReturnValue(mockFirestore);
 
       const request = createMockRequest({ method: 'GET' });
       const response = await reindexMemoriesGET(request);
@@ -699,13 +829,13 @@ describe('Cron Routes', () => {
     });
 
     it('should handle errors gracefully', async () => {
-      const { getFirestoreAdmin } = require('@/lib/firebase-admin');
+      const { getFirestoreAdmin } = require('../../src/lib/firebase-admin');
       const mockFirestore = {
         collection: jest.fn(() => {
           throw new Error('Database error');
         }),
       };
-      (getFirestoreAdmin as jest.Mock).mockReturnValue(mockFirestore);
+      getFirestoreAdmin.mockReturnValue(mockFirestore);
 
       const request = createMockRequest({ method: 'POST' });
       const response = await reindexMemoriesPOST(request);
