@@ -187,19 +187,23 @@ describe('external-cache', () => {
     const mockLimit = jest.fn(() => ({
       get: mockGet,
     }));
+
+    // Chain matches: cacheCollection.where(...).limit(100).get()
     const mockWhere = jest.fn(() => ({
       limit: mockLimit,
     }));
 
     const mockCollection = {
-      where: jest.fn(() => mockWhere as any),
+      where: mockWhere,
     };
 
     const mockFirestore = {
       collection: jest.fn(() => mockCollection as any),
     };
 
-    jest.spyOn(firebaseAdminModule, 'getFirestoreAdmin').mockReturnValue(mockFirestore as any);
+    jest
+      .spyOn(firebaseAdminModule, 'getFirestoreAdmin')
+      .mockReturnValue(mockFirestore as any);
 
     const deletedCount = await clearExpiredCache(24 * 7);
 
