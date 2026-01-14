@@ -839,20 +839,30 @@ describe('Cron Routes', () => {
     });
 
     it('should handle errors gracefully', async () => {
-      const { getFirestoreAdmin } = require('../../src/lib/firebase-admin');
-      const mockFirestore = {
+      // Use the default Firestore mock from beforeEach, but override once for this test
+      const adminModule = require('../../src/lib/firebase-admin');
+      const getFirestoreAdmin = adminModule.getFirestoreAdmin as jest.Mock;
+
+      // Get a default Firestore instance from the existing mock implementation
+      const defaultDb = getFirestoreAdmin();
+
+      // Wrap default DB so that collection() throws for this invocation only
+      const throwingDb = {
+        ...defaultDb,
         collection: jest.fn(() => {
           throw new Error('Database error');
         }),
       };
-      getFirestoreAdmin.mockReturnValue(mockFirestore);
+
+      // Only affect this test's call
+      getFirestoreAdmin.mockReturnValueOnce(throwingDb);
 
       const request = createMockRequest({ method: 'POST' });
       const response = await reindexMemoriesPOST(request);
       
       expect(response.status).toBe(500);
       const json = await response.json();
-      // Route guarantees a 500 with an error field; don't over-specify exact shape
+      // Contract-level assertion: 500 with an error field
       expect(json).toEqual(
         expect.objectContaining({
           error: expect.any(String),

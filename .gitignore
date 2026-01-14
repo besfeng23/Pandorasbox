@@ -52,6 +52,10 @@ TECHNICAL_DESIGN.md
 # base44 logs
 src/base44/logs/*.log
 
+# jest logs
+jest-full.log
+jest-run.log
+
 # firebase build artifacts
 .firebase/
 
