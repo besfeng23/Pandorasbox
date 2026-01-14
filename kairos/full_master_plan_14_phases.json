@@ -1,0 +1,230 @@
+{
+  "plan_version": "1.0.0",
+  "phases": [
+    {
+      "id": "p01_foundation",
+      "title": "Foundation & Infra",
+      "description": "Establish core infrastructure, environments, CI/CD, Firebase project setup, Firestore schema, authentication, and deployment pipelines.",
+      "scope": {
+        "ui_ux": ["Base layout", "Auth screens", "Loading states", "Error boundaries"],
+        "backend": ["Firebase project initialization", "Firestore schema design", "Firebase Auth setup", "Environment configuration", "Secrets management", "Vercel deployment", "Cloud Run setup"],
+        "data": ["system_phases", "settings", "firestore indexes"]
+      },
+      "entry_criteria": ["Repository initialized", "Firebase account created"],
+      "exit_criteria": ["system.auth.login_success", "system.security.rules_verified", "system.message.persisted"],
+      "emits_events": ["system.auth.login_success", "system.auth.login_failure", "system.security.rules_verified", "system.message.persisted", "system.phase.persisted"],
+      "blocking_bugs": [],
+      "owner": "pandora-core",
+      "status": "locked"
+    },
+    {
+      "id": "p02_chat_engine",
+      "title": "Core Chat Engine",
+      "description": "Working chat loop with persistence, message pipeline, LLM adapter, history storage, streaming UI, and real-time updates.",
+      "scope": {
+        "ui_ux": ["Chat feed", "Message composer", "Streaming UI", "Message bubbles", "Typing indicators"],
+        "backend": ["Message pipeline", "LLM adapter (Genkit)", "History storage", "Streaming response handler", "Message status tracking"],
+        "data": ["history", "threads", "firestore indexes for message queries"]
+      },
+      "entry_criteria": ["p01_foundation completed", "Firebase Auth working"],
+      "exit_criteria": ["ui.chat.message_sent", "system.chat.response_completed", "system.lane.chat.completed", "system.message.persisted"],
+      "emits_events": ["ui.chat.message_sent", "system.chat.response_completed", "system.lane.chat.started", "system.lane.chat.completed", "system.lane.answer.retrieval_done", "system.lane.answer.completed", "system.message.persisted", "system.message.updated", "system.ratelimit.triggered", "system.error.logged"],
+      "blocking_bugs": ["PBX-001", "PBX-002", "PBX-003"],
+      "owner": "pandora-core",
+      "status": "locked"
+    },
+    {
+      "id": "p03_thread_management",
+      "title": "Thread Management",
+      "description": "Conversation grouping and navigation, thread creation, auto-title generation, sidebar navigation, and thread persistence.",
+      "scope": {
+        "ui_ux": ["Thread sidebar", "Create thread button", "Thread selection", "Thread title display", "Thread search/filter"],
+        "backend": ["Threads collection schema", "Auto-title logic", "Thread CRUD operations", "Thread summary generation"],
+        "data": ["threads", "thread indexes for userId and updatedAt"]
+      },
+      "entry_criteria": ["p02_chat_engine completed"],
+      "exit_criteria": ["ui.thread.created", "system.thread.persisted", "system.thread.updated", "system.thread.summary_generated"],
+      "emits_events": ["ui.thread.created", "system.thread.persisted", "system.thread.updated", "system.thread.summary_generated"],
+      "blocking_bugs": ["PBX-004"],
+      "owner": "pandora-core",
+      "status": "locked"
+    },
+    {
+      "id": "p04_memory_ingestion",
+      "title": "Memory Ingestion",
+      "description": "Convert conversations into long-term memory, memory extraction from chat, embedding generation, and memory persistence.",
+      "scope": {
+        "ui_ux": ["Memory inspector", "Memory list view", "Memory search UI"],
+        "backend": ["Memory extraction logic", "Embedding generation pipeline", "Memory persistence", "Memory indexing"],
+        "data": ["memories", "memory embeddings", "vector search indexes"]
+      },
+      "entry_criteria": ["p03_thread_management completed"],
+      "exit_criteria": ["system.lane.memory.created", "system.memory.persisted", "system.embedding.generated", "system.memory.index_updated"],
+      "emits_events": ["system.lane.memory.created", "system.memory.persisted", "system.memory.updated", "system.embedding.generated", "system.embedding.failed", "system.memory.index_updated"],
+      "blocking_bugs": ["PBX-006"],
+      "owner": "pandora-core",
+      "status": "locked"
+    },
+    {
+      "id": "p05_semantic_retrieval",
+      "title": "Semantic Retrieval",
+      "description": "Retrieve memories contextually using vector search, hybrid retrieval with external knowledge, and inject relevant context into prompts.",
+      "scope": {
+        "ui_ux": ["Memory search UI", "Search results display", "Relevance indicators"],
+        "backend": ["Vector search engine", "Hybrid retrieval logic", "Context injection", "Search result ranking"],
+        "data": ["memories", "external_knowledge", "vector indexes"]
+      },
+      "entry_criteria": ["p04_memory_ingestion completed"],
+      "exit_criteria": ["system.search.completed", "system.lane.answer.retrieval_done", "ui.memory.search"],
+      "emits_events": ["ui.memory.search", "system.search.completed", "system.embedding.generated"],
+      "blocking_bugs": [],
+      "owner": "pandora-core",
+      "status": "locked"
+    },
+    {
+      "id": "p06_artifacts",
+      "title": "Artifacts System",
+      "description": "Persist generated code and documents, artifact detection from responses, versioning, artifact viewer, and copy/download functionality.",
+      "scope": {
+        "ui_ux": ["Artifact viewer", "Artifact list", "Copy to clipboard", "Download button", "Artifact type indicators"],
+        "backend": ["Artifact detection", "Artifact extraction", "Artifact versioning", "Artifact storage"],
+        "data": ["artifacts", "artifact indexes"]
+      },
+      "entry_criteria": ["p02_chat_engine completed"],
+      "exit_criteria": ["system.artifact.extracted", "system.artifact.persisted", "system.artifact.updated"],
+      "emits_events": ["system.artifact.extracted", "system.artifact.persisted", "system.artifact.updated"],
+      "blocking_bugs": ["PBX-005", "PBX-008", "PBX-010"],
+      "owner": "pandora-core",
+      "status": "locked"
+    },
+    {
+      "id": "p07_knowledge_base",
+      "title": "Knowledge Base Upload",
+      "description": "External document ingestion, file upload UI, chunking strategy, embedding generation for chunks, and indexing for searchability.",
+      "scope": {
+        "ui_ux": ["Upload UI", "Progress indicators", "File type validation", "Upload status display"],
+        "backend": ["File upload handler", "Chunking logic", "Embedding generation for chunks", "Chunk indexing", "File storage"],
+        "data": ["external_knowledge", "knowledge chunks", "chunk embeddings"]
+      },
+      "entry_criteria": ["p05_semantic_retrieval completed"],
+      "exit_criteria": ["ui.kb.upload_started", "system.kb.upload_completed", "system.embedding.generated"],
+      "emits_events": ["ui.kb.upload_started", "system.kb.upload_completed", "system.embedding.generated", "system.embedding.failed"],
+      "blocking_bugs": ["PBX-007"],
+      "owner": "pandora-core",
+      "status": "locked"
+    },
+    {
+      "id": "p08_settings",
+      "title": "Settings & User Control",
+      "description": "User-configurable system behavior, model selection, API key management, theme toggle, data export, and clear memory functionality.",
+      "scope": {
+        "ui_ux": ["Settings page", "API key manager", "Model selector", "Theme toggle", "Export data button", "Clear memory button", "Danger zone"],
+        "backend": ["Settings persistence", "API key generation", "Data export logic", "Clear memory handler", "Settings validation"],
+        "data": ["settings", "user API keys"]
+      },
+      "entry_criteria": ["p01_foundation completed"],
+      "exit_criteria": ["ui.settings.updated", "system.apikey.generated", "system.export.completed", "system.clear_memory.completed"],
+      "emits_events": ["ui.settings.updated", "system.apikey.generated", "system.apikey.revoked", "system.export.completed", "system.clear_memory.completed"],
+      "blocking_bugs": ["PBX-009"],
+      "owner": "pandora-core",
+      "status": "locked"
+    },
+    {
+      "id": "p09_kairos_tracking",
+      "title": "Kairos Tracking Integration",
+      "description": "System-wide event tracking, event emission infrastructure, required-field validation, progress indicators, and event correlation.",
+      "scope": {
+        "ui_ux": ["Progress indicators", "Event status display"],
+        "backend": ["Event emission client", "Event validation", "Event retry logic", "Correlation ID management", "Event batching"],
+        "data": ["system_logs", "event tracking metadata"]
+      },
+      "entry_criteria": ["p01_foundation completed"],
+      "exit_criteria": ["system.phase.updated", "system.phase.persisted", "All major actions emit Kairos events"],
+      "emits_events": ["system.phase.updated", "system.phase.persisted", "system.phase.all_completed", "system.error.logged"],
+      "blocking_bugs": [],
+      "owner": "pandora-core",
+      "status": "locked"
+    },
+    {
+      "id": "p10_cron_automation",
+      "title": "Cron & Automation",
+      "description": "Background intelligence tasks including daily briefing, nightly reflection, context decay, memory reindexing, and cleanup jobs.",
+      "scope": {
+        "ui_ux": ["Status indicators", "Cron job status display"],
+        "backend": ["Daily briefing cron", "Nightly reflection cron", "Context decay cron", "Reindex memories cron", "Cleanup cron", "Meta-learning cron", "Cron job scheduler"],
+        "data": ["system_logs", "performance_metrics", "meta_learning_state", "learning_queue"]
+      },
+      "entry_criteria": ["p04_memory_ingestion completed", "p05_semantic_retrieval completed"],
+      "exit_criteria": ["system.cron.executed", "system.agent.completed", "All cron jobs run without failure"],
+      "emits_events": ["system.cron.executed", "system.agent.completed", "system.error.logged"],
+      "blocking_bugs": [],
+      "owner": "pandora-core",
+      "status": "locked"
+    },
+    {
+      "id": "p11_knowledge_graph",
+      "title": "Knowledge Graph",
+      "description": "Relationship visualization, graph view UI, node inspector, graph analytics, entity linking, and graph persistence.",
+      "scope": {
+        "ui_ux": ["Graph view", "Node inspector", "Graph analytics panel", "Graph interaction controls"],
+        "backend": ["Graph edges management", "Entity linking", "Graph analytics computation", "Graph persistence"],
+        "data": ["system_knowledge_graph", "knowledge_edges", "graph indexes"]
+      },
+      "entry_criteria": ["p05_semantic_retrieval completed"],
+      "exit_criteria": ["ui.graph.opened", "system.graph.render_ok", "system.graph.persisted", "system.graph.analysis_complete"],
+      "emits_events": ["ui.graph.opened", "system.graph.render_ok", "system.graph.persisted", "system.graph.analysis_complete"],
+      "blocking_bugs": ["PBX-008"],
+      "owner": "pandora-core",
+      "status": "locked"
+    },
+    {
+      "id": "p12_mcp_tooling",
+      "title": "MCP & External Tooling",
+      "description": "External agent interoperability, MCP server implementation, HTTP bridge, OpenAPI schema generation, and ChatGPT Actions integration.",
+      "scope": {
+        "ui_ux": [],
+        "backend": ["MCP server", "MCP HTTP bridge", "OpenAPI schema", "ChatGPT Actions endpoints", "Tool execution handler"],
+        "data": ["external API integrations"]
+      },
+      "entry_criteria": ["p08_settings completed"],
+      "exit_criteria": ["system.mcp.tool_called", "system.actions.request_ok", "Claude/Desktop tools work"],
+      "emits_events": ["system.mcp.tool_called", "system.actions.request_ok", "system.error.logged"],
+      "blocking_bugs": [],
+      "owner": "pandora-core",
+      "status": "locked"
+    },
+    {
+      "id": "p13_stabilization",
+      "title": "Stabilization & Bug Fixing",
+      "description": "Eliminate P0/P1 issues, fix blocking bugs PBX-001 through PBX-010, UX polish, test coverage improvements, and system stability enhancements.",
+      "scope": {
+        "ui_ux": ["UX polish", "Error handling improvements", "Loading state improvements", "Copy content audit"],
+        "backend": ["Bug fixes PBX-001 to PBX-010", "Error handling", "Test coverage", "Performance optimizations"],
+        "data": ["bug tracking", "test results"]
+      },
+      "entry_criteria": ["All previous phases completed"],
+      "exit_criteria": ["All blocking bugs closed", "Tests green", "ui.copy.audit_passed", "ui.copy.updated"],
+      "emits_events": ["ui.copy.audit_passed", "ui.copy.updated", "system.error.logged", "system.security.rules_verified"],
+      "blocking_bugs": ["PBX-001", "PBX-002", "PBX-003", "PBX-004", "PBX-005", "PBX-006", "PBX-007", "PBX-008", "PBX-009", "PBX-010"],
+      "owner": "pandora-core",
+      "status": "locked"
+    },
+    {
+      "id": "p14_production_lock",
+      "title": "Phase 14: Production Lock & Observability",
+      "description": "Production readiness, rate limits, comprehensive error handling, monitoring infrastructure, backups, observability dashboards, and production deployment approval.",
+      "scope": {
+        "ui_ux": ["Final polish", "Production-ready UI", "Error boundaries", "Monitoring dashboards"],
+        "backend": ["Rate limits", "Error handling", "Monitoring", "Backups", "Alerting", "Logging infrastructure", "Performance monitoring"],
+        "data": ["system_logs", "performance_metrics", "backup schedules", "monitoring data"]
+      },
+      "entry_criteria": ["p13_stabilization completed"],
+      "exit_criteria": ["Production deploy approved", "Monitoring active", "Backups configured", "Rate limits enforced", "All systems operational"],
+      "emits_events": ["system.ratelimit.triggered", "system.ratelimit.cleared", "system.error.logged", "system.cron.executed"],
+      "blocking_bugs": [],
+      "owner": "pandora-core",
+      "status": "locked"
+    }
+  ]
+}
+
