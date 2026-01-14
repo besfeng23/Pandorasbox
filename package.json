@@ -41,6 +41,8 @@
     "kairos:publish": "tsx scripts/kairos/publish.ts",
     "kairos:publish:dry-run": "tsx scripts/kairos/publish.ts --dry-run",
     "kairos:e2e": "tsx scripts/kairos-e2e-smoke.ts",
+    "tools:setup": "node scripts/run-tools.cjs setup",
+    "tools:check": "node scripts/run-tools.cjs check",
     "auto-commit": "tsx scripts/auto-execute-after-changes.ts",
     "post-change": "tsx scripts/post-change-hook.ts",
     "store:design-memory": "tsx scripts/store-design-memory-simple.ts",
@@ -53,7 +55,10 @@
     "base44:sync": "tsx scripts/base44-sync.ts",
     "base44:sync:dry-run": "tsx scripts/base44-sync.ts --dry-run",
     "base44:sync:verbose": "tsx scripts/base44-sync.ts --verbose",
-    "base44:test": "tsx scripts/test-base44-api.ts"
+    "base44:sync:all-phases": "tsx scripts/sync-all-kairos-phases.ts",
+    "base44:sync:all-phases:dry-run": "tsx scripts/sync-all-kairos-phases.ts --dry-run",
+    "base44:test": "tsx scripts/test-base44-api.ts",
+    "base44:test:entities": "tsx scripts/test-base44-existing-entities.ts"
   },
   "dependencies": {
     "@genkit-ai/firebase": "^1.27.0",

@@ -102,7 +102,7 @@ export async function initBase44Client(cfg: Partial<Base44Config> = {}) {
  * Make authenticated API request to Base44
  * Base44 uses REST API: /api/apps/{appId}/entities/{EntityName}
  */
-async function base44Request<T>(
+export async function base44Request<T>(
   entityName: string,
   options: {
     method?: 'GET' | 'PUT' | 'POST' | 'DELETE';

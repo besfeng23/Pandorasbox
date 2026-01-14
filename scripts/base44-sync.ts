@@ -37,7 +37,7 @@ interface SyncOptions {
 /**
  * Main synchronization function
  */
-async function syncBase44WithKairos(options: SyncOptions = {}) {
+export async function syncBase44WithKairos(options: SyncOptions = {}) {
   const { phaseId, dryRun = false, verbose = false } = options;
 
   try {
@@ -50,122 +50,162 @@ async function syncBase44WithKairos(options: SyncOptions = {}) {
 
     // 1. Fetch active phase
     let activePhase;
-    if (phaseId) {
-      // If phaseId provided, fetch that specific phase
-      // Note: This assumes Base44 has an endpoint for fetching by ID
-      // For now, we'll fetch current and check if it matches
-      activePhase = await fetchActivePhase();
-      if (activePhase.phaseId !== phaseId) {
-        console.warn(`⚠️  Active phase (${activePhase.phaseId}) doesn't match requested (${phaseId})`);
-      }
-    } else {
-      activePhase = await fetchActivePhase();
-    }
-
-    if (verbose) {
-      console.log(`✅ Active Phase: ${activePhase.phaseId} (${activePhase.status})`);
-    }
-
-    const currentPhaseId = activePhase.phaseId;
-
-    // 2. Fetch phase objective from Kairos
-    if (verbose) {
-      console.log(`\n📋 Fetching phase objective from Kairos...`);
-    }
-
-    let kairosObjective;
+    let currentPhaseId: string | null = null;
+    
     try {
-      kairosObjective = await fetchPhaseObjectiveFromKairos(currentPhaseId);
-      if (verbose) {
-        console.log(`✅ Kairos Objective: ${kairosObjective.objective?.substring(0, 100)}...`);
-      }
-    } catch (error: any) {
-      console.warn(`⚠️  Could not fetch objective from Kairos: ${error.message}`);
-      kairosObjective = null;
-    }
-
-    // 3. Update phase objective in Base44 (if different)
-    if (kairosObjective && kairosObjective.objective) {
-      const needsUpdate = activePhase.objective !== kairosObjective.objective;
-      
-      if (needsUpdate) {
-        if (dryRun) {
-          console.log(`\n🔍 [DRY RUN] Would update phase objective in Base44`);
-        } else {
-          if (verbose) {
-            console.log(`\n📝 Updating phase objective in Base44...`);
-          }
-          await updatePhaseObjectiveInBase44(currentPhaseId, {
-            objective: kairosObjective.objective,
-            ...kairosObjective,
-          });
-          if (verbose) {
-            console.log(`✅ Phase objective updated in Base44`);
-          }
+      if (phaseId) {
+        // If phaseId provided, fetch that specific phase
+        // Note: This assumes Base44 has an endpoint for fetching by ID
+        // For now, we'll fetch current and check if it matches
+        activePhase = await fetchActivePhase();
+        if (activePhase.phaseId !== phaseId) {
+          console.warn(`⚠️  Active phase (${activePhase.phaseId}) doesn't match requested (${phaseId})`);
         }
       } else {
+        activePhase = await fetchActivePhase();
+      }
+
+      if (verbose) {
+        console.log(`✅ Active Phase: ${activePhase.phaseId} (${activePhase.status})`);
+      }
+
+      currentPhaseId = activePhase.phaseId;
+    } catch (error: any) {
+      if (error.message?.includes('404') || error.message?.includes('NOT FOUND') || error.message?.includes('No active phase')) {
+        console.warn(`⚠️  Phase entity not found in Base44. Skipping phase-related sync steps.`);
+        console.warn(`   To create Phase entity, use Base44's UI or API.`);
         if (verbose) {
-          console.log(`\n✓ Phase objective already in sync`);
+          console.warn(`   Error: ${error.message}`);
+        }
+      } else {
+        throw error;
+      }
+    }
+
+    // 2. Fetch phase objective from Kairos (only if phase exists)
+    let kairosObjective = null;
+    if (currentPhaseId) {
+      if (verbose) {
+        console.log(`\n📋 Fetching phase objective from Kairos...`);
+      }
+
+      try {
+        kairosObjective = await fetchPhaseObjectiveFromKairos(currentPhaseId);
+        if (verbose) {
+          console.log(`✅ Kairos Objective: ${kairosObjective.objective?.substring(0, 100)}...`);
+        }
+      } catch (error: any) {
+        console.warn(`⚠️  Could not fetch objective from Kairos: ${error.message}`);
+        kairosObjective = null;
+      }
+
+      // 3. Update phase objective in Base44 (if different)
+      if (kairosObjective && kairosObjective.objective && activePhase) {
+        const needsUpdate = activePhase.objective !== kairosObjective.objective;
+        
+        if (needsUpdate) {
+          if (dryRun) {
+            console.log(`\n🔍 [DRY RUN] Would update phase objective in Base44`);
+          } else {
+            if (verbose) {
+              console.log(`\n📝 Updating phase objective in Base44...`);
+            }
+            await updatePhaseObjectiveInBase44(currentPhaseId, {
+              objective: kairosObjective.objective,
+              ...kairosObjective,
+            });
+            if (verbose) {
+              console.log(`✅ Phase objective updated in Base44`);
+            }
+          }
+        } else {
+          if (verbose) {
+            console.log(`\n✓ Phase objective already in sync`);
+          }
         }
       }
-    }
-
-    // 4. Fetch/Update system status
-    if (verbose) {
-      console.log(`\n🗺️  Fetching system status for phase...`);
-    }
-
-    let systemStatus;
-    try {
-      systemStatus = await fetchPhaseSystemStatus(currentPhaseId);
+    } else {
       if (verbose) {
-        console.log(`✅ System Status:`, systemStatus);
+        console.log(`\n⏭️  Skipping phase objective sync (Phase entity not available)`);
       }
-    } catch (error: any) {
-      console.warn(`⚠️  Could not fetch system status: ${error.message}`);
-      systemStatus = null;
     }
 
-    // Update system map if needed (example: you might want to sync from another source)
-    // For now, we'll just log it
-    if (systemStatus && verbose) {
-      console.log(`\n✓ System map retrieved`);
+    // 4. Fetch/Update system status (only if phase exists)
+    let systemStatus = null;
+    if (currentPhaseId) {
+      if (verbose) {
+        console.log(`\n🗺️  Fetching system status for phase...`);
+      }
+
+      try {
+        systemStatus = await fetchPhaseSystemStatus(currentPhaseId);
+        if (verbose) {
+          console.log(`✅ System Status:`, systemStatus);
+        }
+      } catch (error: any) {
+        if (error.message?.includes('404') || error.message?.includes('NOT FOUND')) {
+          console.warn(`⚠️  SystemStatus entity not found. Skipping system status sync.`);
+        } else {
+          console.warn(`⚠️  Could not fetch system status: ${error.message}`);
+        }
+        systemStatus = null;
+      }
+
+      // Update system map if needed (example: you might want to sync from another source)
+      // For now, we'll just log it
+      if (systemStatus && verbose) {
+        console.log(`\n✓ System map retrieved`);
+      }
+    } else {
+      if (verbose) {
+        console.log(`\n⏭️  Skipping system status sync (Phase entity not available)`);
+      }
     }
 
-    // 5. Fetch/Update bug impact
+    // 5. Fetch/Update bug impact (works with existing KairosBug entity)
     if (verbose) {
       console.log(`\n🐛 Fetching active bugs...`);
     }
 
-    let activeBugs;
+    let activeBugs = null;
     try {
       activeBugs = await fetchActiveBugs();
       if (verbose) {
         console.log(`✅ Found ${activeBugs.length} active bugs`);
       }
 
-      // Map bugs to current phase
-      const phaseBugs = activeBugs.filter(bug => bug.phaseId === currentPhaseId);
-      
-      if (phaseBugs.length > 0) {
-        if (dryRun) {
-          console.log(`\n🔍 [DRY RUN] Would update bug impact for phase (${phaseBugs.length} bugs)`);
+      // Map bugs to current phase (if phase exists)
+      if (currentPhaseId) {
+        const phaseBugs = activeBugs.filter(bug => bug.phaseId === currentPhaseId);
+        
+        if (phaseBugs.length > 0) {
+          if (dryRun) {
+            console.log(`\n🔍 [DRY RUN] Would update bug impact for phase (${phaseBugs.length} bugs)`);
+          } else {
+            if (verbose) {
+              console.log(`\n📝 Updating bug impact for phase...`);
+            }
+            await updateBugImpactOnPhase(currentPhaseId, phaseBugs);
+            if (verbose) {
+              console.log(`✅ Bug impact updated`);
+            }
+          }
         } else {
           if (verbose) {
-            console.log(`\n📝 Updating bug impact for phase...`);
-          }
-          await updateBugImpactOnPhase(currentPhaseId, phaseBugs);
-          if (verbose) {
-            console.log(`✅ Bug impact updated`);
+            console.log(`\n✓ No bugs to map for this phase`);
           }
         }
       } else {
         if (verbose) {
-          console.log(`\n✓ No bugs to map for this phase`);
+          console.log(`\n✓ Found ${activeBugs.length} bugs (no phase to map to)`);
         }
       }
     } catch (error: any) {
-      console.warn(`⚠️  Could not fetch/update bug impact: ${error.message}`);
+      if (error.message?.includes('404') || error.message?.includes('NOT FOUND')) {
+        console.warn(`⚠️  KairosBug entity not found or empty. Skipping bug sync.`);
+      } else {
+        console.warn(`⚠️  Could not fetch/update bug impact: ${error.message}`);
+      }
     }
 
     // 6. Update alignment checklist
@@ -173,7 +213,7 @@ async function syncBase44WithKairos(options: SyncOptions = {}) {
       console.log(`\n✅ Fetching alignment checklist...`);
     }
 
-    let checklist;
+    let checklist = null;
     try {
       checklist = await fetchAlignmentChecklist();
       if (verbose) {
@@ -182,7 +222,7 @@ async function syncBase44WithKairos(options: SyncOptions = {}) {
 
       // Update checklist based on sync results
       const updatedChecklist = {
-        planAligned: true,
+        planAligned: currentPhaseId !== null,
         systemMapAligned: systemStatus !== null,
         bugImpactMapped: activeBugs !== null && activeBugs.length > 0,
         objectivesSynced: kairosObjective !== null,
@@ -201,7 +241,12 @@ async function syncBase44WithKairos(options: SyncOptions = {}) {
         }
       }
     } catch (error: any) {
-      console.warn(`⚠️  Could not fetch/update alignment checklist: ${error.message}`);
+      if (error.message?.includes('404') || error.message?.includes('NOT FOUND')) {
+        console.warn(`⚠️  AlignmentChecklist entity not found. Skipping checklist update.`);
+        console.warn(`   To create AlignmentChecklist entity, use Base44's UI or API.`);
+      } else {
+        console.warn(`⚠️  Could not fetch/update alignment checklist: ${error.message}`);
+      }
     }
 
     if (verbose) {

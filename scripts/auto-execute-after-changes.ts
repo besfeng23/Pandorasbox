@@ -10,6 +10,15 @@ import { join } from 'path';
 
 const GIT_DIR = process.cwd();
 
+function getArgValue(flag: string): string | undefined {
+  const argv = process.argv.slice(2);
+  const idx = argv.indexOf(flag);
+  if (idx === -1) return undefined;
+  const next = argv[idx + 1];
+  if (!next || next.startsWith('-')) return undefined;
+  return next;
+}
+
 function runCommand(cmd: string, description: string, silent = false): boolean {
   try {
     if (!silent) console.log(`📦 ${description}...`);
@@ -48,6 +57,8 @@ async function autoCommitAndPush() {
     return;
   }
 
+  const messageOverride = getArgValue('--message') || process.env.AUTO_COMMIT_MESSAGE;
+
   // Check if there are changes
   const changedFiles = getChangedFiles();
   if (changedFiles.length === 0) {
@@ -65,7 +76,8 @@ async function autoCommitAndPush() {
   // Generate commit message
   const timestamp = new Date().toISOString();
   const fileList = changedFiles.slice(0, 3).join(', ');
-  const commitMsg = `Auto-commit: ${timestamp} - ${fileList}${changedFiles.length > 3 ? '...' : ''}`;
+  const defaultMsg = `Auto-commit: ${timestamp} - ${fileList}${changedFiles.length > 3 ? '...' : ''}`;
+  const commitMsg = messageOverride?.trim() ? messageOverride.trim() : defaultMsg;
 
   // Stage all changes
   runCommand('git add -A', 'Staging', true);
