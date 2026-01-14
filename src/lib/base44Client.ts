@@ -75,6 +75,11 @@ export function initBase44Client(cfg: Partial<Base44Config> = {}) {
 
 /**
  * Make authenticated API request to Base44
+ * Base44 uses /functions/kairosApi as a unified API gateway that routes based on path and method
+ * 
+ * Note: The exact request format may vary based on Base44's implementation.
+ * If this doesn't work, the kairosApi function may expect a different format.
+ * Adjust the requestBody structure below if needed.
  */
 async function base44Request<T>(
   endpoint: string,
@@ -88,7 +93,9 @@ async function base44Request<T>(
     throw new Error('Base44 client is disabled');
   }
 
-  const url = `${config.apiUrl.replace(/\/+$/, '')}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+  // Base44 uses /functions/kairosApi as a unified gateway
+  // The endpoint path and method are sent in the request body for routing
+  const apiFunctionUrl = `${config.apiUrl.replace(/\/+$/, '')}/functions/kairosApi`;
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...options.headers,
@@ -98,16 +105,24 @@ async function base44Request<T>(
     headers['api_key'] = config.apiKey;
   }
 
-  const fetchOptions: RequestInit = {
+  // Base44 kairosApi function expects path and method in the body for routing
+  // Format: { path: string, method: string, body?: any }
+  const requestBody: any = {
+    path: endpoint,
     method: options.method || 'GET',
-    headers,
   };
-
+  
   if (options.body) {
-    fetchOptions.body = JSON.stringify(options.body);
+    requestBody.body = options.body;
   }
 
-  const response = await fetch(url, fetchOptions);
+  const fetchOptions: RequestInit = {
+    method: 'POST', // Always POST to the function
+    headers,
+    body: JSON.stringify(requestBody),
+  };
+
+  const response = await fetch(apiFunctionUrl, fetchOptions);
 
   if (!response.ok) {
     const errorText = await response.text().catch(() => 'Unknown error');

@@ -151,7 +151,7 @@ await updateAlignmentChecklist({
 
 ## Base44 API Endpoints
 
-The client assumes the following Base44 API endpoints exist:
+The client uses Base44's `/functions/kairosApi` unified API gateway that routes requests based on path and method. The following endpoints are supported:
 
 - `GET /phase/current` - Get active phase
 - `PUT /phase` - Update phase data
@@ -163,7 +163,9 @@ The client assumes the following Base44 API endpoints exist:
 - `GET /checklist/alignment` - Get alignment checklist
 - `PUT /checklist/alignment` - Update alignment checklist
 
-**Note**: These endpoints may need to be implemented in Base44 if they don't exist yet. The client will throw errors if endpoints are not available.
+**Implementation**: These endpoints are implemented in Base44's `kairosApi` backend function, which routes requests based on the `path` and `method` in the request body.
+
+**Testing**: Use `npm run base44:test` to verify all endpoints are working correctly.
 
 ## Error Handling
 
