@@ -2,47 +2,42 @@
  * Phase 4: GraphView Component Tests
  */
 
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { GraphView } from '../GraphView';
 
 // Mock ReactFlow
-jest.mock('reactflow', () => ({
-  ReactFlowProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  ReactFlow: ({ children }: { children: React.ReactNode }) => <div data-testid="reactflow">{children}</div>,
-  Background: () => <div>Background</div>,
-  Controls: () => <div>Controls</div>,
-  MiniMap: () => <div>MiniMap</div>,
-  Panel: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-}));
-
-// Mock fetch
-global.fetch = jest.fn();
+jest.mock('reactflow', () => {
+  const ReactFlowComponent = ({ children }: { children: React.ReactNode }) => <div data-testid="reactflow">{children}</div>;
+  return {
+    __esModule: true,
+    default: ReactFlowComponent,
+    ReactFlowProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+    ReactFlow: ReactFlowComponent,
+    Background: () => <div>Background</div>,
+    Controls: () => <div>Controls</div>,
+    MiniMap: () => <div>MiniMap</div>,
+    Panel: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  };
+});
 
 describe('GraphView Component', () => {
-  beforeEach(() => {
-    (global.fetch as jest.Mock).mockResolvedValue({
-      json: async () => ({ success: true, nodes: [], edges: [] }),
-    });
+  const mockNodes = [
+    { id: 'node1', label: 'Test Node 1', type: 'concept' },
+    { id: 'node2', label: 'Test Node 2', type: 'entity' },
+  ];
+
+  const mockEdges = [
+    { id: 'edge1', sourceId: 'node1', targetId: 'node2', relation: 'related_to', weight: 0.5 },
+  ];
+
+  it('should render GraphView component with empty graph', () => {
+    render(<GraphView nodes={[]} edges={[]} />);
+    expect(screen.getByText(/No relationships yet/i)).toBeInTheDocument();
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it('should render GraphView component', () => {
-    render(<GraphView userId="test-user" />);
-    expect(screen.getByText(/Knowledge Graph/i)).toBeInTheDocument();
-  });
-
-  it('should render search input', () => {
-    render(<GraphView userId="test-user" />);
-    expect(screen.getByPlaceholderText(/Search nodes/i)).toBeInTheDocument();
-  });
-
-  it('should render control buttons', () => {
-    render(<GraphView userId="test-user" />);
-    expect(screen.getByText(/Refresh/i)).toBeInTheDocument();
-    expect(screen.getByText(/Enhance/i)).toBeInTheDocument();
+  it('should render GraphView component with nodes and edges', () => {
+    render(<GraphView nodes={mockNodes} edges={mockEdges} />);
+    expect(screen.getByTestId('reactflow')).toBeInTheDocument();
   });
 });
 

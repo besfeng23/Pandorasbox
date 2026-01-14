@@ -1,5 +1,7 @@
-import { describe, it } from 'node:test';
-import assert from 'node:assert/strict';
+/**
+ * @jest-environment node
+ */
+
 import { handleKnowledgeGraphRequest } from '@/app/api/system/knowledge/route';
 
 describe('knowledge graph API handler', () => {
@@ -8,6 +10,6 @@ describe('knowledge graph API handler', () => {
       userId: '',
     });
 
-    assert.ok('error' in result);
+    expect(result).toHaveProperty('error');
   });
 });

@@ -1,6 +1,30 @@
 // Learn more: https://github.com/testing-library/jest-dom
 import '@testing-library/jest-dom'
 
+// Add OpenAI shim for fetch API before any OpenAI imports
+// This must be at the top to ensure fetch is available when OpenAI SDK initializes
+if (typeof globalThis.fetch === 'undefined') {
+  // Use undici for Node.js environments
+  try {
+    const { fetch, Request, Response, Headers } = require('undici');
+    globalThis.fetch = fetch;
+    globalThis.Request = Request;
+    globalThis.Response = Response;
+    globalThis.Headers = Headers;
+  } catch (e) {
+    // If undici is not available, try node-fetch
+    try {
+      const fetch = require('node-fetch');
+      globalThis.fetch = fetch;
+    } catch (e2) {
+      // Fallback: use native fetch if available (Node.js 18+)
+      if (typeof fetch !== 'undefined') {
+        globalThis.fetch = fetch;
+      }
+    }
+  }
+}
+
 // NOTE: This setup file runs for BOTH jsdom and node test environments.
 // Guard all browser-only globals so node-env tests can run (CI-safe).
 if (typeof window !== 'undefined') {
@@ -84,14 +108,9 @@ if (typeof window !== 'undefined') {
 
 // Polyfill Web APIs for Next.js API route tests
 // Node.js 18+ provides fetch, Request, Response, Headers globally, but Jest may not have them
-// These polyfills ensure tests that need these globals (e.g., for OpenAI SDK) work correctly
+// These polyfills ensure tests that need these globals (e.g., for OpenAI SDK and Next.js) work correctly
 if (typeof globalThis !== 'undefined') {
-  // fetch is available in Node.js 18+, but ensure it's on globalThis for tests
-  if (typeof globalThis.fetch === 'undefined' && typeof fetch !== 'undefined') {
-    globalThis.fetch = fetch;
-  }
-
-  // Request/Response/Headers are available in Node.js 18+, but ensure they're on globalThis
+  // Request/Response/Headers must be set up BEFORE any Next.js imports
   if (typeof globalThis.Request === 'undefined') {
     try {
       // Try to use undici (Node.js 18+ uses this under the hood)
@@ -99,18 +118,77 @@ if (typeof globalThis !== 'undefined') {
       globalThis.Request = Request;
       globalThis.Response = Response;
       globalThis.Headers = Headers;
+      // Also set on global for compatibility
+      global.Request = Request;
+      global.Response = Response;
+      global.Headers = Headers;
     } catch (e) {
-      // If undici is not available, tests should use NextRequest/NextResponse from Next.js
-      // This is fine - most tests already do
+      // If undici is not available, try to use native fetch (Node.js 18+)
+      if (typeof fetch !== 'undefined') {
+        // Use native fetch's Request/Response if available
+        try {
+          globalThis.Request = Request;
+          globalThis.Response = Response;
+          globalThis.Headers = Headers;
+        } catch (e2) {
+          // Fallback: create minimal stubs
+          globalThis.Request = class Request {
+            constructor(input, init) {
+              this.url = typeof input === 'string' ? input : input.url;
+              this.method = (init?.method || 'GET').toUpperCase();
+              this.headers = new Headers(init?.headers);
+            }
+          };
+          globalThis.Response = class Response {
+            constructor(body, init) {
+              this.body = body;
+              this.status = init?.status || 200;
+              this.headers = new Headers(init?.headers);
+            }
+            json() { return Promise.resolve(this.body); }
+          };
+          globalThis.Headers = class Headers {
+            constructor(init) {
+              this._headers = new Map(Array.isArray(init) ? init : Object.entries(init || {}));
+            }
+            get(name) { return this._headers.get(name.toLowerCase()); }
+            set(name, value) { this._headers.set(name.toLowerCase(), value); }
+          };
+        }
+      }
+    }
+  }
+
+  // fetch is available in Node.js 18+, but ensure it's on globalThis for tests
+  if (typeof globalThis.fetch === 'undefined') {
+    if (typeof fetch !== 'undefined') {
+      globalThis.fetch = fetch;
+      global.fetch = fetch;
+    } else {
+      try {
+        const { fetch } = require('undici');
+        globalThis.fetch = fetch;
+        global.fetch = fetch;
+      } catch (e) {
+        // Fallback: create minimal stub
+        globalThis.fetch = async () => ({
+          ok: true,
+          status: 200,
+          json: async () => ({}),
+          text: async () => '',
+        });
+      }
     }
   }
 
   // TextEncoder/TextDecoder are available in Node.js but ensure they're on globalThis
   if (typeof globalThis.TextEncoder === 'undefined' && typeof TextEncoder !== 'undefined') {
     globalThis.TextEncoder = TextEncoder;
+    global.TextEncoder = TextEncoder;
   }
   if (typeof globalThis.TextDecoder === 'undefined' && typeof TextDecoder !== 'undefined') {
     globalThis.TextDecoder = TextDecoder;
+    global.TextDecoder = TextDecoder;
   }
 }
 

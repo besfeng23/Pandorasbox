@@ -15,6 +15,11 @@ jest.mock('../firebase-admin', () => ({
   getFirestoreAdmin: jest.fn(() => ({
     collection: jest.fn(() => ({
       where: jest.fn(() => ({
+        orderBy: jest.fn(() => ({
+          limit: jest.fn(() => ({
+            get: jest.fn(() => Promise.resolve({ docs: [] })),
+          })),
+        })),
         get: jest.fn(() => Promise.resolve({ docs: [] })),
       })),
       get: jest.fn(() => Promise.resolve({ docs: [] })),

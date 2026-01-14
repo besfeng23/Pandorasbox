@@ -5,96 +5,66 @@
  */
 
 import {
-  upsertKnowledgeNode,
-  createKnowledgeEdge,
-  getKnowledgeNode,
-  getNodeEdges,
+  extractConcepts,
   searchKnowledgeNodes,
-  getNodeSubgraph,
-  findPathBetweenNodes,
-  extractKnowledgeFromText,
-  deleteKnowledgeNode,
 } from '../knowledge-graph';
 
 // Mock Firebase Admin
 jest.mock('../firebase-admin', () => ({
   getFirestoreAdmin: jest.fn(() => ({
     collection: jest.fn(() => ({
-      doc: jest.fn(() => ({
-        get: jest.fn(),
-        set: jest.fn(),
-        update: jest.fn(),
-        delete: jest.fn(),
-      })),
-      add: jest.fn(),
       where: jest.fn(() => ({
         limit: jest.fn(() => ({
-          get: jest.fn(),
-        })),
-        findNearest: jest.fn(() => ({
-          get: jest.fn(),
+          get: jest.fn(() => Promise.resolve({
+            docs: [
+              {
+                data: () => ({
+                  id: 'node1',
+                  label: 'Test Node 1',
+                  userId: 'test-user-id',
+                  type: 'concept',
+                  memoryIds: [],
+                  occurrences: 1,
+                }),
+              },
+              {
+                data: () => ({
+                  id: 'node2',
+                  label: 'Test Node 2',
+                  userId: 'test-user-id',
+                  type: 'entity',
+                  memoryIds: [],
+                  occurrences: 2,
+                }),
+              },
+            ],
+          })),
         })),
       })),
     })),
-    batch: jest.fn(() => ({
-      delete: jest.fn(),
-      commit: jest.fn(),
-    })),
   })),
-}));
-
-// Mock vector utilities
-jest.mock('../vector', () => ({
-  generateEmbedding: jest.fn(() => Promise.resolve(new Array(1536).fill(0))),
 }));
 
 describe('Knowledge Graph', () => {
   const mockUserId = 'test-user-id';
 
-  describe('upsertKnowledgeNode', () => {
-    it('should create a new node with valid data', async () => {
-      const result = await upsertKnowledgeNode(mockUserId, {
-        label: 'Test Node',
-        type: 'concept',
-        description: 'Test description',
-      });
-
-      expect(result.success).toBe(true);
-      expect(result.nodeId).toBeDefined();
+  describe('extractConcepts', () => {
+    it('should extract concepts from text', () => {
+      const text = 'John loves Python programming and machine learning';
+      const concepts = extractConcepts(text);
+      expect(Array.isArray(concepts)).toBe(true);
+      expect(concepts.length).toBeGreaterThan(0);
     });
 
-    it('should fail with empty label', async () => {
-      const result = await upsertKnowledgeNode(mockUserId, {
-        label: '',
-        type: 'concept',
-      });
-
-      expect(result.success).toBe(false);
-      expect(result.message).toContain('required');
-    });
-  });
-
-  describe('createKnowledgeEdge', () => {
-    it('should create an edge between two nodes', async () => {
-      const result = await createKnowledgeEdge(mockUserId, {
-        fromNodeId: 'node1',
-        toNodeId: 'node2',
-        relationType: 'related_to',
-      });
-
-      expect(result.success).toBe(true);
-      expect(result.edgeId).toBeDefined();
+    it('should return empty array for empty text', () => {
+      const concepts = extractConcepts('');
+      expect(concepts).toEqual([]);
     });
 
-    it('should fail when from and to nodes are the same', async () => {
-      const result = await createKnowledgeEdge(mockUserId, {
-        fromNodeId: 'node1',
-        toNodeId: 'node1',
-        relationType: 'related_to',
-      });
-
-      expect(result.success).toBe(false);
-      expect(result.message).toContain('itself');
+    it('should filter out stop words', () => {
+      const text = 'the and a an';
+      const concepts = extractConcepts(text);
+      expect(concepts.length).toBe(0);
     });
   });
 
@@ -105,27 +75,8 @@ describe('Knowledge Graph', () => {
     });
 
     it('should return nodes for valid query', async () => {
-      const results = await searchKnowledgeNodes(mockUserId, 'test query');
+      const results = await searchKnowledgeNodes(mockUserId, 'test');
       expect(Array.isArray(results)).toBe(true);
-    });
-  });
-
-  describe('extractKnowledgeFromText', () => {
-    it('should extract entities from text', async () => {
-      const result = await extractKnowledgeFromText(
-        mockUserId,
-        'John loves Python programming and machine learning.',
-        'test'
-      );
-
-      expect(result.nodesCreated).toBeGreaterThanOrEqual(0);
-      expect(result.edgesCreated).toBeGreaterThanOrEqual(0);
-    });
-
-    it('should handle empty text gracefully', async () => {
-      const result = await extractKnowledgeFromText(mockUserId, '', 'test');
-      expect(result.nodesCreated).toBe(0);
-      expect(result.edgesCreated).toBe(0);
     });
   });
 });

@@ -1,14 +1,36 @@
-import { describe, it, mock } from 'node:test';
-import assert from 'node:assert/strict';
+/**
+ * Hybrid Retrieve API Tests
+ * 
+ * Jest tests for hybrid-retrieve API route
+ * @jest-environment node
+ */
+
 import { NextRequest } from 'next/server';
 import { POST, GET } from '@/app/api/chatgpt/hybrid-retrieve/route';
 import * as firebaseAdminModule from '@/lib/firebase-admin';
 import * as hybridLaneModule from '@/ai/flows/run-hybrid-lane';
 
+jest.mock('@/lib/firebase-admin');
+jest.mock('@/ai/flows/run-hybrid-lane');
+
 describe('hybrid-retrieve API route', () => {
-  const mockApiKey = process.env.CHATGPT_API_KEY || 'test-api-key';
   const mockUserId = 'test-user-123';
   const mockUserEmail = 'test@example.com';
+  const mockApiKey = 'test-api-key-123';
+
+  // Set the API key in environment for tests
+  const originalEnv = process.env.CHATGPT_API_KEY;
+  beforeAll(() => {
+    process.env.CHATGPT_API_KEY = mockApiKey;
+  });
+
+  afterAll(() => {
+    if (originalEnv) {
+      process.env.CHATGPT_API_KEY = originalEnv;
+    } else {
+      delete process.env.CHATGPT_API_KEY;
+    }
+  });
 
   const createMockRequest = (method: 'POST' | 'GET', body?: any, searchParams?: URLSearchParams) => {
     const url = new URL('http://localhost/api/chatgpt/hybrid-retrieve');
@@ -35,6 +57,11 @@ describe('hybrid-retrieve API route', () => {
     });
   };
 
+  beforeEach(() => {
+    jest.restoreAllMocks();
+    jest.clearAllMocks();
+  });
+
   it('should return 401 for invalid API key', async () => {
     const request = new NextRequest('http://localhost/api/chatgpt/hybrid-retrieve', {
       method: 'POST',
@@ -50,8 +77,8 @@ describe('hybrid-retrieve API route', () => {
     const response = await POST(request);
     const data = await response.json();
 
-    assert.strictEqual(response.status, 401, 'Should return 401 for invalid API key');
-    assert.ok(data.error, 'Should include error message');
+    expect(response.status).toBe(401);
+    expect(data.error).toBeTruthy();
   });
 
   it('should return 400 for missing query', async () => {
@@ -62,8 +89,8 @@ describe('hybrid-retrieve API route', () => {
     const response = await POST(request);
     const data = await response.json();
 
-    assert.strictEqual(response.status, 400, 'Should return 400 for missing query');
-    assert.ok(data.error, 'Should include error message');
+    expect(response.status).toBe(400);
+    expect(data.error).toBeTruthy();
   });
 
   it('should return hybrid search results on success', async () => {
@@ -98,11 +125,11 @@ describe('hybrid-retrieve API route', () => {
     };
 
     const mockAuthAdmin = {
-      getUserByEmail: mock.fn(async () => mockFirebaseUser),
+      getUserByEmail: jest.fn().mockResolvedValue(mockFirebaseUser),
     };
 
-    mock.method(firebaseAdminModule, 'getAuthAdmin', () => mockAuthAdmin);
-    mock.method(hybridLaneModule, 'runHybridLane', async () => mockHybridResults);
+    jest.spyOn(firebaseAdminModule, 'getAuthAdmin').mockReturnValue(mockAuthAdmin as any);
+    jest.spyOn(hybridLaneModule, 'runHybridLane').mockResolvedValue(mockHybridResults);
 
     const request = createMockRequest('POST', {
       query: 'test query',
@@ -113,15 +140,13 @@ describe('hybrid-retrieve API route', () => {
     const response = await POST(request);
     const data = await response.json();
 
-    assert.strictEqual(response.status, 200, 'Should return 200 on success');
-    assert.strictEqual(data.success, true, 'Should indicate success');
-    assert.strictEqual(data.count, 2, 'Should return correct count');
-    assert.strictEqual(data.internal_count, 1, 'Should return internal count');
-    assert.strictEqual(data.external_count, 1, 'Should return external count');
-    assert.ok(Array.isArray(data.results), 'Should return results array');
-    assert.ok(data.fused_context, 'Should include fused context');
-
-    mock.restoreAll();
+    expect(response.status).toBe(200);
+    expect(data.success).toBe(true);
+    expect(data.count).toBe(2);
+    expect(data.internal_count).toBe(1);
+    expect(data.external_count).toBe(1);
+    expect(Array.isArray(data.results)).toBe(true);
+    expect(data.fused_context).toBeTruthy();
   });
 
   it('should support GET method with query parameters', async () => {
@@ -138,11 +163,11 @@ describe('hybrid-retrieve API route', () => {
     };
 
     const mockAuthAdmin = {
-      getUserByEmail: mock.fn(async () => mockFirebaseUser),
+      getUserByEmail: jest.fn().mockResolvedValue(mockFirebaseUser),
     };
 
-    mock.method(firebaseAdminModule, 'getAuthAdmin', () => mockAuthAdmin);
-    mock.method(hybridLaneModule, 'runHybridLane', async () => mockHybridResults);
+    jest.spyOn(firebaseAdminModule, 'getAuthAdmin').mockReturnValue(mockAuthAdmin as any);
+    jest.spyOn(hybridLaneModule, 'runHybridLane').mockResolvedValue(mockHybridResults);
 
     const searchParams = new URLSearchParams({
       query: 'test query',
@@ -155,22 +180,18 @@ describe('hybrid-retrieve API route', () => {
     const response = await GET(request);
     const data = await response.json();
 
-    assert.strictEqual(response.status, 200, 'Should return 200 on success');
-    assert.strictEqual(data.success, true, 'Should indicate success');
-
-    mock.restoreAll();
+    expect(response.status).toBe(200);
+    expect(data.success).toBe(true);
   });
 
   it('should return 404 for non-existent user', async () => {
     const mockAuthAdmin = {
-      getUserByEmail: mock.fn(async () => {
-        const error = new Error('User not found');
-        (error as any).code = 'auth/user-not-found';
-        throw error;
-      }),
+      getUserByEmail: jest.fn().mockRejectedValue(
+        Object.assign(new Error('User not found'), { code: 'auth/user-not-found' })
+      ),
     };
 
-    mock.method(firebaseAdminModule, 'getAuthAdmin', () => mockAuthAdmin);
+    jest.spyOn(firebaseAdminModule, 'getAuthAdmin').mockReturnValue(mockAuthAdmin as any);
 
     const request = createMockRequest('POST', {
       query: 'test query',
@@ -180,10 +201,7 @@ describe('hybrid-retrieve API route', () => {
     const response = await POST(request);
     const data = await response.json();
 
-    assert.strictEqual(response.status, 404, 'Should return 404 for non-existent user');
-    assert.ok(data.error, 'Should include error message');
-
-    mock.restoreAll();
+    expect(response.status).toBe(404);
+    expect(data.error).toBeTruthy();
   });
 });
-

@@ -303,6 +303,7 @@ function PandoraChatPageContent() {
                   transition={{ duration: 0.18, ease: "easeOut" }}
                   className="mb-1 p-3 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/30 neon-glow transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   aria-label="Send message"
+                  data-testid="chat-send"
                 >
                   <ArrowUp className="w-5 h-5" />
                 </motion.button>
@@ -314,6 +315,7 @@ function PandoraChatPageContent() {
                   exit={{ opacity: 0, scale: 0.92 }}
                   transition={{ duration: 0.18, ease: "easeOut" }}
                   className="mb-1"
+                  data-testid="chat-mic-container"
                 >
                   <VoiceInput
                     userId={userId || ""}

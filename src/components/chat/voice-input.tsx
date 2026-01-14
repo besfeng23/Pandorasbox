@@ -172,6 +172,7 @@ export function VoiceInput({ userId, onTranscriptionStatusChange, disabled, onAu
         onTouchEnd={handleStopRecording}
         disabled={disabled}
         aria-label={isRecording ? 'Stop recording' : 'Start recording'}
+        data-testid="chat-mic"
       >
         {disabled ? (
           <Loader2 className="h-4 w-4 animate-spin" />

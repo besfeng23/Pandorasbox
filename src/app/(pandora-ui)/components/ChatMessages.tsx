@@ -187,21 +187,3 @@ function MessageCard({ message: m, timestamp, fullTimestamp }: { message: any; t
   );
 }
 
-      {isLoading ? (
-        <div className="flex gap-3 py-4">
-          <div className="mt-1 h-8 w-8 rounded-full border border-border bg-muted/30" />
-          <div className="flex-1">
-            <div className="rounded-2xl border border-border bg-card/40 px-4 py-3 flex items-center gap-3">
-              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">Thinking…</span>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      <div ref={bottomRef} />
-    </div>
-  );
-}
-
-

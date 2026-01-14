@@ -1,5 +1,3 @@
-import { describe, it } from 'node:test';
-import assert from 'node:assert/strict';
 import { buildRelationshipsForConcepts } from '@/lib/relationship-manager';
 
 describe('relationship manager', () => {
@@ -17,7 +15,7 @@ describe('relationship manager', () => {
       'memory-1'
     );
 
-    assert.equal(edges.length, 3);
-    assert.equal(edges[0].userId, 'user-1');
+    expect(edges.length).toBe(3);
+    expect(edges[0].userId).toBe('user-1');
   });
 });
