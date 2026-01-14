@@ -15,6 +15,7 @@ import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { doc, onSnapshot } from "firebase/firestore";
+import { streamChatMessage } from "@/lib/streaming-chat";
 
 function PandoraChatPageContent() {
   const { user } = useUser();
@@ -76,14 +77,17 @@ function PandoraChatPageContent() {
     return () => unsubscribe();
   }, [user?.uid, firestore]);
 
+  // State for streaming messages (real-time updates)
+  const [streamingMessages, setStreamingMessages] = useState<Record<string, string>>({});
+
   // Convert Message type to simple format for ChatMessages component
-  // Merge real messages with optimistic ones
+  // Merge real messages with optimistic ones and streaming updates
   const chatMessages = [
     ...messages.map((msg: Message) => ({
       id: msg.id,
       role: msg.role,
-      content: msg.content || "",
-      status: msg.status,
+      content: streamingMessages[msg.id] || msg.content || "",
+      status: streamingMessages[msg.id] ? 'processing' : msg.status,
       progress_log: msg.progress_log,
       isOptimistic: false,
     })),
@@ -102,7 +106,7 @@ function PandoraChatPageContent() {
   const isEmptyThread = chatMessages.length === 0 && !isLoading && !isBusy;
 
   const handleSend = async () => {
-    if (!input.trim() || isBusy || !userId) return;
+    if (!input.trim() || isBusy || !userId || !user) return;
 
     // Show neon ripple effect
     setShowRipple(true);
@@ -124,12 +128,11 @@ function PandoraChatPageContent() {
     setOptimisticMessages(prev => [...prev, optimisticMsg]);
 
     try {
-      const idToken = user ? await user.getIdToken() : "";
+      const idToken = await user.getIdToken();
       
+      // First, save the user message using the existing action
       const formData = new FormData();
       formData.append("message", messageContent);
-      // Remove client-side userId reliance, let server verify token
-      // formData.append("userId", userId); 
       formData.append("idToken", idToken);
       if (threadId) {
         formData.append("threadId", threadId);
@@ -145,16 +148,44 @@ function PandoraChatPageContent() {
         setThreadId(result.threadId);
       }
 
-      if (result.error) {
-        console.error("Message error:", result.error);
-        // Optionally keep optimistic message with error state or remove
-      }
+      // Now stream the AI response
+      let assistantMessageId: string | null = null;
+      
+      await streamChatMessage(
+        messageContent,
+        result.threadId || threadId,
+        idToken,
+        undefined, // imageBase64 - can be added later
+        undefined, // audioUrl - can be added later
+        (chunk) => {
+          if (chunk.messageId) {
+            assistantMessageId = chunk.messageId;
+          }
+          if (chunk.type === 'chunk' && chunk.content && assistantMessageId) {
+            // Update streaming message in real-time
+            setStreamingMessages(prev => ({
+              ...prev,
+              [assistantMessageId!]: chunk.content || '',
+            }));
+          } else if (chunk.type === 'done' && assistantMessageId) {
+            // Clear streaming state - Firestore will have the final message
+            setStreamingMessages(prev => {
+              const next = { ...prev };
+              delete next[assistantMessageId!];
+              return next;
+            });
+          }
+        },
+        (error) => {
+          console.error("Streaming error:", error);
+        }
+      );
+
     } catch (error) {
       console.error("Failed to send message:", error);
     } finally {
       setIsSending(false);
       // Remove the optimistic message (assuming it's now in the real list or failed)
-      // In a more robust impl, we'd wait for it to appear in real list
       setOptimisticMessages(prev => prev.filter(m => m.content !== messageContent));
     }
   };
