@@ -46,7 +46,8 @@
     "store:design-memory": "tsx scripts/store-design-memory-simple.ts",
     "kairos:init": "tsx scripts/initialize-kairos-plan.ts",
     "kairos:deep-research-signal": "tsx scripts/send-deep-research-signal.ts",
-    "start:p1": "tsx scripts/start-phase-p1.ts"
+    "start:p1": "tsx scripts/start-phase-p1.ts",
+    "start:p1:foundation": "tsx scripts/start-phase-p1-foundation.ts"
   },
   "dependencies": {
     "@genkit-ai/firebase": "^1.27.0",
