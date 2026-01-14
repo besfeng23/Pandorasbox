@@ -9,11 +9,13 @@
  * - Alignment Checklist
  * 
  * Environment Variables:
- * - BASE44_API_URL: Base URL for Base44 API (default: https://kairostrack.base44.app)
- * - BASE44_API_KEY: API key for Base44 authentication
+ * - BASE44_API_URL: Base URL for Base44 API (default: https://app.base44.com)
+ * - BASE44_APP_ID: Base44 App ID (required)
+ * - BASE44_API_KEY: API key for Base44 authentication (required)
  */
 
 export interface Base44Phase {
+  id?: string; // Base44 entity ID
   phaseId: string;
   status: 'active' | 'completed' | 'pending';
   objective?: string;
@@ -23,6 +25,8 @@ export interface Base44Phase {
 }
 
 export interface Base44SystemStatus {
+  id?: string; // Base44 entity ID
+  phaseId?: string;
   backend: 'operational' | 'degraded' | 'down';
   ui: 'operational' | 'degraded' | 'down';
   database: 'operational' | 'degraded' | 'down';
@@ -31,6 +35,7 @@ export interface Base44SystemStatus {
 }
 
 export interface Base44BugImpact {
+  id?: string; // Base44 entity ID
   bugId: string;
   phaseId: string;
   severity: 'critical' | 'high' | 'medium' | 'low';
@@ -40,6 +45,7 @@ export interface Base44BugImpact {
 }
 
 export interface Base44AlignmentChecklist {
+  id?: string; // Base44 entity ID
   planAligned: boolean;
   systemMapAligned: boolean;
   bugImpactMapped: boolean;
@@ -53,6 +59,7 @@ export interface Base44AlignmentChecklist {
  */
 interface Base44Config {
   apiUrl?: string;
+  appId?: string;
   apiKey?: string;
   enabled?: boolean;
 }
@@ -67,7 +74,8 @@ let config: Base44Config = {
 export function initBase44Client(cfg: Partial<Base44Config> = {}) {
   config = {
     ...config,
-    apiUrl: process.env.BASE44_API_URL || cfg.apiUrl || 'https://kairostrack.base44.app',
+    apiUrl: process.env.BASE44_API_URL || cfg.apiUrl || 'https://app.base44.com',
+    appId: process.env.BASE44_APP_ID || cfg.appId,
     apiKey: process.env.BASE44_API_KEY || cfg.apiKey,
     enabled: cfg.enabled !== undefined ? cfg.enabled : config.enabled,
   };
@@ -75,17 +83,15 @@ export function initBase44Client(cfg: Partial<Base44Config> = {}) {
 
 /**
  * Make authenticated API request to Base44
- * Base44 uses /functions/kairosApi as a unified API gateway that routes based on path and method
- * 
- * Note: The exact request format may vary based on Base44's implementation.
- * If this doesn't work, the kairosApi function may expect a different format.
- * Adjust the requestBody structure below if needed.
+ * Base44 uses REST API: /api/apps/{appId}/entities/{EntityName}
  */
 async function base44Request<T>(
-  endpoint: string,
+  entityName: string,
   options: {
     method?: 'GET' | 'PUT' | 'POST' | 'DELETE';
+    entityId?: string;
     body?: any;
+    queryParams?: Record<string, string>;
     headers?: Record<string, string>;
   } = {}
 ): Promise<T> {
@@ -93,36 +99,42 @@ async function base44Request<T>(
     throw new Error('Base44 client is disabled');
   }
 
-  // Base44 uses /functions/kairosApi as a unified gateway
-  // The endpoint path and method are sent in the request body for routing
-  const apiFunctionUrl = `${config.apiUrl.replace(/\/+$/, '')}/functions/kairosApi`;
+  if (!config.appId) {
+    throw new Error('BASE44_APP_ID is required. Set it in environment variables.');
+  }
+
+  if (!config.apiKey) {
+    throw new Error('BASE44_API_KEY is required. Set it in environment variables.');
+  }
+
+  const baseUrl = config.apiUrl.replace(/\/+$/, '');
+  const entityPath = options.entityId 
+    ? `/api/apps/${config.appId}/entities/${entityName}/${options.entityId}`
+    : `/api/apps/${config.appId}/entities/${entityName}`;
+
+  // Add query parameters if provided
+  let url = `${baseUrl}${entityPath}`;
+  if (options.queryParams && Object.keys(options.queryParams).length > 0) {
+    const params = new URLSearchParams(options.queryParams);
+    url += `?${params.toString()}`;
+  }
+
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
+    'api_key': config.apiKey,
     ...options.headers,
   };
 
-  if (config.apiKey) {
-    headers['api_key'] = config.apiKey;
-  }
-
-  // Base44 kairosApi function expects path and method in the body for routing
-  // Format: { path: string, method: string, body?: any }
-  const requestBody: any = {
-    path: endpoint,
-    method: options.method || 'GET',
-  };
-  
-  if (options.body) {
-    requestBody.body = options.body;
-  }
-
   const fetchOptions: RequestInit = {
-    method: 'POST', // Always POST to the function
+    method: options.method || 'GET',
     headers,
-    body: JSON.stringify(requestBody),
   };
 
-  const response = await fetch(apiFunctionUrl, fetchOptions);
+  if (options.body) {
+    fetchOptions.body = JSON.stringify(options.body);
+  }
+
+  const response = await fetch(url, fetchOptions);
 
   if (!response.ok) {
     const errorText = await response.text().catch(() => 'Unknown error');
@@ -136,15 +148,35 @@ async function base44Request<T>(
  * 1. Plan Alignment - Fetch Active Phase
  */
 export async function fetchActivePhase(): Promise<Base44Phase> {
-  return base44Request<Base44Phase>('/phase/current');
+  // Fetch phases and filter for active one
+  const phases = await base44Request<Base44Phase[]>('Phase', {
+    queryParams: { status: 'active' },
+  });
+  
+  if (Array.isArray(phases) && phases.length > 0) {
+    return phases[0];
+  }
+  
+  // If no active phase found, try to get the first phase
+  const allPhases = await base44Request<Base44Phase[]>('Phase');
+  if (Array.isArray(allPhases) && allPhases.length > 0) {
+    return allPhases[0];
+  }
+  
+  throw new Error('No active phase found in Base44');
 }
 
 /**
  * 1. Plan Alignment - Update Phase Data
  */
 export async function updatePhaseData(phaseData: Partial<Base44Phase>): Promise<Base44Phase> {
-  return base44Request<Base44Phase>('/phase', {
+  if (!phaseData.phaseId) {
+    throw new Error('phaseId is required to update phase data');
+  }
+  
+  return base44Request<Base44Phase>('Phase', {
     method: 'PUT',
+    entityId: phaseData.phaseId,
     body: phaseData,
   });
 }
@@ -219,9 +251,19 @@ export async function updatePhaseObjectiveInBase44(
   phaseId: string,
   objectiveData: { objective: string; [key: string]: any }
 ): Promise<Base44Phase> {
-  return base44Request<Base44Phase>(`/phase/${phaseId}/objective`, {
+  // Get current phase data
+  const currentPhase = await base44Request<Base44Phase>('Phase', {
+    entityId: phaseId,
+  });
+  
+  // Update with new objective
+  return base44Request<Base44Phase>('Phase', {
     method: 'PUT',
-    body: objectiveData,
+    entityId: phaseId,
+    body: {
+      ...currentPhase,
+      ...objectiveData,
+    },
   });
 }
 
@@ -229,7 +271,32 @@ export async function updatePhaseObjectiveInBase44(
  * 3. Phase ↔ System Map - Get System Status for Phase
  */
 export async function fetchPhaseSystemStatus(phaseId: string): Promise<Base44SystemStatus> {
-  return base44Request<Base44SystemStatus>(`/phase/${phaseId}/system-status`);
+  // System status might be stored in Phase entity or separate SystemStatus entity
+  // Try Phase first (systemStatus field)
+  const phase = await base44Request<Base44Phase>('Phase', {
+    entityId: phaseId,
+  });
+  
+  if (phase.systemStatus) {
+    return phase.systemStatus;
+  }
+  
+  // Try SystemStatus entity
+  const systemStatuses = await base44Request<Base44SystemStatus[]>('SystemStatus', {
+    queryParams: { phaseId },
+  });
+  
+  if (Array.isArray(systemStatuses) && systemStatuses.length > 0) {
+    return systemStatuses[0];
+  }
+  
+  // Return default if not found
+  return {
+    backend: 'operational',
+    ui: 'operational',
+    database: 'operational',
+    integrations: 'operational',
+  };
 }
 
 /**
@@ -239,17 +306,44 @@ export async function updateSystemMap(
   phaseId: string,
   systemMapData: Partial<Base44SystemStatus>
 ): Promise<Base44SystemStatus> {
-  return base44Request<Base44SystemStatus>(`/phase/${phaseId}/system-status`, {
-    method: 'PUT',
-    body: systemMapData,
+  // Try to find existing SystemStatus entity
+  const existing = await base44Request<Base44SystemStatus[]>('SystemStatus', {
+    queryParams: { phaseId },
   });
+  
+  if (Array.isArray(existing) && existing.length > 0 && existing[0].id) {
+    // Update existing
+    return base44Request<Base44SystemStatus>('SystemStatus', {
+      method: 'PUT',
+      entityId: existing[0].id,
+      body: {
+        ...existing[0],
+        ...systemMapData,
+        phaseId,
+      },
+    });
+  } else {
+    // Create new
+    return base44Request<Base44SystemStatus>('SystemStatus', {
+      method: 'POST',
+      body: {
+        ...systemMapData,
+        phaseId,
+      },
+    });
+  }
 }
 
 /**
  * 4. Bug Impact Map & Evidence - Get Active Bugs
  */
 export async function fetchActiveBugs(): Promise<Base44BugImpact[]> {
-  return base44Request<Base44BugImpact[]>('/bugs/active');
+  // Fetch bugs with status filter (assuming status field exists)
+  const bugs = await base44Request<Base44BugImpact[]>('KairosBug', {
+    queryParams: { status: 'open' }, // or 'active' depending on Base44 schema
+  });
+  
+  return Array.isArray(bugs) ? bugs : [];
 }
 
 /**
@@ -259,17 +353,55 @@ export async function updateBugImpactOnPhase(
   phaseId: string,
   bugImpactData: Base44BugImpact[]
 ): Promise<Base44BugImpact[]> {
-  return base44Request<Base44BugImpact[]>(`/phase/${phaseId}/bug-impact`, {
-    method: 'PUT',
-    body: bugImpactData,
-  });
+  // Update each bug with phaseId
+  const updatedBugs: Base44BugImpact[] = [];
+  
+  for (const bug of bugImpactData) {
+    if (bug.bugId) {
+      // Update existing bug
+      const updated = await base44Request<Base44BugImpact>('KairosBug', {
+        method: 'PUT',
+        entityId: bug.bugId,
+        body: {
+          ...bug,
+          phaseId,
+        },
+      });
+      updatedBugs.push(updated);
+    } else {
+      // Create new bug
+      const created = await base44Request<Base44BugImpact>('KairosBug', {
+        method: 'POST',
+        body: {
+          ...bug,
+          phaseId,
+        },
+      });
+      updatedBugs.push(created);
+    }
+  }
+  
+  return updatedBugs;
 }
 
 /**
  * 5. Alignment Checklist - Get Alignment Status
  */
 export async function fetchAlignmentChecklist(): Promise<Base44AlignmentChecklist> {
-  return base44Request<Base44AlignmentChecklist>('/checklist/alignment');
+  // Try to fetch AlignmentChecklist entity
+  const checklists = await base44Request<Base44AlignmentChecklist[]>('AlignmentChecklist');
+  
+  if (Array.isArray(checklists) && checklists.length > 0) {
+    return checklists[0];
+  }
+  
+  // Return default if not found
+  return {
+    planAligned: false,
+    systemMapAligned: false,
+    bugImpactMapped: false,
+    objectivesSynced: false,
+  };
 }
 
 /**
@@ -278,10 +410,26 @@ export async function fetchAlignmentChecklist(): Promise<Base44AlignmentChecklis
 export async function updateAlignmentChecklist(
   checklistData: Partial<Base44AlignmentChecklist>
 ): Promise<Base44AlignmentChecklist> {
-  return base44Request<Base44AlignmentChecklist>('/checklist/alignment', {
-    method: 'PUT',
-    body: checklistData,
-  });
+  // Try to find existing checklist
+  const existing = await base44Request<Base44AlignmentChecklist[]>('AlignmentChecklist');
+  
+  if (Array.isArray(existing) && existing.length > 0 && (existing[0] as any).id) {
+    // Update existing
+    return base44Request<Base44AlignmentChecklist>('AlignmentChecklist', {
+      method: 'PUT',
+      entityId: (existing[0] as any).id,
+      body: {
+        ...existing[0],
+        ...checklistData,
+      },
+    });
+  } else {
+    // Create new
+    return base44Request<Base44AlignmentChecklist>('AlignmentChecklist', {
+      method: 'POST',
+      body: checklistData,
+    });
+  }
 }
 
 // Initialize on module load

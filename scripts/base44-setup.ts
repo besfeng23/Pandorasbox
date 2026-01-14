@@ -26,15 +26,17 @@ async function setupBase44() {
   console.log('This script will help you configure the Base44 API integration.\n');
 
   // Check current environment
-  const currentApiUrl = process.env.BASE44_API_URL || 'https://kairostrack.base44.app';
+  const currentApiUrl = process.env.BASE44_API_URL || 'https://app.base44.com';
+  const currentAppId = process.env.BASE44_APP_ID;
   const currentApiKey = process.env.BASE44_API_KEY;
 
   console.log('Current Configuration:');
   console.log(`  BASE44_API_URL: ${currentApiUrl}`);
+  console.log(`  BASE44_APP_ID: ${currentAppId || 'NOT SET'}`);
   console.log(`  BASE44_API_KEY: ${currentApiKey ? '***' + currentApiKey.slice(-4) : 'NOT SET'}\n`);
 
-  if (currentApiKey) {
-    console.log('✅ API key is already set in environment.\n');
+  if (currentAppId && currentApiKey) {
+    console.log('✅ Configuration is already set.\n');
     
     const test = await question('Would you like to test the connection? (y/n): ');
     if (test.toLowerCase() === 'y') {
@@ -44,33 +46,51 @@ async function setupBase44() {
       try {
         execSync('npm run base44:test', { stdio: 'inherit', env: process.env });
       } catch (error) {
-        console.error('\n❌ Tests failed. Please check your API key.');
+        console.error('\n❌ Tests failed. Please check your configuration.');
       }
       return;
     }
   } else {
-    console.log('⚠️  API key is not set.\n');
-    console.log('To set it up:\n');
-    console.log('1. Get your API key from Base44 dashboard');
-    console.log('2. Set it as an environment variable:\n');
+    console.log('⚠️  Configuration is incomplete.\n');
+    console.log('Required:\n');
+    console.log('1. BASE44_APP_ID - Your Base44 App ID (e.g., 6962980527a433f05c114277)');
+    console.log('2. BASE44_API_KEY - Your Base44 API key\n');
+    console.log('To set them up:\n');
     console.log('   Windows PowerShell:');
+    console.log('   $env:BASE44_APP_ID="your_app_id"');
     console.log('   $env:BASE44_API_KEY="your_key_here"\n');
     console.log('   Windows CMD:');
+    console.log('   set BASE44_APP_ID=your_app_id');
     console.log('   set BASE44_API_KEY=your_key_here\n');
     console.log('   Linux/Mac:');
+    console.log('   export BASE44_APP_ID=your_app_id');
     console.log('   export BASE44_API_KEY=your_key_here\n');
-    console.log('3. Or add it to your .env file:');
+    console.log('   Or add to your .env file:');
+    console.log('   BASE44_APP_ID=your_app_id');
     console.log('   BASE44_API_KEY=your_key_here\n');
 
-    const setNow = await question('Do you have your API key and want to set it now? (y/n): ');
+    const setNow = await question('Do you have your credentials and want to set them now? (y/n): ');
     if (setNow.toLowerCase() === 'y') {
-      const apiKey = await question('Enter your Base44 API key: ');
-      if (apiKey.trim()) {
-        process.env.BASE44_API_KEY = apiKey.trim();
-        console.log('\n✅ API key set for this session.\n');
-        console.log('⚠️  Note: This only sets it for the current terminal session.');
-        console.log('   To make it permanent, add it to your .env file or system environment.\n');
+      if (!currentAppId) {
+        const appId = await question('Enter your Base44 App ID: ');
+        if (appId.trim()) {
+          process.env.BASE44_APP_ID = appId.trim();
+          console.log('✅ App ID set for this session.\n');
+        }
+      }
+      
+      if (!currentApiKey) {
+        const apiKey = await question('Enter your Base44 API key: ');
+        if (apiKey.trim()) {
+          process.env.BASE44_API_KEY = apiKey.trim();
+          console.log('✅ API key set for this session.\n');
+        }
+      }
+      
+      console.log('⚠️  Note: This only sets them for the current terminal session.');
+      console.log('   To make it permanent, add them to your .env file or system environment.\n');
 
+      if (process.env.BASE44_APP_ID && process.env.BASE44_API_KEY) {
         const test = await question('Would you like to test the connection now? (y/n): ');
         if (test.toLowerCase() === 'y') {
           rl.close();
@@ -79,7 +99,7 @@ async function setupBase44() {
           try {
             execSync('npm run base44:test', { stdio: 'inherit', env: process.env });
           } catch (error) {
-            console.error('\n❌ Tests failed. Please verify your API key is correct.');
+            console.error('\n❌ Tests failed. Please verify your credentials are correct.');
           }
           return;
         }
@@ -89,7 +109,7 @@ async function setupBase44() {
 
   rl.close();
   console.log('\n📝 Next Steps:');
-  console.log('1. Set BASE44_API_KEY environment variable');
+  console.log('1. Set BASE44_APP_ID and BASE44_API_KEY environment variables');
   console.log('2. Run: npm run base44:test');
   console.log('3. Run: npm run base44:sync:dry-run');
   console.log('4. Once verified, run: npm run base44:sync\n');

@@ -2,28 +2,32 @@
 
 Get your Base44 API integration up and running in 3 steps.
 
-## Step 1: Get Your API Key
+## Step 1: Get Your Credentials
 
-1. Go to your Base44 dashboard
-2. Navigate to Settings → API Keys
-3. Copy your API key (or create a new one if needed)
+1. **App ID**: Found in your Base44 API URL (e.g., `6962980527a433f05c114277`)
+   - Or check your Base44 dashboard → Settings → App Info
+2. **API Key**: Go to Base44 dashboard → Settings → API Keys
+   - Copy your API key (or create a new one if needed)
 
-## Step 2: Set the API Key
+## Step 2: Set the Credentials
 
 ### Option A: Environment Variable (Recommended for Testing)
 
 **Windows PowerShell:**
 ```powershell
+$env:BASE44_APP_ID="6962980527a433f05c114277"
 $env:BASE44_API_KEY="your_key_here"
 ```
 
 **Windows CMD:**
 ```cmd
+set BASE44_APP_ID=6962980527a433f05c114277
 set BASE44_API_KEY=your_key_here
 ```
 
 **Linux/Mac:**
 ```bash
+export BASE44_APP_ID=6962980527a433f05c114277
 export BASE44_API_KEY=your_key_here
 ```
 
@@ -31,7 +35,8 @@ export BASE44_API_KEY=your_key_here
 
 Create or update `.env` in your project root:
 ```bash
-BASE44_API_URL=https://kairostrack.base44.app
+BASE44_API_URL=https://app.base44.com
+BASE44_APP_ID=6962980527a433f05c114277
 BASE44_API_KEY=your_key_here
 ```
 

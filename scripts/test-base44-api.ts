@@ -25,6 +25,15 @@ async function testBase44API() {
   // Initialize client
   initBase44Client();
   
+  if (!process.env.BASE44_APP_ID) {
+    console.error('❌ BASE44_APP_ID environment variable is required');
+    console.log('\nSet it with:');
+    console.log('  export BASE44_APP_ID=your_app_id');
+    console.log('  # or on Windows:');
+    console.log('  $env:BASE44_APP_ID="your_app_id"');
+    process.exit(1);
+  }
+  
   if (!process.env.BASE44_API_KEY) {
     console.error('❌ BASE44_API_KEY environment variable is required');
     console.log('\nSet it with:');
