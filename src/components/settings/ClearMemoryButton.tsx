@@ -73,8 +73,11 @@ export function ClearMemoryButton({ variant = 'destructive' }: ClearMemoryButton
         <AlertDialogHeader>
           <AlertDialogTitle className="text-destructive">Clear all data?</AlertDialogTitle>
           <AlertDialogDescription className="text-muted-foreground">
-            This will permanently delete:
-            <ul className="list-disc list-inside mt-2 space-y-1">
+            This will permanently delete your conversation history, memories, artifacts, workspace state, and knowledge
+            base files.
+          </AlertDialogDescription>
+          <div className="mt-2 space-y-1 text-sm text-muted-foreground">
+            <ul className="list-disc list-inside">
               <li>All threads and messages</li>
               <li>All memories</li>
               <li>All artifacts</li>
@@ -82,7 +85,7 @@ export function ClearMemoryButton({ variant = 'destructive' }: ClearMemoryButton
               <li>All knowledge base files</li>
             </ul>
             <strong className="text-destructive block mt-3">This action cannot be undone.</strong>
-          </AlertDialogDescription>
+          </div>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel
