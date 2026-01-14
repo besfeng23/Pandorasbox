@@ -47,7 +47,10 @@
     "kairos:init": "tsx scripts/initialize-kairos-plan.ts",
     "kairos:deep-research-signal": "tsx scripts/send-deep-research-signal.ts",
     "start:p1": "tsx scripts/start-phase-p1.ts",
-    "start:p1:foundation": "tsx scripts/start-phase-p1-foundation.ts"
+    "start:p1:foundation": "tsx scripts/start-phase-p1-foundation.ts",
+    "base44:sync": "tsx scripts/base44-sync.ts",
+    "base44:sync:dry-run": "tsx scripts/base44-sync.ts --dry-run",
+    "base44:sync:verbose": "tsx scripts/base44-sync.ts --verbose"
   },
   "dependencies": {
     "@genkit-ai/firebase": "^1.27.0",
