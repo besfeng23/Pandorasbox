@@ -429,7 +429,132 @@
         "blocksNodes": ["PB-COPY-CONTENT-001"]
       }
     ]
+  },
+  "pandora_master_plan": {
+    "plan_version": "1.0.0",
+    "title": "Pandora’s Box Master Plan",
+    "description": "End-to-end execution plan covering UI/UX, backend, memory systems, AI orchestration, stabilization, and operations.",
+    "phases": [
+      {
+        "id": "P1",
+        "title": "Foundation & Infra",
+        "objective": "Establish core infrastructure, environments, and CI/CD.",
+        "ui_ux": ["Base layout", "Auth screens", "Loading states"],
+        "backend": ["Firebase project", "Firestore schema", "Auth setup"],
+        "infra": ["Vercel", "Cloud Run", "Secrets management"],
+        "exit_criteria": ["Deploy succeeds", "Auth works", "Env separation complete"]
+      },
+      {
+        "id": "P2",
+        "title": "Core Chat Engine",
+        "objective": "Working chat loop with persistence.",
+        "ui_ux": ["Chat feed", "Message composer", "Streaming UI"],
+        "backend": ["Message pipeline", "LLM adapter", "History storage"],
+        "infra": ["LLM credentials"],
+        "exit_criteria": ["User sends message", "Assistant replies", "History saved"]
+      },
+      {
+        "id": "P3",
+        "title": "Thread Management",
+        "objective": "Conversation grouping and navigation.",
+        "ui_ux": ["Thread sidebar", "Create/select thread"],
+        "backend": ["Threads collection", "Auto-title logic"],
+        "exit_criteria": ["Threads persist", "Switching threads works"]
+      },
+      {
+        "id": "P4",
+        "title": "Memory Ingestion",
+        "objective": "Convert conversations into long-term memory.",
+        "ui_ux": ["Memory inspector"],
+        "backend": ["Memory extraction", "Embedding generation"],
+        "exit_criteria": ["Memories stored", "Embeddings created"]
+      },
+      {
+        "id": "P5",
+        "title": "Semantic Retrieval",
+        "objective": "Retrieve memories contextually.",
+        "ui_ux": ["Memory search UI"],
+        "backend": ["Vector search", "Hybrid retrieval"],
+        "exit_criteria": ["Relevant memories injected into prompts"]
+      },
+      {
+        "id": "P6",
+        "title": "Artifacts System",
+        "objective": "Persist generated code/docs.",
+        "ui_ux": ["Artifact viewer", "Copy/download"],
+        "backend": ["Artifact detection", "Versioning"],
+        "exit_criteria": ["Artifacts auto-created from responses"]
+      },
+      {
+        "id": "P7",
+        "title": "Knowledge Base Upload",
+        "objective": "External document ingestion.",
+        "ui_ux": ["Upload UI", "Progress indicators"],
+        "backend": ["Chunking", "Embedding", "Indexing"],
+        "exit_criteria": ["Docs searchable in chat"]
+      },
+      {
+        "id": "P8",
+        "title": "Settings & User Control",
+        "objective": "User-configurable system behavior.",
+        "ui_ux": ["Settings page", "API key manager", "Danger zone"],
+        "backend": ["Settings persistence", "Export/clear data"],
+        "exit_criteria": ["Settings affect runtime behavior"]
+      },
+      {
+        "id": "P9",
+        "title": "Kairos Tracking Integration",
+        "objective": "System-wide event tracking.",
+        "ui_ux": ["Progress indicators"],
+        "backend": ["Event emission", "Required-field validation"],
+        "exit_criteria": ["All major actions emit Kairos events"]
+      },
+      {
+        "id": "P10",
+        "title": "Cron & Automation",
+        "objective": "Background intelligence.",
+        "ui_ux": ["Status indicators"],
+        "backend": [
+          "Daily briefing",
+          "Nightly reflection",
+          "Context decay",
+          "Reindex memories"
+        ],
+        "exit_criteria": ["All cron jobs run without failure"]
+      },
+      {
+        "id": "P11",
+        "title": "Knowledge Graph",
+        "objective": "Relationship visualization.",
+        "ui_ux": ["Graph view", "Node inspector"],
+        "backend": ["Graph edges", "Entity linking"],
+        "exit_criteria": ["Graph reflects memory relationships"]
+      },
+      {
+        "id": "P12",
+        "title": "MCP & External Tooling",
+        "objective": "External agent interoperability.",
+        "ui_ux": [],
+        "backend": ["MCP server", "OpenAPI schema"],
+        "exit_criteria": ["Claude/Desktop tools work"]
+      },
+      {
+        "id": "P13",
+        "title": "Stabilization & Bug Fixing",
+        "objective": "Eliminate P0/P1 issues.",
+        "ui_ux": ["UX polish"],
+        "backend": ["Fix PBX-001 \u2192 PBX-010"],
+        "exit_criteria": ["All blocking bugs closed", "Tests green"]
+      },
+      {
+        "id": "P14",
+        "title": "Hardening & Launch",
+        "objective": "Production readiness.",
+        "ui_ux": ["Final polish"],
+        "backend": ["Rate limits", "Error handling"],
+        "infra": ["Monitoring", "Backups"],
+        "exit_criteria": ["Production deploy approved"]
+      }
+    ]
   }
 }
-
-
