@@ -20,14 +20,7 @@ async function testMCPSetup() {
 
   // Test 1: Environment variables
   console.log('1️⃣ Checking environment variables...');
-  const openaiKey = process.env.OPENAI_API_KEY?.trim();
   const firebaseKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY?.trim();
-  
-  if (openaiKey) {
-    console.log('   ✅ OPENAI_API_KEY is set');
-  } else {
-    console.log('   ⚠️  OPENAI_API_KEY is not set (required for embeddings)');
-  }
   
   if (firebaseKey) {
     console.log(`   ✅ FIREBASE_SERVICE_ACCOUNT_KEY is set: ${firebaseKey}`);

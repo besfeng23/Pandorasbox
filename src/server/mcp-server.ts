@@ -12,7 +12,7 @@
  * It reuses the existing MCP tool handlers from `src/mcp/tools`.
  */
 
-// Load environment variables from .env.local (for OPENAI_API_KEY, etc.)
+// Load environment variables from .env.local (for FIREBASE_SERVICE_ACCOUNT_KEY, etc.)
 import { config } from 'dotenv';
 import { resolve } from 'path';
 
@@ -34,10 +34,6 @@ import { handleSearchKnowledgeBase } from '@/mcp/tools/search-knowledge';
 // Validate required environment variables (best-effort)
 function validateEnvironment() {
   const missing: string[] = [];
-
-  if (!process.env.OPENAI_API_KEY?.trim()) {
-    missing.push('OPENAI_API_KEY');
-  }
 
   if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY?.trim()) {
     console.warn(

@@ -4,15 +4,15 @@
     {
       "id": "p01_foundation",
       "title": "Foundation & Infra",
-      "description": "Establish core infrastructure, environments, CI/CD, Firebase project setup, Firestore schema, authentication, and deployment pipelines.",
+      "description": "Establish core infrastructure, environments, CI/CD pipelines, Firebase project initialization, Firestore schema design, Firebase Auth configuration, environment variable management, secrets management, Vercel deployment setup, Cloud Run configuration, and base application structure.",
       "scope": {
-        "ui_ux": ["Base layout", "Auth screens", "Loading states", "Error boundaries"],
-        "backend": ["Firebase project initialization", "Firestore schema design", "Firebase Auth setup", "Environment configuration", "Secrets management", "Vercel deployment", "Cloud Run setup"],
-        "data": ["system_phases", "settings", "firestore indexes"]
+        "ui_ux": ["Base layout component", "Authentication screens (login, signup)", "Loading states and spinners", "Error boundaries", "Root app shell", "Navigation structure"],
+        "backend": ["Firebase project initialization", "Firestore database setup", "Firestore schema design", "Firebase Auth configuration", "Environment configuration management", "Secrets management system", "Vercel deployment configuration", "Cloud Run service setup", "Base API route structure", "Middleware setup"],
+        "data": ["system_phases collection", "settings collection", "firestore security rules", "firestore composite indexes", "environment variable storage"]
       },
-      "entry_criteria": ["Repository initialized", "Firebase account created"],
-      "exit_criteria": ["system.auth.login_success", "system.security.rules_verified", "system.message.persisted"],
-      "emits_events": ["system.auth.login_success", "system.auth.login_failure", "system.security.rules_verified", "system.message.persisted", "system.phase.persisted"],
+      "entry_criteria": ["Repository initialized", "Firebase account created", "Node.js environment ready"],
+      "exit_criteria": ["system.auth.login_success event emitted", "system.security.rules_verified event emitted", "system.message.persisted event emitted", "Firebase project deployed", "Firestore rules deployed", "Environment separation complete"],
+      "emits_events": ["system.auth.login_success", "system.auth.login_failure", "system.security.rules_verified", "system.message.persisted", "system.phase.persisted", "system.error.logged"],
       "blocking_bugs": [],
       "owner": "pandora-core",
       "status": "locked"
@@ -20,15 +20,15 @@
     {
       "id": "p02_chat_engine",
       "title": "Core Chat Engine",
-      "description": "Working chat loop with persistence, message pipeline, LLM adapter, history storage, streaming UI, and real-time updates.",
+      "description": "Working chat loop with full persistence, message pipeline implementation, LLM adapter integration via Genkit, history storage, streaming UI with real-time updates, message status tracking, rate limiting, and error handling.",
       "scope": {
-        "ui_ux": ["Chat feed", "Message composer", "Streaming UI", "Message bubbles", "Typing indicators"],
-        "backend": ["Message pipeline", "LLM adapter (Genkit)", "History storage", "Streaming response handler", "Message status tracking"],
-        "data": ["history", "threads", "firestore indexes for message queries"]
+        "ui_ux": ["Chat feed component", "Message composer input", "Streaming UI with token-by-token display", "Message bubbles (user and assistant)", "Typing indicators", "Message status indicators", "Empty state with 3D model", "Follow-up suggestions UI"],
+        "backend": ["Message pipeline orchestrator", "LLM adapter (Genkit integration)", "History storage service", "Streaming response handler", "Message status tracking", "Rate limiting middleware", "Error handling and retry logic", "Message validation", "Response streaming API"],
+        "data": ["history collection", "threads collection", "firestore indexes for message queries by threadId", "firestore indexes for message queries by userId", "message status tracking fields"]
       },
-      "entry_criteria": ["p01_foundation completed", "Firebase Auth working"],
-      "exit_criteria": ["ui.chat.message_sent", "system.chat.response_completed", "system.lane.chat.completed", "system.message.persisted"],
-      "emits_events": ["ui.chat.message_sent", "system.chat.response_completed", "system.lane.chat.started", "system.lane.chat.completed", "system.lane.answer.retrieval_done", "system.lane.answer.completed", "system.message.persisted", "system.message.updated", "system.ratelimit.triggered", "system.error.logged"],
+      "entry_criteria": ["p01_foundation completed", "Firebase Auth working", "LLM credentials configured"],
+      "exit_criteria": ["ui.chat.message_sent event emitted", "system.chat.response_completed event emitted", "system.lane.chat.completed event emitted", "system.message.persisted event emitted", "User can send message", "Assistant replies with streaming", "History saved to Firestore"],
+      "emits_events": ["ui.chat.message_sent", "system.chat.response_completed", "system.lane.chat.started", "system.lane.chat.completed", "system.lane.answer.retrieval_done", "system.lane.answer.completed", "system.message.persisted", "system.message.updated", "system.ratelimit.triggered", "system.ratelimit.cleared", "system.error.logged"],
       "blocking_bugs": ["PBX-001", "PBX-002", "PBX-003"],
       "owner": "pandora-core",
       "status": "locked"
@@ -36,14 +36,14 @@
     {
       "id": "p03_thread_management",
       "title": "Thread Management",
-      "description": "Conversation grouping and navigation, thread creation, auto-title generation, sidebar navigation, and thread persistence.",
+      "description": "Conversation grouping and navigation system, thread creation workflow, auto-title generation from initial messages, sidebar navigation with thread list, thread search and filtering, thread persistence, and thread summary generation for long conversations.",
       "scope": {
-        "ui_ux": ["Thread sidebar", "Create thread button", "Thread selection", "Thread title display", "Thread search/filter"],
-        "backend": ["Threads collection schema", "Auto-title logic", "Thread CRUD operations", "Thread summary generation"],
-        "data": ["threads", "thread indexes for userId and updatedAt"]
+        "ui_ux": ["Thread sidebar component", "Create thread button", "Thread selection interface", "Thread title display and editing", "Thread search and filter UI", "Thread list with sorting", "Thread metadata display"],
+        "backend": ["Threads collection schema", "Auto-title generation logic", "Thread CRUD operations", "Thread summary generation service", "Thread search implementation", "Thread filtering logic", "Thread update handlers"],
+        "data": ["threads collection", "thread indexes for userId queries", "thread indexes for updatedAt sorting", "thread title field", "thread summary field", "thread metadata fields"]
       },
       "entry_criteria": ["p02_chat_engine completed"],
-      "exit_criteria": ["ui.thread.created", "system.thread.persisted", "system.thread.updated", "system.thread.summary_generated"],
+      "exit_criteria": ["ui.thread.created event emitted", "system.thread.persisted event emitted", "system.thread.updated event emitted", "system.thread.summary_generated event emitted", "Threads persist in Firestore", "Switching threads works", "Auto-title generation works"],
       "emits_events": ["ui.thread.created", "system.thread.persisted", "system.thread.updated", "system.thread.summary_generated"],
       "blocking_bugs": ["PBX-004"],
       "owner": "pandora-core",
@@ -52,15 +52,15 @@
     {
       "id": "p04_memory_ingestion",
       "title": "Memory Ingestion",
-      "description": "Convert conversations into long-term memory, memory extraction from chat, embedding generation, and memory persistence.",
+      "description": "Convert conversations into long-term memory system, memory extraction from chat interactions, embedding generation pipeline using OpenAI embeddings, memory persistence to Firestore, memory indexing for search, and memory inspector UI.",
       "scope": {
-        "ui_ux": ["Memory inspector", "Memory list view", "Memory search UI"],
-        "backend": ["Memory extraction logic", "Embedding generation pipeline", "Memory persistence", "Memory indexing"],
-        "data": ["memories", "memory embeddings", "vector search indexes"]
+        "ui_ux": ["Memory inspector page", "Memory list view with pagination", "Memory search UI", "Memory detail view", "Memory edit interface", "Memory delete confirmation", "Memory indexing status display"],
+        "backend": ["Memory extraction logic from conversations", "Embedding generation pipeline", "Memory persistence service", "Memory indexing system", "Memory CRUD operations", "Memory search implementation", "Memory update handlers"],
+        "data": ["memories collection", "memory embeddings storage", "vector search indexes", "memory metadata fields", "memory source tracking", "memory timestamp fields"]
       },
       "entry_criteria": ["p03_thread_management completed"],
-      "exit_criteria": ["system.lane.memory.created", "system.memory.persisted", "system.embedding.generated", "system.memory.index_updated"],
-      "emits_events": ["system.lane.memory.created", "system.memory.persisted", "system.memory.updated", "system.embedding.generated", "system.embedding.failed", "system.memory.index_updated"],
+      "exit_criteria": ["system.lane.memory.created event emitted", "system.memory.persisted event emitted", "system.embedding.generated event emitted", "system.memory.index_updated event emitted", "Memories stored in Firestore", "Embeddings created for memories", "Memory inspector displays memories"],
+      "emits_events": ["system.lane.memory.created", "system.memory.persisted", "system.memory.updated", "system.embedding.generated", "system.embedding.failed", "system.memory.index_updated", "ui.memory.search"],
       "blocking_bugs": ["PBX-006"],
       "owner": "pandora-core",
       "status": "locked"
@@ -68,15 +68,15 @@
     {
       "id": "p05_semantic_retrieval",
       "title": "Semantic Retrieval",
-      "description": "Retrieve memories contextually using vector search, hybrid retrieval with external knowledge, and inject relevant context into prompts.",
+      "description": "Retrieve memories contextually using vector search technology, hybrid retrieval combining internal memories with external knowledge sources, context injection into LLM prompts, search result ranking algorithms, and memory search UI with relevance indicators.",
       "scope": {
-        "ui_ux": ["Memory search UI", "Search results display", "Relevance indicators"],
-        "backend": ["Vector search engine", "Hybrid retrieval logic", "Context injection", "Search result ranking"],
-        "data": ["memories", "external_knowledge", "vector indexes"]
+        "ui_ux": ["Memory search UI component", "Search results display with relevance scores", "Relevance indicators and highlighting", "Search filters and options", "Search history display"],
+        "backend": ["Vector search engine implementation", "Hybrid retrieval logic", "Context injection service", "Search result ranking algorithms", "External knowledge integration", "Search query processing", "Result caching system"],
+        "data": ["memories collection with embeddings", "external_knowledge collection", "vector indexes for similarity search", "search result cache", "relevance score calculations"]
       },
       "entry_criteria": ["p04_memory_ingestion completed"],
-      "exit_criteria": ["system.search.completed", "system.lane.answer.retrieval_done", "ui.memory.search"],
-      "emits_events": ["ui.memory.search", "system.search.completed", "system.embedding.generated"],
+      "exit_criteria": ["system.search.completed event emitted", "system.lane.answer.retrieval_done event emitted", "ui.memory.search event emitted", "Relevant memories injected into prompts", "Vector search returns accurate results", "Hybrid retrieval works"],
+      "emits_events": ["ui.memory.search", "system.search.completed", "system.embedding.generated", "system.lane.answer.retrieval_done"],
       "blocking_bugs": [],
       "owner": "pandora-core",
       "status": "locked"
@@ -84,14 +84,14 @@
     {
       "id": "p06_artifacts",
       "title": "Artifacts System",
-      "description": "Persist generated code and documents, artifact detection from responses, versioning, artifact viewer, and copy/download functionality.",
+      "description": "Persist generated code and documents automatically, artifact detection from assistant responses, artifact versioning system, artifact viewer with syntax highlighting, copy to clipboard functionality, download button for artifacts, and artifact type indicators.",
       "scope": {
-        "ui_ux": ["Artifact viewer", "Artifact list", "Copy to clipboard", "Download button", "Artifact type indicators"],
-        "backend": ["Artifact detection", "Artifact extraction", "Artifact versioning", "Artifact storage"],
-        "data": ["artifacts", "artifact indexes"]
+        "ui_ux": ["Artifact viewer component", "Artifact list page", "Copy to clipboard button", "Download button for artifacts", "Artifact type indicators", "Artifact version display", "Artifact source linking"],
+        "backend": ["Artifact detection from responses", "Artifact extraction logic", "Artifact versioning system", "Artifact storage service", "Artifact CRUD operations", "Artifact metadata management"],
+        "data": ["artifacts collection", "artifact indexes", "artifact version tracking", "artifact type classification", "artifact content storage"]
       },
       "entry_criteria": ["p02_chat_engine completed"],
-      "exit_criteria": ["system.artifact.extracted", "system.artifact.persisted", "system.artifact.updated"],
+      "exit_criteria": ["system.artifact.extracted event emitted", "system.artifact.persisted event emitted", "system.artifact.updated event emitted", "Artifacts auto-created from responses", "Artifact viewer displays artifacts", "Copy and download work"],
       "emits_events": ["system.artifact.extracted", "system.artifact.persisted", "system.artifact.updated"],
       "blocking_bugs": ["PBX-005", "PBX-008", "PBX-010"],
       "owner": "pandora-core",
@@ -100,14 +100,14 @@
     {
       "id": "p07_knowledge_base",
       "title": "Knowledge Base Upload",
-      "description": "External document ingestion, file upload UI, chunking strategy, embedding generation for chunks, and indexing for searchability.",
+      "description": "External document ingestion system, file upload UI with drag-and-drop, chunking strategy for large documents, embedding generation for document chunks, indexing for searchability, file type validation, and upload progress tracking.",
       "scope": {
-        "ui_ux": ["Upload UI", "Progress indicators", "File type validation", "Upload status display"],
-        "backend": ["File upload handler", "Chunking logic", "Embedding generation for chunks", "Chunk indexing", "File storage"],
-        "data": ["external_knowledge", "knowledge chunks", "chunk embeddings"]
+        "ui_ux": ["Upload UI component", "Progress indicators for uploads", "File type validation display", "Upload status display", "Knowledge base file list", "File deletion interface", "Chunk count display"],
+        "backend": ["File upload handler", "Chunking logic for documents", "Embedding generation for chunks", "Chunk indexing system", "File storage service", "File validation logic", "Upload progress tracking"],
+        "data": ["external_knowledge collection", "knowledge chunks collection", "chunk embeddings storage", "file metadata storage", "chunk indexing", "upload status tracking"]
       },
       "entry_criteria": ["p05_semantic_retrieval completed"],
-      "exit_criteria": ["ui.kb.upload_started", "system.kb.upload_completed", "system.embedding.generated"],
+      "exit_criteria": ["ui.kb.upload_started event emitted", "system.kb.upload_completed event emitted", "system.embedding.generated event emitted", "Docs searchable in chat", "Chunks created and indexed", "Upload UI works"],
       "emits_events": ["ui.kb.upload_started", "system.kb.upload_completed", "system.embedding.generated", "system.embedding.failed"],
       "blocking_bugs": ["PBX-007"],
       "owner": "pandora-core",
@@ -116,14 +116,14 @@
     {
       "id": "p08_settings",
       "title": "Settings & User Control",
-      "description": "User-configurable system behavior, model selection, API key management, theme toggle, data export, and clear memory functionality.",
+      "description": "User-configurable system behavior, model selection interface, API key management with generation and revocation, theme toggle between dark and light modes, data export functionality, clear memory functionality with confirmation, and danger zone for destructive actions.",
       "scope": {
-        "ui_ux": ["Settings page", "API key manager", "Model selector", "Theme toggle", "Export data button", "Clear memory button", "Danger zone"],
-        "backend": ["Settings persistence", "API key generation", "Data export logic", "Clear memory handler", "Settings validation"],
-        "data": ["settings", "user API keys"]
+        "ui_ux": ["Settings page layout", "API key manager component", "Model selector dropdown", "Theme toggle switch", "Export data button", "Clear memory button", "Danger zone section", "Settings form validation", "Confirmation dialogs"],
+        "backend": ["Settings persistence service", "API key generation logic", "API key revocation handler", "Data export logic", "Clear memory handler", "Settings validation", "Theme persistence", "Model selection persistence"],
+        "data": ["settings collection", "user API keys storage", "settings schema", "export data format", "user preferences"]
       },
       "entry_criteria": ["p01_foundation completed"],
-      "exit_criteria": ["ui.settings.updated", "system.apikey.generated", "system.export.completed", "system.clear_memory.completed"],
+      "exit_criteria": ["ui.settings.updated event emitted", "system.apikey.generated event emitted", "system.export.completed event emitted", "system.clear_memory.completed event emitted", "Settings affect runtime behavior", "API key generation works", "Data export works"],
       "emits_events": ["ui.settings.updated", "system.apikey.generated", "system.apikey.revoked", "system.export.completed", "system.clear_memory.completed"],
       "blocking_bugs": ["PBX-009"],
       "owner": "pandora-core",
@@ -132,14 +132,14 @@
     {
       "id": "p09_kairos_tracking",
       "title": "Kairos Tracking Integration",
-      "description": "System-wide event tracking, event emission infrastructure, required-field validation, progress indicators, and event correlation.",
+      "description": "System-wide event tracking infrastructure, event emission client with retry logic, required-field validation for events, progress indicators in UI, event correlation ID management, event batching for performance, and comprehensive event logging.",
       "scope": {
-        "ui_ux": ["Progress indicators", "Event status display"],
-        "backend": ["Event emission client", "Event validation", "Event retry logic", "Correlation ID management", "Event batching"],
-        "data": ["system_logs", "event tracking metadata"]
+        "ui_ux": ["Progress indicators component", "Event status display", "Tracking dashboard elements"],
+        "backend": ["Event emission client", "Event validation system", "Event retry logic with exponential backoff", "Correlation ID management", "Event batching service", "Event deduplication", "Event payload sanitization"],
+        "data": ["system_logs collection", "event tracking metadata", "correlation ID storage", "event retry queue", "event audit trail"]
       },
       "entry_criteria": ["p01_foundation completed"],
-      "exit_criteria": ["system.phase.updated", "system.phase.persisted", "All major actions emit Kairos events"],
+      "exit_criteria": ["system.phase.updated event emitted", "system.phase.persisted event emitted", "All major actions emit Kairos events", "Event validation works", "Event retry logic works"],
       "emits_events": ["system.phase.updated", "system.phase.persisted", "system.phase.all_completed", "system.error.logged"],
       "blocking_bugs": [],
       "owner": "pandora-core",
@@ -148,14 +148,14 @@
     {
       "id": "p10_cron_automation",
       "title": "Cron & Automation",
-      "description": "Background intelligence tasks including daily briefing, nightly reflection, context decay, memory reindexing, and cleanup jobs.",
+      "description": "Background intelligence tasks including daily briefing generation, nightly reflection agent, context decay automation, memory reindexing jobs, cleanup tasks for old data, meta-learning cron jobs, and cron job scheduler with monitoring.",
       "scope": {
-        "ui_ux": ["Status indicators", "Cron job status display"],
-        "backend": ["Daily briefing cron", "Nightly reflection cron", "Context decay cron", "Reindex memories cron", "Cleanup cron", "Meta-learning cron", "Cron job scheduler"],
-        "data": ["system_logs", "performance_metrics", "meta_learning_state", "learning_queue"]
+        "ui_ux": ["Status indicators for cron jobs", "Cron job status display", "Automation dashboard"],
+        "backend": ["Daily briefing cron job", "Nightly reflection cron job", "Context decay cron job", "Reindex memories cron job", "Cleanup cron job", "Meta-learning cron job", "Cron job scheduler", "Cron job monitoring", "Cron job error handling"],
+        "data": ["system_logs collection", "performance_metrics collection", "meta_learning_state collection", "learning_queue collection", "cron job execution logs", "automation state tracking"]
       },
       "entry_criteria": ["p04_memory_ingestion completed", "p05_semantic_retrieval completed"],
-      "exit_criteria": ["system.cron.executed", "system.agent.completed", "All cron jobs run without failure"],
+      "exit_criteria": ["system.cron.executed event emitted", "system.agent.completed event emitted", "All cron jobs run without failure", "Daily briefing generates", "Nightly reflection works", "Context decay runs"],
       "emits_events": ["system.cron.executed", "system.agent.completed", "system.error.logged"],
       "blocking_bugs": [],
       "owner": "pandora-core",
@@ -164,14 +164,14 @@
     {
       "id": "p11_knowledge_graph",
       "title": "Knowledge Graph",
-      "description": "Relationship visualization, graph view UI, node inspector, graph analytics, entity linking, and graph persistence.",
+      "description": "Relationship visualization system, interactive graph view UI with zoom and pan, node inspector with detailed information, graph analytics panel with metrics, entity linking between memories and concepts, graph persistence to Firestore, and graph rendering optimization.",
       "scope": {
-        "ui_ux": ["Graph view", "Node inspector", "Graph analytics panel", "Graph interaction controls"],
-        "backend": ["Graph edges management", "Entity linking", "Graph analytics computation", "Graph persistence"],
-        "data": ["system_knowledge_graph", "knowledge_edges", "graph indexes"]
+        "ui_ux": ["Graph view component with D3 or similar", "Node inspector panel", "Graph analytics panel", "Graph interaction controls (zoom, pan, select)", "Node detail view", "Edge visualization", "Graph filters"],
+        "backend": ["Graph edges management service", "Entity linking logic", "Graph analytics computation", "Graph persistence service", "Graph query API", "Graph update handlers", "Graph rendering optimization"],
+        "data": ["system_knowledge_graph collection", "knowledge_edges collection", "graph indexes", "node metadata", "edge relationships", "graph analytics cache"]
       },
       "entry_criteria": ["p05_semantic_retrieval completed"],
-      "exit_criteria": ["ui.graph.opened", "system.graph.render_ok", "system.graph.persisted", "system.graph.analysis_complete"],
+      "exit_criteria": ["ui.graph.opened event emitted", "system.graph.render_ok event emitted", "system.graph.persisted event emitted", "system.graph.analysis_complete event emitted", "Graph reflects memory relationships", "Graph view loads and renders", "Node inspector works"],
       "emits_events": ["ui.graph.opened", "system.graph.render_ok", "system.graph.persisted", "system.graph.analysis_complete"],
       "blocking_bugs": ["PBX-008"],
       "owner": "pandora-core",
@@ -180,14 +180,14 @@
     {
       "id": "p12_mcp_tooling",
       "title": "MCP & External Tooling",
-      "description": "External agent interoperability, MCP server implementation, HTTP bridge, OpenAPI schema generation, and ChatGPT Actions integration.",
+      "description": "External agent interoperability system, MCP server implementation with stdio and HTTP interfaces, HTTP bridge for tool APIs, OpenAPI schema generation, ChatGPT Actions integration endpoints, tool execution handler, and API key authentication for external tools.",
       "scope": {
         "ui_ux": [],
-        "backend": ["MCP server", "MCP HTTP bridge", "OpenAPI schema", "ChatGPT Actions endpoints", "Tool execution handler"],
-        "data": ["external API integrations"]
+        "backend": ["MCP server implementation", "MCP HTTP bridge", "OpenAPI schema generation", "ChatGPT Actions endpoints", "Tool execution handler", "API key authentication", "Tool request validation", "Tool response formatting", "Error handling for tools"],
+        "data": ["external API integrations", "tool execution logs", "MCP configuration", "OpenAPI schema storage"]
       },
       "entry_criteria": ["p08_settings completed"],
-      "exit_criteria": ["system.mcp.tool_called", "system.actions.request_ok", "Claude/Desktop tools work"],
+      "exit_criteria": ["system.mcp.tool_called event emitted", "system.actions.request_ok event emitted", "Claude/Desktop tools work", "MCP server responds", "OpenAPI schema generated", "ChatGPT Actions work"],
       "emits_events": ["system.mcp.tool_called", "system.actions.request_ok", "system.error.logged"],
       "blocking_bugs": [],
       "owner": "pandora-core",
@@ -196,14 +196,14 @@
     {
       "id": "p13_stabilization",
       "title": "Stabilization & Bug Fixing",
-      "description": "Eliminate P0/P1 issues, fix blocking bugs PBX-001 through PBX-010, UX polish, test coverage improvements, and system stability enhancements.",
+      "description": "Eliminate all P0 and P1 issues, fix blocking bugs PBX-001 through PBX-010, comprehensive UX polish, test coverage improvements to 80%+, system stability enhancements, error handling improvements, loading state improvements, and copy content audit.",
       "scope": {
-        "ui_ux": ["UX polish", "Error handling improvements", "Loading state improvements", "Copy content audit"],
-        "backend": ["Bug fixes PBX-001 to PBX-010", "Error handling", "Test coverage", "Performance optimizations"],
-        "data": ["bug tracking", "test results"]
+        "ui_ux": ["UX polish across all components", "Error handling improvements", "Loading state improvements", "Copy content audit and updates", "Accessibility improvements", "Performance optimizations"],
+        "backend": ["Bug fixes PBX-001 to PBX-010", "Error handling enhancements", "Test coverage improvements", "Performance optimizations", "Code refactoring", "Security improvements"],
+        "data": ["bug tracking data", "test results storage", "performance metrics", "error logs"]
       },
       "entry_criteria": ["All previous phases completed"],
-      "exit_criteria": ["All blocking bugs closed", "Tests green", "ui.copy.audit_passed", "ui.copy.updated"],
+      "exit_criteria": ["All blocking bugs closed", "Tests green with 80%+ coverage", "ui.copy.audit_passed event emitted", "ui.copy.updated event emitted", "All P0/P1 issues resolved", "System stable"],
       "emits_events": ["ui.copy.audit_passed", "ui.copy.updated", "system.error.logged", "system.security.rules_verified"],
       "blocking_bugs": ["PBX-001", "PBX-002", "PBX-003", "PBX-004", "PBX-005", "PBX-006", "PBX-007", "PBX-008", "PBX-009", "PBX-010"],
       "owner": "pandora-core",
@@ -212,14 +212,14 @@
     {
       "id": "p14_production_lock",
       "title": "Phase 14: Production Lock & Observability",
-      "description": "Production readiness, rate limits, comprehensive error handling, monitoring infrastructure, backups, observability dashboards, and production deployment approval.",
+      "description": "Production readiness verification, comprehensive rate limiting implementation, comprehensive error handling with graceful degradation, monitoring infrastructure setup, automated backup systems, observability dashboards, production deployment approval process, and performance monitoring.",
       "scope": {
-        "ui_ux": ["Final polish", "Production-ready UI", "Error boundaries", "Monitoring dashboards"],
-        "backend": ["Rate limits", "Error handling", "Monitoring", "Backups", "Alerting", "Logging infrastructure", "Performance monitoring"],
-        "data": ["system_logs", "performance_metrics", "backup schedules", "monitoring data"]
+        "ui_ux": ["Final polish pass", "Production-ready UI components", "Error boundaries throughout app", "Monitoring dashboards", "Status pages", "User-facing error messages"],
+        "backend": ["Rate limits enforcement", "Comprehensive error handling", "Monitoring infrastructure", "Automated backup systems", "Alerting system", "Logging infrastructure", "Performance monitoring", "Health check endpoints", "Deployment automation"],
+        "data": ["system_logs collection", "performance_metrics collection", "backup schedules configuration", "monitoring data storage", "alert configurations", "deployment history"]
       },
       "entry_criteria": ["p13_stabilization completed"],
-      "exit_criteria": ["Production deploy approved", "Monitoring active", "Backups configured", "Rate limits enforced", "All systems operational"],
+      "exit_criteria": ["Production deploy approved", "Monitoring active and alerting", "Backups configured and tested", "Rate limits enforced", "All systems operational", "Health checks passing", "Performance metrics within targets"],
       "emits_events": ["system.ratelimit.triggered", "system.ratelimit.cleared", "system.error.logged", "system.cron.executed"],
       "blocking_bugs": [],
       "owner": "pandora-core",
@@ -227,4 +227,3 @@
     }
   ]
 }
-

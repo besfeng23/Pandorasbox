@@ -1,18 +1,14 @@
 
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
-import OpenAI from "openai";
+import { ai } from "./genkit-local";
 
 admin.initializeApp();
 const firestore = admin.firestore();
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 export const dailyBriefingAgent = functions
   .runWith({
-    secrets: ["OPENAI_API_KEY"],
+    secrets: ["GEMINI_API_KEY"],
   })
   .pubsub.schedule("every day 08:00")
   .timeZone("America/New_York")
@@ -44,21 +40,20 @@ export const dailyBriefingAgent = functions
 
         const userContext = contextDoc.data()?.note || "No context available.";
 
-        const completion = await openai.chat.completions.create({
-          model: 'gpt-4o',
-          messages: [
+        const completion = await ai.generate({
+          model: 'vertexai/gemini-1.5-pro',
+          prompt: [
             {
-              role: "system",
-              content: "You are an Executive Assistant. Review the user's Current Context. Identify 'Open Loops', 'Pending Decisions', or 'Focus Areas'. Generate a concise, 3-bullet Morning Briefing to help them start the day."
+              text: "You are an Executive Assistant. Review the user's Current Context. Identify 'Open Loops', 'Pending Decisions', or 'Focus Areas'. Generate a concise, 3-bullet Morning Briefing to help them start the day."
             },
             {
-              role: "user",
-              content: `User's Current Context: "${userContext}"`
+              text: `User's Current Context: "${userContext}"`
             }
-          ]
+          ],
+          config: { temperature: 0.7 }
         });
 
-        const briefing = completion.choices[0].message.content;
+        const briefing = completion.text;
 
         if (briefing) {
           await firestore

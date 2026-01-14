@@ -4,19 +4,8 @@ import { ai } from '@/ai/genkit';
 import { getFirestoreAdmin } from '@/lib/firebase-admin';
 import { z } from 'zod';
 import { generateEmbedding, searchHistory, searchMemories } from '@/lib/vector';
-import OpenAI from 'openai';
 import { FieldValue } from 'firebase-admin/firestore';
 import { trackEvent } from '@/lib/analytics';
-import { ChatCompletionMessageParam } from 'openai/resources/index.mjs';
-
-// Lazy initialization to avoid build-time errors
-function getOpenAI() {
-  const apiKey = process.env.OPENAI_API_KEY?.trim();
-  if (!apiKey) {
-    throw new Error('OPENAI_API_KEY is not configured. Please set it in your environment variables.');
-  }
-  return new OpenAI({ apiKey });
-}
 
 const AnswerLaneInputSchema = z.object({
   userId: z.string(),
@@ -121,7 +110,7 @@ export async function runAnswerLane(
             await logProgress('Searching memory...');
             
             // Adaptive Retrieval
-            const retrievalLimit = isGemini ? 100 : 5;
+            const retrievalLimit = 100;
             
             const [historyResults, memoriesResults] = await Promise.all([
                 searchHistory(message || 'context', userId).catch(err => {
@@ -156,60 +145,9 @@ export async function runAnswerLane(
             const allCandidates = [...historyResults, ...memoriesResults];
             let topResults = allCandidates;
 
-            // Re-ranking (Only if using OpenAI for now, or skip if Gemini 1.5 Pro which has huge context)
-            // If Gemini 1.5 Pro, we might just dump everything in?
-            // "The app switches to 'Deep Context Mode.' It retrieves the top 50-100 memories plus full documents."
-            // So for Gemini, we don't necessarily re-rank down to 5. We keep them all (or up to context limit).
-            // For GPT-4o, we re-rank.
-            
-            if (!isGemini && allCandidates.length > 3) {
-                 // Existing re-ranking logic for GPT-4o
-                 try {
-                    await logProgress('Re-ranking memories...');
-                    const candidatesList = allCandidates.map((c, i) => ({
-                        index: i,
-                        text: c.text.substring(0, 300) 
-                    }));
-
-                    const rankingPrompt = `You are a relevance ranking system. 
-                    User Query: "${message}"
-                    
-                    Rank the following memory snippets by relevance to the query. 
-                    Return a JSON object with a property "indices" containing the indices of the top 5 most relevant snippets, in order of relevance.
-                    
-                    Snippets:
-                    ${JSON.stringify(candidatesList)}`;
-
-                    const rankingCompletion = await getOpenAI().chat.completions.create({
-                        model: 'gpt-4o-mini',
-                        messages: [{ role: 'system', content: rankingPrompt }],
-                        response_format: { type: 'json_object' },
-                        temperature: 0,
-                    });
-
-                    const rankingData = JSON.parse(rankingCompletion.choices[0].message.content || '{}');
-                    const topIndices = rankingData.indices;
-
-                    if (Array.isArray(topIndices) && topIndices.length > 0) {
-                        topResults = topIndices
-                            .map((idx: any) => allCandidates[Number(idx)])
-                            .filter(Boolean); 
-                        console.log(`[AnswerLane] Re-ranked ${allCandidates.length} candidates down to ${topResults.length}`);
-                    }
-                } catch (rankingError) {
-                    console.warn('[AnswerLane] Re-ranking failed, falling back to vector scores:', rankingError);
-                    topResults = allCandidates.sort((a, b) => (b.score || 0) - (a.score || 0));
-                }
-                
-                // Limit to 5 for GPT-4o
-                topResults = topResults.slice(0, 5);
-            } else if (isGemini) {
-                // For Gemini, we take top 100 (already limited by searchMemories call which used retrievalLimit)
-                // We just sort by score.
-                topResults = allCandidates.sort((a, b) => (b.score || 0) - (a.score || 0));
-                // Ensure we don't exceed some sanity limit if searchHistory added more
-                topResults = topResults.slice(0, 100);
-            }
+            // Sort by score and limit to top 100
+            topResults = allCandidates.sort((a, b) => (b.score || 0) - (a.score || 0));
+            topResults = topResults.slice(0, 100);
 
             await logProgress(`Found ${topResults.length} relevant memories.`);
             
@@ -250,69 +188,40 @@ ${memoryUsageInstructions}
             
             let cleanResponse = '';
             
-            if (isGemini) {
-                // Use Vertex AI / Genkit
-                const prompt: any[] = [];
-                prompt.push({ text: finalSystemPrompt });
-                
-                if (imageBase64) {
-                    prompt.push({ media: { url: imageBase64 } });
-                    prompt.push({ text: message || "Describe this image." });
-                } else if (audioUrl) {
-                    prompt.push({ media: { url: audioUrl } });
-                    prompt.push({ text: message || "Listen to this audio and respond." });
-                } else {
-                    prompt.push({ text: message });
-                }
-                
-                const modelName = `vertexai/${settings.active_model}`;
-                
-                const completion = await ai.generate({
-                    model: modelName,
-                    prompt: prompt,
-                    // Enable Grounding with Google Search
-                    config: {
-                         googleSearchRetrieval: {
-                             disableAttribution: false // Enable attribution
-                         }
-                    }
-                });
-                
-                const rawAIResponse = completion.text;
-                const result = await extractAndSaveArtifact(rawAIResponse, userId);
-                cleanResponse = result.cleanResponse;
-                
-            } else {
-                // Legacy OpenAI path
-                const openai = getOpenAI();
-                const messages: ChatCompletionMessageParam[] = [
-                    { role: 'system', content: finalSystemPrompt },
-                ];
-
-                if (imageBase64) {
-                    messages.push({
-                        role: 'user',
-                        content: [
-                            { type: 'text', text: message },
-                            { type: 'image_url', image_url: { url: imageBase64 } }
-                        ]
-                    });
-                } else {
-                    messages.push({ role: 'user', content: message });
-                }
-
-                const completion = await openai.chat.completions.create({
-                    model: settings.active_model as any,
-                    messages: messages,
-                });
-                const rawAIResponse = completion.choices[0].message.content || '';
-                const result = await extractAndSaveArtifact(rawAIResponse, userId);
-                cleanResponse = result.cleanResponse;
-            }
-
-            // --- SELF-EVALUATION (Keep using OpenAI or switch to Gemini? I'll keep OpenAI for consistency of evaluation format for now or skip) ---
-            // If we want to use Gemini for eval, we can.
+            // Use Vertex AI / Genkit
+            const prompt: any[] = [];
+            prompt.push({ text: finalSystemPrompt });
             
+            if (imageBase64) {
+                prompt.push({ media: { url: imageBase64 } });
+                prompt.push({ text: message || "Describe this image." });
+            } else if (audioUrl) {
+                prompt.push({ media: { url: audioUrl } });
+                prompt.push({ text: message || "Listen to this audio and respond." });
+            } else {
+                prompt.push({ text: message });
+            }
+            
+            // Ensure we use a Vertex AI model
+            const modelName = settings.active_model.includes('gemini') 
+                ? `vertexai/${settings.active_model}` 
+                : 'vertexai/gemini-1.5-pro';
+            
+            const completion = await ai.generate({
+                model: modelName,
+                prompt: prompt,
+                // Enable Grounding with Google Search
+                config: {
+                        googleSearchRetrieval: {
+                            disableAttribution: false // Enable attribution
+                        }
+                }
+            });
+            
+            const rawAIResponse = completion.text;
+            const result = await extractAndSaveArtifact(rawAIResponse, userId);
+            cleanResponse = result.cleanResponse;
+
             const embedding = await generateEmbedding(cleanResponse);
             
             await assistantMessageRef.update({

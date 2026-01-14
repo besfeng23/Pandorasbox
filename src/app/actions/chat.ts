@@ -7,7 +7,6 @@ import { runChatLane } from '@/ai/flows/run-chat-lane';
 // import { generateEmbedding } from '@/lib/vector'; // Removed sync embedding
 import { Thread } from '@/lib/types';
 import { getStorage, getDownloadURL } from 'firebase-admin/storage';
-import OpenAI from 'openai';
 import { FieldValue } from 'firebase-admin/firestore';
 import { summarizeLongChat } from '@/ai/flows/summarize-long-chat';
 import * as Sentry from '@sentry/nextjs';
@@ -16,15 +15,6 @@ import { trackEvent } from '@/lib/analytics';
 import { v4 as uuidv4 } from 'uuid';
 import { getActiveWorkspaceIdForUser } from '@/lib/workspaces';
 import { sendKairosEvent } from '@/lib/kairosClient';
-
-// Lazy initialization to avoid build-time errors
-function getOpenAI() {
-  const apiKey = process.env.OPENAI_API_KEY?.trim();
-  if (!apiKey) {
-    throw new Error('OPENAI_API_KEY is not configured. Please set it in your environment variables.');
-  }
-  return new OpenAI({ apiKey });
-}
 
 export async function createThread(userId: string): Promise<string> {
     const firestoreAdmin = getFirestoreAdmin();

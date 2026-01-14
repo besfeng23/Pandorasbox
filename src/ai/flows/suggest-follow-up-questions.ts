@@ -2,16 +2,6 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import OpenAI from 'openai';
-
-// Lazy initialization to avoid build-time errors
-function getOpenAI() {
-  const apiKey = process.env.OPENAI_API_KEY?.trim();
-  if (!apiKey) {
-    throw new Error('OPENAI_API_KEY is not configured. Please set it in your environment variables.');
-  }
-  return new OpenAI({ apiKey });
-}
 
 const SuggestFollowUpQuestionsInputSchema = z.object({
   userMessage: z.string().describe('The user message.'),
@@ -48,29 +38,25 @@ AI Response: ${aiResponse}
 
 Return a JSON array of 3 strings. e.g. ["question 1", "question 2", "question 3"]`;
 
-    const openai = getOpenAI();
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [{ role: 'user', content: prompt }],
-      response_format: { type: 'json_object' },
-    });
-
-    const content = completion.choices[0].message.content;
-    if (!content) {
-      return [];
-    }
-
     try {
-      // The prompt asks for an array, but the model might wrap it in an object.
-      // We handle both cases.
-      const result = JSON.parse(content);
+      const completion = await ai.generate({
+        model: 'vertexai/gemini-1.5-flash',
+        prompt: [{ text: prompt }],
+        config: { temperature: 0.7 },
+        output: { format: 'json' }
+      });
+
+      const result = completion.output;
+
       if (Array.isArray(result)) {
-        return result.slice(0, 3);
+        return result.slice(0, 3) as string[];
       }
       if (typeof result === 'object' && result !== null) {
-          const key = Object.keys(result)[0];
-          if (key && Array.isArray(result[key])) {
-              return result[key].slice(0,3);
+          // Sometimes models wrap array in an object key like "questions"
+          const values = Object.values(result);
+          const arrayVal = values.find(v => Array.isArray(v));
+          if (arrayVal) {
+              return (arrayVal as string[]).slice(0, 3);
           }
       }
       return [];

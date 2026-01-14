@@ -4,7 +4,6 @@ import { ai } from '@/ai/genkit';
 import { getFirestoreAdmin, getAuthAdmin } from '@/lib/firebase-admin';
 import { z } from 'zod';
 import { searchMemories } from '@/lib/vector';
-import OpenAI from 'openai';
 import {
   AgentType,
   AgentHandoff,
@@ -15,15 +14,6 @@ import {
   recordAgentExecution,
   recordAgentHandoff,
 } from '@/lib/agent-memory';
-
-// Lazy initialization
-function getOpenAI() {
-  const apiKey = process.env.OPENAI_API_KEY?.trim();
-  if (!apiKey) {
-    throw new Error('OPENAI_API_KEY is not configured');
-  }
-  return new OpenAI({ apiKey });
-}
 
 const PlannerLaneInputSchema = z.object({
   goal: z.string(),
@@ -147,13 +137,11 @@ async function executeDetailedPlannerAgent(
   goal: string,
   context: string
 ): Promise<{ plan: string[]; reasoning: string }> {
-  const openai = getOpenAI();
-  const response = await openai.chat.completions.create({
-    model: 'gpt-4o',
-    messages: [
+  const response = await ai.generate({
+    model: 'vertexai/gemini-1.5-pro',
+    prompt: [
       {
-        role: 'system',
-        content: `You are an advanced Planning Agent. Create a detailed, step-by-step execution plan to achieve a goal.
+        text: `You are an advanced Planning Agent. Create a detailed, step-by-step execution plan to achieve a goal.
 
 Your plan should be:
 - Actionable: Each step should be clear and executable
@@ -164,24 +152,21 @@ Your plan should be:
 Context:
 ${context}
 
+Goal: ${goal}
+
 Return a JSON object with:
 - "plan": array of detailed step strings (each step should be specific and actionable)
 - "reasoning": explanation of why this plan will achieve the goal`,
       },
-      {
-        role: 'user',
-        content: `Goal: ${goal}`,
-      },
     ],
-    response_format: { type: 'json_object' },
-    temperature: 0.7,
+    config: { temperature: 0.7 },
+    output: { format: 'json' }
   });
 
-  const content = response.choices[0].message.content || '{}';
-  const parsed = JSON.parse(content);
+  const parsed = response.output as any;
   return {
-    plan: parsed.plan || [],
-    reasoning: parsed.reasoning || '',
+    plan: parsed?.plan || [],
+    reasoning: parsed?.reasoning || '',
   };
 }
 

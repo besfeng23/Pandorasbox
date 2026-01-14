@@ -7,40 +7,30 @@ if (typeof process !== 'undefined' && process.env.NEXT_RUNTIME) {
   }
 }
 
-import OpenAI from 'openai';
+import { embed, embedMany } from 'genkit';
+import { textEmbedding004 } from '@genkit-ai/vertexai';
 import { getFirestoreAdmin } from './firebase-admin';
 import { Timestamp, FieldValue } from 'firebase-admin/firestore';
 
-// Lazy initialization to avoid build-time errors
-function getOpenAI() {
-  const apiKey = process.env.OPENAI_API_KEY?.trim();
-  if (!apiKey) {
-    throw new Error('OPENAI_API_KEY is not configured. Please set it in your environment variables.');
-  }
-  return new OpenAI({ apiKey });
-}
-
-
 /**
- * Generates an embedding for the given text using OpenAI's embedding model.
+ * Generates an embedding for the given text using Vertex AI's embedding model via Genkit.
  * @param text The text to generate an embedding for.
  * @returns The embedding vector.
  */
 export async function generateEmbedding(text: string): Promise<number[]> {
   // Normalize the text to reduce noise.
-  const normalizedText = text.trim().toLowerCase();
+  const normalizedText = text.trim();
   if (!normalizedText) {
-    // Return a zero vector for empty strings to avoid OpenAI API errors.
-    // The dimension should match the model's output dimension.
-    return Array(1536).fill(0);
+    // Return a zero vector for empty strings.
+    // Vertex AI text-embedding-004 dimension is 768.
+    return Array(768).fill(0);
   }
 
-  const openai = getOpenAI();
-  const response = await openai.embeddings.create({
-    model: 'text-embedding-3-small',
-    input: normalizedText,
+  const embedding = await embed({
+    embedder: textEmbedding004,
+    content: normalizedText,
   });
-  return response.data[0].embedding;
+  return embedding;
 }
 
 /**
@@ -56,46 +46,35 @@ export async function generateEmbeddingsBatch(texts: string[]): Promise<number[]
 
   // Normalize and filter out empty texts
   const normalizedTexts = texts
-    .map(text => text.trim().toLowerCase())
+    .map(text => text.trim())
     .filter(text => text.length > 0);
 
   if (normalizedTexts.length === 0) {
     // Return zero vectors for all empty texts
-    return texts.map(() => Array(1536).fill(0));
+    return texts.map(() => Array(768).fill(0));
   }
 
-  // OpenAI supports up to 2048 inputs per batch
-  const batchSize = 100; // Conservative batch size to avoid token limits
+  // Vertex AI supports batching, but Genkit's embedMany handles it.
+  // We'll trust embedMany to batch appropriately or the underlying plugin.
+  const embeddings = await embedMany({
+    embedder: textEmbedding004,
+    content: normalizedTexts,
+  });
+
+  // Map results back to original positions (accounting for filtered empty texts)
   const results: number[][] = [];
-
-  for (let i = 0; i < normalizedTexts.length; i += batchSize) {
-    const batch = normalizedTexts.slice(i, i + batchSize);
-    
-    const openai = getOpenAI();
-    const response = await openai.embeddings.create({
-      model: 'text-embedding-3-small',
-      input: batch,
-    });
-
-    // Map results back to original positions (accounting for filtered empty texts)
-    const batchEmbeddings = response.data.map(item => item.embedding);
-    results.push(...batchEmbeddings);
-  }
-
-  // Fill in zero vectors for any empty texts that were filtered out
-  const finalResults: number[][] = [];
   let resultIndex = 0;
   
   for (const text of texts) {
-    if (text.trim().toLowerCase().length > 0) {
-      finalResults.push(results[resultIndex]);
+    if (text.trim().length > 0) {
+      results.push(embeddings[resultIndex]);
       resultIndex++;
     } else {
-      finalResults.push(Array(1536).fill(0));
+      results.push(Array(768).fill(0));
     }
   }
 
-  return finalResults;
+  return results;
 }
 
 /**

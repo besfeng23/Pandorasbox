@@ -10,18 +10,9 @@
 
 import { getFirestoreAdmin } from '@/lib/firebase-admin';
 import { tavilySearch } from '@/lib/tavily';
-import OpenAI from 'openai';
+import { ai } from '@/ai/genkit';
 import { FieldValue } from 'firebase-admin/firestore';
 import { saveMemory } from '@/lib/memory-utils';
-
-// Lazy initialization to avoid build-time errors
-function getOpenAI() {
-  const apiKey = process.env.OPENAI_API_KEY?.trim();
-  if (!apiKey) {
-    throw new Error('OPENAI_API_KEY is not configured. Please set it in your environment variables.');
-  }
-  return new OpenAI({ apiKey });
-}
 
 export interface DeepResearchResult {
   processed: number;
@@ -67,8 +58,6 @@ export async function runDeepResearchBatch(maxTopics: number = 5): Promise<DeepR
     }
 
     console.log(`[DeepResearch] Found ${snapshot.size} pending topics to process.`);
-
-    const openai = getOpenAI();
 
     for (const doc of snapshot.docs) {
       const queueId = doc.id;
@@ -134,22 +123,20 @@ export async function runDeepResearchBatch(maxTopics: number = 5): Promise<DeepR
           .join('\n\n-----------------------------\n\n');
 
         // ---- SYNTHESIS PHASE ----
-        const completion = await openai.chat.completions.create({
-          model: 'gpt-4o',
-          messages: [
+        const completion = await ai.generate({
+          model: 'vertexai/gemini-1.5-pro',
+          prompt: [
             {
-              role: 'system',
-              content:
-                "You are a research assistant. Summarize these search results into a dense, high-utility 'Knowledge Artifact'. Focus on facts, syntax, and principles. Do not be conversational. Write it so your future self can use it as a reference.",
+              text: "You are a research assistant. Summarize these search results into a dense, high-utility 'Knowledge Artifact'. Focus on facts, syntax, and principles. Do not be conversational. Write it so your future self can use it as a reference."
             },
             {
-              role: 'user',
-              content: `Topic: ${topic}\n\nHere are consolidated search results. Carefully study them and produce a single, cohesive knowledge artifact:\n\n${formattedSearchText}`,
-            },
+              text: `Topic: ${topic}\n\nHere are consolidated search results. Carefully study them and produce a single, cohesive knowledge artifact:\n\n${formattedSearchText}`
+            }
           ],
+          config: { temperature: 0 }
         });
 
-        const artifact = completion.choices[0].message.content?.trim() || '';
+        const artifact = completion.text.trim();
         if (!artifact) {
           throw new Error('LLM returned empty artifact.');
         }

@@ -11,17 +11,7 @@
 import { ai } from '@/ai/genkit';
 import { getFirestoreAdmin } from '@/lib/firebase-admin';
 import { z } from 'zod';
-import OpenAI from 'openai';
 import admin from 'firebase-admin';
-
-// Lazy initialization to avoid build-time errors
-function getOpenAI() {
-  const apiKey = process.env.OPENAI_API_KEY?.trim();
-  if (!apiKey) {
-    throw new Error('OPENAI_API_KEY is not configured. Please set it in your environment variables.');
-  }
-  return new OpenAI({ apiKey });
-}
 
 const ReflectionInputSchema = z.object({
   userId: z.string(),
@@ -106,13 +96,11 @@ export async function runReflectionFlow(
         const interactionsText = interactions.join('\n\n');
 
         // Use LLM to analyze and extract insights
-        const openai = getOpenAI();
-        const completion = await openai.chat.completions.create({
-          model: 'gpt-4o',
-          messages: [
+        const completion = await ai.generate({
+          model: 'vertexai/gemini-1.5-pro',
+          prompt: [
             {
-              role: 'system',
-              content: `You are a reflection agent analyzing user interactions to improve future AI responses.
+              text: `You are a reflection agent analyzing user interactions to improve future AI responses.
 
 Your task is to:
 1. Identify 3 key facts you learned about the user (preferences, patterns, context, recurring themes)
@@ -129,19 +117,18 @@ Return a JSON object with:
 - "weakAnswer": object with "topic" (string) and "question" (string), or null if none found`
             },
             {
-              role: 'user',
-              content: `Analyze these recent user interactions:\n\n${interactionsText}\n\nExtract insights and identify weak answers.`
+              text: `Analyze these recent user interactions:\n\n${interactionsText}\n\nExtract insights and identify weak answers.`
             }
           ],
-          response_format: { type: 'json_object' },
+          config: { temperature: 0 },
+          output: { format: 'json' }
         });
 
-        const responseText = completion.choices[0].message.content || '{}';
-        const responseData = JSON.parse(responseText);
+        const responseData = completion.output as any;
 
         return {
-          insights: Array.isArray(responseData.insights) ? responseData.insights : [],
-          weakAnswer: responseData.weakAnswer && typeof responseData.weakAnswer === 'object'
+          insights: Array.isArray(responseData?.insights) ? responseData.insights : [],
+          weakAnswer: responseData?.weakAnswer && typeof responseData.weakAnswer === 'object'
             ? {
                 topic: responseData.weakAnswer.topic || '',
                 question: responseData.weakAnswer.question || '',

@@ -4,7 +4,6 @@ import { ai } from '@/ai/genkit';
 import { getFirestoreAdmin, getAuthAdmin } from '@/lib/firebase-admin';
 import { z } from 'zod';
 import { searchMemories, generateEmbedding } from '@/lib/vector';
-import OpenAI from 'openai';
 import {
   AgentType,
   REASONING_AGENT_GRAPH,
@@ -21,15 +20,6 @@ import {
 } from '@/lib/agent-memory';
 import { saveMemory } from '@/lib/memory-utils';
 import { FieldValue } from 'firebase-admin/firestore';
-
-// Lazy initialization
-function getOpenAI() {
-  const apiKey = process.env.OPENAI_API_KEY?.trim();
-  if (!apiKey) {
-    throw new Error('OPENAI_API_KEY is not configured');
-  }
-  return new OpenAI({ apiKey });
-}
 
 const ReasoningLaneInputSchema = z.object({
   query: z.string(),
@@ -209,36 +199,32 @@ async function executePlannerAgent(
   goal: string,
   context: string
 ): Promise<{ plan: string[]; reasoning: string }> {
-  const openai = getOpenAI();
-  const response = await openai.chat.completions.create({
-    model: 'gpt-4o',
-    messages: [
+  const response = await ai.generate({
+    model: 'vertexai/gemini-1.5-pro',
+    prompt: [
       {
-        role: 'system',
-        content: `You are a Planning Agent. Your job is to create a step-by-step execution plan to achieve a goal.
+        text: `You are a Planning Agent. Your job is to create a step-by-step execution plan to achieve a goal.
 
 Given the goal and available context, create a clear, actionable plan.
 
 Context:
 ${context}
 
+Goal: ${goal}
+
 Return a JSON object with:
 - "plan": array of step strings
 - "reasoning": brief explanation of the plan`,
       },
-      {
-        role: 'user',
-        content: `Goal: ${goal}`,
-      },
     ],
-    response_format: { type: 'json_object' },
+    config: { temperature: 0 },
+    output: { format: 'json' }
   });
 
-  const content = response.choices[0].message.content || '{}';
-  const parsed = JSON.parse(content);
+  const parsed = response.output as any;
   return {
-    plan: parsed.plan || [],
-    reasoning: parsed.reasoning || '',
+    plan: parsed?.plan || [],
+    reasoning: parsed?.reasoning || '',
   };
 }
 
@@ -251,13 +237,11 @@ async function executeReasonerAgent(
   context: string,
   plannerReasoning: string
 ): Promise<{ result: string; reasoning: string; insights: string[] }> {
-  const openai = getOpenAI();
-  const response = await openai.chat.completions.create({
-    model: 'gpt-4o',
-    messages: [
+  const response = await ai.generate({
+    model: 'vertexai/gemini-1.5-pro',
+    prompt: [
       {
-        role: 'system',
-        content: `You are a Reasoning Agent. Perform deep analysis and reasoning to achieve the goal.
+        text: `You are a Reasoning Agent. Perform deep analysis and reasoning to achieve the goal.
 
 Context:
 ${context}
@@ -268,25 +252,23 @@ ${plannerReasoning}
 Plan Steps:
 ${plan.map((s, i) => `${i + 1}. ${s}`).join('\n')}
 
+Goal: ${goal}
+
 Return a JSON object with:
 - "result": the final reasoned answer/solution
 - "reasoning": your detailed reasoning process
 - "insights": array of key insights discovered`,
       },
-      {
-        role: 'user',
-        content: `Goal: ${goal}`,
-      },
     ],
-    response_format: { type: 'json_object' },
+    config: { temperature: 0 },
+    output: { format: 'json' }
   });
 
-  const content = response.choices[0].message.content || '{}';
-  const parsed = JSON.parse(content);
+  const parsed = response.output as any;
   return {
-    result: parsed.result || '',
-    reasoning: parsed.reasoning || '',
-    insights: parsed.insights || [],
+    result: parsed?.result || '',
+    reasoning: parsed?.reasoning || '',
+    insights: parsed?.insights || [],
   };
 }
 
@@ -298,13 +280,11 @@ async function executeReflectorAgent(
   reasoning: string,
   insights: string[]
 ): Promise<{ reflection: string; keyInsights: string[] }> {
-  const openai = getOpenAI();
-  const response = await openai.chat.completions.create({
-    model: 'gpt-4o',
-    messages: [
+  const response = await ai.generate({
+    model: 'vertexai/gemini-1.5-pro',
+    prompt: [
       {
-        role: 'system',
-        content: `You are a Reflection Agent. Reflect on the reasoning process and extract key learnings.
+        text: `You are a Reflection Agent. Reflect on the reasoning process and extract key learnings.
 
 Result:
 ${result}
@@ -320,14 +300,14 @@ Return a JSON object with:
 - "keyInsights": array of the most important insights to remember`,
       },
     ],
-    response_format: { type: 'json_object' },
+    config: { temperature: 0 },
+    output: { format: 'json' }
   });
 
-  const content = response.choices[0].message.content || '{}';
-  const parsed = JSON.parse(content);
+  const parsed = response.output as any;
   return {
-    reflection: parsed.reflection || '',
-    keyInsights: parsed.keyInsights || [],
+    reflection: parsed?.reflection || '',
+    keyInsights: parsed?.keyInsights || [],
   };
 }
 
