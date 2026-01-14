@@ -29,7 +29,7 @@ jest.mock('@/lib/kairosClient', () => ({
 import { describe, it, expect, beforeEach } from '@jest/globals';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { APIKeyManager } from '@/components/settings/api-key-manager';
+import { APIKeyManager } from '@/components/settings/APIKeyManager';
 import * as actionsModule from '@/app/actions';
 import * as kairosModule from '@/lib/kairosClient';
 
@@ -41,7 +41,7 @@ describe('APIKeyManager Component', () => {
   it('should render with current key masked', () => {
     const currentKey = 'sk-pandora-test-key-1234567890abcdef';
     render(<APIKeyManager currentKey={currentKey} />);
-    
+
     const input = screen.getByPlaceholderText(/No key generated yet/i);
     expect(input).toBeInTheDocument();
     // Key should be masked (showing first 4 and last 4 chars with • in between)
@@ -57,8 +57,8 @@ describe('APIKeyManager Component', () => {
     const onKeyUpdated = jest.fn();
     
     render(<APIKeyManager currentKey="" onKeyUpdated={onKeyUpdated} />);
-    
-    const generateButton = screen.getByText(/Generate/i);
+
+    const generateButton = screen.getByTestId('settings-generate-key');
     await user.click(generateButton);
     
     await waitFor(() => {
@@ -85,8 +85,8 @@ describe('APIKeyManager Component', () => {
     });
     
     render(<APIKeyManager currentKey={currentKey} />);
-    
-    const copyButton = screen.getByTitle(/Copy API key/i);
+
+    const copyButton = screen.getByTestId('settings-copy-key');
     await user.click(copyButton);
     
     await waitFor(() => {
@@ -96,8 +96,8 @@ describe('APIKeyManager Component', () => {
 
   it('should disable copy button when no key is present', () => {
     render(<APIKeyManager currentKey="" />);
-    
-    const copyButton = screen.getByTitle(/Copy API key/i);
+
+    const copyButton = screen.getByTestId('settings-copy-key');
     expect(copyButton).toBeDisabled();
   });
 });

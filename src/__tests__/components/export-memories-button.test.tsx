@@ -35,7 +35,7 @@ jest.mock('@/lib/kairosClient', () => ({
 import { describe, it, expect, beforeEach } from '@jest/globals';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { ExportMemoriesButton } from '@/components/settings/export-memories-button';
+import { ExportMemoriesButton } from '@/components/settings/ExportMemoriesButton';
 import * as actionsModule from '@/app/actions';
 
 describe('ExportMemoriesButton Component', () => {
@@ -49,14 +49,14 @@ describe('ExportMemoriesButton Component', () => {
   it('should render export button', () => {
     render(<ExportMemoriesButton />);
     
-    expect(screen.getByText(/Export/i)).toBeInTheDocument();
+    expect(screen.getByTestId('settings-export')).toBeInTheDocument();
   });
 
   it('should call exportUserData and download JSON when clicked', async () => {
     const user = userEvent.setup();
     render(<ExportMemoriesButton />);
     
-    const exportButton = screen.getByText(/Export/i);
+    const exportButton = screen.getByTestId('settings-export');
     await user.click(exportButton);
     
     await waitFor(() => {

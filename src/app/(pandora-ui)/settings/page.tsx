@@ -30,9 +30,9 @@ import { Separator } from "@/components/ui/separator";
 import { KnowledgeUpload } from "@/components/settings/knowledge-upload";
 import { MemoryTable } from "@/components/settings/memory-table";
 import { ReindexMemoriesButton } from "@/components/settings/reindex-memories-button";
-import { APIKeyManager } from "@/components/settings/api-key-manager";
-import { ExportMemoriesButton } from "@/components/settings/export-memories-button";
-import { ClearMemoryButton } from "@/components/settings/clear-memory-button";
+import { APIKeyManager } from "@/components/settings/APIKeyManager";
+import { ExportMemoriesButton } from "@/components/settings/ExportMemoriesButton";
+import { ClearMemoryButton } from "@/components/settings/ClearMemoryButton";
 
 type SettingsSection = "general" | "model" | "knowledge" | "memories" | "security" | "advanced";
 

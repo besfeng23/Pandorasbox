@@ -58,7 +58,13 @@ export function ClearMemoryButton({ variant = 'destructive' }: ClearMemoryButton
   return (
     <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
       <AlertDialogTrigger asChild>
-        <Button variant={variant} disabled={!user} className="neon-glow-purple">
+        <Button
+          variant={variant}
+          disabled={!user}
+          className="neon-glow-purple"
+          aria-label="Clear all data"
+          data-testid="settings-clear-open"
+        >
           <Trash2 className="mr-2 h-4 w-4" />
           Clear all data
         </Button>
@@ -79,11 +85,19 @@ export function ClearMemoryButton({ variant = 'destructive' }: ClearMemoryButton
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
+          <AlertDialogCancel
+            disabled={isPending}
+            aria-label="Cancel clear all data"
+            data-testid="settings-clear-cancel"
+          >
+            Cancel
+          </AlertDialogCancel>
           <AlertDialogAction 
             onClick={handleClearAll}
             disabled={isPending}
             className="bg-destructive hover:bg-destructive/90"
+            aria-label="Confirm clear all data"
+            data-testid="settings-clear-confirm"
           >
             {isPending ? (
               <>

@@ -29,7 +29,7 @@ jest.mock('@/lib/kairosClient', () => ({
 import { describe, it, expect, beforeEach } from '@jest/globals';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { ClearMemoryButton } from '@/components/settings/clear-memory-button';
+import { ClearMemoryButton } from '@/components/settings/ClearMemoryButton';
 import * as actionsModule from '@/app/actions';
 
 describe('ClearMemoryButton Component', () => {
@@ -40,14 +40,14 @@ describe('ClearMemoryButton Component', () => {
   it('should render clear button with confirmation dialog', () => {
     render(<ClearMemoryButton />);
     
-    expect(screen.getByText(/Clear all data/i)).toBeInTheDocument();
+    expect(screen.getByTestId('settings-clear-open')).toBeInTheDocument();
   });
 
   it('should open confirmation dialog when button is clicked', async () => {
     const user = userEvent.setup();
     render(<ClearMemoryButton />);
     
-    const clearButton = screen.getByText(/Clear all data/i);
+    const clearButton = screen.getByTestId('settings-clear-open');
     await user.click(clearButton);
     
     await waitFor(() => {
@@ -61,15 +61,15 @@ describe('ClearMemoryButton Component', () => {
     render(<ClearMemoryButton />);
     
     // Open dialog
-    const clearButton = screen.getByText(/Clear all data/i);
+    const clearButton = screen.getByTestId('settings-clear-open');
     await user.click(clearButton);
     
     await waitFor(() => {
-      expect(screen.getByText(/Yes, delete everything/i)).toBeInTheDocument();
+      expect(screen.getByTestId('settings-clear-confirm')).toBeInTheDocument();
     });
     
     // Confirm deletion
-    const confirmButton = screen.getByText(/Yes, delete everything/i);
+    const confirmButton = screen.getByTestId('settings-clear-confirm');
     await user.click(confirmButton);
     
     await waitFor(() => {
@@ -82,15 +82,15 @@ describe('ClearMemoryButton Component', () => {
     render(<ClearMemoryButton />);
     
     // Open dialog
-    const clearButton = screen.getByText(/Clear all data/i);
+    const clearButton = screen.getByTestId('settings-clear-open');
     await user.click(clearButton);
     
     await waitFor(() => {
-      expect(screen.getByText(/Cancel/i)).toBeInTheDocument();
+      expect(screen.getByTestId('settings-clear-cancel')).toBeInTheDocument();
     });
     
     // Cancel
-    const cancelButton = screen.getByText(/Cancel/i);
+    const cancelButton = screen.getByTestId('settings-clear-cancel');
     await user.click(cancelButton);
     
     await waitFor(() => {

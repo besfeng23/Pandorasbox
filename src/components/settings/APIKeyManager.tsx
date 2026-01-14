@@ -72,7 +72,12 @@ export function APIKeyManager({ currentKey = '', onKeyUpdated }: APIKeyManagerPr
             Used for integrations. Keep it secret.
           </div>
         </div>
-        <Button onClick={handleGenerateApiKey} disabled={isPending || !user}>
+        <Button
+          onClick={handleGenerateApiKey}
+          disabled={isPending || !user}
+          aria-label="Generate API key"
+          data-testid="settings-generate-key"
+        >
           {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
           Generate
         </Button>
@@ -89,7 +94,8 @@ export function APIKeyManager({ currentKey = '', onKeyUpdated }: APIKeyManagerPr
           variant="outline" 
           onClick={handleCopyKey} 
           disabled={!currentKey || hasCopiedKey}
-          title="Copy API key"
+          aria-label="Copy API key"
+          data-testid="settings-copy-key"
         >
           {hasCopiedKey ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
         </Button>

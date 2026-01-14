@@ -62,6 +62,8 @@ export function ExportMemoriesButton({ variant = 'outline' }: ExportMemoriesButt
       variant={variant} 
       onClick={handleExport} 
       disabled={isPending || !user}
+      aria-label="Export memories"
+      data-testid="settings-export"
     >
       {isPending ? (
         <>
