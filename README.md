@@ -115,6 +115,21 @@ Add to your Claude Desktop configuration (`claude_desktop_config.json`):
 
 - `CHATGPT_API_KEY`: API key for ChatGPT Actions integration (can be used as fallback for `MCP_API_KEY`)
 
+## Environment Flexibility (Secrets URL)
+
+Pandora’s Box supports loading runtime configuration from a **Cloud Run Secrets URL JSON** (preferred) with a safe fallback to `process.env`.
+
+- **Required env**:
+  - `APP_ENV`: `dev` | `staging` | `prod`
+  - `CLOUDRUN_SECRETS_BASE_URL`: base URL for secrets JSON
+  - `CLOUDRUN_SECRETS_BEARER` (optional): bearer token for the secrets URL (server-side only)
+
+- **Fetch target**:
+  - `${CLOUDRUN_SECRETS_BASE_URL}/pandorasbox/${APP_ENV}.json`
+
+- **Verify (keys only)**:
+  - `npm run secrets:check`
+
 ## Development
 
 ```bash

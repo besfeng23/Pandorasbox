@@ -43,6 +43,7 @@
     "kairos:e2e": "tsx scripts/kairos-e2e-smoke.ts",
     "tools:setup": "node scripts/run-tools.cjs setup",
     "tools:check": "node scripts/run-tools.cjs check",
+    "secrets:check": "tsx scripts/secrets-check.ts",
     "auto-commit": "tsx scripts/auto-execute-after-changes.ts",
     "post-change": "tsx scripts/post-change-hook.ts",
     "store:design-memory": "tsx scripts/store-design-memory-simple.ts",
