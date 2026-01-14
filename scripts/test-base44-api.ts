@@ -22,8 +22,8 @@ import {
 async function testBase44API() {
   console.log('🧪 Testing Base44 API Integration\n');
 
-  // Initialize client
-  initBase44Client();
+  // Initialize client (async - fetches from GCP Secret Manager)
+  await initBase44Client();
   
   if (!process.env.BASE44_APP_ID) {
     console.error('❌ BASE44_APP_ID environment variable is required');

@@ -9,7 +9,55 @@ Get your Base44 API integration up and running in 3 steps.
 2. **API Key**: Go to Base44 dashboard → Settings → API Keys
    - Copy your API key (or create a new one if needed)
 
-## Step 2: Set the Credentials
+## Step 2: Store Credentials in Google Cloud Secret Manager (Recommended)
+
+The Base44 client automatically fetches credentials from GCP Secret Manager.
+
+### Quick Setup Script
+
+**Windows PowerShell:**
+```powershell
+.\scripts\setup-base44-gcp-secrets.ps1
+```
+
+**Linux/Mac:**
+```bash
+chmod +x scripts/setup-base44-gcp-secrets.sh
+./scripts/setup-base44-gcp-secrets.sh
+```
+
+This will:
+- Create `base44-app-id` secret in GCP Secret Manager
+- Create `base44-api-key` secret in GCP Secret Manager
+- Prompt you for the values securely
+
+### Manual Setup
+
+Or create secrets manually:
+
+```bash
+# Create App ID secret
+echo -n "6962980527a433f05c114277" | gcloud secrets create base44-app-id --data-file=-
+
+# Create API Key secret
+echo -n "your_api_key_here" | gcloud secrets create base44-api-key --data-file=-
+```
+
+### Grant Access
+
+Grant your service account access:
+
+```bash
+gcloud secrets add-iam-policy-binding base44-app-id \
+  --member="serviceAccount:YOUR_SA@PROJECT_ID.iam.gserviceaccount.com" \
+  --role="roles/secretmanager.secretAccessor"
+
+gcloud secrets add-iam-policy-binding base44-api-key \
+  --member="serviceAccount:YOUR_SA@PROJECT_ID.iam.gserviceaccount.com" \
+  --role="roles/secretmanager.secretAccessor"
+```
+
+## Step 3: Alternative - Environment Variables (Fallback)
 
 ### Option A: Environment Variable (Recommended for Testing)
 

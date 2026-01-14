@@ -70,13 +70,30 @@ let config: Base44Config = {
 
 /**
  * Initialize Base44 client configuration
+ * Will fetch credentials from GCP Secret Manager if available, otherwise uses env vars
  */
-export function initBase44Client(cfg: Partial<Base44Config> = {}) {
+export async function initBase44Client(cfg: Partial<Base44Config> = {}) {
+  // Try to get secrets from GCP Secret Manager
+  let appId = cfg.appId;
+  let apiKey = cfg.apiKey;
+
+  if (!appId || !apiKey) {
+    try {
+      const { getBase44Secrets } = await import('./base44Secrets');
+      const secrets = await getBase44Secrets();
+      appId = appId || secrets.appId;
+      apiKey = apiKey || secrets.apiKey;
+    } catch (error: any) {
+      // Fallback to environment variables
+      console.warn('[Base44] Could not fetch from Secret Manager, using env vars:', error.message);
+    }
+  }
+
   config = {
     ...config,
     apiUrl: process.env.BASE44_API_URL || cfg.apiUrl || 'https://app.base44.com',
-    appId: process.env.BASE44_APP_ID || cfg.appId,
-    apiKey: process.env.BASE44_API_KEY || cfg.apiKey,
+    appId: appId || process.env.BASE44_APP_ID || cfg.appId,
+    apiKey: apiKey || process.env.BASE44_API_KEY || cfg.apiKey,
     enabled: cfg.enabled !== undefined ? cfg.enabled : config.enabled,
   };
 }
@@ -432,9 +449,14 @@ export async function updateAlignmentChecklist(
   }
 }
 
-// Initialize on module load
+// Initialize on module load (async, but don't block)
 if (typeof window === 'undefined') {
-  // Server-side only
-  initBase44Client();
+  // Server-side only - initialize asynchronously
+  initBase44Client().catch((error) => {
+    // Silently fail - will use env vars or throw error when actually used
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[Base44] Initialization warning:', error.message);
+    }
+  });
 }
 

@@ -41,8 +41,8 @@ async function syncBase44WithKairos(options: SyncOptions = {}) {
   const { phaseId, dryRun = false, verbose = false } = options;
 
   try {
-    // Initialize client
-    initBase44Client();
+    // Initialize client (async - fetches from GCP Secret Manager)
+    await initBase44Client();
 
     if (verbose) {
       console.log('🔄 Starting Base44 ↔ Kairos synchronization...\n');
