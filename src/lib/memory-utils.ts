@@ -13,7 +13,6 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { trackEvent } from './analytics';
 import { updateKnowledgeGraphFromMemory } from './knowledge-graph';
 import { sendKairosEvent } from './kairosClient';
-import { sendKairosEvent } from './kairosClient';
 
 export interface MemoryData {
   content: string;

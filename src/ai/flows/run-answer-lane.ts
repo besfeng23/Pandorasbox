@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { generateEmbedding, searchHistory, searchMemories } from '@/lib/vector';
 import { FieldValue } from 'firebase-admin/firestore';
 import { trackEvent } from '@/lib/analytics';
+import { sendKairosEvent } from '@/lib/kairosClient';
 
 const AnswerLaneInputSchema = z.object({
   userId: z.string(),
@@ -234,7 +235,6 @@ ${memoryUsageInstructions}
             });
     
             // Emit Kairos event: answer lane completed
-            const { sendKairosEvent } = await import('@/lib/kairosClient');
             sendKairosEvent('system.lane.answer.completed', {
                 assistantMessageId,
                 userId,

@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Home, Settings, GitGraph, MessageSquare, Plus, Search, Building2, Library, Database, Boxes } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
-import { collection, doc, onSnapshot } from "firebase/firestore";
+import { collection, doc, onSnapshot, query, where, orderBy, limit, getDocs } from "firebase/firestore";
 
 import { useFirestore, useUser } from "@/firebase";
 import type { Thread } from "@/lib/types";
@@ -18,7 +18,6 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useUIState } from "./useUIState";
 import { ThreadMenu } from "@/components/chat/thread-menu";
 import { formatMessageTime } from "@/lib/utils";
-import { collection, query, where, orderBy, limit, getDocs } from "firebase/firestore";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
