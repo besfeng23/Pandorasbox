@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
-import type { McpRequest, McpResponse } from './schemas';
+import type { McpRequest, McpResponse } from './schemas.js';
 
 type Handler = (req: McpRequest) => Promise<Record<string, any>>;
 

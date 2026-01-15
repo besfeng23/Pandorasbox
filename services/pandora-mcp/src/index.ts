@@ -1,9 +1,9 @@
 import express from 'express';
 import { z } from 'zod';
-import { McpRequestSchema, McpResponseSchema } from './core/schemas';
-import { createRouter } from './core/router';
-import { getConfig } from './lib/runtime/secrets';
-import { createActionRegistry } from './actions/index';
+import { McpRequestSchema, McpResponseSchema } from './core/schemas.js';
+import { createRouter } from './core/router.js';
+import { getConfig } from './lib/runtime/secrets.js';
+import { createActionRegistry } from './actions/index.js';
 
 const PORT = Number(process.env.PORT || 8080);
 
