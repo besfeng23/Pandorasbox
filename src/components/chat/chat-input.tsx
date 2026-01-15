@@ -10,7 +10,7 @@ import { VoiceInput } from './voice-input';
 import { useConnectionStore } from '@/store/connection';
 import { useSuggestions } from '@/hooks/use-suggestions';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
 interface ChatInputProps {
@@ -195,7 +195,6 @@ export function ChatInput({ userId, onMessageSubmit, isSending }: ChatInputProps
   const isProcessing = isSending || isTranscribing;
 
   return (
-    <TooltipProvider>
       <div className="flex flex-col gap-2">
         <AnimatePresence>
           <FollowUpSuggestions userId={userId} onSuggestionClick={handleSuggestionClick} />
@@ -303,6 +302,5 @@ export function ChatInput({ userId, onMessageSubmit, isSending }: ChatInputProps
         </div>
       </form>
       </div>
-    </TooltipProvider>
   );
 }
