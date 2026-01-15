@@ -16,7 +16,7 @@ async function testMCPE2E() {
   console.log('🧪 End-to-End MCP Server Test\n');
   console.log('Starting MCP server...\n');
 
-  const serverProcess = spawn('npm', ['run', 'mcp:dev'], {
+  const serverProcess = spawn('npm', ['run', 'mcp:stdio:dev'], {
     cwd: process.cwd(),
     stdio: ['pipe', 'pipe', 'pipe'],
     shell: true,

@@ -48,20 +48,27 @@ npm run dev
 
 ## MCP Server
 
-Pandora's Box includes a fully functional MCP server that exposes three tools:
+Pandora's Box includes:
+- A **Pandora MCP HTTP service** (for Cloud Run) at `services/pandora-mcp/`
+- A **stdio MCP server** (local integrations) at `src/mcp/`
 
-1. **search_knowledge_base**: Semantic search across memories and history
-2. **add_memory**: Store new memories with embeddings
-3. **generate_artifact**: Create and save code/markdown artifacts
-
-### Running the MCP Server
+### Running the Pandora MCP HTTP service
 
 ```bash
-# Development mode
+# Local dev (HTTP on :8080)
 npm run mcp:dev
 
-# Production mode
-npm run mcp:start
+# Smoke test (calls /health then /mcp ping)
+npm run mcp:smoke
+
+# Deploy to Cloud Run
+npm run mcp:deploy
+```
+
+### Running the stdio MCP server
+
+```bash
+npm run mcp:stdio:dev
 
 # Generate OpenAPI schema for ChatGPT Actions
 npm run mcp:generate-schema
