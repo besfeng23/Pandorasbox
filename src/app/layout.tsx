@@ -1,6 +1,7 @@
 import type {Metadata, Viewport} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
+import { TooltipProvider } from "@/components/ui/tooltip"
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { CommandMenu } from '@/components/command-menu';
 import { ThemeProvider } from '@/hooks/use-theme';
@@ -63,10 +64,12 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased" style={{ minHeight: '100dvh', overflowY: 'auto' }}>
         <ThemeProvider>
-          <FirebaseClientProvider>
-            {children}
-            <CommandMenu />
-          </FirebaseClientProvider>
+          <TooltipProvider>
+            <FirebaseClientProvider>
+              {children}
+              <CommandMenu />
+            </FirebaseClientProvider>
+          </TooltipProvider>
           <Toaster />
         </ThemeProvider>
       </body>
