@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirestoreAdmin, getAuthAdmin } from '@/lib/firebase-admin';
+import { adminDb } from '@/firebase/admin';
 import { searchMemories } from '@/lib/vector';
 
 // Prevent this route from being statically generated
@@ -20,6 +21,23 @@ export async function OPTIONS() {
   return NextResponse.json({}, { headers: corsHeaders() });
 }
 
+async function validateApiKey(request: NextRequest): Promise<boolean> {
+  const authHeader = request.headers.get('authorization');
+  const apiKey = authHeader?.replace('Bearer ', '') || request.headers.get('x-api-key');
+
+  if (!apiKey) {
+    return false;
+  }
+
+  const keysSnapshot = await adminDb
+    .collection('api_clients')
+    .where('apiKey', '==', apiKey)
+    .limit(1)
+    .get();
+
+  return !keysSnapshot.empty;
+}
+
 /**
  * ChatGPT Action API: Retrieve Memories
  * 
@@ -36,10 +54,7 @@ export async function OPTIONS() {
 export async function GET(request: NextRequest) {
   try {
     // Verify API key
-    const authHeader = request.headers.get('authorization');
-    const apiKey = authHeader?.replace('Bearer ', '') || request.headers.get('x-api-key');
-    
-    if (!apiKey || apiKey !== process.env.CHATGPT_API_KEY?.trim()) {
+    if (!(await validateApiKey(request))) {
       return NextResponse.json(
         { error: 'Unauthorized. Invalid API key.' },
         { status: 401, headers: corsHeaders() }
@@ -119,10 +134,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // Verify API key
-    const authHeader = request.headers.get('authorization');
-    const apiKey = authHeader?.replace('Bearer ', '') || request.headers.get('x-api-key');
-    
-    if (!apiKey || apiKey !== process.env.CHATGPT_API_KEY?.trim()) {
+    if (!(await validateApiKey(request))) {
       return NextResponse.json(
         { error: 'Unauthorized. Invalid API key.' },
         { status: 401, headers: corsHeaders() }
@@ -199,4 +211,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
