@@ -1,26 +1,21 @@
-'use server';
+import 'server-only';
+import { tavily } from '@tavily/core';
 
-// @ts-ignore - TavilyClient type definitions might not export the class correctly
-import { TavilyClient } from '@tavily/core';
-
-let tavilyClient: any = null;
+type TavilySearchOptions = {
+  maxResults?: number;
+  includeAnswer?: boolean;
+  includeRawContent?: boolean;
+  searchDepth?: 'basic' | 'advanced';
+  topic?: 'general' | 'news' | 'finance';
+};
 
 function getTavilyClient() {
-  if (tavilyClient) return tavilyClient;
-
   const apiKey = process.env.TAVILY_API_KEY?.trim();
   if (!apiKey) {
-    throw new Error(
-      'TAVILY_API_KEY is not configured. Please set it in your environment variables.'
-    );
+    throw new Error('Missing TAVILY_API_KEY in environment.');
   }
 
-  // @ts-ignore - TavilyClient is a class but types might not be exported correctly
-  tavilyClient = new TavilyClient({
-    apiKey,
-  });
-
-  return tavilyClient;
+  return tavily({ apiKey });
 }
 
 export type TavilySearchResult = {
@@ -38,20 +33,19 @@ export type TavilySearchResult = {
  */
 export async function tavilySearch(
   query: string,
-  options?: {
-    maxResults?: number;
-  }
+  options: TavilySearchOptions = {}
 ): Promise<TavilySearchResult> {
   const client = getTavilyClient();
-  if (!client) {
-    throw new Error('Tavily client not initialized');
-  }
-  const maxResults = options?.maxResults ?? 5;
+  const maxResults = options.maxResults ?? 5;
 
   // Tavily API returns an array of results with title, content/snippet, and url
   const response = await client.search({
     query,
     maxResults,
+    includeAnswer: options.includeAnswer ?? false,
+    includeRawContent: options.includeRawContent ?? false,
+    searchDepth: options.searchDepth ?? 'basic',
+    topic: options.topic ?? 'general',
   } as any);
 
   const results =
@@ -66,5 +60,4 @@ export async function tavilySearch(
     results,
   };
 }
-
 
