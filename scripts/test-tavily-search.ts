@@ -16,7 +16,7 @@ import { tavilySearch } from '../src/lib/tavily';
 config({ path: resolve(process.cwd(), '.env.local') });
 
 async function main() {
-  const query = process.argv[2];
+  const query = process.argv.slice(2).join(' ') || '';
   
   if (!query) {
     console.error('Usage: tsx scripts/test-tavily-search.ts "your search query"');
@@ -33,15 +33,15 @@ async function main() {
   console.log(`🔍 Searching Tavily for: "${query}"\n`);
 
   try {
-    const results = await tavilySearch(query, { maxResults: 5 });
+    const response = await tavilySearch(query, { maxResults: 5 });
     
-    console.log(`✅ Found ${results.length} results:\n`);
+    console.log(`✅ Found ${response.results?.length ?? 0} results:\n`);
     
-    results.results.forEach((result, index) => {
+    response.results?.forEach((result, index) => {
       console.log(`--- Result ${index + 1} ---`);
-      console.log(`Title: ${result.title}`);
+      console.log(`Title: ${result.title ?? '(no title)'}`);
       console.log(`URL: ${result.url}`);
-      console.log(`Snippet: ${result.snippet.substring(0, 200)}...`);
+      console.log(`Snippet: ${result.snippet?.substring(0, 200) ?? '(no content)'}...`);
       console.log('');
     });
     
@@ -56,4 +56,3 @@ async function main() {
 }
 
 main();
-
