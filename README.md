@@ -70,6 +70,19 @@ Add to your Claude Desktop configuration (`claude_desktop_config.json`):
 - `OPENAI_API_KEY`: OpenAI API key for embeddings and chat completions
 - Firebase service account credentials (via `service-account.json` or Application Default Credentials)
 
+### Local Infrastructure
+
+When running locally with the bundled inference, embeddings, and Qdrant services, add these to
+`.env.local`:
+
+```bash
+INFERENCE_BASE_URL=http://localhost:8000
+INFERENCE_MODEL=mistralai/Mistral-7B-Instruct-v0.2
+EMBEDDINGS_BASE_URL=http://localhost:8080
+EMBEDDINGS_DIMENSION=384
+QDRANT_URL=http://localhost:6333
+```
+
 ### MCP Server
 
 - `MCP_API_KEY`: API key for MCP server authentication (defaults to `CHATGPT_API_KEY` if not set)
@@ -84,6 +97,13 @@ Add to your Claude Desktop configuration (`claude_desktop_config.json`):
 ```bash
 # Install dependencies
 npm install
+
+# Start local infrastructure (or: docker-compose up -d)
+npm run infra:up
+
+# Verify services
+curl http://localhost:6333/collections  # Qdrant
+curl http://localhost:8080/health        # Embeddings
 
 # Run Next.js development server
 npm run dev
