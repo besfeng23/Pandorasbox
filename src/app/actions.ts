@@ -757,10 +757,18 @@ export async function generateUserApiKey(userId: string): Promise<{ success: boo
   
     const firestoreAdmin = getFirestoreAdmin();
     try {
-      const apiKey = `sk-pandora-${randomBytes(24).toString('hex')}`;
+      const apiKey = `pk-live-${randomBytes(24).toString('hex')}`;
       
       const settingsRef = firestoreAdmin.collection('settings').doc(userId);
       await settingsRef.set({ personal_api_key: apiKey }, { merge: true });
+
+      await firestoreAdmin.collection('api_clients').add({
+        apiKey,
+        createdAt: FieldValue.serverTimestamp(),
+        userId,
+        label: 'Personal API Key',
+        isActive: true,
+      });
       
       revalidatePath('/settings');
       return { success: true, apiKey: apiKey };
