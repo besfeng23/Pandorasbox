@@ -1,35 +1,16 @@
-# Exclude all node_modules
-**/node_modules/
-node_modules/
-
-# Exclude nested Pandorasbox directory
-Pandorasbox/
-
-# Exclude build artifacts
-**/.next/
-.next/
-dist/
-build/
-
-# Exclude git
-.git/
+.git
 .gitignore
-
-# Exclude Firebase
+node_modules/
+.next/
+coverage/
+test/
+tests/
+__tests__/
+.cursor/
 .firebase/
-
-# Exclude local files
+.firebaserc
+firebase.json
+firestore.indexes.json
+firestore.rules
+storage.rules
 *.log
-.DS_Store
-.env.local
-.env*.local
-
-# Exclude services
-services/
-
-# Exclude scripts
-scripts/
-
-# Exclude test files
-**/*.test.*
-**/__tests__/
