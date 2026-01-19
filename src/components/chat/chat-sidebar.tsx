@@ -8,7 +8,7 @@ import { Loader2, MessageSquare, MessageCircle, Pin, Search } from 'lucide-react
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { ScrollArea } from '../ui/scroll-area';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '../ui/tooltip';
 import { ThreadMenu } from './thread-menu';
 import { Input } from '../ui/input';
 

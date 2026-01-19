@@ -19,7 +19,7 @@ import { FileText } from 'lucide-react';
 import { CodeBlock } from './code-block';
 import { MessageMenu } from './message-menu';
 import type { Components } from 'react-markdown';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { Copy, Check } from 'lucide-react';
 
 interface MessageProps {
@@ -254,7 +254,6 @@ export function Message({ message }: MessageProps) {
   }
 
   return (
-    <TooltipProvider>
       <div className="flex items-start gap-3 w-full">
         {/* Avatar/Icon */}
         {!isUser && (
@@ -364,6 +363,5 @@ export function Message({ message }: MessageProps) {
           </div>
         )}
       </div>
-    </TooltipProvider>
   );
 }

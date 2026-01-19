@@ -35,7 +35,7 @@ async function main() {
   try {
     const results = await tavilySearch(query, { maxResults: 5 });
     
-    console.log(`✅ Found ${results.length} results:\n`);
+    console.log(`✅ Found ${results.results.length} results:\n`);
     
     results.results.forEach((result, index) => {
       console.log(`--- Result ${index + 1} ---`);
