@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { handleSearchKnowledgeBase } from '@/mcp/tools/search-knowledge';
 import { handleAddMemory } from '@/mcp/tools/add-memory';
 import { handleGenerateArtifact } from '@/mcp/tools/generate-artifact';
+import { adminDb } from '@/firebase/admin';
 
 // Prevent this route from being statically generated
 export const dynamic = 'force-dynamic';
@@ -35,17 +36,21 @@ export async function OPTIONS() {
 }
 
 // Validate API key
-function validateApiKey(request: NextRequest): boolean {
+async function validateApiKey(request: NextRequest): Promise<boolean> {
   const authHeader = request.headers.get('authorization');
   const apiKey = authHeader?.replace('Bearer ', '') || request.headers.get('x-api-key');
-  const expectedKey = process.env.MCP_API_KEY?.trim() || process.env.CHATGPT_API_KEY?.trim();
-  
-  if (!expectedKey) {
-    console.warn('MCP_API_KEY or CHATGPT_API_KEY not configured');
+
+  if (!apiKey) {
     return false;
   }
-  
-  return apiKey === expectedKey;
+
+  const keysSnapshot = await adminDb
+    .collection('api_clients')
+    .where('apiKey', '==', apiKey)
+    .limit(1)
+    .get();
+
+  return !keysSnapshot.empty;
 }
 
 // Main handler
@@ -55,7 +60,7 @@ export async function POST(
 ) {
   try {
     // Validate API key
-    if (!validateApiKey(request)) {
+    if (!(await validateApiKey(request))) {
       return NextResponse.json(
         { error: 'Unauthorized. Invalid API key.' },
         { status: 401, headers: corsHeaders() }
@@ -225,4 +230,3 @@ export async function GET(
 
   return NextResponse.json(info, { headers: corsHeaders() });
 }
-

@@ -18,10 +18,16 @@ function initializeAdmin() {
     return;
   }
 
+  const serviceAccountEnv = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+  if (!serviceAccountEnv && process.env.NEXT_PHASE === 'phase-production-build') {
+    console.warn('⚠️ FIREBASE_SERVICE_ACCOUNT_KEY missing during build. Using mock Firebase Admin app.');
+    admin.initializeApp({ projectId: 'build-mock' }, 'build-mock');
+    return;
+  }
+
   // Highest priority: explicit service account path from FIREBASE_SERVICE_ACCOUNT_KEY
   // This is especially useful for standalone tools and MCP servers.
   try {
-    const serviceAccountEnv = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
     if (serviceAccountEnv && serviceAccountEnv.trim()) {
       const path = require('path');
       const fs = require('fs');
@@ -57,10 +63,14 @@ function initializeAdmin() {
       return;
     } catch (error: any) {
       // During build, this might fail but that's okay - it will work at runtime
-      if (error.message?.includes('Could not load the default credentials')) {
-        console.warn('Application Default Credentials not available during build. Will use at runtime.');
-        return;
+    if (error.message?.includes('Could not load the default credentials')) {
+      console.warn('Application Default Credentials not available during build. Will use at runtime.');
+      if (!admin.apps.length && process.env.NEXT_PHASE === 'phase-production-build') {
+        console.warn('⚠️ Falling back to mock Firebase Admin app for build.');
+        admin.initializeApp({ projectId: 'build-mock' }, 'build-mock');
       }
+      return;
+    }
       console.error('Failed to initialize with Application Default Credentials:', error);
     }
   }
@@ -98,6 +108,10 @@ function initializeAdmin() {
       // During build, don't throw - this will work at runtime with proper credentials
       if (fallbackError.message?.includes('Could not load the default credentials')) {
         console.warn('Firebase Admin will be initialized at runtime with Application Default Credentials.');
+        if (!admin.apps.length && process.env.NEXT_PHASE === 'phase-production-build') {
+          console.warn('⚠️ Falling back to mock Firebase Admin app for build.');
+          admin.initializeApp({ projectId: 'build-mock' }, 'build-mock');
+        }
         return;
       }
       console.error('❌ Firebase Admin Initialization Failed:', fallbackError);
@@ -114,7 +128,8 @@ function initializeAdmin() {
 function getFirestoreAdmin() {
   initializeAdmin();
   if (!firestoreAdmin) {
-    firestoreAdmin = admin.firestore();
+    const app = admin.apps[0];
+    firestoreAdmin = app.firestore();
   }
   return firestoreAdmin;
 }
@@ -122,7 +137,8 @@ function getFirestoreAdmin() {
 function getAuthAdmin() {
     initializeAdmin();
     if (!authAdmin) {
-        authAdmin = admin.auth();
+        const app = admin.apps[0];
+        authAdmin = app.auth();
     }
     return authAdmin;
 }
