@@ -56,9 +56,14 @@ function initializeAdmin() {
   // The service-account.json file won't exist in the build container
   if (process.env.NODE_ENV === 'production' || process.env.VERCEL || process.env.FIREBASE_CONFIG) {
     try {
+      const projectId = process.env.FIREBASE_PROJECT_ID;
+      if (!projectId) {
+        throw new Error('FIREBASE_PROJECT_ID environment variable is not set. Cannot initialize Firebase Admin.');
+      }
       console.log("Initializing Firebase Admin with Application Default Credentials...");
       admin.initializeApp({
-        credential: admin.credential.applicationDefault()
+        credential: admin.credential.applicationDefault(),
+        projectId: projectId
       });
       return;
     } catch (error: any) {
@@ -100,9 +105,14 @@ function initializeAdmin() {
   // Final fallback: Use Application Default Credentials
   if (!admin.apps.length) {
     try {
+      const projectId = process.env.FIREBASE_PROJECT_ID;
+      if (!projectId) {
+        throw new Error('FIREBASE_PROJECT_ID environment variable is not set. Cannot initialize Firebase Admin (fallback).');
+      }
       console.log("Initializing Firebase Admin with Application Default Credentials (fallback)...");
       admin.initializeApp({
-        credential: admin.credential.applicationDefault()
+        credential: admin.credential.applicationDefault(),
+        projectId: projectId
       });
     } catch (fallbackError: any) {
       // During build, don't throw - this will work at runtime with proper credentials

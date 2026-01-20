@@ -27,6 +27,7 @@ export type Thread = {
   summary?: string;
   pinned?: boolean;
   archived?: boolean;
+  agent?: string;
   updatedAt?: Timestamp | Date | string;
 };
 

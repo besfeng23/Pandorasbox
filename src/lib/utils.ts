@@ -89,3 +89,11 @@ export function formatFullDateTime(timestamp: any): string {
     return '';
   }
 }
+
+export function chunkText(text: string, chunkSize: number = 1000): string[] {
+  const chunks: string[] = [];
+  for (let i = 0; i < text.length; i += chunkSize) {
+    chunks.push(text.substring(i, i + chunkSize));
+  }
+  return chunks;
+}

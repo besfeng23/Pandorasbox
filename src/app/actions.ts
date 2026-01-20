@@ -1,30 +1,30 @@
 
 'use server';
 
-import { getFirestoreAdmin } from '@/lib/firebase-admin';
+import { getFirestoreAdmin, getAuthAdmin } from '@/lib/firebase-admin';
 import { revalidatePath } from 'next/cache';
-import { runChatLane } from '@/ai/flows/run-chat-lane';
-import { generateEmbedding, generateEmbeddingsBatch, searchHistory, searchMemories } from '@/lib/vector';
-import { SearchResult, Thread } from '@/lib/types';
 import { getStorage, getDownloadURL } from 'firebase-admin/storage';
-import OpenAI from 'openai';
-import pdf from 'pdf-parse';
-import { chunkText } from '@/lib/chunking';
 import { FieldValue } from 'firebase-admin/firestore';
 import { randomBytes } from 'crypto';
-import { summarizeLongChat } from '@/ai/flows/summarize-long-chat';
 import * as Sentry from '@sentry/nextjs';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { trackEvent } from '@/lib/analytics';
+import { SearchResult, Thread } from '@/lib/types';
+import pdfParse from 'pdf-parse'; // Assuming pdf-parse is installed
+import { chunkText } from '@/lib/utils'; // Assuming chunkText utility exists here or similar location
+
+// Self-hosted imports
+import { applyGuardrails } from '@/lib/selfhosted/guardrails';
+import { getThread, addMessage, getRecentMessages, writeMemory, MemoryMessage } from '@/lib/selfhosted/memory-store';
+import { searchMemories as searchSelfHostedMemories, upsertMemory } from '@/lib/selfhosted/vector-store';
+import { buildPrompt } from '@/lib/selfhosted/prompt-builder';
+import { chatCompletion } from '@/lib/selfhosted/inference-client';
+import { processInteraction } from '@/lib/selfhosted/memory-pipeline';
+import { deriveAgentId } from '@/lib/selfhosted/agent-router';
+import { getEmbedding, getEmbeddingsBatch } from '@/lib/selfhosted/embeddings-client';
+
 
 // Lazy initialization to avoid build-time errors
-function getOpenAI() {
-  const apiKey = process.env.OPENAI_API_KEY?.trim();
-  if (!apiKey) {
-    throw new Error('OPENAI_API_KEY is not configured. Please set it in your environment variables.');
-  }
-  return new OpenAI({ apiKey });
-}
 
 export async function createThread(userId: string): Promise<string> {
     const firestoreAdmin = getFirestoreAdmin();
@@ -82,88 +82,60 @@ export async function getUserThreads(userId: string) {
 }
 
 export async function transcribeAndProcessMessage(formData: FormData) {
-    const audioFile = formData.get('audio_file') as File;
-    const userId = formData.get('userId') as string;
-    const threadId = formData.get('threadId') as string | null;
-
-    if (!audioFile || !userId) {
-        return { success: false, message: 'Audio file or user ID missing.' };
-    }
-
-    try {
-        const openai = getOpenAI();
-        const transcription = await openai.audio.transcriptions.create({
-            model: 'whisper-1',
-            file: audioFile,
-        });
-
-        const transcribedText = transcription.text;
-        
-        let messageId: string | undefined;
-        let newThreadId: string | undefined;
-
-        if (transcribedText) {
-            const messageFormData = new FormData();
-            messageFormData.append('message', transcribedText);
-            messageFormData.append('userId', userId);
-            if (threadId) {
-                messageFormData.append('threadId', threadId);
-            }
-            messageFormData.append('source', 'voice');
-            const result = await submitUserMessage(messageFormData);
-            messageId = result?.messageId;
-            newThreadId = result?.threadId;
-        }
-
-        return { success: true, messageId, threadId: newThreadId };
-    } catch (error) {
-        console.error('Error transcribing audio:', error);
-        Sentry.captureException(error, { tags: { function: 'transcribeAndProcessMessage' } });
-        return { success: false, message: 'Failed to transcribe audio.' };
-    }
+    return { success: false, message: 'Audio transcription is not supported in this self-hosted configuration.' };
 }
 
 
-export async function submitUserMessage(formData: FormData) {
+export async function submitUserMessage(formData: FormData): Promise<{ ok: boolean; threadId?: string; messageId?: string; code?: string; error?: string }> {
     const messageContent = formData.get('message') as string;
-    const userId = formData.get('userId') as string;
+    const idToken = formData.get('idToken') as string;
     let threadId = formData.get('threadId') as string | null;
     const imageBase64 = formData.get('image_data') as string | null;
     const source = formData.get('source') as string || 'text';
   
-    if (!userId) {
-      console.error('submitUserMessage Error: User ID is missing.');
-      throw new Error('User not authenticated');
+    if (!idToken) {
+      return { ok: false, code: 'UNAUTH', error: 'User not authenticated' };
     }
 
-    // Check rate limit for messages
+    let userId: string;
+    try {
+        const decodedToken = await getAuthAdmin().verifyIdToken(idToken);
+        userId = decodedToken.uid;
+    } catch (error: any) {
+        return { ok: false, code: 'UNAUTH', error: error.message || 'Unauthorized' };
+    }
+
+    const guardrailResult = applyGuardrails(messageContent);
+    if (guardrailResult.blocked) {
+      return { ok: false, code: guardrailResult.code || 'BLOCKED', error: guardrailResult.message || 'Message blocked by guardrails.' };
+    }
+
     const rateLimitCheck = await checkRateLimit(userId, 'messages');
     if (!rateLimitCheck.success) {
-      return { 
-        messageId: undefined, 
-        threadId: undefined,
-        error: rateLimitCheck.message || 'Rate limit exceeded. Please try again later.'
-      };
+      return { ok: false, code: 'RATE_LIMIT', error: rateLimitCheck.message || 'Rate limit exceeded. Please try again later.'};
     }
   
     if ((!messageContent || !messageContent.trim()) && !imageBase64) {
-      return;
+      return { ok: false, code: 'BAD_REQUEST', error: 'Message content or image is missing.' };
     }
     
     const firestoreAdmin = getFirestoreAdmin();
-    // If no threadId is provided, create a new thread.
     if (!threadId) {
         threadId = await createThread(userId);
-        // Auto-generate title for the new thread
         const newTitle = messageContent.substring(0, 40) + (messageContent.length > 40 ? '...' : '');
         await firestoreAdmin.collection('threads').doc(threadId).update({ title: newTitle });
+    } else {
+        const threadDoc = await firestoreAdmin.collection('threads').doc(threadId).get();
+        if (!threadDoc.exists || threadDoc.data()?.userId !== userId) {
+            return { ok: false, code: 'UNAUTH', error: 'Thread not found or unauthorized' };
+        }
     }
   
     const historyCollection = firestoreAdmin.collection('history');
     let userMessageId: string;
   
     try {
-      const embedding = await generateEmbedding(messageContent || 'image');
+          const embedding = await getEmbedding(messageContent || 'image');
   
       const userMessageData = {
         role: 'user',
@@ -203,55 +175,70 @@ export async function submitUserMessage(formData: FormData) {
           await userMessageRef.update({ imageUrl: imageUrl });
       }
   
-      // Pass the threadId to the AI lane
-      await runChatLane({
-          userId,
-          message: messageContent,
-          imageBase64,
-          source,
-          threadId,
-      });
+      // --- SELF-HOSTED AI LANE START ---
+      try {
+        // 1. Derive Agent
+        const threadDoc = await getThread(threadId);
+        const agentId = deriveAgentId(threadDoc?.agent);
+
+        // 2. Retrieve Context (Recent messages + RAG)
+        const recentMessages = await getRecentMessages(threadId); // Fetches from Firestore
+        // Also map to self-hosted message format
+        const mappedRecentMessages = recentMessages.map(m => ({ 
+            role: m.role as 'user'|'assistant', 
+            content: m.content 
+        }));
+        
+        const memories = await searchSelfHostedMemories(messageContent, userId, agentId);
+
+        // 3. Build Prompt
+        const messages = buildPrompt(agentId, mappedRecentMessages, memories);
+
+        // 4. Inference
+        const assistantContent = await chatCompletion(messages);
+
+        // 5. Write Response
+        await addMessage(threadId, { 
+            role: 'assistant', 
+            content: assistantContent, 
+            userId 
+        });
+        
+        // Also write to 'history' collection for backward compatibility/ChatPanel
+        const assistantMessageData = {
+            role: 'assistant',
+            content: assistantContent,
+            createdAt: FieldValue.serverTimestamp(),
+            userId: userId,
+            threadId: threadId,
+            source: 'ai',
+        };
+        const assistantRef = await historyCollection.add(assistantMessageData);
+        await assistantRef.update({ id: assistantRef.id });
+
+        // 6. Memory Pipeline
+        await processInteraction(messageContent, assistantContent, userId, agentId);
+
+      } catch (aiError: any) {
+        console.error('Self-hosted AI failed:', aiError);
+        return { ok: false, code: 'AI_ERROR', error: aiError.message || 'AI inference failed.' };
+      }
+      // --- SELF-HOSTED AI LANE END ---
       
   
-      return { messageId: userMessageId, threadId: threadId };
+      return { ok: true, messageId: userMessageId, threadId: threadId };
 
-    } catch (error) {
+
+    } catch (error: any) {
         console.error('Firestore Write Failed in submitUserMessage:', error);
         Sentry.captureException(error, { tags: { function: 'submitUserMessage', userId } });
-        return { messageId: undefined, threadId: undefined };
+        return { ok: false, code: 'FIRESTORE_WRITE_ERROR', error: error.message || 'Failed to send message.' };
     }
 }
 
 export async function summarizeThread(threadId: string, userId: string): Promise<void> {
-    const firestoreAdmin = getFirestoreAdmin();
-    const historyCollection = firestoreAdmin.collection('history');
-    const threadRef = firestoreAdmin.collection('threads').doc(threadId);
-
-    const snapshot = await historyCollection
-        .where('threadId', '==', threadId)
-        .where('userId', '==', userId)
-        .orderBy('createdAt', 'asc')
-        .get();
-
-    // Only summarize if there are more than 10 messages
-    if (snapshot.docs.length < 10) {
-        return;
-    }
-
-    const chatHistory = snapshot.docs.map(doc => {
-        const data = doc.data();
-        return `${data.role}: ${data.content}`;
-    }).join('\n');
-
-    try {
-        const { summary } = await summarizeLongChat({ chatHistory });
-        if (summary) {
-            await threadRef.update({ summary });
-        }
-    } catch (error) {
-        console.error('Failed to summarize thread:', error);
-        Sentry.captureException(error, { tags: { function: 'summarizeThread', threadId, userId } });
-    }
+    console.warn('Thread summarization is not implemented in this self-hosted configuration.');
+    return;
 }
 
 export async function searchMemoryAction(query: string, userId: string): Promise<SearchResult[]> {
@@ -260,10 +247,23 @@ export async function searchMemoryAction(query: string, userId: string): Promise
     }
 
     // Search both history and memories collections
-    const [historyResults, memoryResults] = await Promise.all([
-        searchHistory(query, userId),
-        searchMemories(query, userId, 10)
-    ]);
+    const firestoreAdmin = getFirestoreAdmin();
+    const historyCollection = firestoreAdmin.collection('history');
+    // Search history in Firestore for relevant messages
+    const historySnapshot = await historyCollection
+        .where('userId', '==', userId)
+        .where('content', '>=', query)
+        .where('content', '<=', query + '\uf8ff')
+        .limit(10)
+        .get();
+    const historyResults = historySnapshot.docs.map(doc => ({
+        id: doc.id,
+        text: doc.data().content,
+        score: 1, // Assign a default score
+        timestamp: doc.data().createdAt?.toDate ? doc.data().createdAt.toDate() : new Date(),
+    }));
+
+    const memoryResults = await searchSelfHostedMemories(query, userId, 'universe', 10); // Assuming a default agent for search
 
     // Combine results and sort by score (highest first)
     const allResults = [
@@ -384,30 +384,15 @@ export async function getMemories(userId: string, query?: string) {
       const historyCollection = firestoreAdmin.collection('history');
     
       if (query && query.trim()) {
-        try {
-          const searchResults = await searchHistory(query, userId);
-          if (searchResults.length === 0) return [];
-          const docIds = searchResults.map(r => r.id);
-          
-          // Get documents by IDs - Firestore Admin SDK doesn't support 'in' with documentId directly
-          // Instead, fetch each document individually (or use a different approach)
-          const memoryDocs = await Promise.all(
-            docIds.slice(0, 10).map(id => historyCollection.doc(id).get())
-          );
-          const memoryDocsArray = memoryDocs.filter(doc => doc.exists).map(doc => doc);
-          const userFilteredDocs = memoryDocsArray.filter(doc => doc.data()?.userId === userId);
-          return userFilteredDocs.map(doc => ({ id: doc.id, ...doc.data() }));
-        } catch (searchError: any) {
-          console.error('Error in semantic search for memories:', searchError);
-          // Fallback to regular query if semantic search fails
-          const snapshot = await historyCollection
-            .where('userId', '==', userId)
-            .orderBy('createdAt', 'desc')
-            .limit(50)
-            .get();
-          return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        }
-
+        // Direct search in history collection for relevant messages based on content
+        const snapshot = await historyCollection
+          .where('userId', '==', userId)
+          .where('content', '>=', query)
+          .where('content', '<=', query + '\uf8ff')
+          .orderBy('content') // orderBy is required for range queries
+          .limit(10)
+          .get();
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       } else {
         try {
           const snapshot = await historyCollection
@@ -471,7 +456,7 @@ export async function updateMemory(id: string, newText: string, userId: string) 
         if (!docSnap.exists || docSnap.data()?.userId !== userId) {
             return { success: false, message: 'Permission denied.' };
         }
-        const newEmbedding = await generateEmbedding(newText);
+            const newEmbedding = await getEmbedding(newText);
         await docRef.update({
             content: newText,
             embedding: newEmbedding,
@@ -493,20 +478,24 @@ export async function createMemoryFromSettings(content: string, userId: string):
     }
     
     // Use centralized memory utility to ensure automatic indexing
-    const { saveMemory } = await import('@/lib/memory-utils');
-    
+    const firestoreAdmin = getFirestoreAdmin();
     try {
-        const result = await saveMemory({
-            content: content.trim(),
+        const embedding = await getEmbedding(content.trim());
+        const memoryId = firestoreAdmin.collection('memories').doc().id;
+
+        await writeMemory({
+            id: memoryId,
             userId: userId,
+            role: 'user',
+            content: content.trim(),
             source: 'settings',
+            embedding: embedding,
         });
-        
-        if (result.success) {
-            revalidatePath('/settings');
-        }
-        
-        return result;
+
+        await upsertMemory(userId, 'universe', memoryId, content.trim(), { source: 'settings' });
+
+        revalidatePath('/settings');
+        return { success: true, memory_id: memoryId };
     } catch (error) {
         console.error('Error creating memory:', error);
         Sentry.captureException(error, { tags: { function: 'createMemoryFromSettings', userId } });
@@ -543,14 +532,27 @@ export async function updateMemoryInMemories(id: string, newText: string, userId
     }
     
     // Use centralized memory utility to ensure embedding is regenerated
-    const { updateMemoryWithEmbedding } = await import('@/lib/memory-utils');
-    
+    const firestoreAdmin = getFirestoreAdmin();
+
     try {
-        const result = await updateMemoryWithEmbedding(id, newText, userId);
-        if (result.success) {
-            revalidatePath('/');
+        const docRef = firestoreAdmin.collection('memories').doc(id);
+        const docSnap = await docRef.get();
+        if (!docSnap.exists || docSnap.data()?.userId !== userId) {
+            return { success: false, message: 'Permission denied.' };
         }
-        return result;
+        const newEmbedding = await getEmbedding(newText);
+        await docRef.update({
+            content: newText,
+            embedding: newEmbedding,
+            editedAt: FieldValue.serverTimestamp(),
+        });
+
+        // Update in Qdrant as well
+        const agentId = docSnap.data()?.agentId || 'universe'; // Assuming agentId is stored in memory payload
+        await upsertMemory(userId, agentId, id, newText, { source: 'updated_memory' });
+
+        revalidatePath('/');
+        return { success: true };
     } catch (error) {
         console.error('Error updating memory:', error);
         Sentry.captureException(error, { tags: { function: 'updateMemoryInMemories', userId, memoryId: id } });
@@ -581,7 +583,7 @@ export async function uploadKnowledge(formData: FormData): Promise<{ success: bo
         const fileBuffer = Buffer.from(await file.arrayBuffer());
 
         if (file.type === 'application/pdf') {
-            const data = await pdf(fileBuffer);
+            const data = await pdfParse(fileBuffer);
             rawContent = data.text;
         } else if (file.type.startsWith('text/')) {
             rawContent = fileBuffer.toString('utf-8');
@@ -591,44 +593,40 @@ export async function uploadKnowledge(formData: FormData): Promise<{ success: bo
 
         const chunks = chunkText(rawContent);
         const historyCollection = firestoreAdmin.collection('history');
+
+        const embeddings = await getEmbeddingsBatch(chunks);
         
-        // Generate embeddings in batch for cost efficiency
-        const embeddings = await generateEmbeddingsBatch(chunks);
-        
-        // Use centralized utility to automatically save to memories collection
-        const { saveMemoriesBatch } = await import('@/lib/memory-utils');
-        const memories = chunks.map((chunk, i) => ({
-          content: chunk,
-          userId: userId,
-          source: 'knowledge_upload',
-          metadata: {
-            source_filename: file.name,
-            chunk_index: i,
-          },
-        }));
-        
-        // Save to memories collection automatically (with embeddings)
-        await saveMemoriesBatch(memories);
-        
-        // Also save to history collection (for chat context)
+        const agentId = 'universe'; // Default agent for uploaded knowledge
+
         const batch = firestoreAdmin.batch();
         for (let i = 0; i < chunks.length; i++) {
             const chunk = chunks[i];
             const embedding = embeddings[i];
+            const memoryId = firestoreAdmin.collection('memories').doc().id;
             
-            const historyDocRef = historyCollection.doc();
-            batch.set(historyDocRef, {
-                id: historyDocRef.id,
-                role: 'assistant',
-                type: 'knowledge_chunk',
-                source_filename: file.name,
+            // Write to Firestore memories collection
+            batch.set(firestoreAdmin.collection('memories').doc(memoryId), {
+                id: memoryId,
+                userId: userId,
+                role: 'assistant', // Or 'document_chunk'
                 content: chunk,
                 embedding: embedding,
+                source: 'knowledge_upload',
+                metadata: {
+                    source_filename: file.name,
+                    chunk_index: i,
+                },
                 createdAt: FieldValue.serverTimestamp(),
-                userId: userId,
+            });
+
+            // Upsert to Qdrant
+            await upsertMemory(userId, agentId, memoryId, chunk, {
+                source: 'knowledge_upload',
+                source_filename: file.name,
+                chunk_index: i,
             });
         }
-        
+        // Commit batch after all chunks are processed
         await batch.commit();
         
         // Track analytics
@@ -651,7 +649,6 @@ export async function reindexMemories(userId: string): Promise<{ success: boolea
     }
     
     const firestoreAdmin = getFirestoreAdmin();
-    const { generateEmbedding } = await import('@/lib/vector');
     
     try {
         console.log(`[ReindexMemories] Starting re-index for user ${userId}`);
@@ -675,6 +672,7 @@ export async function reindexMemories(userId: string): Promise<{ success: boolea
         for (const doc of snapshot.docs) {
             const data = doc.data();
             const memoryId = doc.id;
+            const agentId = data.agentId || 'universe';
             
             // Check if embedding exists and is valid (1536 dimensions)
             const hasValidEmbedding = data.embedding && 
@@ -697,13 +695,16 @@ export async function reindexMemories(userId: string): Promise<{ success: boolea
                 console.log(`[ReindexMemories] Generating embedding for memory ${memoryId}: "${data.content.substring(0, 50)}..."`);
                 
                 // Generate embedding
-                const embedding = await generateEmbedding(data.content);
+                const embedding = await getEmbedding(data.content);
                 
-                // Update document with embedding
+                // Update document with embedding in Firestore
                 batch.update(doc.ref, {
                     embedding: embedding,
                     reindexedAt: FieldValue.serverTimestamp(),
                 });
+
+                // Upsert to Qdrant
+                await upsertMemory(userId, agentId, memoryId, data.content, { source: 'reindex' });
                 
                 batchCount++;
                 processed++;
