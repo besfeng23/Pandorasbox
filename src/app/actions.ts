@@ -22,7 +22,7 @@ import { deriveAgentId } from '@/lib/selfhosted/agent-router';
 import { getEmbedding, getEmbeddingsBatch } from '@/lib/selfhosted/embeddings-client';
 import { embedText } from '@/lib/ai/embedding'; // New import for embedding
 import { chatCompletion, ChatMessage } from '@/lib/sovereign/vllm-client';
-import { searchPoints, upsertPoint } from '@/lib/sovereign/qdrant-client';
+import { searchPoints, upsertPoint, QdrantSearchResult } from '@/lib/sovereign/qdrant-client';
 import { extractArtifacts } from '@/lib/sovereign/artifact-parser';
 
 
@@ -38,6 +38,7 @@ export async function createThread(userId: string, agentId: string): Promise<str
         createdAt: FieldValue.serverTimestamp(),
         agentId: agentId, // Store agentId with the thread
     });
+    
     return threadRef.id;
 }
 
@@ -204,7 +205,7 @@ export async function submitUserMessage(formData: FormData): Promise<{ ok: boole
         
         // Search Qdrant
         const qdrantResults = await searchPoints(collectionName, queryEmbedding, 5);
-        const memories = qdrantResults.map(res => ({
+        const memories = qdrantResults.map((res: QdrantSearchResult) => ({
             id: res.id,
             text: res.payload?.content || '',
             score: res.score,

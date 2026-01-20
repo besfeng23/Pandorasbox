@@ -1,7 +1,17 @@
 import { QDRANT_URL } from './config';
 import { logEvent } from '@/lib/observability/logger';
 
-export async function searchPoints(collection: string, vector: number[], limit: number = 5) {
+export interface QdrantSearchResult {
+  id: string | number;
+  score: number;
+  payload?: {
+    content?: string;
+    source?: string;
+    [key: string]: any;
+  };
+}
+
+export async function searchPoints(collection: string, vector: number[], limit: number = 5): Promise<QdrantSearchResult[]> {
   const startTime = Date.now();
   try {
     const response = await fetch(`${QDRANT_URL}/collections/${collection}/points/search`, {
@@ -31,7 +41,7 @@ export async function searchPoints(collection: string, vector: number[], limit: 
       results_count: data.result?.length || 0
     });
 
-    return data.result;
+    return data.result || [];
   } catch (error: any) {
     const endTime = Date.now();
     logEvent('ERROR', {
