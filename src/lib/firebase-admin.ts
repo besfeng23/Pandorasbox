@@ -25,58 +25,66 @@ function initializeAdmin() {
     return;
   }
 
-  // Highest priority: explicit service account path from FIREBASE_SERVICE_ACCOUNT_KEY
-  // This is especially useful for standalone tools and MCP servers.
+  // Highest priority: FIREBASE_SERVICE_ACCOUNT_KEY (JSON string or path)
   try {
     if (serviceAccountEnv && serviceAccountEnv.trim()) {
-      const path = require('path');
-      const fs = require('fs');
-      const serviceAccountPath = path.isAbsolute(serviceAccountEnv)
-        ? serviceAccountEnv
-        : path.join(process.cwd(), serviceAccountEnv);
+      let serviceAccount;
+      
+      // Try to parse as JSON first
+      if (serviceAccountEnv.trim().startsWith('{')) {
+        console.log('Initializing Firebase Admin with FIREBASE_SERVICE_ACCOUNT_KEY JSON string...');
+        serviceAccount = JSON.parse(serviceAccountEnv);
+      } else {
+        // Otherwise treat as a path
+        const path = require('path');
+        const fs = require('fs');
+        const serviceAccountPath = path.isAbsolute(serviceAccountEnv)
+          ? serviceAccountEnv
+          : path.join(process.cwd(), serviceAccountEnv);
 
-      if (fs.existsSync(serviceAccountPath)) {
-        const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf-8'));
-        console.log('Initializing Firebase Admin with FIREBASE_SERVICE_ACCOUNT_KEY path...');
+        if (fs.existsSync(serviceAccountPath)) {
+          console.log('Initializing Firebase Admin with FIREBASE_SERVICE_ACCOUNT_KEY path...');
+          serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf-8'));
+        }
+      }
+
+      if (serviceAccount) {
         admin.initializeApp({
           credential: admin.credential.cert(serviceAccount),
         });
         return;
-      } else {
-        console.warn(
-          `FIREBASE_SERVICE_ACCOUNT_KEY path "${serviceAccountPath}" does not exist. Falling back to other credential strategies.`
-        );
       }
     }
   } catch (error: any) {
     console.warn('Failed to initialize Firebase Admin from FIREBASE_SERVICE_ACCOUNT_KEY:', error.message);
   }
 
-  // In production/build environments, always use Application Default Credentials
-  // The service-account.json file won't exist in the build container
-  if (process.env.NODE_ENV === 'production' || process.env.VERCEL || process.env.FIREBASE_CONFIG) {
+  // Fallback to FIREBASE_CONFIG or FIREBASE_PROJECT_ID
+  if (process.env.NODE_ENV === 'production' || process.env.FIREBASE_CONFIG) {
     try {
-      const projectId = process.env.FIREBASE_PROJECT_ID;
-      if (!projectId) {
-        throw new Error('FIREBASE_PROJECT_ID environment variable is not set. Cannot initialize Firebase Admin.');
+      let projectId = process.env.FIREBASE_PROJECT_ID;
+      
+      // Parse FIREBASE_CONFIG if projectId is missing
+      if (!projectId && process.env.FIREBASE_CONFIG) {
+        const config = JSON.parse(process.env.FIREBASE_CONFIG);
+        projectId = config.projectId;
       }
-      console.log("Initializing Firebase Admin with Application Default Credentials...");
-      admin.initializeApp({
-        credential: admin.credential.applicationDefault(),
-        projectId: projectId
-      });
-      return;
+
+      if (projectId) {
+        console.log(`Initializing Firebase Admin with ADC for project: ${projectId}`);
+        admin.initializeApp({
+          credential: admin.credential.applicationDefault(),
+          projectId: projectId
+        });
+        return;
+      }
     } catch (error: any) {
       // During build, this might fail but that's okay - it will work at runtime
-    if (error.message?.includes('Could not load the default credentials')) {
-      console.warn('Application Default Credentials not available during build. Will use at runtime.');
-      if (!admin.apps.length && process.env.NEXT_PHASE === 'phase-production-build') {
-        console.warn('⚠️ Falling back to mock Firebase Admin app for build.');
-        admin.initializeApp({ projectId: 'build-mock' }, 'build-mock');
+      if (error.message?.includes('Could not load the default credentials')) {
+        console.warn('Application Default Credentials not available. Will use at runtime or fallback.');
+      } else {
+        console.error('Failed to initialize with ADC:', error);
       }
-      return;
-    }
-      console.error('Failed to initialize with Application Default Credentials:', error);
     }
   }
 

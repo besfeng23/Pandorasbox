@@ -48,6 +48,17 @@ env:
 
   # API Keys - Using Cloud Secret Manager
   # See https://firebase.google.com/docs/app-hosting/configure#secret-parameters
+  - variable: FIREBASE_SERVICE_ACCOUNT_KEY
+    secret: firebase-service-account-key
+    availability:
+      - RUNTIME
+
+  - variable: FIREBASE_PROJECT_ID
+    value: seismic-vista-480710-q5
+    availability:
+      - BUILD
+      - RUNTIME
+
   - variable: OPENAI_API_KEY
     secret: openai-api-key
     availability:
