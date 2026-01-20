@@ -32,8 +32,28 @@ interface PandorasBoxProps {
 }
 
 export function PandorasBox({ user }: PandorasBoxProps) {
+  const [agentId, setAgentId] = useState<'builder' | 'universe'>('builder');
   const [currentThreadId, setCurrentThreadId] = useState<string | null>(null);
-  const { messages, thread, isLoading, error } = useChatHistory(user.uid, currentThreadId);
+  const { messages, thread, isLoading, error } = useChatHistory(user.uid, currentThreadId, agentId);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedAgentId = localStorage.getItem('agentId') as 'builder' | 'universe';
+      if (storedAgentId) {
+        setAgentId(storedAgentId);
+      }
+      
+      // Listen for agent changes from other components (like Settings)
+      const handleStorageChange = (e: StorageEvent) => {
+        if (e.key === 'agentId' && e.newValue) {
+          setAgentId(e.newValue as 'builder' | 'universe');
+        }
+      };
+      
+      window.addEventListener('storage', handleStorageChange);
+      return () => window.removeEventListener('storage', handleStorageChange);
+    }
+  }, []);
   const activeArtifactId = useArtifactStore(state => state.activeArtifactId);
   const setActiveArtifactId = useArtifactStore(state => state.setActiveArtifactId);
   const isSplitView = !!activeArtifactId;
@@ -90,6 +110,7 @@ export function PandorasBox({ user }: PandorasBoxProps) {
   };
 
   const handleMessageSubmit = (formData: FormData) => {
+    formData.append('agentId', agentId);
     if (currentThreadId) {
         formData.append('threadId', currentThreadId);
     }
@@ -149,6 +170,7 @@ export function PandorasBox({ user }: PandorasBoxProps) {
         <ChatSidebar 
           userId={user.uid}
           activeThreadId={currentThreadId}
+          agentId={agentId} // Pass agentId
           onSelectThread={handleThreadSelect}
         />
       )}
@@ -341,7 +363,7 @@ export function PandorasBox({ user }: PandorasBoxProps) {
                 {!rightSidebarCollapsed && (
                   <>
                     <TabsContent value="memories" className="flex-1 p-0 mt-0 overflow-hidden">
-                      <MemoryInspector userId={user.uid} />
+                      <MemoryInspector userId={user.uid} agentId={agentId} />
                     </TabsContent>
                     <TabsContent value="artifacts" className="flex-1 p-0 mt-0 overflow-hidden">
                       <ArtifactList userId={user.uid} />

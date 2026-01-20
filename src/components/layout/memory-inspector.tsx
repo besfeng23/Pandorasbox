@@ -36,9 +36,10 @@ import { Textarea } from '@/components/ui/textarea';
 
 interface MemoryInspectorProps {
   userId: string;
+  agentId: string; // Add agentId prop
 }
 
-export function MemoryInspector({ userId }: MemoryInspectorProps) {
+export function MemoryInspector({ userId, agentId }: MemoryInspectorProps) {
   const [memories, setMemories] = useState<Memory[]>([]);
   const [filteredMemories, setFilteredMemories] = useState<Memory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -57,7 +58,7 @@ export function MemoryInspector({ userId }: MemoryInspectorProps) {
   useEffect(() => {
     if (!userId) return;
 
-    const memoriesCollection = collection(firestore, 'memories');
+    const memoriesCollection = collection(firestore, `users/${userId}/agents/${agentId}/memories`); // Update path
     const q = query(
       memoriesCollection, 
       where('userId', '==', userId),
@@ -85,7 +86,7 @@ export function MemoryInspector({ userId }: MemoryInspectorProps) {
     );
 
     return () => unsubscribe();
-  }, [userId, firestore]);
+  }, [userId, agentId, firestore]); // Add agentId to dependency array
 
   // Apply search and date filters
   useEffect(() => {
@@ -121,7 +122,7 @@ export function MemoryInspector({ userId }: MemoryInspectorProps) {
 
   const handleDelete = (memoryId: string) => {
     startTransition(async () => {
-      const result = await deleteMemoryFromMemories(memoryId, userId);
+      const result = await deleteMemoryFromMemories(memoryId, userId, agentId);
       if (result.success) {
         setMemories(prev => prev.filter(m => m.id !== memoryId));
         setDeleteDialogOpen(null);
@@ -138,7 +139,7 @@ export function MemoryInspector({ userId }: MemoryInspectorProps) {
       return;
     }
     startTransition(async () => {
-      const result = await updateMemoryInMemories(memoryId, editText, userId);
+      const result = await updateMemoryInMemories(memoryId, editText, userId, agentId);
       if (result.success) {
         setMemories(prev => prev.map(m => m.id === memoryId ? { ...m, content: editText } : m));
         setEditingId(null);
@@ -161,7 +162,7 @@ export function MemoryInspector({ userId }: MemoryInspectorProps) {
       return;
     }
     startTransition(async () => {
-      const result = await createMemoryFromSettings(newMemoryText.trim(), userId);
+      const result = await createMemoryFromSettings(newMemoryText.trim(), userId, agentId);
       if (result.success) {
         setCreateDialogOpen(false);
         setNewMemoryText('');

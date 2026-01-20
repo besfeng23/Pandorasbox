@@ -61,6 +61,7 @@ const settingsSchema = z.object({
   reply_style: z.enum(['concise', 'detailed']),
   system_prompt_override: z.string().optional(),
   personal_api_key: z.string().optional(),
+  agentId: z.enum(['builder', 'universe']).default('builder'), // New agentId in schema
 });
 
 export default function SettingsPage() {
@@ -72,6 +73,20 @@ export default function SettingsPage() {
   const [isKeyGenerating, startKeyGeneration] = useTransition();
   const [hasCopied, setHasCopied] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [agentId, setAgentId] = useState<'builder' | 'universe'>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('agentId') as 'builder' | 'universe') || 'builder';
+    }
+    return 'builder';
+  });
+
+  // Update localStorage when agentId changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('agentId', agentId);
+    }
+  }, [agentId]);
+
   const [fontSize, setFontSize] = useState<string>(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('fontSize') || 'medium';
@@ -92,9 +107,12 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (settings) {
-      form.reset(settings);
+      form.reset({
+        ...settings,
+        agentId: agentId, // Ensure form uses the current agentId state
+      });
     }
-  }, [settings, form]);
+  }, [settings, form, agentId]); // Add agentId to dependency array
 
   const onSubmit = (data: AppSettings) => {
     const formData = new FormData();
@@ -105,6 +123,7 @@ export default function SettingsPage() {
     });
     if (user) {
       formData.append('userId', user.uid);
+      formData.append('agentId', agentId); // Pass the current agentId from state
     }
 
     startTransition(async () => {
@@ -120,7 +139,7 @@ export default function SettingsPage() {
   const handleClearMemory = () => {
     if (!user) return;
     startTransition(async () => {
-        const result = await clearMemory(user.uid);
+        const result = await clearMemory(user.uid, agentId); // Pass agentId to clearMemory
         if (result.success) {
           toast({ title: "Success", description: result.message });
         } else {
@@ -202,6 +221,36 @@ export default function SettingsPage() {
           <TabsContent value="general" className="space-y-6">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                {/* Agent Switcher Card */}
+                <div className="glass-panel-strong rounded-xl p-6 shadow-xl">
+                  <h3 className="text-lg font-semibold text-white mb-2">Active Agent</h3>
+                  <p className="text-sm text-gray-400 mb-4">Switch between different AI personalities and memory contexts.</p>
+                  <FormField
+                    control={form.control}
+                    name="agentId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-gray-300">Agent</FormLabel>
+                        <Select onValueChange={(value) => {
+                          field.onChange(value);
+                          setAgentId(value as 'builder' | 'universe'); // Update the agentId state in useChatHistory
+                        }} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger className="bg-black/40 border-white/10 text-white">
+                              <SelectValue placeholder="Select an agent" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent className="bg-gray-900 border-white/10">
+                            <SelectItem value="builder" className="text-white">Builder (Coding Assistant)</SelectItem>
+                            <SelectItem value="universe" className="text-white">Universe (Creative & General)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
                 {/* AI Model Card */}
                 <div className="glass-panel-strong rounded-xl p-6 shadow-xl">
                   <h3 className="text-lg font-semibold text-white mb-2">AI Model</h3>
@@ -408,9 +457,9 @@ export default function SettingsPage() {
           </TabsContent>
 
               <TabsContent value="memory" className="space-y-6">
-                {user && <KnowledgeUpload userId={user.uid} />}
-                {user && <MemoryTable userId={user.uid} />}
-                {user && <ReindexMemoriesButton userId={user.uid} />}
+                {user && <KnowledgeUpload userId={user.uid} agentId={agentId} />}
+                {user && <MemoryTable userId={user.uid} agentId={agentId} />}
+                {user && <ReindexMemoriesButton userId={user.uid} agentId={agentId} />}
                 <div className="backdrop-blur-xl bg-red-500/10 border border-red-500/30 rounded-xl p-6 shadow-xl">
               <h3 className="text-lg font-semibold text-red-400 mb-2">Danger Zone</h3>
               <p className="text-sm text-gray-400 mb-4">

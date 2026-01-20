@@ -15,20 +15,21 @@ import { Input } from '../ui/input';
 interface ChatSidebarProps {
   userId: string;
   activeThreadId: string | null;
+  agentId: string; // Add agentId prop
   onSelectThread: (threadId: string) => void;
 }
 
-export function ChatSidebar({ userId, activeThreadId, onSelectThread }: ChatSidebarProps) {
+export function ChatSidebar({ userId, activeThreadId, agentId, onSelectThread }: ChatSidebarProps) {
   const [threads, setThreads] = useState<Thread[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, startTransition] = useTransition();
 
   useEffect(() => {
     startTransition(async () => {
-      const userThreads = await getUserThreads(userId);
+      const userThreads = await getUserThreads(userId, agentId); // Pass agentId
       setThreads(userThreads);
     });
-  }, [userId, activeThreadId]); // Re-fetch when activeThreadId changes to get new titles
+  }, [userId, activeThreadId, agentId]); // Re-fetch when activeThreadId or agentId changes
 
   // Filter threads based on search query
   const filteredThreads = useMemo(() => {
@@ -127,18 +128,19 @@ export function ChatSidebar({ userId, activeThreadId, onSelectThread }: ChatSide
                   <ThreadMenu
                     threadId={thread.id}
                     userId={userId}
+                    agentId={agentId} // Pass agentId
                     threadTitle={thread.title}
                     pinned={thread.pinned}
                     archived={thread.archived}
                     onRename={() => {
                       startTransition(async () => {
-                        const userThreads = await getUserThreads(userId);
+                        const userThreads = await getUserThreads(userId, agentId); // Pass agentId
                         setThreads(userThreads);
                       });
                     }}
                     onDeleted={() => {
                       startTransition(async () => {
-                        const userThreads = await getUserThreads(userId);
+                        const userThreads = await getUserThreads(userId, agentId); // Pass agentId
                         setThreads(userThreads);
                       });
                     }}

@@ -16,6 +16,17 @@ export function CommandMenu() {
   const [isSearching, startSearchTransition] = useTransition();
   const { user } = useUser();
   const debouncedQuery = useDebounce(query, 300);
+  const [agentId, setAgentId] = useState<'builder' | 'universe'>('builder');
+
+  // Load agentId from localStorage on component mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedAgentId = localStorage.getItem('agentId') as 'builder' | 'universe';
+      if (storedAgentId) {
+        setAgentId(storedAgentId);
+      }
+    }
+  }, []);
 
   // Toggle the menu with Cmd+K
   useEffect(() => {
@@ -37,10 +48,10 @@ export function CommandMenu() {
     }
 
     startSearchTransition(async () => {
-      const searchResults = await searchMemoryAction(debouncedQuery, user.uid);
+      const searchResults = await searchMemoryAction(debouncedQuery, user.uid, agentId); // Pass agentId
       setResults(searchResults);
     });
-  }, [debouncedQuery, user]);
+  }, [debouncedQuery, user, agentId]);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);

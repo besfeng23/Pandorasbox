@@ -22,28 +22,30 @@ import { chatCompletion } from '@/lib/selfhosted/inference-client';
 import { processInteraction } from '@/lib/selfhosted/memory-pipeline';
 import { deriveAgentId } from '@/lib/selfhosted/agent-router';
 import { getEmbedding, getEmbeddingsBatch } from '@/lib/selfhosted/embeddings-client';
+import { embedText } from '@/lib/ai/embedding'; // New import for embedding
 
 
 // Lazy initialization to avoid build-time errors
 
-export async function createThread(userId: string): Promise<string> {
+export async function createThread(userId: string, agentId: string): Promise<string> {
     const firestoreAdmin = getFirestoreAdmin();
-    const threadRef = firestoreAdmin.collection('threads').doc();
+    const threadRef = firestoreAdmin.collection(`users/${userId}/agents/${agentId}/threads`).doc();
     await threadRef.set({
         id: threadRef.id,
         userId: userId,
         title: 'New Chat',
         createdAt: FieldValue.serverTimestamp(),
+        agentId: agentId, // Store agentId with the thread
     });
     return threadRef.id;
 }
 
-export async function getUserThreads(userId: string) {
+export async function getUserThreads(userId: string, agentId: string) {
   try {
     if (!userId) return [];
     const firestoreAdmin = getFirestoreAdmin();
     // 1. Try to find threads (Safely)
-    const threadsRef = firestoreAdmin.collection('threads');
+    const threadsRef = firestoreAdmin.collection(`users/${userId}/agents/${agentId}/threads`);
     
     // 2. Wrap the query in a try/catch to handle "Missing Index" or "Empty Collection"
     try {
@@ -64,7 +66,8 @@ export async function getUserThreads(userId: string) {
           userId: data.userId,
           title: data.title || 'New Chat',
           // CRITICAL FIX: Convert Firestore Timestamp to a plain String
-          createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : new Date().toISOString() 
+          createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : new Date().toISOString(),
+          agent: data.agentId, // Ensure agent is returned
         } as Thread;
       });
 
@@ -92,6 +95,7 @@ export async function submitUserMessage(formData: FormData): Promise<{ ok: boole
     let threadId = formData.get('threadId') as string | null;
     const imageBase64 = formData.get('image_data') as string | null;
     const source = formData.get('source') as string || 'text';
+    const agentId = formData.get('agentId') as string || 'builder'; // Get agentId from form data, default to 'builder'
   
     if (!idToken) {
       return { ok: false, code: 'UNAUTH', error: 'User not authenticated' };
@@ -121,21 +125,21 @@ export async function submitUserMessage(formData: FormData): Promise<{ ok: boole
     
     const firestoreAdmin = getFirestoreAdmin();
     if (!threadId) {
-        threadId = await createThread(userId);
+        threadId = await createThread(userId, agentId); // Pass agentId to createThread
         const newTitle = messageContent.substring(0, 40) + (messageContent.length > 40 ? '...' : '');
-        await firestoreAdmin.collection('threads').doc(threadId).update({ title: newTitle });
+        await firestoreAdmin.collection(`users/${userId}/agents/${agentId}/threads`).doc(threadId).update({ title: newTitle }); // Update thread path
     } else {
-        const threadDoc = await firestoreAdmin.collection('threads').doc(threadId).get();
+        const threadDoc = await firestoreAdmin.collection(`users/${userId}/agents/${agentId}/threads`).doc(threadId).get(); // Update thread path
         if (!threadDoc.exists || threadDoc.data()?.userId !== userId) {
             return { ok: false, code: 'UNAUTH', error: 'Thread not found or unauthorized' };
         }
     }
   
-    const historyCollection = firestoreAdmin.collection('history');
+    const historyCollection = firestoreAdmin.collection(`users/${userId}/agents/${agentId}/history`); // Update history path
     let userMessageId: string;
   
     try {
-          const embedding = await getEmbedding(messageContent || 'image');
+          const embedding = await embedText(messageContent || 'image'); // Use embedText
   
       const userMessageData = {
         role: 'user',
@@ -184,9 +188,11 @@ export async function submitUserMessage(formData: FormData): Promise<{ ok: boole
         // 2. Retrieve Context (Recent messages + RAG)
         const recentMessages = await getRecentMessages(threadId); // Fetches from Firestore
         // Also map to self-hosted message format
-        const mappedRecentMessages = recentMessages.map(m => ({ 
-            role: m.role as 'user'|'assistant', 
-            content: m.content 
+        const mappedRecentMessages = recentMessages.map(m => ({
+            id: m.id || 'unknown',
+            createdAt: (m.createdAt instanceof Date ? m.createdAt : new Date()) as Date,
+            role: m.role as 'user'|'assistant',
+            content: m.content
         }));
         
         const memories = await searchSelfHostedMemories(messageContent, userId, agentId);
@@ -211,9 +217,10 @@ export async function submitUserMessage(formData: FormData): Promise<{ ok: boole
             createdAt: FieldValue.serverTimestamp(),
             userId: userId,
             threadId: threadId,
+            agentId: agentId, // Include agentId
             source: 'ai',
         };
-        const assistantRef = await historyCollection.add(assistantMessageData);
+        const assistantRef = await firestoreAdmin.collection(`users/${userId}/agents/${agentId}/history`).add(assistantMessageData); // Update history path
         await assistantRef.update({ id: assistantRef.id });
 
         // 6. Memory Pipeline
@@ -241,14 +248,14 @@ export async function summarizeThread(threadId: string, userId: string): Promise
     return;
 }
 
-export async function searchMemoryAction(query: string, userId: string): Promise<SearchResult[]> {
+export async function searchMemoryAction(query: string, userId: string, agentId: string): Promise<SearchResult[]> {
     if (!query.trim() || !userId) {
         return [];
     }
 
     // Search both history and memories collections
     const firestoreAdmin = getFirestoreAdmin();
-    const historyCollection = firestoreAdmin.collection('history');
+    const historyCollection = firestoreAdmin.collection(`users/${userId}/agents/${agentId}/history`);
     // Search history in Firestore for relevant messages
     const historySnapshot = await historyCollection
         .where('userId', '==', userId)
@@ -263,7 +270,7 @@ export async function searchMemoryAction(query: string, userId: string): Promise
         timestamp: doc.data().createdAt?.toDate ? doc.data().createdAt.toDate() : new Date(),
     }));
 
-    const memoryResults = await searchSelfHostedMemories(query, userId, 'universe', 10); // Assuming a default agent for search
+    const memoryResults = await searchSelfHostedMemories(query, userId, agentId, 10); // Pass agentId
 
     // Combine results and sort by score (highest first)
     const allResults = [
@@ -271,25 +278,25 @@ export async function searchMemoryAction(query: string, userId: string): Promise
             id: r.id,
             text: r.text,
             score: r.score,
-            timestamp: r.timestamp.toISOString(),
+            timestamp: (r.timestamp ? new Date(r.timestamp) : new Date()).toISOString(),
             source: 'history' as const
         })),
         ...memoryResults.map(r => ({
             id: r.id,
             text: r.text,
             score: r.score,
-            timestamp: r.timestamp.toISOString(),
+            timestamp: (r.timestamp ? new Date(r.timestamp) : new Date()).toISOString(),
             source: 'memory' as const
         }))
     ]
     .sort((a, b) => b.score - a.score) // Sort by score descending
     .slice(0, 20); // Limit to top 20 results
 
-    return allResults.map(result => ({
-        id: result.id,
-        text: result.text,
-        score: result.score,
-        timestamp: result.timestamp
+    return allResults.map((r: SearchResult) => ({
+        id: r.id,
+        text: r.text,
+        score: r.score,
+        timestamp: r.timestamp
     }));
 }
 
@@ -316,15 +323,15 @@ export async function updateSettings(formData: FormData) {
     }
 }
 
-export async function clearMemory(userId: string) {
+export async function clearMemory(userId: string, agentId: string) {
     if (!userId) {
         return { success: false, message: 'User not authenticated.' };
     }
     const firestoreAdmin = getFirestoreAdmin();
-    const historyQuery = firestoreAdmin.collection('history').where('userId', '==', userId);
-    const memoriesQuery = firestoreAdmin.collection('memories').where('userId', '==', userId);
-    const stateCollectionRef = firestoreAdmin.collection('users').doc(userId).collection('state');
-    const artifactsQuery = firestoreAdmin.collection('artifacts').where('userId', '==', userId);
+    const historyQuery = firestoreAdmin.collection(`users/${userId}/agents/${agentId}/history`).where('userId', '==', userId);
+    const memoriesQuery = firestoreAdmin.collection(`users/${userId}/agents/${agentId}/memories`).where('userId', '==', userId);
+    const stateCollectionRef = firestoreAdmin.collection(`users/${userId}/agents/${agentId}/state`);
+    const artifactsQuery = firestoreAdmin.collection(`users/${userId}/agents/${agentId}/artifacts`).where('userId', '==', userId);
 
     try {
         const historySnapshot = await historyQuery.get();
@@ -356,7 +363,7 @@ export async function clearMemory(userId: string) {
         await stateBatch.commit();
 
         // Also delete threads
-        const threadsSnapshot = await firestoreAdmin.collection('threads').where('userId', '==', userId).get();
+        const threadsSnapshot = await firestoreAdmin.collection(`users/${userId}/agents/${agentId}/threads`).where('userId', '==', userId).get();
         const threadsBatch = firestoreAdmin.batch();
         threadsSnapshot.docs.forEach(doc => {
             threadsBatch.delete(doc.ref);
@@ -372,7 +379,7 @@ export async function clearMemory(userId: string) {
     }
 }
 
-export async function getMemories(userId: string, query?: string) {
+export async function getMemories(userId: string, agentId: string, query?: string) {
     'use server';
     try {
       if (!userId) {
@@ -381,7 +388,7 @@ export async function getMemories(userId: string, query?: string) {
       }
     
       const firestoreAdmin = getFirestoreAdmin();
-      const historyCollection = firestoreAdmin.collection('history');
+      const historyCollection = firestoreAdmin.collection(`users/${userId}/agents/${agentId}/history`);
     
       if (query && query.trim()) {
         // Direct search in history collection for relevant messages based on content
@@ -421,14 +428,14 @@ export async function getMemories(userId: string, query?: string) {
     }
 }
   
-export async function deleteMemory(id: string, userId: string) {
+export async function deleteMemory(id: string, userId: string, agentId: string) {
     'use server';
     if (!userId) {
       return { success: false, message: 'User not authenticated.' };
     }
     const firestoreAdmin = getFirestoreAdmin();
     try {
-      const docRef = firestoreAdmin.collection('history').doc(id);
+      const docRef = firestoreAdmin.collection(`users/${userId}/agents/${agentId}/history`).doc(id);
       // Add a check to ensure user owns the document before deleting
       const docSnap = await docRef.get();
       if (!docSnap.exists || docSnap.data()?.userId !== userId) {
@@ -444,14 +451,14 @@ export async function deleteMemory(id: string, userId: string) {
     }
 }
   
-export async function updateMemory(id: string, newText: string, userId: string) {
+export async function updateMemory(id: string, newText: string, userId: string, agentId: string) {
     'use server';
     if (!userId) {
         return { success: false, message: 'User not authenticated.' };
     }
     const firestoreAdmin = getFirestoreAdmin();
     try {
-        const docRef = firestoreAdmin.collection('history').doc(id);
+        const docRef = firestoreAdmin.collection(`users/${userId}/agents/${agentId}/history`).doc(id);
         const docSnap = await docRef.get();
         if (!docSnap.exists || docSnap.data()?.userId !== userId) {
             return { success: false, message: 'Permission denied.' };
@@ -471,7 +478,7 @@ export async function updateMemory(id: string, newText: string, userId: string) 
     }
 }
 
-export async function createMemoryFromSettings(content: string, userId: string): Promise<{ success: boolean; message?: string; memory_id?: string }> {
+export async function createMemoryFromSettings(content: string, userId: string, agentId: string): Promise<{ success: boolean; message?: string; memory_id?: string }> {
     'use server';
     if (!userId || !content || !content.trim()) {
         return { success: false, message: 'User not authenticated or content is empty.' };
@@ -480,8 +487,8 @@ export async function createMemoryFromSettings(content: string, userId: string):
     // Use centralized memory utility to ensure automatic indexing
     const firestoreAdmin = getFirestoreAdmin();
     try {
-        const embedding = await getEmbedding(content.trim());
-        const memoryId = firestoreAdmin.collection('memories').doc().id;
+        const embedding = await embedText(content.trim()); // Use embedText
+        const memoryId = firestoreAdmin.collection(`users/${userId}/agents/${agentId}/memories`).doc().id; // Update memories path
 
         await writeMemory({
             id: memoryId,
@@ -492,7 +499,7 @@ export async function createMemoryFromSettings(content: string, userId: string):
             embedding: embedding,
         });
 
-        await upsertMemory(userId, 'universe', memoryId, content.trim(), { source: 'settings' });
+        await upsertMemory(userId, agentId, memoryId, content.trim(), { source: 'settings' });
 
         revalidatePath('/settings');
         return { success: true, memory_id: memoryId };
@@ -503,14 +510,14 @@ export async function createMemoryFromSettings(content: string, userId: string):
     }
 }
 
-export async function deleteMemoryFromMemories(id: string, userId: string): Promise<{ success: boolean; message?: string }> {
+export async function deleteMemoryFromMemories(id: string, userId: string, agentId: string): Promise<{ success: boolean; message?: string }> {
     'use server';
     if (!userId) {
       return { success: false, message: 'User not authenticated.' };
     }
     const firestoreAdmin = getFirestoreAdmin();
     try {
-      const docRef = firestoreAdmin.collection('memories').doc(id);
+      const docRef = firestoreAdmin.collection(`users/${userId}/agents/${agentId}/memories`).doc(id);
       const docSnap = await docRef.get();
       if (!docSnap.exists || docSnap.data()?.userId !== userId) {
         return { success: false, message: 'Permission denied.' };
@@ -525,7 +532,7 @@ export async function deleteMemoryFromMemories(id: string, userId: string): Prom
     }
 }
 
-export async function updateMemoryInMemories(id: string, newText: string, userId: string): Promise<{ success: boolean; message?: string }> {
+export async function updateMemoryInMemories(id: string, newText: string, userId: string, agentId: string): Promise<{ success: boolean; message?: string }> {
     'use server';
     if (!userId) {
         return { success: false, message: 'User not authenticated.' };
@@ -535,7 +542,7 @@ export async function updateMemoryInMemories(id: string, newText: string, userId
     const firestoreAdmin = getFirestoreAdmin();
 
     try {
-        const docRef = firestoreAdmin.collection('memories').doc(id);
+        const docRef = firestoreAdmin.collection(`users/${userId}/agents/${agentId}/memories`).doc(id);
         const docSnap = await docRef.get();
         if (!docSnap.exists || docSnap.data()?.userId !== userId) {
             return { success: false, message: 'Permission denied.' };
@@ -548,7 +555,6 @@ export async function updateMemoryInMemories(id: string, newText: string, userId
         });
 
         // Update in Qdrant as well
-        const agentId = docSnap.data()?.agentId || 'universe'; // Assuming agentId is stored in memory payload
         await upsertMemory(userId, agentId, id, newText, { source: 'updated_memory' });
 
         revalidatePath('/');
@@ -563,6 +569,7 @@ export async function updateMemoryInMemories(id: string, newText: string, userId
 export async function uploadKnowledge(formData: FormData): Promise<{ success: boolean; message: string; chunks?: number }> {
     const file = formData.get('file') as File;
     const userId = formData.get('userId') as string;
+    const agentId = formData.get('agentId') as string || 'universe'; // Get agentId from form data, default to 'universe'
 
     if (!file || !userId) {
         return { success: false, message: 'File or user ID missing.' };
@@ -592,20 +599,20 @@ export async function uploadKnowledge(formData: FormData): Promise<{ success: bo
         }
 
         const chunks = chunkText(rawContent);
-        const historyCollection = firestoreAdmin.collection('history');
+        // const historyCollection = firestoreAdmin.collection(`users/${userId}/agents/${agentId}/history`); // Removed, not directly needed here
 
-        const embeddings = await getEmbeddingsBatch(chunks);
+        const embeddings = await getEmbeddingsBatch(chunks); // Assuming getEmbeddingsBatch now uses embedText
         
-        const agentId = 'universe'; // Default agent for uploaded knowledge
+        // const agentId = 'universe'; // Now passed in as argument
 
         const batch = firestoreAdmin.batch();
         for (let i = 0; i < chunks.length; i++) {
             const chunk = chunks[i];
             const embedding = embeddings[i];
-            const memoryId = firestoreAdmin.collection('memories').doc().id;
+            const memoryId = firestoreAdmin.collection(`users/${userId}/agents/${agentId}/memories`).doc().id; // Update memories path
             
             // Write to Firestore memories collection
-            batch.set(firestoreAdmin.collection('memories').doc(memoryId), {
+            batch.set(firestoreAdmin.collection(`users/${userId}/agents/${agentId}/memories`).doc(memoryId), { // Update memories path
                 id: memoryId,
                 userId: userId,
                 role: 'assistant', // Or 'document_chunk'
@@ -642,7 +649,7 @@ export async function uploadKnowledge(formData: FormData): Promise<{ success: bo
     }
 }
 
-export async function reindexMemories(userId: string): Promise<{ success: boolean; message?: string; processed?: number; skipped?: number; errors?: number }> {
+export async function reindexMemories(userId: string, agentId: string): Promise<{ success: boolean; message?: string; processed?: number; skipped?: number; errors?: number }> {
     'use server';
     if (!userId) {
         return { success: false, message: 'User not authenticated.' };
@@ -651,9 +658,9 @@ export async function reindexMemories(userId: string): Promise<{ success: boolea
     const firestoreAdmin = getFirestoreAdmin();
     
     try {
-        console.log(`[ReindexMemories] Starting re-index for user ${userId}`);
+        console.log(`[ReindexMemories] Starting re-index for user ${userId} and agent ${agentId}`);
         
-        const memoriesRef = firestoreAdmin.collection('memories');
+        const memoriesRef = firestoreAdmin.collection(`users/${userId}/agents/${agentId}/memories`);
         const snapshot = await memoriesRef
             .where('userId', '==', userId)
             .limit(1000)
@@ -880,14 +887,14 @@ export async function exportUserData(userId: string): Promise<{ success: boolean
     }
 }
 
-export async function updateThread(threadId: string, userId: string, updates: { title?: string; pinned?: boolean; archived?: boolean }): Promise<{ success: boolean; message?: string }> {
+export async function updateThread(threadId: string, userId: string, agentId: string, updates: { title?: string; pinned?: boolean; archived?: boolean }): Promise<{ success: boolean; message?: string }> {
     if (!userId || !threadId) {
         return { success: false, message: 'User not authenticated or thread ID missing.' };
     }
 
     const firestoreAdmin = getFirestoreAdmin();
     try {
-        const threadRef = firestoreAdmin.collection('threads').doc(threadId);
+        const threadRef = firestoreAdmin.collection(`users/${userId}/agents/${agentId}/threads`).doc(threadId);
         const threadDoc = await threadRef.get();
         
         if (!threadDoc.exists) {
@@ -909,14 +916,14 @@ export async function updateThread(threadId: string, userId: string, updates: { 
     }
 }
 
-export async function deleteThread(threadId: string, userId: string): Promise<{ success: boolean; message?: string }> {
+export async function deleteThread(threadId: string, userId: string, agentId: string): Promise<{ success: boolean; message?: string }> {
     if (!userId || !threadId) {
         return { success: false, message: 'User not authenticated or thread ID missing.' };
     }
 
     const firestoreAdmin = getFirestoreAdmin();
     try {
-        const threadRef = firestoreAdmin.collection('threads').doc(threadId);
+        const threadRef = firestoreAdmin.collection(`users/${userId}/agents/${agentId}/threads`).doc(threadId);
         const threadDoc = await threadRef.get();
         
         if (!threadDoc.exists) {
@@ -929,7 +936,7 @@ export async function deleteThread(threadId: string, userId: string): Promise<{ 
         }
 
         // Delete all messages in this thread
-        const historyQuery = firestoreAdmin.collection('history')
+        const historyQuery = firestoreAdmin.collection(`users/${userId}/agents/${agentId}/history`)
             .where('userId', '==', userId)
             .where('threadId', '==', threadId);
         

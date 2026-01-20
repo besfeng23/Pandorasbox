@@ -139,6 +139,9 @@ function getFirestoreAdmin() {
   initializeAdmin();
   if (!firestoreAdmin) {
     const app = admin.apps[0];
+    if (!app) {
+      throw new Error('Firebase Admin app not initialized.');
+    }
     firestoreAdmin = app.firestore();
   }
   return firestoreAdmin;
@@ -148,6 +151,9 @@ function getAuthAdmin() {
     initializeAdmin();
     if (!authAdmin) {
         const app = admin.apps[0];
+        if (!app) {
+          throw new Error('Firebase Admin app not initialized.');
+        }
         authAdmin = app.auth();
     }
     return authAdmin;

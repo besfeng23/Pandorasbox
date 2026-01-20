@@ -45,6 +45,7 @@ export type AppSettings = {
     reply_style: 'concise' | 'detailed';
     system_prompt_override: string;
     personal_api_key?: string;
+    agentId?: 'builder' | 'universe'; // New agentId field
 };
 
 export type SearchResult = {

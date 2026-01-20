@@ -29,9 +29,10 @@ import {
 
 interface MemoryTableProps {
   userId: string;
+  agentId: string; // Add agentId to props
 }
 
-export function MemoryTable({ userId }: MemoryTableProps) {
+export function MemoryTable({ userId, agentId }: MemoryTableProps) {
   const [memories, setMemories] = useState<Memory[]>([]);
   const [filteredMemories, setFilteredMemories] = useState<Memory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -50,9 +51,9 @@ export function MemoryTable({ userId }: MemoryTableProps) {
       return;
     }
 
-    console.log('[MemoryTable] Setting up listener for userId:', userId);
+    console.log('[MemoryTable] Setting up listener for userId:', userId, 'agentId:', agentId);
     setIsLoading(true);
-    const memoriesCollection = collection(firestore, 'memories');
+    const memoriesCollection = collection(firestore, `users/${userId}/agents/${agentId}/memories`); // Update path
     const q = query(
       memoriesCollection, 
       where('userId', '==', userId),
@@ -70,7 +71,7 @@ export function MemoryTable({ userId }: MemoryTableProps) {
             createdAt: toDate(data.createdAt),
           } as Memory;
         });
-        console.log('[MemoryTable] Received', memoryList.length, 'memories for userId:', userId);
+        console.log('[MemoryTable] Received', memoryList.length, 'memories for userId:', userId, 'agentId:', agentId);
         setMemories(memoryList);
         setIsLoading(false);
       },
@@ -92,7 +93,7 @@ export function MemoryTable({ userId }: MemoryTableProps) {
     );
 
     return () => unsubscribe();
-  }, [userId, firestore, toast]);
+  }, [userId, agentId, firestore, toast]); // Add agentId to dependency array
 
   // Apply search filter
   useEffect(() => {
@@ -110,7 +111,7 @@ export function MemoryTable({ userId }: MemoryTableProps) {
 
   const handleDelete = (id: string) => {
     startTransition(async () => {
-      const result = await deleteMemoryFromMemories(id, userId);
+      const result = await deleteMemoryFromMemories(id, userId, agentId);
       if (result.success) {
         setDeleteDialogOpen(null);
         toast({ title: 'Memory deleted' });
@@ -126,7 +127,7 @@ export function MemoryTable({ userId }: MemoryTableProps) {
         return;
     }
     startTransition(async () => {
-      const result = await updateMemoryInMemories(id, editText, userId);
+      const result = await updateMemoryInMemories(id, editText, userId, agentId);
       if (result.success) {
         toast({ title: 'Memory updated' });
         setEditingId(null);

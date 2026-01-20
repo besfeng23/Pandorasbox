@@ -8,7 +8,7 @@ import { useConnectionStore } from '@/store/connection';
 import type { Message, Thread } from '@/lib/types';
 import { toDate } from '@/lib/utils';
 
-export function useChatHistory(userId: string | null, threadId: string | null) {
+export function useChatHistory(userId: string | null, threadId: string | null, agentId: string) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [thread, setThread] = useState<Thread | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -26,7 +26,7 @@ export function useChatHistory(userId: string | null, threadId: string | null) {
       return;
     }
 
-    // Reset query ref when threadId changes to force re-subscription
+    // Reset query ref when threadId or agentId changes to force re-subscription
     queryRef.current = null;
     setIsLoading(true);
     setError(null);
@@ -34,10 +34,10 @@ export function useChatHistory(userId: string | null, threadId: string | null) {
     // Clear messages immediately when switching threads to prevent stale data
     setMessages([]);
 
-    console.log(`[useChatHistory] Loading thread ${threadId} for user ${userId}`);
+    console.log(`[useChatHistory] Loading thread ${threadId} for user ${userId} and agent ${agentId}`);
 
     // Listener for thread data (including summary)
-    const threadDocRef = doc(firestore, 'threads', threadId);
+    const threadDocRef = doc(firestore, `users/${userId}/agents/${agentId}/threads`, threadId);
     const unsubscribeThread = onSnapshot(
       threadDocRef, 
       (doc) => {
@@ -64,7 +64,7 @@ export function useChatHistory(userId: string | null, threadId: string | null) {
       }
     );
 
-    const historyCollectionRef = collection(firestore, 'history');
+    const historyCollectionRef = collection(firestore, `users/${userId}/agents/${agentId}/history`);
     const newQuery = query(
         historyCollectionRef, 
         where('userId', '==', userId),
@@ -126,7 +126,7 @@ export function useChatHistory(userId: string | null, threadId: string | null) {
         unsubscribeMessages();
         // Don't reset queryRef here as it might be needed for comparison
     }
-  }, [userId, threadId, firestore, setConnectionStatus, pendingMessages, calculateLatency]);
+  }, [userId, threadId, agentId, firestore, setConnectionStatus, pendingMessages, calculateLatency]);
 
   return { messages, thread, isLoading, error };
 }
