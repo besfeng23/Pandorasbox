@@ -1,4 +1,3 @@
-'use server';
 
 export function deriveAgentId(threadAgentId: string | undefined): string {
   // Placeholder for agent routing logic

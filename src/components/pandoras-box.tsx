@@ -16,7 +16,7 @@ import { submitUserMessage } from '@/app/actions';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { DataConnectors } from './data-connectors';
+import { DataConnectors } from '@/components/data-connectors';
 import { ScrollArea } from './ui/scroll-area';
 import Link from 'next/link';
 import {

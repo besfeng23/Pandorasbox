@@ -1,4 +1,3 @@
-'use server';
 
 export function applyGuardrails(messageContent: string): { blocked: boolean; code?: string; message?: string } {
   // Placeholder for guardrail logic
