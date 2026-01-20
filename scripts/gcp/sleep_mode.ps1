@@ -8,8 +8,8 @@ $ErrorActionPreference = "Stop"
 
 $PROJECT_ID = gcloud config get-value project
 $ZONE = "us-central1-a"
-$QDRANT_INSTANCE = "qdrant-vm"
-$VLLM_INSTANCE = "vllm-gpu-vm"
+$QDRANT_INSTANCE = "pandora-qdrant"
+$VLLM_INSTANCE = "pandora-inference"
 
 Write-Host "Putting Sovereign AI to SLEEP (stopping VMs)..."
 

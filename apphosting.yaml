@@ -91,7 +91,7 @@ env:
       - RUNTIME
 
   - variable: QDRANT_URL
-    value: http://10.128.0.7:6333
+    value: http://10.128.0.3:6333
     availability:
       - RUNTIME
 

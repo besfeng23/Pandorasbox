@@ -1,7 +1,7 @@
 'use client';
 
 import { ChatMessages } from './chat/chat-messages';
-import { ChatInput } from '@/components/chat/chat-input';
+import { ChatInput } from './chat/chat-input';
 import { AlertCircle, Loader2, Menu, X, Settings, MemoryStick, FileCode, PlusCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { User } from 'firebase/auth';
 import { useArtifactStore } from '@/store/artifacts';
@@ -16,7 +16,7 @@ import { submitUserMessage } from '@/app/actions';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { DataConnectors } from '@/components/data-connectors';
+import { DataConnectors } from './data-connectors';
 import { ScrollArea } from './ui/scroll-area';
 import Link from 'next/link';
 import {

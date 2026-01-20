@@ -11,7 +11,7 @@ ADAPTER_VERSION=${1:-"v1"}
 PROJECT_ID=$(gcloud config get-value project)
 ZONE="us-central1-a"
 BUCKET_NAME="pandora-brain-${PROJECT_ID}"
-VLLM_INSTANCE="vllm-gpu-vm"
+VLLM_INSTANCE="pandora-inference"
 BASE_MODEL="mistralai/Mistral-7B-Instruct-v0.3"
 
 echo "==================================================="
