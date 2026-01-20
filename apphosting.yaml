@@ -78,3 +78,24 @@ env:
   #   availability:
   #     - BUILD
   #     - RUNTIME
+
+  # Sovereign AI Configuration
+  - variable: INFERENCE_URL
+    value: http://10.128.0.4:8000/v1
+    availability:
+      - RUNTIME
+
+  - variable: INFERENCE_MODEL
+    value: pandora
+    availability:
+      - RUNTIME
+
+  - variable: QDRANT_URL
+    value: http://10.128.0.7:6333
+    availability:
+      - RUNTIME
+
+  - variable: EMBEDDING_MODEL
+    value: all-MiniLM-L6-v2
+    availability:
+      - RUNTIME
