@@ -23,6 +23,7 @@ import { getEmbedding, getEmbeddingsBatch } from '@/lib/selfhosted/embeddings-cl
 import { embedText } from '@/lib/ai/embedding'; // New import for embedding
 import { chatCompletion, ChatMessage } from '@/lib/sovereign/vllm-client';
 import { searchPoints, upsertPoint } from '@/lib/sovereign/qdrant-client';
+import { extractArtifacts } from '@/lib/sovereign/artifact-parser';
 
 
 // Lazy initialization to avoid build-time errors
@@ -218,10 +219,6 @@ export async function submitUserMessage(formData: FormData): Promise<{ ok: boole
             role: m.role as 'user'|'assistant'|'system',
             content: m.content
         }));
-
-import { extractArtifacts } from '@/lib/sovereign/artifact-parser'; // Import artifact parser
-
-// ...
 
         // 4. Inference
         const assistantContent = await chatCompletion(vllmMessages);

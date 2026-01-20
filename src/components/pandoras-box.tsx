@@ -9,16 +9,16 @@ import { ArtifactViewer } from './artifacts/artifact-viewer';
 import { ArtifactList } from './artifacts/artifact-list';
 import { MemoryInspector } from './layout/memory-inspector';
 import { useChatHistory } from '@/hooks/use-chat-history';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useTransition } from 'react';
 import { ChatSidebar } from './chat/chat-sidebar';
 import { Button } from './ui/button';
 import { submitUserMessage } from '@/app/actions';
-import { useTransition } from 'react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { DataConnectors } from './data-connectors';
 import { ScrollArea } from './ui/scroll-area';
+import Link from 'next/link';
 import {
   Dialog,
   DialogContent,
@@ -363,8 +363,6 @@ export function PandorasBox({ user }: PandorasBoxProps) {
                 </div>
                 {!rightSidebarCollapsed && (
                   <>
-import Link from 'next/link';
-
                     <TabsContent value="memories" className="flex-1 p-0 mt-0 overflow-hidden">
                       <ScrollArea className="h-full">
                         <div className="p-4 space-y-6">
