@@ -4,19 +4,9 @@ import { ai } from '@/ai/genkit';
 import { getFirestoreAdmin } from '@/lib/firebase-admin';
 import { z } from 'zod';
 import { generateEmbedding } from '@/lib/vector';
-import OpenAI from 'openai';
 import { trackEvent } from '@/lib/analytics';
-import { ChatCompletionMessageParam } from 'openai/resources/index.mjs';
 import { FieldValue } from 'firebase-admin/firestore';
-
-// Lazy initialization to avoid build-time errors
-function getOpenAI() {
-  const apiKey = process.env.OPENAI_API_KEY?.trim();
-  if (!apiKey) {
-    throw new Error('OPENAI_API_KEY is not configured. Please set it in your environment variables.');
-  }
-  return new OpenAI({ apiKey });
-}
+import { chatCompletion, ChatMessage } from '@/lib/sovereign/vllm-client';
 
 
 const MemoryLaneInputSchema = z.object({
@@ -53,14 +43,15 @@ export async function runMemoryLane(
       const currentContext = contextDoc.exists ? contextDoc.data()?.note : 'No context yet.';
       
       let systemPrompt: string;
-      const userMessage: ChatCompletionMessageParam[] = [];
+      const userMessage: ChatMessage[] = [];
 
       if (imageBase64) {
           systemPrompt = `You are a memory manager. The user has uploaded an image. Analyze it in extreme detail. Describe all text, diagrams, and visual elements so they can be retrieved by search later. The user may have also provided a text message.
 Return a JSON object containing:
 - "new_context_note" (string): An updated context note based on the image and message.
 - "search_queries" (array of strings): Keywords and questions related to the image content.
-- "image_description" (string): A detailed description of the image.`;
+- "image_description" (string): A detailed description of the image.
+- "decisions" (array of objects): Extract any conclusions or agreements reached. Format: { "topic": string, "decision": string }`;
           
           userMessage.push({
             role: 'user', 
@@ -86,6 +77,7 @@ Return a JSON object with:
   * "Character name is Melodee with specific voice instructions"
   * "User wants realistic dialogue modeling with emotional variability"
   * "Avoid flat or robotic tone in responses"
+- "decisions" (array of objects): Extract any conclusions or agreements reached. Format: { "topic": string, "decision": string }
 
 IMPORTANT: Always generate at least 3-5 search_queries if there is ANY meaningful information in the user's message. Even if the message is short, extract the key points.`;
         if (source === 'voice') {
@@ -94,17 +86,11 @@ IMPORTANT: Always generate at least 3-5 search_queries if there is ANY meaningfu
         userMessage.push({ role: 'user', content: `Current Context: "${currentContext}"\n\nUser Message: "${message}"` });
       }
 
-      const openai = getOpenAI();
-      const completion = await openai.chat.completions.create({
-        model: settings.active_model as any,
-        messages: [
-            { role: 'system', content: systemPrompt },
-            ...userMessage
-        ],
-        response_format: { type: 'json_object' },
-      });
+      const responseText = await chatCompletion([
+        { role: 'system', content: systemPrompt },
+        ...userMessage
+      ]) || '{}';
       
-      const responseText = completion.choices[0].message.content || '{}';
       const responseData = JSON.parse(responseText);
 
       const stateCollection = firestoreAdmin.collection('users').doc(userId).collection('state');
@@ -121,6 +107,25 @@ IMPORTANT: Always generate at least 3-5 search_queries if there is ANY meaningfu
         }));
         
         await saveMemoriesBatch(memories);
+      }
+
+      // Save extracted decisions
+      const decisions = responseData.decisions || [];
+      if (Array.isArray(decisions) && decisions.length > 0) {
+          const decisionsRef = firestoreAdmin.collection('users').doc(userId).collection('decisions');
+          const batch = firestoreAdmin.batch();
+          decisions.forEach((d: any) => {
+              if (d.topic && d.decision) {
+                  const docRef = decisionsRef.doc();
+                  batch.set(docRef, {
+                      topic: d.topic,
+                      decision: d.decision,
+                      createdAt: FieldValue.serverTimestamp(),
+                      source: 'memory_lane'
+                  });
+              }
+          });
+          await batch.commit();
       }
 
       return responseData;

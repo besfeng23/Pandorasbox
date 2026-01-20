@@ -16,13 +16,13 @@ import { chunkText } from '@/lib/utils'; // Assuming chunkText utility exists he
 // Self-hosted imports
 import { applyGuardrails } from '@/lib/selfhosted/guardrails';
 import { getThread, addMessage, getRecentMessages, writeMemory, MemoryMessage } from '@/lib/selfhosted/memory-store';
-import { searchMemories as searchSelfHostedMemories, upsertMemory } from '@/lib/selfhosted/vector-store';
 import { buildPrompt } from '@/lib/selfhosted/prompt-builder';
-import { chatCompletion } from '@/lib/selfhosted/inference-client';
 import { processInteraction } from '@/lib/selfhosted/memory-pipeline';
 import { deriveAgentId } from '@/lib/selfhosted/agent-router';
 import { getEmbedding, getEmbeddingsBatch } from '@/lib/selfhosted/embeddings-client';
 import { embedText } from '@/lib/ai/embedding'; // New import for embedding
+import { chatCompletion, ChatMessage } from '@/lib/sovereign/vllm-client';
+import { searchPoints, upsertPoint } from '@/lib/sovereign/qdrant-client';
 
 
 // Lazy initialization to avoid build-time errors
@@ -195,13 +195,62 @@ export async function submitUserMessage(formData: FormData): Promise<{ ok: boole
             content: m.content
         }));
         
-        const memories = await searchSelfHostedMemories(messageContent, userId, agentId);
+        const queryEmbedding = await embedText(messageContent);
+        // Map agentId to collection name, e.g. "memories_builder" or "memories_universe" (or just one collection with filter)
+        // For simplicity, we'll use a single collection "pandora_memories" and filter by payload if needed, 
+        // OR use separate collections. The plan says "agent-specific collection (e.g., memories_builder)".
+        const collectionName = `memories_${agentId}`;
+        
+        // Search Qdrant
+        const qdrantResults = await searchPoints(collectionName, queryEmbedding, 5);
+        const memories = qdrantResults.map(res => ({
+            id: res.id,
+            text: res.payload?.content || '',
+            score: res.score,
+            source: res.payload?.source
+        }));
 
         // 3. Build Prompt
-        const messages = buildPrompt(agentId, mappedRecentMessages, memories);
+        const promptMessages = buildPrompt(agentId, mappedRecentMessages, memories);
+        
+        // Map to VLLM format
+        const vllmMessages: ChatMessage[] = promptMessages.map(m => ({
+            role: m.role as 'user'|'assistant'|'system',
+            content: m.content
+        }));
+
+import { extractArtifacts } from '@/lib/sovereign/artifact-parser'; // Import artifact parser
+
+// ...
 
         // 4. Inference
-        const assistantContent = await chatCompletion(messages);
+        const assistantContent = await chatCompletion(vllmMessages);
+
+        // --- ARTIFACT EXTRACTION START ---
+        try {
+            const artifacts = extractArtifacts(assistantContent);
+            if (artifacts.length > 0) {
+                const artifactsRef = firestoreAdmin.collection(`users/${userId}/artifacts`); // Could be agent-scoped too if needed
+                const batch = firestoreAdmin.batch();
+                
+                artifacts.forEach(artifact => {
+                    const docRef = artifactsRef.doc();
+                    batch.set(docRef, {
+                        ...artifact,
+                        userId,
+                        agentId, // Tag with agentId
+                        threadId,
+                        createdAt: FieldValue.serverTimestamp(),
+                        source: 'chat_generation'
+                    });
+                });
+                await batch.commit();
+                console.log(`[Artifacts] Extracted and saved ${artifacts.length} artifacts.`);
+            }
+        } catch (artifactError) {
+            console.error('[Artifacts] Failed to extract/save artifacts:', artifactError);
+        }
+        // --- ARTIFACT EXTRACTION END ---
 
         // 5. Write Response
         await addMessage(threadId, { 
@@ -270,7 +319,16 @@ export async function searchMemoryAction(query: string, userId: string, agentId:
         timestamp: doc.data().createdAt?.toDate ? doc.data().createdAt.toDate() : new Date(),
     }));
 
-    const memoryResults = await searchSelfHostedMemories(query, userId, agentId, 10); // Pass agentId
+    const queryEmbedding = await embedText(query);
+    const collectionName = `memories_${agentId}`;
+    const qdrantResults = await searchPoints(collectionName, queryEmbedding, 10);
+    const memoryResults = qdrantResults.map(res => ({
+        id: String(res.id),
+        text: res.payload?.content || '',
+        score: res.score,
+        timestamp: new Date().toISOString(), // Qdrant might not have timestamp in top-level, assume 'now' or check payload
+        type: 'memory'
+    }));
 
     // Combine results and sort by score (highest first)
     const allResults = [
@@ -499,7 +557,18 @@ export async function createMemoryFromSettings(content: string, userId: string, 
             embedding: embedding,
         });
 
-        await upsertMemory(userId, agentId, memoryId, content.trim(), { source: 'settings' });
+        const collectionName = `memories_${agentId}`;
+        await upsertPoint(collectionName, {
+            id: memoryId, // Ensure ID is compatible (UUID string is fine for Qdrant)
+            vector: embedding,
+            payload: {
+                content: content.trim(),
+                userId,
+                agentId,
+                source: 'settings',
+                createdAt: new Date().toISOString()
+            }
+        });
 
         revalidatePath('/settings');
         return { success: true, memory_id: memoryId };
@@ -555,7 +624,18 @@ export async function updateMemoryInMemories(id: string, newText: string, userId
         });
 
         // Update in Qdrant as well
-        await upsertMemory(userId, agentId, id, newText, { source: 'updated_memory' });
+        const collectionName = `memories_${agentId}`;
+        await upsertPoint(collectionName, {
+            id,
+            vector: newEmbedding,
+            payload: {
+                content: newText,
+                userId,
+                agentId,
+                source: 'updated_memory',
+                updatedAt: new Date().toISOString()
+            }
+        });
 
         revalidatePath('/');
         return { success: true };
@@ -627,10 +707,19 @@ export async function uploadKnowledge(formData: FormData): Promise<{ success: bo
             });
 
             // Upsert to Qdrant
-            await upsertMemory(userId, agentId, memoryId, chunk, {
-                source: 'knowledge_upload',
-                source_filename: file.name,
-                chunk_index: i,
+            const collectionName = `memories_${agentId}`;
+            await upsertPoint(collectionName, {
+                id: memoryId,
+                vector: embedding,
+                payload: {
+                    content: chunk,
+                    userId,
+                    agentId,
+                    source: 'knowledge_upload',
+                    source_filename: file.name,
+                    chunk_index: i,
+                    createdAt: new Date().toISOString()
+                }
             });
         }
         // Commit batch after all chunks are processed
@@ -711,7 +800,18 @@ export async function reindexMemories(userId: string, agentId: string): Promise<
                 });
 
                 // Upsert to Qdrant
-                await upsertMemory(userId, agentId, memoryId, data.content, { source: 'reindex' });
+                const collectionName = `memories_${agentId}`;
+                await upsertPoint(collectionName, {
+                    id: memoryId,
+                    vector: embedding,
+                    payload: {
+                        content: data.content,
+                        userId,
+                        agentId,
+                        source: 'reindex',
+                        createdAt: new Date().toISOString()
+                    }
+                });
                 
                 batchCount++;
                 processed++;

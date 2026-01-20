@@ -45,21 +45,36 @@ export function KnowledgeUpload({ userId, agentId }: KnowledgeUploadProps) {
         });
       }, 500);
 
-      const result = await uploadKnowledge(formData);
-      
-      clearInterval(progressInterval);
-      setUploadProgress(100);
-
-      if (result.success) {
-        toast({
-          title: 'Success!',
-          description: result.message,
+      // Use the new sovereign connector for file upload
+      try {
+        const result = await fetch('/api/connectors/file', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'Authorization': `Bearer ${await (await import('@/firebase')).getAuthToken()}`
+            }
         });
-      } else {
+        
+        if (!result.ok) {
+            throw new Error((await result.json()).error || 'Upload failed');
+        }
+
+        const data = await result.json();
+        
+        clearInterval(progressInterval);
+        setUploadProgress(100);
+
         toast({
-          variant: 'destructive',
-          title: 'Upload Failed',
-          description: result.message,
+            title: 'Success!',
+            description: `Successfully indexed ${fileName}`,
+        });
+      } catch (error: any) {
+        clearInterval(progressInterval);
+        setUploadProgress(null);
+        toast({
+            variant: 'destructive',
+            title: 'Upload Failed',
+            description: error.message,
         });
       }
 

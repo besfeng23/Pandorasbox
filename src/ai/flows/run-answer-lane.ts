@@ -1,23 +1,14 @@
 
 'use server';
 
-import { ai } from '@/ai/genkit';
 import { getFirestoreAdmin } from '@/lib/firebase-admin';
 import { z } from 'zod';
 import { Artifact } from '@/lib/types';
 import { generateEmbedding, searchHistory, searchMemories } from '@/lib/vector';
-import OpenAI from 'openai';
+import { chatCompletion, ChatMessage } from '@/lib/sovereign/vllm-client';
 import { FieldValue } from 'firebase-admin/firestore';
 import { trackEvent } from '@/lib/analytics';
-
-// Lazy initialization to avoid build-time errors
-function getOpenAI() {
-  const apiKey = process.env.OPENAI_API_KEY?.trim();
-  if (!apiKey) {
-    throw new Error('OPENAI_API_KEY is not configured. Please set it in your environment variables.');
-  }
-  return new OpenAI({ apiKey });
-}
+import { ai } from '@/ai/genkit';
 
 const AnswerLaneInputSchema = z.object({
   userId: z.string(),
@@ -215,15 +206,15 @@ If the user asks about memory, respond confidently: "Yes, I remember our past co
 `;
             
             await logProgress('Drafting response...');
-            const openai = getOpenAI();
-            const completion = await openai.chat.completions.create({
-                model: settings.active_model as any,
-                messages: [
-                    { role: 'system', content: finalSystemPrompt },
-                    { role: 'user', content: message } 
-                ],
+            
+            const messages: ChatMessage[] = [
+                { role: 'system', content: finalSystemPrompt },
+                { role: 'user', content: message } 
+            ];
+
+            const rawAIResponse = await chatCompletion(messages, {
+                temperature: 0.7 // Default temperature
             });
-            const rawAIResponse = completion.choices[0].message.content || '';
 
             await logProgress('Finalizing and saving...');
             const { cleanResponse } = await extractAndSaveArtifact(rawAIResponse, userId);
@@ -236,20 +227,19 @@ If the user asks about memory, respond confidently: "Yes, I remember our past co
                 const truncatedMemories = retrievedHistory.slice(0, 4000);
                 const truncatedAnswer = cleanResponse.slice(0, 4000);
 
-                const evalCompletion = await getOpenAI().chat.completions.create({
-                    model: 'gpt-4o-mini' as any,
-                    messages: [
-                        { role: 'system', content: evalPrompt },
-                        {
-                            role: 'user',
-                            content: `User question:\n${message}\n\nRetrieved memories (truncated):\n${truncatedMemories}\n\nDraft answer (truncated):\n${truncatedAnswer}`,
-                        },
-                    ],
-                    response_format: { type: 'json_object' },
-                });
+                const evalMessages: ChatMessage[] = [
+                    { role: 'system', content: evalPrompt },
+                    {
+                        role: 'user',
+                        content: `User question:\n${message}\n\nRetrieved memories (truncated):\n${truncatedMemories}\n\nDraft answer (truncated):\n${truncatedAnswer}`,
+                    },
+                ];
 
-                const evalText = evalCompletion.choices[0].message.content || '{}';
-                const evalData = JSON.parse(evalText);
+                const evalText = await chatCompletion(evalMessages, {
+                    temperature: 0.1 // Low temperature for evaluation
+                });
+                
+                const evalData = JSON.parse(evalText || '{}');
                 const confidence = typeof evalData.confidence === 'number'
                   ? evalData.confidence
                   : parseFloat(evalData.confidence || '0');

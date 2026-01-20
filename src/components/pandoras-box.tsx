@@ -17,15 +17,16 @@ import { useTransition } from 'react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet';
+import { DataConnectors } from './data-connectors';
+import { ScrollArea } from './ui/scroll-area';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from './ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import Link from 'next/link';
 
 interface PandorasBoxProps {
   user: User;
@@ -362,8 +363,19 @@ export function PandorasBox({ user }: PandorasBoxProps) {
                 </div>
                 {!rightSidebarCollapsed && (
                   <>
+import Link from 'next/link';
+
                     <TabsContent value="memories" className="flex-1 p-0 mt-0 overflow-hidden">
-                      <MemoryInspector userId={user.uid} agentId={agentId} />
+                      <ScrollArea className="h-full">
+                        <div className="p-4 space-y-6">
+                            <MemoryInspector userId={user.uid} agentId={agentId} />
+                            
+                            <div className="pt-4 border-t border-cyan-400/20">
+                                <h3 className="text-sm font-semibold mb-3 neon-text-cyan">Data Connectors</h3>
+                                <DataConnectors userId={user.uid} agentId={agentId} />
+                            </div>
+                        </div>
+                      </ScrollArea>
                     </TabsContent>
                     <TabsContent value="artifacts" className="flex-1 p-0 mt-0 overflow-hidden">
                       <ArtifactList userId={user.uid} />
