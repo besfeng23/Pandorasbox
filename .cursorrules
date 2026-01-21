@@ -1,0 +1,27 @@
+# Cursor AI Rules - Auto-Commit After Changes
+
+## Automatic Workflow
+
+After making ANY file changes, automatically:
+1. Stage all changes: `git add -A`
+2. Commit with timestamp: `git commit -m "Auto-commit: [timestamp] - [files]"`
+3. Push to GitHub: `git push origin HEAD`
+4. Send events to Kairos: `npm run kairos:production-fixes`
+
+## Implementation
+
+After completing any task or making file edits, immediately run:
+```bash
+npm run auto-commit
+```
+
+This ensures:
+- ✅ All changes are tracked in git
+- ✅ All changes are pushed to GitHub
+- ✅ All changes are tracked in Kairos
+- ✅ No manual intervention needed
+
+## Important
+
+**NEVER skip this step.** Every change must be committed, pushed, and tracked.
+

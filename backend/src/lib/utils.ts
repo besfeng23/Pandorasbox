@@ -89,6 +89,7 @@ export function formatFullDateTime(timestamp: any): string {
     return '';
   }
 }
+<<<<<<< HEAD:backend/src/lib/utils.ts
 
 export function chunkText(text: string, chunkSize: number = 1000): string[] {
   const chunks: string[] = [];
@@ -97,3 +98,5 @@ export function chunkText(text: string, chunkSize: number = 1000): string[] {
   }
   return chunks;
 }
+=======
+>>>>>>> bbd6b23ef01342a97a6705259cda62785d79f2ab:src/lib/utils.ts

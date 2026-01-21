@@ -1,0 +1,16 @@
+sequenceDiagram
+  participant Scheduler as CloudScheduler
+  participant Cron as dailyBriefingRoute
+  participant FS as Firestore
+  participant OpenAI as OpenAI_API
+
+  Scheduler->>Cron: GET /api/cron/daily-briefing
+  Cron->>FS: list users
+  loop for each user
+    Cron->>FS: read users/{userId}/state/context
+    Cron->>OpenAI: generate briefing text
+    Cron->>FS: write briefing message(history)
+  end
+  Cron-->>Scheduler: 200 OK + summary
+
+

@@ -56,7 +56,8 @@ export async function POST(request: NextRequest) {
               role: "user",
               content: `User's Current Context: "${userContext}"`
             }
-          ]
+          ],
+          temperature: 0.7
         });
 
         const briefing = completion.choices[0].message.content;

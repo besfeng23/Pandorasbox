@@ -1,0 +1,33 @@
+sequenceDiagram
+  participant Client as Client_UI
+  participant Action as submitUserMessage
+  participant FS as Firestore
+  participant ChatLane as runChatLane
+  participant MemoryLane as runMemoryLane
+  participant AnswerLane as runAnswerLane
+  participant Vec as vectorSearch
+  participant OpenAI as OpenAI_API
+
+  Client->>Action: submitUserMessage(formData,idToken)
+  Action->>FS: create user message in history
+  Action->>ChatLane: after() fire_and_forget
+  ChatLane->>FS: create placeholder assistant message(status=processing)
+  par MemoryLane_async
+    ChatLane->>MemoryLane: runMemoryLane(userMessage)
+    MemoryLane->>OpenAI: generateEmbedding(text-embedding-3-small)
+    MemoryLane->>FS: update history.embedding
+    MemoryLane->>FS: save memories(memories)
+    MemoryLane->>FS: update users/{userId}/state/context
+  and AnswerLane_sync
+    ChatLane->>AnswerLane: runAnswerLane(threadId,userId)
+    AnswerLane->>FS: read shortTerm(history thread messages)
+    AnswerLane->>Vec: searchHistory + searchMemories(findNearest)
+    Vec->>FS: vector query(history,memories)
+    AnswerLane->>OpenAI: generateResponse
+    AnswerLane->>FS: update assistant message(status=complete,content,embedding)
+    AnswerLane->>FS: save artifacts(artifacts)
+  end
+  ChatLane->>FS: write suggestions(users/{userId}/state/suggestions)
+  Client<<->>FS: realtime updates via subscriptions
+
+

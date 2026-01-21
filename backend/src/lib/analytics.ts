@@ -1,28 +1,24 @@
 'use server';
 
 import { getFirestoreAdmin } from './firebase-admin';
-import { FieldValue } from 'firebase-admin/firestore';
 
 /**
  * Track user activity for analytics
+ * Uses Cloud Run structured logging to sink to BigQuery
  */
 export async function trackEvent(
   userId: string,
-  eventType: 'message_sent' | 'embedding_generated' | 'memory_created' | 'artifact_created' | 'knowledge_uploaded',
+  eventType: 'message_sent' | 'embedding_generated' | 'memory_created' | 'memories_created_batch' | 'artifact_created' | 'knowledge_uploaded',
   metadata?: Record<string, any>
 ): Promise<void> {
-  try {
-    const firestoreAdmin = getFirestoreAdmin();
-    await firestoreAdmin.collection('analytics').add({
-      userId,
-      eventType,
-      metadata: metadata || {},
-      timestamp: FieldValue.serverTimestamp(),
-    });
-  } catch (error) {
-    // Fail silently - analytics shouldn't break the app
-    console.error('Analytics tracking failed:', error);
-  }
+  // Structured logging for BigQuery Sink
+  console.log(JSON.stringify({
+    type: "analytics_event",
+    event: eventType,
+    userId: userId,
+    timestamp: new Date().toISOString(),
+    ...metadata
+  }));
 }
 
 /**
@@ -37,22 +33,19 @@ export async function getUserStats(userId: string): Promise<{
   const firestoreAdmin = getFirestoreAdmin();
   
   try {
-    const [messagesSnapshot, memoriesSnapshot, artifactsSnapshot, analyticsSnapshot] = await Promise.all([
+    // Note: embeddingsGenerated will stop incrementing in Firestore as we moved to BigQuery logging
+    // We keep the query for historical data or until we implement BigQuery reading
+    const [messagesSnapshot, memoriesSnapshot, artifactsSnapshot] = await Promise.all([
       firestoreAdmin.collection('history').where('userId', '==', userId).count().get(),
       firestoreAdmin.collection('memories').where('userId', '==', userId).count().get(),
       firestoreAdmin.collection('artifacts').where('userId', '==', userId).count().get(),
-      firestoreAdmin.collection('analytics')
-        .where('userId', '==', userId)
-        .where('eventType', '==', 'embedding_generated')
-        .count()
-        .get(),
     ]);
 
     return {
       totalMessages: messagesSnapshot.data().count,
       totalMemories: memoriesSnapshot.data().count,
       totalArtifacts: artifactsSnapshot.data().count,
-      embeddingsGenerated: analyticsSnapshot.data().count,
+      embeddingsGenerated: 0, // Deprecated in Firestore
     };
   } catch (error) {
     console.error('Error fetching user stats:', error);
@@ -64,4 +57,3 @@ export async function getUserStats(userId: string): Promise<{
     };
   }
 }
-

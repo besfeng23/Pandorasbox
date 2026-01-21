@@ -58,10 +58,16 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link
+          rel="icon"
+          type="image/png"
+          href="https://firebasestorage.googleapis.com/v0/b/seismic-vista-480710-q5.firebasestorage.app/o/cube2.png?alt=media&token=7bdcae2f-86f8-462f-abaf-9b1cc98cb6c1"
+        />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
+<<<<<<< HEAD:backend/src/app/layout.tsx
       <body className="font-body antialiased" style={{ minHeight: '100dvh', overflowY: 'auto' }}>
         <ThemeProvider>
           <TooltipProvider>

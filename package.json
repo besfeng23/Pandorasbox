@@ -12,13 +12,15 @@
     "lint:backend": "next lint",
     "typecheck:backend": "tsc --noEmit",
     "save-settings-memories": "tsx backend/scripts/save-all-settings-memories.ts",
-    "test-tavily": "tsx backend/scripts/test-tavily-search.ts"
+    "test-tavily": "tsx backend/scripts/test-tavily-search.ts",
+    "auto-commit": "git add -A && git commit -m \"Auto-commit: $(date '+%Y-%m-%d %H:%M:%S')\" && git push origin HEAD"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@google-cloud/firestore": "^7.8.0",
+    "@google-cloud/secret-manager": "^5.6.0",
     "@hookform/resolvers": "^3.9.0",
     "@modelcontextprotocol/sdk": "^1.18.2",
     "@radix-ui/react-accordion": "^1.2.3",
@@ -44,7 +46,6 @@
     "@radix-ui/react-tooltip": "^1.1.8",
     "@sentry/nextjs": "^10.32.1",
     "@tavily/core": "^0.6.4",
-    "cheerio": "^1.1.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",

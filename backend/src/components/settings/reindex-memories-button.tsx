@@ -19,17 +19,16 @@ import {
 
 interface ReindexMemoriesButtonProps {
   userId: string;
-  agentId: string;
 }
 
-export function ReindexMemoriesButton({ userId, agentId }: ReindexMemoriesButtonProps) {
+export function ReindexMemoriesButton({ userId }: ReindexMemoriesButtonProps) {
   const [isPending, startTransition] = useTransition();
   const [isOpen, setIsOpen] = useState(false);
   const { toast } = useToast();
 
   const handleReindex = () => {
     startTransition(async () => {
-      const result = await reindexMemories(userId, agentId);
+      const result = await reindexMemories(userId);
       setIsOpen(false);
       
       if (result.success) {
@@ -102,4 +101,3 @@ export function ReindexMemoriesButton({ userId, agentId }: ReindexMemoriesButton
     </div>
   );
 }
-

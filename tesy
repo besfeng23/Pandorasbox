@@ -1,0 +1,2199 @@
+# Product Requirements Document: Pandora's Box
+
+**Version:** 1.0  
+**Date:** January 2025  
+**System:** AI-Powered Chat Application with Persistent Long-Term Memory
+
+---
+
+## 1. Product Intent + Success Criteria
+
+### What problem is this system solving?
+
+Pandora's Box solves the critical limitation of traditional AI chat applications (like ChatGPT) that have restricted context windows and cannot remember past conversations beyond a single session. The system enables persistent, long-term memory through vector embeddings and semantic search, allowing users to have contextually aware conversations that build upon their entire interaction history. It transforms AI from a stateless conversation tool into a personal knowledge companion that remembers everything.
+
+### Primary User Personas
+
+1. **Knowledge Workers / Researchers** (Primary)
+   - **Who:** Professionals, researchers, students who need to reference past conversations
+   - **Why:** Build upon previous research, maintain context across sessions, create personal knowledge base
+   - **Skill Level:** Intermediate to Advanced (comfortable with AI tools, understands concept of memory)
+
+2. **Developers / Engineers** (Secondary)
+   - **Who:** Software developers, technical professionals
+   - **Why:** Remember coding discussions, document solutions, track technical decisions over time
+   - **Skill Level:** Advanced (technical, understands embeddings/vectors conceptually)
+
+3. **Personal Productivity Users** (Tertiary)
+   - **Who:** Individuals seeking AI personal assistant with memory
+   - **Why:** Daily planning, personal notes, life organization with AI that remembers preferences
+   - **Skill Level:** Beginner to Intermediate (basic tech literacy)
+
+4. **Power Users / Early Adopters** (Quaternary)
+   - **Who:** AI enthusiasts, researchers, developers using MCP/Claude Desktop integration
+   - **Why:** Extend capabilities to external AI agents, build custom workflows
+   - **Skill Level:** Expert (understands MCP protocol, API integrations)
+
+### Top 10 Jobs-to-be-Done
+
+1. **Continue conversations from weeks/months ago** - Resume context from previous sessions
+2. **Build cumulative knowledge base** - Store and retrieve insights across time
+3. **Find specific past conversations** - Semantic search through entire history
+4. **Get personalized daily briefings** - Automated summaries of recent activity
+5. **Organize thoughts into threads** - Structure conversations by topic/project
+6. **Upload documents for AI to remember** - Knowledge base integration (PDFs, text)
+7. **Generate and save artifacts** - Code/markdown blocks from conversations
+8. **Voice-based interactions** - Transcribe and process audio input
+9. **Integrate with other AI tools** - MCP server for Claude Desktop, ChatGPT Actions
+10. **Export data for portability** - GDPR-compliant data export
+
+### Success Metrics
+
+- **Time-to-complete-task:** < 3 seconds for memory retrieval (vector search response time)
+- **Conversation continuity:** 80%+ of users reference past conversations within 7 days
+- **Memory effectiveness:** 70%+ user satisfaction with AI's ability to recall relevant context
+- **Engagement:** Average 10+ messages per session, 3+ sessions per week per user
+- **Knowledge base usage:** 40%+ of users upload at least one document
+- **Thread organization:** Average 5+ threads per active user
+- **Daily briefing engagement:** 60%+ of users read daily briefings
+- **Reduced support tickets:** < 5% of users report "AI forgot previous conversation" issues
+- **Retention:** 60%+ 30-day retention rate
+- **API usage:** 20%+ of users generate personal API keys
+
+### Non-Goals (What We Explicitly Won't Build)
+
+1. **Multi-user collaboration** - No shared threads, no team workspaces (single-user focused)
+2. **Real-time collaborative editing** - Not a Google Docs competitor
+3. **Video/audio file processing** - Only text transcripts, images supported
+4. **Built-in calendar/email integration** - External integrations only via MCP
+5. **Mobile native apps** - Web-first, responsive design only (PWA support exists)
+6. **Enterprise SSO/SAML** - Basic Firebase Auth only (email/password, Google OAuth)
+7. **Advanced analytics dashboards** - Basic metrics only, not business intelligence tool
+8. **Payment processing** - No billing/subscription management (assumes external billing)
+9. **Content moderation** - No built-in filtering (assumes OpenAI handles safety)
+10. **Multi-language UI** - English-only interface (i18n not prioritized)
+
+---
+
+## 2. Users, Roles, Permissions (RBAC/ABAC)
+
+### List of Roles
+
+**Current System: Simple User-Based Access (No Multi-Role System)**
+
+The system currently implements a **single-role model** where all authenticated users have equal permissions. There are no distinct roles like Admin/Manager/Viewer. All users are treated as individual account holders with full access to their own data.
+
+- **Authenticated User** (Default role for all logged-in users)
+  - Full CRUD access to own data (threads, messages, memories, artifacts, settings)
+  - Can generate personal API keys
+  - Can export own data
+  - Cannot access other users' data
+
+- **Unauthenticated User** (Not a role, but access state)
+  - Read-only access to system phases status (for UI display)
+  - Cannot access any user data
+  - Redirected to authentication
+
+**Future Roles (Not Currently Implemented):**
+
+While not implemented, the architecture supports future expansion:
+
+- **Super Admin** (Potential future role)
+  - Full system access
+  - User management capabilities
+  - System configuration
+  - Audit log access
+
+- **Support Agent** (Potential future role)
+  - Read-only access to user data for troubleshooting
+  - Impersonation capabilities (future)
+
+### Permissions Matrix (Current System)
+
+| Resource | Authenticated User | Unauthenticated |
+|----------|-------------------|-----------------|
+| **Own Threads** | Read, Create, Update, Delete | None |
+| **Own Messages** | Read, Create, Update, Delete | None |
+| **Own Memories** | Read, Create, Update, Delete | None |
+| **Own Artifacts** | Read, Create, Update, Delete | None |
+| **Own Settings** | Read, Write | None |
+| **Own User State** | Read, Write | None |
+| **Own Analytics** | Read, Write | None |
+| **Own Feedback** | Read, Create, Update, Delete | None |
+| **Own Performance Metrics** | Read, Write | None |
+| **Own Meta-Learning State** | Read, Create, Update (no delete) | None |
+| **System Phases** | Read | Read |
+| **System Logs** | Read | None |
+| **Other Users' Data** | None | None |
+
+### Scoping Rules
+
+**Per User (Current Implementation):**
+- All data is scoped to `userId` (Firebase Auth UID)
+- Firestore security rules enforce: `request.auth.uid == resource.data.userId`
+- Vector searches filter by `userId` field
+- API keys are user-specific (personal API keys)
+
+**Per Thread (Within User Scope):**
+- Messages belong to a `threadId`
+- Users can have multiple threads (multi-thread chat)
+- Threads can be pinned, archived (future feature in data model)
+
+**No Multi-Tenant Structure:**
+- No organizations/companies/workspaces
+- No team collaboration
+- Each user is an isolated account
+- No shared knowledge bases
+
+### Impersonation, Audit View, Approval Workflows
+
+**Current Status: NOT IMPLEMENTED**
+
+- ❌ **Impersonation:** No admin ability to view user accounts as if logged in
+- ❌ **Audit View:** No dedicated audit log viewer (logs exist server-side only)
+- ❌ **Approval Workflows:** No multi-step approval processes
+
+**Future Considerations:**
+- System logs exist (`system_logs` collection) but are read-only for authenticated users
+- Server-side writes only via Firebase Admin SDK
+- Could implement audit dashboard in future for admin role
+
+---
+
+## 3. Scope Map: Modules + Navigation
+
+### List of All Modules/Features
+
+#### Core Modules (Implemented)
+
+1. **Chat Interface**
+   - Main conversation view
+   - Message input (text, voice)
+   - Image upload support
+   - Real-time message streaming
+   - Thread sidebar navigation
+
+2. **Memory Management**
+   - Memory inspector/viewer
+   - Search memories (semantic/vector search)
+   - Edit/delete individual memories
+   - Clear all memory (danger zone)
+   - Memory indexing status
+
+3. **Thread Management**
+   - Create new threads
+   - List all threads
+   - Thread titles (auto-generated)
+   - Thread summaries (for long threads)
+   - Pin/archive threads (data model ready, UI partial)
+
+4. **Artifact Generation**
+   - Extract code/markdown blocks from responses
+   - Artifact viewer (split view)
+   - Artifact list
+   - Version tracking
+
+5. **Knowledge Base**
+   - Upload PDF/text files
+   - Automatic chunking and embedding
+   - Searchable via vector search
+   - Document processing status
+
+6. **Settings**
+   - Model selection (gpt-4o, gpt-4-turbo, gpt-3.5-turbo)
+   - Reply style (concise/detailed)
+   - System prompt override
+   - Personal API key generation
+   - Theme (dark/light mode)
+   - Notifications preferences
+   - Data retention settings
+
+7. **Graph Visualization** (Phase 2)
+   - Knowledge graph view
+   - Relationship visualization
+   - Graph analytics
+
+8. **PandoraUI Dashboard** (Special UI Mode)
+   - Phase status indicators (14 phases)
+   - System telemetry display
+   - Interactive Pandora Box 3D model
+   - Phase dashboard with metrics
+
+#### API/Integration Modules
+
+9. **MCP Server** (Model Context Protocol)
+   - Stdio-based MCP server for Claude Desktop
+   - HTTP bridge for ChatGPT Actions
+   - Tools: `search_knowledge_base`, `add_memory`, `generate_artifact`
+   - OpenAPI schema generation
+
+10. **ChatGPT Actions Integration**
+    - `/api/chatgpt/store-memory`
+    - `/api/chatgpt/retrieve-memories`
+    - `/api/chatgpt/hybrid-retrieve` (Phase 5)
+
+11. **Scheduled Tasks (Cron Jobs)**
+    - `/api/cron/cleanup` - Daily memory cleanup
+    - `/api/cron/daily-briefing` - Generate daily briefings
+    - `/api/cron/nightly-reflection` - Nightly reflection agent
+    - `/api/cron/deep-research` - Deep research agent
+    - `/api/cron/context-decay` - Context importance decay
+    - `/api/cron/reindex-memories` - Reindex memory embeddings
+    - `/api/cron/meta-learning` - Meta-learning optimization
+
+12. **Background Agents**
+    - Nightly Reflection Agent (analyzes interactions, creates insights)
+    - Deep Research Agent (self-studies low-confidence topics)
+
+### Preferred Navigation Type
+
+**Hybrid Navigation (Current Implementation):**
+
+- **Desktop:** 
+  - Left sidebar: Thread list / Command rail (collapsible)
+  - Top bar: User menu, settings, notifications
+  - Right sidebar: Memory inspector / Graph view (optional, hidden on mobile)
+  - Bottom: Fixed chat input area
+
+- **Mobile:**
+  - Bottom tab bar for main navigation
+  - Slide-over drawer for memory pane
+  - Full-screen chat interface
+  - Hamburger menu for settings
+
+**Navigation Components:**
+- `CommandMenu` (Cmd/Ctrl+K) - Global command palette
+- `Sidebar` - Thread navigation
+- `Topbar` - User profile, settings access
+- `SettingsModal` / `SettingsDrawer` - Settings interface
+
+### Multi-Tenant Structure
+
+**NO Multi-Tenant Structure** (Single-User Focus)
+
+- Each user is an isolated account
+- No organizations, workspaces, or teams
+- No shared data between users
+- No billing/organization management
+
+### Naming Conventions / Taxonomy
+
+**Core Terminology:**
+
+- **Thread** - A conversation topic/project (not "Case" or "Ticket")
+- **Message** - Individual chat message (user or assistant)
+- **Memory** - A stored knowledge item with embedding (not "Note" or "Fact")
+- **Artifact** - Generated code/markdown block (not "Document" or "File")
+- **Knowledge Base** - Uploaded documents (PDFs, text files)
+- **Phase** - System implementation phase (1-14) for PandoraUI dashboard
+- **Lane** - Processing flow (Memory Lane, Answer Lane, Chat Lane)
+- **Embedding** - Vector representation of text (1536 dimensions)
+- **Context** - User's current conversation state and relevant memories
+
+**Collection Names (Firestore):**
+- `history` - Messages
+- `threads` - Conversation threads
+- `memories` - Memory entries with embeddings
+- `artifacts` - Generated artifacts
+- `settings` - User settings
+- `external_knowledge` - Cached external search results (Phase 5)
+- `feedback` - User feedback (Phase 6)
+- `performance_metrics` - Search performance tracking
+- `meta_learning_state` - Per-user learning state
+- `system_logs` - System operation logs
+- `system_phases` - Phase status tracking
+- `system_knowledge_graph` - Knowledge graph nodes
+- `knowledge_edges` - Relationship edges
+
+### Sitemap (Rough Structure)
+
+```
+/ (Root)
+├── / (Home/Chat Page)
+│   ├── Chat Interface
+│   ├── Thread Sidebar
+│   └── Memory Inspector (optional)
+├── /settings
+│   ├── Model Settings
+│   ├── Reply Style
+│   ├── System Prompt
+│   ├── API Keys
+│   ├── Appearance (Theme)
+│   ├── Notifications
+│   └── Data Management
+├── /graph (Knowledge Graph View)
+│   ├── Graph Visualization
+│   ├── Node Details
+│   └── Analytics
+└── /pandora-ui (Special Dashboard Mode)
+    ├── Phase Indicators
+    ├── System Telemetry
+    └── Phase Dashboard
+```
+
+---
+
+## 4. Core Workflows
+
+### Workflow 1: Send Message & Get AI Response
+
+**Trigger:** User types message and clicks Send (or presses Enter)
+
+**Steps (Happy Path):**
+
+1. User enters message in chat input
+2. Client validates input (non-empty, within rate limits)
+3. Client calls `submitUserMessage(formData)` server action
+4. Server validates authentication (Firebase ID token)
+5. Server generates embedding for user message (OpenAI `text-embedding-3-small`)
+6. Server saves user message to Firestore `history` collection with embedding
+7. Server creates placeholder assistant message with `status: 'processing'`
+8. **Chat Lane Orchestrator** (`runChatLane`) coordinates:
+   - **Memory Lane** (`runMemoryLane`):
+     - Updates user context note
+     - Generates search queries for future retrieval
+     - Creates memory entries
+   - **Answer Lane** (`runAnswerLane`):
+     - Retrieves short-term memory (last 6 messages in thread)
+     - Performs vector search for relevant past conversations (top 5)
+     - Constructs system prompt with memories
+     - Calls OpenAI API (GPT-4o) to generate response
+     - Extracts artifacts (code/markdown blocks) if present
+     - Generates embedding for assistant response
+   - **Follow-up Questions** (`suggestFollowUpQuestions`):
+     - Generates 3-5 suggested follow-up questions
+9. Server saves assistant message to Firestore with embedding
+10. Server saves artifacts (if any) to `artifacts` collection
+11. Server updates assistant message `status: 'complete'`
+12. Client receives real-time update via Firestore listener
+13. Client displays message in chat interface
+14. Client displays follow-up suggestions (if any)
+
+**Branches (Conditional Paths):**
+
+- **New Thread:** If `threadId` not provided, create new thread with auto-generated title
+- **Voice Input:** If `source: 'voice'`, transcribe audio first using Whisper API
+- **Image Attached:** If image present, generate image description, include in context
+- **Long Thread (10+ messages):** Trigger automatic summarization (`summarizeLongChat`)
+- **Rate Limit Exceeded:** Return error, show retry message with timestamp
+- **Embedding Generation Fails:** Log error, continue without embedding (degraded search)
+- **AI API Fails:** Retry up to 3 times, show error message if all retries fail
+- **Artifact Detected:** Extract and save to artifacts collection, show artifact viewer
+
+**Completion Definition:**
+
+- User message visible in chat
+- Assistant response fully generated and visible
+- Both messages saved to Firestore with embeddings
+- Follow-up suggestions displayed
+- No errors in console
+
+**Required Inputs + Validation Rules:**
+
+- `message` (string): Required, non-empty, max 10,000 characters
+- `userId` (string): Required, must be valid Firebase Auth UID
+- `threadId` (string, optional): If provided, must exist in Firestore
+- `image_data` (string, optional): Base64-encoded image, max 10MB
+- `source` (string, optional): 'text' | 'voice', defaults to 'text'
+- `idToken` (string): Required for authentication verification
+
+**Error Recovery:**
+
+- **Network Error:** Retry automatically with exponential backoff (3 attempts)
+- **Rate Limit:** Show message "Rate limit exceeded. Retry in X seconds."
+- **Authentication Error:** Redirect to login page
+- **API Error:** Show user-friendly error message, allow retry
+- **Firestore Error:** Log to Sentry, show generic error, allow retry
+
+---
+
+### Workflow 2: Upload Knowledge Document
+
+**Trigger:** User clicks "Upload Knowledge" button, selects PDF/text file
+
+**Steps (Happy Path):**
+
+1. User selects file from file picker (PDF or text file)
+2. Client validates file (type, size < 50MB)
+3. Client calls `uploadKnowledge(formData)` server action
+4. Server validates authentication and rate limits (10 uploads/hour)
+5. Server reads file content (PDF parsing or text extraction)
+6. Server chunks document (1000 chars with 200 char overlap)
+7. Server generates embeddings for each chunk (batch processing)
+8. Server saves chunks to Firestore `history` collection with `type: 'knowledge_chunk'`
+9. Server returns success message with chunk count
+10. Client displays success notification
+11. Knowledge is immediately searchable via vector search
+
+**Branches:**
+
+- **Large File (> 50MB):** Reject with error "File too large. Maximum 50MB."
+- **Unsupported Format:** Reject with error "Unsupported file type. PDF or text only."
+- **Chunking Fails:** Log error, return partial success if some chunks saved
+- **Embedding Batch Fails:** Retry individual chunks, log failures
+- **Rate Limit:** Return error with retry time
+
+**Completion Definition:**
+
+- File processed and chunked
+- All chunks saved with embeddings
+- Success message displayed
+- Document searchable in next message
+
+**Required Inputs:**
+
+- `file` (File): Required, PDF or text file, max 50MB
+- `userId` (string): Required, valid Firebase Auth UID
+
+**Error Recovery:**
+
+- **File Too Large:** Suggest splitting file or compressing
+- **Parsing Error:** Return error, suggest re-saving file
+- **Embedding Failure:** Partial success notification, manual re-index option
+
+---
+
+### Workflow 3: Search Memory
+
+**Trigger:** User types in memory search box or uses command menu (Cmd+K)
+
+**Steps (Happy Path):**
+
+1. User enters search query
+2. Client calls `searchMemoryAction(query, userId)` or `getMemories(userId, query)`
+3. Server generates embedding for query
+4. Server performs vector search on `memories` collection (or `history` collection)
+5. Server returns top 10 results ordered by similarity score
+6. Client displays results with preview text and timestamps
+7. User clicks result to view full memory or use in context
+
+**Branches:**
+
+- **No Results:** Show "No memories found" message
+- **Empty Query:** Return all memories (paginated)
+- **Hybrid Search (Phase 5):** If enabled, also search external knowledge cache
+
+**Completion Definition:**
+
+- Search results displayed
+- User can click to view/use memory
+
+**Required Inputs:**
+
+- `query` (string): Optional, search query text
+- `userId` (string): Required, valid Firebase Auth UID
+
+**Error Recovery:**
+
+- **Search Fails:** Show error, allow retry with simplified query
+- **Slow Search:** Show loading indicator, optimize with debouncing
+
+---
+
+### Workflow 4: Export User Data (GDPR Compliance)
+
+**Trigger:** User clicks "Export Data" button in Settings
+
+**Steps (Happy Path):**
+
+1. User navigates to Settings → Data Management
+2. User clicks "Export All Data" button
+3. Client calls `exportUserData(userId)` server action
+4. Server queries all user data:
+   - Threads
+   - Messages (excluding embeddings for privacy/size)
+   - Memories (excluding embeddings)
+   - Artifacts
+   - Settings
+   - User state
+5. Server compiles JSON object with all data
+6. Server adds metadata: `exportedAt` timestamp, `userId`, `version`
+7. Server returns JSON data
+8. Client triggers browser download of JSON file
+9. File named: `pandoras-box-export-{userId}-{timestamp}.json`
+
+**Branches:**
+
+- **No Data:** Return empty object with metadata only
+- **Large Export:** Stream response if > 10MB (future optimization)
+- **Export Fails:** Show error, allow retry
+
+**Completion Definition:**
+
+- JSON file downloaded to user's device
+- All user data included (except embeddings)
+- File is valid JSON
+
+**Required Inputs:**
+
+- `userId` (string): Required, valid Firebase Auth UID
+
+**Error Recovery:**
+
+- **Export Timeout:** Show error, suggest exporting in smaller chunks (future)
+- **Invalid Data:** Log error, return partial export with error message
+
+---
+
+### Workflow 5: Daily Briefing Generation (Automated)
+
+**Trigger:** Cloud Scheduler calls `/api/cron/daily-briefing` daily at 1:00 PM UTC
+
+**Steps (Happy Path):**
+
+1. Cron job triggered by Cloud Scheduler
+2. Server authenticates request (optional `CRON_SECRET` header)
+3. Server queries all active users (users with activity in last 30 days)
+4. For each user:
+   - Retrieve recent messages from last 24 hours
+   - Generate summary using AI (GPT-4o)
+   - Create briefing message with `type: 'briefing'`
+   - Save to Firestore `history` collection
+   - Send notification (if user has notifications enabled)
+5. Server returns summary: `{ success: true, processed: X, errors: Y }`
+
+**Branches:**
+
+- **No Recent Activity:** Skip user (no briefing generated)
+- **Generation Fails:** Log error, continue with next user, increment error count
+- **Notification Fails:** Log error, briefing still saved
+
+**Completion Definition:**
+
+- All active users processed
+- Briefings saved to Firestore
+- Summary returned to Cloud Scheduler
+
+**Error Recovery:**
+
+- **Partial Failure:** Continue processing other users, return error count
+- **Complete Failure:** Log to Sentry, return error response to Cloud Scheduler
+
+---
+
+## 5. Data Model (Front-End View)
+
+### Key Entities
+
+#### 1. User (Implicit - Firebase Auth)
+
+```typescript
+// Not stored in Firestore, managed by Firebase Auth
+type User = {
+  uid: string;              // Firebase Auth UID (primary key)
+  email: string;            // User email
+  displayName?: string;     // Optional display name
+  photoURL?: string;        // Optional profile photo
+  createdAt: Timestamp;     // Account creation date
+};
+```
+
+#### 2. Message
+
+```typescript
+type Message = {
+  id: string;                           // Firestore document ID
+  role: 'user' | 'assistant' | 'system'; // Message role
+  content: string;                      // Message text content
+  createdAt: Timestamp | Date;          // Creation timestamp
+  threadId?: string;                    // Thread ID (optional for backward compat)
+  embedding?: number[];                 // 1536-dim vector (excluded from exports)
+  imageUrl?: string;                    // Firebase Storage URL if image attached
+  imageDescription?: string;            // AI-generated image description
+  source?: 'text' | 'voice';            // Input source
+  type?: 'briefing' | 'standard' | 'knowledge_chunk'; // Message type
+  status?: 'processing' | 'complete' | 'error'; // Processing status
+  progress_log?: string[];              // Real-time progress updates
+  source_filename?: string;             // Original filename if from upload
+  userId?: string;                      // User ID (for security rules)
+  editedAt?: Timestamp | Date;          // Last edit timestamp (future feature)
+};
+```
+
+**Sample JSON:**
+```json
+{
+  "id": "msg_abc123",
+  "role": "user",
+  "content": "What did we discuss about machine learning last week?",
+  "createdAt": "2025-01-15T10:30:00Z",
+  "threadId": "thread_xyz789",
+  "source": "text",
+  "type": "standard",
+  "status": "complete",
+  "userId": "user_123"
+}
+```
+
+#### 3. Thread
+
+```typescript
+type Thread = {
+  id: string;                    // Firestore document ID
+  userId: string;                // User ID (for security)
+  title: string;                 // Thread title (auto-generated or user-set)
+  createdAt: Timestamp | Date | string; // Creation timestamp
+  summary?: string;              // AI-generated summary for long threads
+  pinned?: boolean;              // Pinned status (future feature)
+  archived?: boolean;            // Archived status (future feature)
+  updatedAt?: Timestamp | Date | string; // Last update timestamp
+};
+```
+
+**Sample JSON:**
+```json
+{
+  "id": "thread_xyz789",
+  "userId": "user_123",
+  "title": "Machine Learning Research Discussion",
+  "createdAt": "2025-01-08T14:20:00Z",
+  "summary": "Discussed neural networks, transformers, and vector embeddings. User interested in implementing RAG system.",
+  "pinned": false,
+  "archived": false,
+  "updatedAt": "2025-01-15T10:30:00Z"
+}
+```
+
+#### 4. Memory
+
+```typescript
+type Memory = {
+  id: string;                    // Firestore document ID
+  content: string;               // Memory content text
+  embedding: number[];           // 1536-dim vector (excluded from exports)
+  createdAt: Timestamp | Date;   // Creation timestamp
+  userId: string;                // User ID (for security)
+  source?: string;               // Source: 'chatgpt', 'system', 'user', etc.
+};
+```
+
+**Sample JSON:**
+```json
+{
+  "id": "mem_def456",
+  "content": "User is researching machine learning and interested in RAG systems",
+  "createdAt": "2025-01-08T14:25:00Z",
+  "userId": "user_123",
+  "source": "system"
+}
+```
+
+#### 5. Artifact
+
+```typescript
+type Artifact = {
+  id: string;                    // Firestore document ID
+  userId: string;                // User ID (for security)
+  title: string;                 // Artifact title (auto-extracted or generated)
+  type: 'markdown' | 'code';     // Artifact type
+  content: string;               // Full artifact content
+  version: number;               // Version number (for future versioning)
+  createdAt: Timestamp | Date;   // Creation timestamp
+};
+```
+
+**Sample JSON:**
+```json
+{
+  "id": "art_ghi789",
+  "userId": "user_123",
+  "title": "RAG Implementation Example",
+  "type": "code",
+  "content": "def retrieve_context(query, embeddings):\n    # Vector search implementation\n    ...",
+  "version": 1,
+  "createdAt": "2025-01-10T16:45:00Z"
+}
+```
+
+#### 6. Settings
+
+```typescript
+type AppSettings = {
+  active_model: 'gpt-4o' | 'gpt-4-turbo' | 'gpt-3.5-turbo'; // Selected AI model
+  reply_style: 'concise' | 'detailed';                       // Response style preference
+  system_prompt_override: string;                            // Custom system prompt (optional)
+  personal_api_key?: string;                                 // Generated API key for MCP access
+};
+```
+
+**Sample JSON:**
+```json
+{
+  "active_model": "gpt-4o",
+  "reply_style": "detailed",
+  "system_prompt_override": "You are a helpful AI assistant specialized in machine learning.",
+  "personal_api_key": "pb_live_abc123xyz789..."
+}
+```
+
+#### 7. User State (Context & Suggestions)
+
+```typescript
+// Stored in Firestore: users/{userId}/state/{documentId}
+type UserState = {
+  context?: string;             // Current context note (updated by Memory Lane)
+  suggestions?: string[];       // Follow-up question suggestions
+  lastActivity?: Timestamp;     // Last activity timestamp
+};
+```
+
+#### 8. External Knowledge Cache (Phase 5)
+
+```typescript
+type ExternalKnowledgeCache = {
+  query: string;                // Normalized (lowercase) search query
+  source: string;               // Source identifier (e.g., 'tavily')
+  content: string;              // Cached content/snippet
+  confidence: number;           // Confidence score (0.0 to 1.0)
+  url?: string;                 // Source URL
+  title?: string;               // Result title
+  cachedAt: Timestamp;          // Cache timestamp
+};
+```
+
+#### 9. Feedback (Phase 6)
+
+```typescript
+type Feedback = {
+  id: string;
+  userId: string;
+  query: string;                // Search query that generated results
+  resultIds: string[];          // IDs of results user provided feedback on
+  satisfaction: number;         // 1-5 scale satisfaction rating
+  feedback?: string;            // Optional text feedback
+  createdAt: Timestamp;
+};
+```
+
+#### 10. Performance Metrics (Phase 6)
+
+```typescript
+type PerformanceMetric = {
+  id: string;
+  userId: string;
+  query: string;
+  internalCount: number;        // Number of internal results
+  externalCount: number;        // Number of external results
+  avgConfidence: number;        // Average confidence score
+  responseTime: number;         // Response time in milliseconds
+  userSatisfaction?: number;    // Optional satisfaction rating
+  createdAt: Timestamp;
+};
+```
+
+#### 11. Meta-Learning State (Phase 6)
+
+```typescript
+type MetaLearningState = {
+  userId: string;               // Document ID is userId (one per user)
+  internalWeight: number;       // Weight for internal memory search (0-1)
+  externalWeight: number;       // Weight for external search (0-1)
+  learningRate: number;         // Learning rate for weight adjustment
+  avgSatisfaction: number;      // Average user satisfaction (0-5)
+  strategy: string;             // Current strategy: 'balanced', 'internal', 'external'
+  updatedAt: Timestamp;
+};
+```
+
+#### 12. System Phase (PandoraUI Dashboard)
+
+```typescript
+type SystemPhase = {
+  id: string;                   // Phase ID (1-14)
+  name: string;                 // Phase name
+  status: 'completed' | 'active' | 'pending' | 'defined' | 'running' | 'deployed' | 'live' | 'integrated';
+  description: string;          // Phase description
+  metrics?: Record<string, any>; // Phase-specific metrics
+  updatedAt: Timestamp;
+};
+```
+
+### Relationships
+
+**1-to-Many:**
+- User → Threads (one user has many threads)
+- User → Messages (one user has many messages)
+- User → Memories (one user has many memories)
+- User → Artifacts (one user has many artifacts)
+- Thread → Messages (one thread has many messages)
+- User → Feedback (one user has many feedback entries)
+- User → Performance Metrics (one user has many metrics)
+
+**1-to-1:**
+- User → Settings (one user has one settings document)
+- User → Meta-Learning State (one user has one learning state)
+- User → User State (one user has one state document)
+
+**Many-to-Many (Via Knowledge Graph):**
+- Memory → Memory (via `knowledge_edges` collection, represents relationships)
+
+### Status Fields + Lifecycle Transitions
+
+**Message Status:**
+```
+processing → complete
+processing → error (on failure)
+```
+
+**Thread Lifecycle:**
+```
+active → archived (future: user can archive)
+pinned: false → true (future: user can pin)
+```
+
+**Memory Lifecycle:**
+```
+created → (persistent, no status transitions)
+deleted (user action only)
+```
+
+**Artifact Lifecycle:**
+```
+created (version 1) → updated (version 2, 3, ...) [future versioning]
+```
+
+### Computed Metrics (Dashboards)
+
+**User-Level Metrics (Computed Client-Side or Server-Side):**
+- Total messages count
+- Total threads count
+- Total memories count
+- Total artifacts count
+- Last activity timestamp
+- Memory search effectiveness (Phase 6: satisfaction scores)
+- Average response time (Phase 6)
+
+**System-Level Metrics (PandoraUI Dashboard):**
+- Phase implementation status (14 phases)
+- System telemetry (if implemented)
+- Overall system health
+
+**Sample Dashboard JSON:**
+```json
+{
+  "userId": "user_123",
+  "stats": {
+    "messages": 452,
+    "threads": 23,
+    "memories": 189,
+    "artifacts": 12,
+    "lastActivity": "2025-01-15T10:30:00Z"
+  },
+  "performance": {
+    "avgResponseTime": 1250,
+    "avgSatisfaction": 4.2,
+    "searchEffectiveness": 0.78
+  }
+}
+```
+
+---
+
+## 6. Screens Inventory
+
+### Existing Screens (Implemented)
+
+#### Authentication Screens
+
+1. **Login Page** (`/login` - implicit, handled by Firebase Auth)
+   - Email/password form
+   - Google OAuth button
+   - "Sign up" link
+   - Error messages display
+
+2. **Sign Up Page** (`/signup` - implicit, handled by Firebase Auth)
+   - Email/password registration form
+   - Password confirmation
+   - Terms of service acceptance (if required)
+   - Email verification notice
+
+#### Main Application Screens
+
+3. **Chat Page** (`/` - Home page)
+   - File: `src/app/(pandora-ui)/page.tsx`
+   - Chat message feed (user and assistant messages)
+   - Thread sidebar (left, collapsible)
+   - Chat input area (bottom, fixed)
+   - Voice input button
+   - Image upload button
+   - Send button
+   - Empty state: Interactive Pandora Box 3D model
+   - Real-time message streaming
+   - Progress indicators for processing messages
+   - Follow-up question suggestions
+
+4. **Settings Page** (`/settings`)
+   - File: `src/app/(pandora-ui)/settings/page.tsx`
+   - Model selection dropdown (gpt-4o, gpt-4-turbo, gpt-3.5-turbo)
+   - Reply style toggle (concise/detailed)
+   - System prompt override textarea
+   - Personal API key generation section
+   - Theme toggle (dark/light mode)
+   - Notifications preferences
+   - Data retention settings
+   - Export data button
+   - Clear memory button (danger zone)
+
+5. **Graph View Page** (`/graph`)
+   - File: `src/app/(pandora-ui)/graph/page.tsx`
+   - Knowledge graph visualization
+   - Interactive node/edge display
+   - Node details on click
+   - Graph analytics panel
+   - Temporal analysis view
+
+6. **PandoraUI Dashboard** (`/pandora-ui` - special mode)
+   - File: `src/app/(pandora-ui)/page.tsx` (conditional rendering)
+   - Phase status indicators (14 phases)
+   - System telemetry display
+   - Interactive Pandora Box 3D model (centerpiece)
+   - Phase dashboard with live metrics
+   - Settings drawer/modal
+
+#### Component-Based UI (Not Full Pages)
+
+7. **Memory Inspector** (Right sidebar component)
+   - Search memories input
+   - Memory list with previews
+   - Edit/delete memory buttons
+   - Memory indexing status
+   - Clear all memories button
+
+8. **Artifact Viewer** (Modal/panel component)
+   - Split-view display (code on left, rendered on right)
+   - Copy to clipboard button
+   - Download artifact button
+   - Version history (future)
+
+9. **Command Menu** (Modal overlay, Cmd/Ctrl+K)
+   - File: `src/components/command-menu.tsx`
+   - Global search
+   - Quick actions (new thread, settings, etc.)
+   - Memory search integration
+   - Keyboard navigation
+
+10. **Settings Modal/Drawer**
+    - File: `src/components/SettingsModal.tsx`
+    - File: `src/app/(pandora-ui)/components/SettingsDrawer.tsx`
+    - Notifications toggle
+    - Model temperature slider
+    - Data retention toggle
+    - Appearance (theme) toggle
+    - Security info display
+
+11. **Thread Sidebar**
+    - List of all threads
+    - Create new thread button
+    - Thread titles with timestamps
+    - Active thread highlight
+    - Thread search/filter
+
+12. **Top Bar / Navigation**
+    - File: `src/app/(pandora-ui)/components/Topbar.tsx`
+    - User profile menu
+    - Settings access
+    - Notifications indicator
+    - Theme toggle (quick access)
+
+### Required Screens (Planned but Not Fully Implemented)
+
+13. **Admin Panel** (Future - Not Implemented)
+    - User management list
+    - System health dashboard
+    - Audit log viewer
+    - System configuration
+    - Rate limit management
+
+14. **Help/Support Page** (Future - Not Implemented)
+    - FAQ section
+    - Keyboard shortcuts reference
+    - API documentation link
+    - Contact support form
+
+15. **Onboarding/Tutorial** (Future - Not Implemented)
+    - Welcome screen for new users
+    - Feature tour
+    - Interactive tutorials
+    - Sample conversation starter
+
+16. **Reports/Analytics Dashboard** (Future - Not Implemented)
+    - Usage statistics
+    - Memory effectiveness metrics
+    - Performance charts
+    - Export reports
+
+### Backend API Endpoints (Existing)
+
+**Server Actions (Next.js Server Actions):**
+- `submitUserMessage(formData)` - Send message, get AI response
+- `transcribeAndProcessMessage(formData)` - Voice transcription
+- `createThread(userId)` - Create new thread
+- `getUserThreads(userId)` - List all threads
+- `searchMemoryAction(query, userId)` - Search memories
+- `updateMemory(id, newText, userId)` - Edit memory
+- `deleteMemory(userId, memoryId?)` - Delete memory(s)
+- `clearMemory(userId)` - Clear all user data
+- `uploadKnowledge(formData)` - Upload document
+- `updateSettings(formData)` - Update user settings
+- `generateUserApiKey(userId)` - Generate API key
+- `exportUserData(userId)` - Export all data (GDPR)
+
+**API Routes (Next.js API Routes):**
+
+- `POST /api/chatgpt/store-memory` - ChatGPT Actions: Store memory
+- `POST /api/chatgpt/retrieve-memories` - ChatGPT Actions: Retrieve memories
+- `POST /api/chatgpt/hybrid-retrieve` - ChatGPT Actions: Hybrid search (Phase 5)
+- `POST /api/mcp/[...tool]` - MCP HTTP bridge
+- `GET /api/mcp/openapi` - OpenAPI schema for MCP tools
+- `POST /api/mcp/runFlow` - Run Genkit flow via HTTP
+- `POST /api/cron/cleanup` - Daily cleanup job
+- `POST /api/cron/daily-briefing` - Daily briefing generation
+- `POST /api/cron/nightly-reflection` - Nightly reflection agent
+- `POST /api/cron/deep-research` - Deep research agent
+- `POST /api/cron/context-decay` - Context importance decay
+- `POST /api/cron/reindex-memories` - Reindex memory embeddings
+- `POST /api/cron/meta-learning` - Meta-learning optimization
+- `POST /api/feedback` - Submit user feedback (Phase 6)
+- `GET /api/system/graph-analytics` - Graph analytics
+- `GET /api/system/knowledge` - Knowledge graph queries
+
+---
+
+## 7. Settings & Configuration
+
+### User Settings
+
+#### Profile Settings (Not Currently Implemented - Future)
+
+- Display name
+- Profile photo (Firebase Auth managed)
+- Email address (Firebase Auth managed, read-only in app)
+- Password change (Firebase Auth managed, redirect to Firebase console)
+
+#### Application Settings (Implemented)
+
+**Model Configuration:**
+- `active_model`: Dropdown selection
+  - Options: 'gpt-4o', 'gpt-4-turbo', 'gpt-3.5-turbo'
+  - Default: 'gpt-4o'
+  - Storage: Firestore `settings/{userId}`
+
+**Reply Style:**
+- `reply_style`: Toggle/Radio
+  - Options: 'concise', 'detailed'
+  - Default: 'detailed'
+  - Storage: Firestore `settings/{userId}`
+
+**System Prompt Override:**
+- `system_prompt_override`: Textarea (optional)
+  - Default: Empty (uses default system prompt)
+  - Max length: 2000 characters
+  - Storage: Firestore `settings/{userId}`
+
+**Personal API Key:**
+- `personal_api_key`: Generated on demand
+  - Generation: `generateUserApiKey(userId)` action
+  - Format: `pb_live_{random_string}`
+  - Display: Masked with show/hide toggle
+  - Copy to clipboard button
+  - Regenerate button (invalidates old key)
+  - Storage: Firestore `settings/{userId}`
+
+#### Appearance Settings (Implemented)
+
+**Theme:**
+- `theme`: Toggle
+  - Options: 'light', 'dark' (Digital Void theme)
+  - Default: 'dark'
+  - Storage: localStorage (client-side only)
+  - Persistence: Survives page refresh
+  - Implementation: `useTheme()` hook
+
+**Temperature (Model Creativity):**
+- `temperature`: Slider (0.0 to 1.0)
+  - Default: 0.7
+  - Step: 0.1
+  - Storage: localStorage (client-side, not persisted to Firestore currently)
+
+#### Notification Settings (Implemented)
+
+**Browser Notifications:**
+- `notificationsEnabled`: Toggle
+  - Default: true
+  - Storage: localStorage
+  - Permissions: Requests browser notification permission
+  - Implementation: `useNotification()` hook
+  - Support: Checks `Notification API` availability
+
+**Notification Triggers (Future):**
+- Daily briefing ready
+- Memory indexing complete
+- Thread summary generated
+- (Not currently implemented - notifications exist but triggers not defined)
+
+#### Data Management Settings (Implemented)
+
+**Data Retention:**
+- `dataRetention`: Toggle
+  - Default: true
+  - Storage: localStorage (UI only, actual retention controlled server-side)
+  - Note: This is a preference indicator, actual data retention handled by cron jobs
+
+**Export Data:**
+- Button: "Export All Data"
+  - Action: `exportUserData(userId)`
+  - Format: JSON file download
+  - Includes: Threads, messages, memories, artifacts, settings (excludes embeddings)
+
+**Clear Memory:**
+- Button: "Clear All Memory" (Danger zone)
+  - Action: `clearMemory(userId)`
+  - Confirmation: Required (modal with warning)
+  - Destroys: All threads, messages, memories, artifacts (preserves settings)
+  - Irreversible: No undo
+
+### Organization/System Settings (Not Applicable)
+
+**NO Organization Settings** - System is single-user focused, no org/team structure.
+
+**System-Level Configuration (Server-Side Only):**
+- Rate limits (30 messages/min, 10 uploads/hour, 100 embeddings/hour)
+- Embedding model (`text-embedding-3-small`)
+- Vector dimensions (1536)
+- Chunking strategy (1000 chars, 200 overlap)
+- Cleanup schedule (daily at 2:00 AM UTC)
+- Briefing schedule (daily at 1:00 PM UTC)
+
+### Feature Flags (Future - Not Currently Implemented)
+
+**Potential Feature Flags (Architecture Ready):**
+- `hybrid_search_enabled` (Phase 5: Currently always enabled if Tavily API key present)
+- `meta_learning_enabled` (Phase 6: Currently always enabled)
+- `nightly_reflection_enabled` (Phase 12: Currently always enabled)
+- `deep_research_enabled` (Phase 9: Currently always enabled)
+- `graph_visualization_enabled` (Phase 2: Currently always enabled)
+- `voice_input_enabled` (Currently always enabled if OpenAI key present)
+- `image_upload_enabled` (Currently always enabled if OpenAI key present)
+
+**Storage Location (If Implemented):**
+- Server-side environment variables
+- Or Firestore `system_config` collection (read-only for users)
+
+### Defaults and Inheritance
+
+**No Inheritance Structure** - All settings are user-specific, no org defaults.
+
+**Default Values:**
+- Model: `gpt-4o`
+- Reply Style: `detailed`
+- System Prompt: Empty (uses hardcoded default in code)
+- Theme: `dark` (Digital Void)
+- Temperature: `0.7`
+- Notifications: `true`
+- Data Retention: `true`
+
+**User Override:**
+- All settings can be overridden by user
+- No hierarchy (user is top level)
+
+### Audit Log Requirements
+
+**Current Implementation: Limited**
+
+**What is Tracked (Server-Side):**
+- System logs: `system_logs` collection (server writes only)
+- Error logs: Sentry integration (if configured)
+- Firestore operation logs: Firebase Console (automatic)
+
+**What is NOT Currently Tracked:**
+- ❌ User action audit trail (who did what, when)
+- ❌ Settings change history
+- ❌ Data export events
+- ❌ Memory deletion events
+- ❌ API key generation events
+- ❌ Login/logout events (Firebase Auth handles, but not in app)
+
+**What Needs Tracking (Future Requirements):**
+- Settings changes (before/after values, timestamp, user)
+- Data exports (timestamp, user, file size)
+- Memory deletions (which memories, timestamp, user)
+- API key generation/regeneration (timestamp, user)
+- Large file uploads (filename, size, timestamp, user)
+- Rate limit violations (timestamp, user, action type)
+
+**Where Visible (Future):**
+- Admin panel (if implemented)
+- User's own activity log (Settings → Activity Log - future feature)
+
+---
+
+## 8. Content + Copy Requirements
+
+### Tone/Voice
+
+**Primary Tone: Professional, Helpful, Technical-But-Accessible**
+
+- **Formal Level:** Semi-formal (not corporate stiff, not overly casual)
+- **Personality:** Intelligent, helpful, precise
+- **Technical Depth:** Assume user understands basic AI concepts (memory, embeddings, threads) but explain advanced features
+- **Error Messages:** Clear, actionable, non-condescending
+- **Success Messages:** Brief, celebratory but not over-the-top
+
+**Examples:**
+- ✅ "Memory saved successfully"
+- ✅ "Message sent. AI is thinking..."
+- ✅ "Rate limit exceeded. Please wait 30 seconds before sending another message."
+- ❌ "Oops! Something went wrong!" (too casual)
+- ❌ "ERROR 500: Internal server error" (too technical)
+
+### Terminology Glossary (Required Words)
+
+**Core Terms (Must Use Consistently):**
+
+1. **Thread** (not "Conversation", "Chat", "Case", "Ticket")
+   - Definition: A conversation topic or project containing multiple messages
+   - Usage: "Create new thread", "Switch threads", "Thread sidebar"
+
+2. **Message** (not "Chat", "Post", "Entry")
+   - Definition: Individual user or assistant communication within a thread
+   - Usage: "Send message", "Message history", "Previous messages"
+
+3. **Memory** (not "Note", "Fact", "Remember", "Save")
+   - Definition: A stored knowledge item with vector embedding for semantic search
+   - Usage: "Save to memory", "Search memories", "Memory inspector"
+
+4. **Artifact** (not "Document", "File", "Code Block", "Snippet")
+   - Definition: Generated code or markdown block extracted from AI responses
+   - Usage: "View artifact", "Generate artifact", "Artifact viewer"
+
+5. **Knowledge Base** (not "Documents", "Files", "Library")
+   - Definition: Uploaded PDF or text files that are chunked, embedded, and made searchable
+   - Usage: "Upload to knowledge base", "Knowledge base search"
+
+6. **Embedding** (technical term, use when explaining)
+   - Definition: Vector representation of text (1536 dimensions) for semantic search
+   - Usage: "Generate embeddings", "Embedding model" (can simplify to "vector" in user-facing UI)
+
+7. **Vector Search** (technical term, can simplify)
+   - Definition: Semantic search using vector embeddings to find similar content
+   - Usage: "Performing vector search..." (can simplify to "Searching memories..." in UI)
+
+8. **Context** (technical term, use when explaining)
+   - Definition: Current conversation state and relevant past memories
+   - Usage: "Context notes", "Update context" (can simplify to "relevant information" in UI)
+
+9. **Phase** (specific to PandoraUI dashboard)
+   - Definition: System implementation phase (1-14) for tracking development progress
+   - Usage: "Phase 5: Cognitive Context Fusion", "Phase status"
+
+10. **Lane** (internal term, not user-facing)
+    - Definition: Processing flow (Memory Lane, Answer Lane, Chat Lane)
+    - Usage: Internal documentation only, not shown to users
+
+**Action Terms:**
+- **Send** (not "Submit", "Post") - For sending messages
+- **Upload** (not "Add", "Import") - For knowledge base files
+- **Search** (not "Query", "Find") - For memory search
+- **Export** (not "Download", "Save") - For data export
+- **Clear** (not "Delete", "Remove") - For clearing memory (dangerous action)
+
+**Status Terms:**
+- **Processing** (not "Loading", "Thinking") - For message status
+- **Complete** (not "Done", "Finished") - For successful completion
+- **Error** (not "Failed", "Broken") - For error states
+
+### Required Legal Text
+
+**Privacy Policy Reference:**
+- Link to privacy policy required (location: Footer or Settings)
+- Text: "By using Pandora's Box, you agree to our Privacy Policy and Terms of Service"
+
+**Data Export (GDPR Compliance):**
+- Text: "You can export all your data at any time. This includes your threads, messages, memories, and artifacts. Embeddings are excluded for privacy and size reasons. Your data export will be available for download as a JSON file."
+
+**Data Deletion:**
+- Warning text: "Clearing all memory is permanent and cannot be undone. This will delete all your threads, messages, memories, and artifacts. Your settings will be preserved. Are you sure you want to proceed?"
+
+**API Key Security:**
+- Warning text: "Your API key provides full access to your account. Keep it secure and never share it publicly. If compromised, regenerate it immediately."
+
+**Third-Party Services:**
+- Disclosure: "Pandora's Box uses OpenAI for AI capabilities, Firebase for authentication and storage, and Tavily for web search. Your data is processed according to their privacy policies."
+
+### Empty States, Helper Text, Tooltips
+
+#### Empty States
+
+**No Threads:**
+- Title: "No conversations yet"
+- Description: "Start a new conversation by typing a message below."
+- CTA: "Start Chatting" (button, if applicable)
+
+**No Messages in Thread:**
+- Title: "Start your conversation"
+- Description: "Type a message below to begin chatting with Pandora."
+- Visual: Interactive Pandora Box 3D model (centerpiece)
+
+**No Memories:**
+- Title: "No memories stored yet"
+- Description: "Memories are created automatically as you chat. They help Pandora remember past conversations."
+- CTA: "Start Chatting" (button)
+
+**No Artifacts:**
+- Title: "No artifacts yet"
+- Description: "Artifacts are code or markdown blocks extracted from AI responses. They'll appear here when generated."
+- CTA: "Ask Pandora to generate code" (button, if applicable)
+
+**No Search Results:**
+- Title: "No memories found"
+- Description: "Try different keywords or check your spelling. Memories are searched semantically, so similar terms should work."
+- CTA: "Clear search" (button)
+
+**No Knowledge Base Files:**
+- Title: "No documents uploaded"
+- Description: "Upload PDF or text files to add them to your knowledge base. Pandora can search and reference these documents in conversations."
+- CTA: "Upload Document" (button)
+
+#### Helper Text
+
+**Chat Input:**
+- Placeholder: "Ask Pandora…" (with ellipsis for anticipation)
+- Helper: "Press Enter to send, Shift+Enter for new line"
+
+**Memory Search:**
+- Placeholder: "Search memories..."
+- Helper: "Search using natural language. Results are ranked by relevance."
+
+**Thread Title:**
+- Placeholder: "New conversation"
+- Helper: "Thread titles are auto-generated. Click to edit."
+
+**System Prompt Override:**
+- Placeholder: "Leave empty to use default system prompt"
+- Helper: "Override the default AI behavior. Max 2000 characters."
+
+**API Key:**
+- Helper: "Generate a personal API key to use Pandora's Box with external tools via MCP or ChatGPT Actions."
+
+**Export Data:**
+- Helper: "Exports all your data as JSON. Embeddings are excluded. The download may take a few moments."
+
+**Clear Memory:**
+- Helper: "This action cannot be undone. All threads, messages, memories, and artifacts will be permanently deleted."
+
+#### Tooltips
+
+**Settings Icon:**
+- Tooltip: "Settings"
+
+**Theme Toggle:**
+- Tooltip: "Toggle theme (Dark/Light)"
+
+**Notifications Toggle:**
+- Tooltip: "Enable browser notifications"
+
+**Memory Inspector:**
+- Tooltip: "Memory Inspector"
+
+**Thread Sidebar:**
+- Tooltip: "Threads (Cmd/Ctrl+B to toggle)"
+
+**Command Menu:**
+- Tooltip: "Command Menu (Cmd/Ctrl+K)"
+
+**Send Button:**
+- Tooltip: "Send message (Enter)"
+
+**Voice Input:**
+- Tooltip: "Voice input (Hold to record)"
+
+**Image Upload:**
+- Tooltip: "Upload image"
+
+**Copy to Clipboard:**
+- Tooltip: "Copy to clipboard"
+
+**Download Artifact:**
+- Tooltip: "Download artifact"
+
+### Error Message Style Guidance
+
+**Error Message Structure:**
+```
+[Icon] [Title]
+[Description]
+[Action Button] (if applicable)
+```
+
+**Error Message Tone:**
+- Clear and specific (not generic)
+- Actionable (what user can do)
+- Non-blaming (don't blame user)
+- Professional (not overly apologetic)
+
+**Error Message Examples:**
+
+**Network Error:**
+- Title: "Connection failed"
+- Description: "Unable to connect to server. Please check your internet connection and try again."
+- Action: "Retry" (button)
+
+**Rate Limit:**
+- Title: "Rate limit exceeded"
+- Description: "You've sent too many messages. Please wait 30 seconds before sending another message."
+- Action: "OK" (button, auto-dismisses after countdown)
+
+**Authentication Error:**
+- Title: "Session expired"
+- Description: "Your session has expired. Please sign in again to continue."
+- Action: "Sign In" (button, redirects to login)
+
+**File Upload Error:**
+- Title: "Upload failed"
+- Description: "The file is too large. Maximum file size is 50MB. Please compress or split the file."
+- Action: "OK" (button)
+
+**Validation Error:**
+- Title: "Invalid input"
+- Description: "Please check your input and try again. {Specific validation error message}"
+- Action: "OK" (button)
+
+**Server Error:**
+- Title: "Server error"
+- Description: "Something went wrong on our end. Please try again in a moment. If the problem persists, contact support."
+- Action: "Retry" (button)
+
+---
+
+## 11. Edge Cases + Compliance + Security
+
+### Data Privacy Constraints (PII Handling, Masking Rules)
+
+**Current Implementation:**
+
+**What is Stored:**
+- User messages (may contain PII)
+- Assistant responses (may contain PII)
+- Memories (may contain PII)
+- Artifacts (may contain PII)
+- User email (Firebase Auth, required)
+- User ID (Firebase Auth UID, required)
+
+**What is NOT Stored:**
+- ❌ Passwords (handled by Firebase Auth)
+- ❌ Payment information (no payment processing)
+- ❌ Social security numbers (not collected)
+- ❌ Credit card information (not collected)
+- ❌ Biometric data (not collected)
+
+**PII Handling:**
+
+**User Messages:**
+- Stored in Firestore `history` collection
+- Encrypted at rest (Firebase default encryption)
+- Accessible only by authenticated user (via security rules)
+- Embedded for vector search (PII included in embeddings)
+- **No masking implemented** (future: could mask PII in logs)
+
+**Assistant Responses:**
+- Same as user messages
+- May contain sensitive information derived from user messages
+- No filtering for PII
+
+**Embeddings:**
+- Contain semantic representation of messages (includes PII context)
+- Stored in Firestore documents
+- Not exported in GDPR export (excluded for privacy/size)
+- **Note:** Embeddings are mathematical representations, not direct text, but context may be recoverable
+
+**Data Masking (Future Requirements):**
+
+**Log Files:**
+- ❌ Currently: No PII masking in logs
+- ✅ Future: Mask email addresses, names, phone numbers in server logs
+- ✅ Future: Redact sensitive patterns (SSN, credit cards) from logs
+
+**Audit Logs:**
+- ❌ Currently: No audit logs (see Section 7)
+- ✅ Future: Mask PII in audit logs, use user ID only
+
+**Error Messages:**
+- ✅ Currently: No PII in error messages exposed to users
+- ✅ Future: Ensure no PII leaks in error messages
+
+**Third-Party APIs:**
+- ✅ OpenAI: Messages sent to OpenAI API (subject to OpenAI privacy policy)
+- ✅ Tavily: Search queries sent to Tavily API (subject to Tavily privacy policy)
+- ✅ Firebase: Data stored in Firebase (subject to Google Cloud privacy policy)
+
+**Data Minimization:**
+- ✅ Only collect necessary data (messages, settings)
+- ✅ No unnecessary PII collection
+- ✅ User can export and delete all data
+
+### Role-Based Data Visibility and Export Permissions
+
+**Current Implementation: Single-User Model**
+
+**Data Visibility:**
+- Users can only see their own data
+- No cross-user data visibility
+- No admin view (no admin role exists)
+- No support agent view (no support role exists)
+
+**Export Permissions:**
+- Users can export their own data (`exportUserData` action)
+- No bulk export for admins (no admin role)
+- No export for deleted accounts (future: GDPR right to deletion)
+
+**Future Requirements (If Multi-Role System Added):**
+
+**Admin Role (Future):**
+- Can view all user data (for support purposes)
+- Can export user data (with audit trail)
+- Must have explicit permission (not automatic)
+- Must log all admin access (audit trail)
+
+**Support Agent Role (Future):**
+- Read-only access to user data (no export)
+- Limited to user's explicit consent
+- Impersonation mode: View user's view (not raw data)
+- Must log all support access (audit trail)
+
+**Data Export Restrictions:**
+- ❌ Currently: No export restrictions (users can export anytime)
+- ✅ Future: Rate limit exports (e.g., 1 export per day)
+- ✅ Future: Notify user on export (email notification)
+- ✅ Future: Audit log all export events
+
+### Session Timeout Rules
+
+**Current Implementation: Firebase Auth Session Management**
+
+**Session Duration:**
+- Firebase Auth manages session automatically
+- Default: 1 hour (Firebase Auth default)
+- Token refresh: Automatic (handled by Firebase SDK)
+- No custom session timeout implemented
+
+**Session Timeout Handling:**
+- ❌ Currently: No explicit session timeout UI
+- ✅ Future: Show "Session expiring soon" warning at 5 minutes before expiry
+- ✅ Future: Auto-refresh session on activity
+- ✅ Future: Option to "Stay signed in" (extends session)
+
+**Inactive Session:**
+- ❌ Currently: No automatic logout on inactivity
+- ✅ Future: Option to set inactivity timeout (e.g., 30 minutes, 1 hour, 2 hours)
+- ✅ Future: Show "You've been inactive" modal before logout
+
+**Session Security:**
+- ✅ HTTPS only (required for Firebase Auth)
+- ✅ Secure cookies (Firebase Auth handles)
+- ✅ Token stored securely (Firebase SDK handles)
+- ❌ Currently: No IP-based session validation
+- ❌ Currently: No device fingerprinting
+
+### Rate Limits, Lockouts, MFA Requirements
+
+**Rate Limits (Current Implementation):**
+
+**Token Bucket Algorithm:**
+- Implementation: `src/lib/rate-limit.ts`
+- Per-user rate limits (not global)
+- Limits reset over time (token bucket refills)
+
+**Current Limits:**
+- Messages: 30 per minute per user
+- Uploads: 10 per hour per user
+- Embeddings: 100 per hour per user
+
+**Rate Limit Exceeded Behavior:**
+- Returns error: `{ success: false, error: "Rate limit exceeded", retryAfter: number }`
+- Shows user-friendly message: "Too many messages sent. Please wait {seconds} seconds."
+- No account lockout (limits reset automatically)
+
+**Future Requirements:**
+- ✅ Add rate limit status endpoint (shows remaining quota)
+- ✅ Add rate limit UI indicator (progress bar)
+- ✅ Add rate limit notifications (warning at 80% of limit)
+
+**Account Lockouts (Not Currently Implemented):**
+
+**Failed Login Attempts:**
+- ❌ Currently: Firebase Auth handles (default: 5 failed attempts → temporary lockout)
+- ✅ Future: Custom lockout policy (configurable attempts, duration)
+- ✅ Future: Notify user on lockout (email notification)
+- ✅ Future: Admin override for lockouts (if admin role exists)
+
+**Suspicious Activity:**
+- ❌ Currently: No detection of suspicious activity
+- ✅ Future: Detect unusual patterns (e.g., rapid API key generation, bulk exports)
+- ✅ Future: Auto-lock account on suspicious activity
+- ✅ Future: Require MFA verification to unlock
+
+**Multi-Factor Authentication (MFA) (Not Currently Implemented):**
+
+**Current Status:**
+- ❌ MFA not implemented
+- Firebase Auth supports MFA (can be enabled)
+- No UI for MFA setup
+
+**Future Requirements (If MFA Implemented):**
+- ✅ Enable MFA in Firebase Auth
+- ✅ UI for MFA setup (Settings → Security → Enable MFA)
+- ✅ MFA methods: SMS, TOTP (Google Authenticator), Email codes
+- ✅ Recovery codes (10 codes, downloadable)
+- ✅ Require MFA for sensitive actions (export data, clear memory, API key generation)
+- ✅ MFA bypass for trusted devices (30-day cookie)
+
+### Auditability Requirements
+
+**Current Implementation: Limited**
+
+**What is Logged (Server-Side):**
+- System logs: `system_logs` collection (server writes only)
+- Error logs: Sentry integration (if configured)
+- Firestore operation logs: Firebase Console (automatic, not accessible via app)
+
+**What is NOT Logged (Missing):**
+- ❌ User actions (who did what, when)
+- ❌ Settings changes (before/after values)
+- ❌ Data exports (timestamp, user, file size)
+- ❌ Memory deletions (which memories, when, user)
+- ❌ API key generation/regeneration (timestamp, user)
+- ❌ Login/logout events (Firebase Auth handles, but not accessible via app)
+- ❌ File uploads (filename, size, timestamp, user)
+- ❌ Rate limit violations (timestamp, user, action type)
+
+**Future Requirements:**
+
+**Audit Log Collection:**
+- Create `audit_logs` collection in Firestore
+- Log all user actions (create, update, delete)
+- Log all sensitive actions (export, clear memory, API key generation)
+- Include: `userId`, `action`, `resource`, `timestamp`, `ipAddress`, `userAgent`, `metadata`
+
+**Audit Log Structure (Future):**
+```typescript
+type AuditLog = {
+  id: string;
+  userId: string;
+  action: 'create' | 'update' | 'delete' | 'export' | 'login' | 'logout' | 'api_key_generated';
+  resource: 'thread' | 'message' | 'memory' | 'artifact' | 'settings' | 'user_data';
+  resourceId?: string;
+  timestamp: Timestamp;
+  ipAddress?: string;
+  userAgent?: string;
+  metadata?: Record<string, any>; // Additional context (e.g., before/after values)
+};
+```
+
+**Audit Log Access:**
+- Users: Can view own audit log (Settings → Activity Log - future feature)
+- Admins: Can view all audit logs (Admin Panel - future feature)
+- Retention: 90 days (configurable)
+- Export: Users can export own audit log (GDPR requirement)
+
+**Where Visible (Future):**
+- User's own activity log: Settings → Activity Log
+- Admin panel: Admin → Audit Logs
+- System logs: Admin → System Logs (read-only)
+
+### Industry Compliance (If Applicable)
+
+**GDPR (General Data Protection Regulation) Compliance:**
+
+**Current Implementation:**
+
+✅ **Right to Access:** Users can export all their data (`exportUserData` action)
+✅ **Right to Erasure:** Users can delete all their data (`clearMemory` action)
+✅ **Right to Portability:** Data export is in JSON format (portable)
+✅ **Data Minimization:** Only necessary data is collected
+✅ **Purpose Limitation:** Data used only for stated purpose (AI chat with memory)
+✅ **Storage Limitation:** Data retained until user deletes (or 30-day cleanup if retention disabled)
+✅ **Transparency:** Privacy policy reference (future: full privacy policy page)
+✅ **Security:** Encryption at rest (Firebase default), HTTPS in transit
+
+**Missing (Future Requirements):**
+
+❌ **Privacy Policy Page:** No dedicated privacy policy page (link only)
+❌ **Terms of Service:** No dedicated terms of service page (link only)
+❌ **Cookie Consent:** No cookie consent banner (may need if analytics added)
+❌ **Data Processing Agreement:** No DPA with third-party providers (OpenAI, Firebase, Tavily)
+❌ **Data Protection Officer (DPO):** No DPO assigned (may not be required for small scale)
+❌ **Breach Notification:** No automated breach notification system
+❌ **Consent Management:** No granular consent options (e.g., opt-out of analytics)
+
+**CCPA (California Consumer Privacy Act) Compliance:**
+
+**Current Implementation:**
+
+✅ **Right to Know:** Users can export data (similar to GDPR access)
+✅ **Right to Delete:** Users can delete all data (similar to GDPR erasure)
+✅ **Right to Opt-Out:** No data selling (no data is sold)
+✅ **Non-Discrimination:** Service available regardless of privacy choices
+
+**Missing (Future Requirements):**
+
+❌ **"Do Not Sell My Personal Information" Link:** Not needed (no data selling), but could add for transparency
+❌ **Opt-Out Mechanism:** No granular opt-out options (not applicable if no data selling)
+❌ **Verification Process:** No identity verification for data requests (relies on Firebase Auth)
+
+**SOC 2 (Not Currently Pursued):**
+
+**Requirements (If Pursued in Future):**
+- Security controls documentation
+- Access controls (currently: Firebase Auth + Firestore security rules)
+- Data encryption (Firebase default encryption)
+- Monitoring and logging (Sentry for errors, system_logs collection)
+- Incident response plan (not documented)
+- Vendor management (OpenAI, Firebase, Tavily - no formal agreements)
+
+**HIPAA (Not Applicable):**
+
+- System is not designed for healthcare data
+- No PHI (Protected Health Information) handling
+- No HIPAA compliance required
+
+**PCI DSS (Not Applicable):**
+
+- No payment processing
+- No credit card data handling
+- No PCI compliance required
+
+---
+
+## 12. Operational Needs
+
+### Admin Tools (Future - Not Currently Implemented)
+
+**User Management:**
+
+**Required Features (If Admin Role Added):**
+- List all users (paginated, searchable, filterable)
+- View user details (email, account creation date, last activity)
+- View user statistics (message count, thread count, memory count)
+- Disable/enable user accounts
+- Delete user accounts (with confirmation and audit log)
+- Reset user password (send password reset email)
+- Impersonate user (view as user, not edit as user)
+
+**Location (Future):** Admin Panel → Users
+
+**System Health Dashboard:**
+
+**Required Features:**
+- System status (operational, degraded, down)
+- API status (OpenAI, Firebase, Tavily)
+- Database status (Firestore read/write latency)
+- Error rate (last 24 hours, last 7 days)
+- Active users count (current, last 24 hours, last 7 days)
+- Message rate (messages per minute, per hour)
+- Rate limit violations (last 24 hours)
+- Background job status (cron jobs: cleanup, briefing, reflection, research)
+- Storage usage (Firestore documents count, Storage size)
+
+**Location (Future):** Admin Panel → System Health
+
+**Monitoring Pages:**
+
+**System Logs Viewer:**
+- Filter by severity (error, warning, info)
+- Filter by date range
+- Search by keyword
+- Export logs (CSV, JSON)
+- Real-time log streaming (optional)
+
+**Location (Future):** Admin Panel → System Logs
+
+**Job Queue Monitor:**
+- View scheduled jobs (cron jobs)
+- View job execution history
+- View failed jobs (retry option)
+- View job execution time
+- Manually trigger jobs (admin only)
+
+**Location (Future):** Admin Panel → Jobs
+
+**Rate Limit Monitor:**
+- View rate limit violations (last 24 hours)
+- View top users by API usage
+- View rate limit distribution (histogram)
+- Adjust rate limits (admin only, requires restart)
+
+**Location (Future):** Admin Panel → Rate Limits
+
+### Support Mode (Future - Not Currently Implemented)
+
+**User State Viewer:**
+
+**Required Features:**
+- View user's current state (threads, messages, memories, artifacts, settings)
+- View user's recent activity (last 24 hours, last 7 days)
+- View user's error history (Sentry integration)
+- View user's rate limit status
+- Reproduce user's issue (impersonation mode)
+
+**Location (Future):** Admin Panel → Users → {userId} → Support View
+
+**Issue Reproduction:**
+- Impersonate user (read-only mode, view as user)
+- See exactly what user sees
+- Test user's workflow
+- Capture screenshots/logs
+
+**Location (Future):** Admin Panel → Users → {userId} → Impersonate
+
+**User Communication:**
+- Send in-app notification to user
+- Send email to user (via Firebase Auth email)
+- View user's support ticket history (if support system integrated)
+
+**Location (Future):** Admin Panel → Users → {userId} → Communicate
+
+### Data Export/Import Flows
+
+**Export Flows (Current Implementation):**
+
+**User Data Export (GDPR):**
+- ✅ Implemented: `exportUserData(userId)` action
+- ✅ Format: JSON file
+- ✅ Includes: Threads, messages, memories, artifacts, settings (excludes embeddings)
+- ✅ Download: Browser download trigger
+- ✅ Naming: `pandoras-box-export-{userId}-{timestamp}.json`
+
+**Export Limitations:**
+- ❌ Currently: No pagination for large exports (may timeout if > 100MB)
+- ❌ Currently: No streaming export (all data loaded into memory)
+- ✅ Future: Stream export for large datasets (chunked JSON)
+- ✅ Future: Export progress indicator (for large exports)
+- ✅ Future: Email export when ready (for very large exports)
+
+**Future Export Formats:**
+- CSV export (for spreadsheet analysis)
+- Markdown export (for documentation)
+- ZIP export (with attachments, images)
+
+**Import Flows (Not Currently Implemented):**
+
+**Data Import (Future):**
+- ❌ Currently: No import functionality
+- ✅ Future: Import JSON export (restore from backup)
+- ✅ Future: Import from other AI chat tools (ChatGPT, Claude)
+- ✅ Future: Import validation (check format, size limits)
+- ✅ Future: Import preview (show what will be imported before confirming)
+- ✅ Future: Import conflict resolution (duplicate threads, messages)
+
+**Bulk Upload (Future):**
+- ❌ Currently: No bulk document upload
+- ✅ Future: Upload multiple PDF/text files at once (ZIP archive)
+- ✅ Future: Bulk upload progress indicator
+- ✅ Future: Resume failed uploads
+
+**Location (Future):** Settings → Data Management → Import Data
+
+### Onboarding Flows + Tutorials
+
+**Current Implementation: Minimal**
+
+**Existing Onboarding:**
+- ✅ Firebase Auth signup/login flow
+- ❌ No welcome screen for new users
+- ❌ No feature tour
+- ❌ No interactive tutorials
+- ❌ No sample conversation starter
+
+**Future Requirements:**
+
+**Welcome Screen (First-Time User):**
+- Show on first login (check `users/{userId}/onboarding_completed` flag)
+- Welcome message: "Welcome to Pandora's Box!"
+- Brief explanation: "Your AI assistant with persistent memory"
+- CTA: "Get Started" button (dismisses welcome, sets flag)
+
+**Feature Tour (Interactive Walkthrough):**
+- Step 1: Chat interface (highlight chat input, explain message sending)
+- Step 2: Threads (highlight thread sidebar, explain multi-thread organization)
+- Step 3: Memory (highlight memory inspector, explain persistent memory)
+- Step 4: Settings (highlight settings icon, explain customization)
+- Step 5: Keyboard shortcuts (show command menu, Cmd/Ctrl+K)
+- Dismissible: "Skip tour" button
+- Progress indicator: "Step 1 of 5"
+- Completion: Set `onboarding_completed` flag
+
+**Interactive Tutorials (Future):**
+- Tutorial 1: "Send your first message" (guided walkthrough)
+- Tutorial 2: "Create a thread" (guided walkthrough)
+- Tutorial 3: "Upload a document" (guided walkthrough)
+- Tutorial 4: "Search memories" (guided walkthrough)
+- Tutorial 5: "Export your data" (guided walkthrough)
+- Accessible from: Help menu or Settings → Tutorials
+
+**Sample Conversation Starter:**
+- Show on empty chat state (if no messages)
+- Sample prompts:
+  - "Tell me about machine learning"
+  - "Help me plan a project"
+  - "Explain quantum computing"
+- Clicking sample prompt: Pre-fills chat input, sends message
+- Dismissible: "Got it" button
+
+**Location (Future):** Implemented via onboarding components and flags
+
+### Help/Support Pages (Future - Not Currently Implemented)
+
+**Help Center:**
+
+**Required Pages:**
+- FAQ (Frequently Asked Questions)
+  - "How does memory work?"
+  - "How do I export my data?"
+  - "How do I clear my memory?"
+  - "How do I use voice input?"
+  - "How do I upload documents?"
+  - "What are embeddings?"
+  - "How do I generate an API key?"
+  - "How do I use MCP integration?"
+- Keyboard Shortcuts Reference (table with all shortcuts)
+- API Documentation Link (external link to API docs)
+- Contact Support Form (email submission)
+- Troubleshooting Guide (common issues and solutions)
+
+**Location (Future):** `/help` page or Settings → Help
+
+**Support Contact:**
+- Email: support@pandorasbox.ai (example, update with actual email)
+- Response Time: 24-48 hours (SLA if applicable)
+- Support Hours: 9 AM - 5 PM EST (if applicable)
+
+**Documentation:**
+- User Guide (comprehensive documentation)
+- API Documentation (OpenAPI/Swagger specs)
+- Developer Guide (for MCP integration)
+- Video Tutorials (YouTube channel, if applicable)
+
+**Location (Future):** `/docs` or external documentation site
+
+---
+
+## 13. Assets I'd Love (But Not Mandatory)
+
+### Existing PRDs, Specs, Notion Docs, Slides
+
+**Current Documentation:**
+- ✅ ARCHITECTURE.md - Technical design document (777 lines)
+- ✅ API_DOCUMENTATION.md - API reference (457 lines)
+- ✅ PHASE_IMPLEMENTATION_STATUS.md - Phase tracking (277 lines)
+- ✅ README.md - Project overview
+- ✅ docs/blueprint.md - Blueprint/specifications (71 lines)
+- ✅ This Product Requirements Document (PRD)
+
+**Missing (Would Be Helpful):**
+- ❌ User stories/use cases document
+- ❌ Design mockups/wireframes (Figma, Sketch)
+- ❌ User flow diagrams (Miro, Lucidchart)
+- ❌ Database ERD (Entity Relationship Diagram)
+- ❌ System architecture diagrams (C4 model, sequence diagrams)
+- ❌ API sequence diagrams (request/response flows)
+
+**Recommended Future Documentation:**
+- User Story Map (visual representation of user journeys)
+- Design System Documentation (component library, style guide)
+- Testing Strategy Document (unit, integration, E2E tests)
+- Deployment Runbook (DEPLOYMENT_RUNBOOK.md exists, update if needed)
+- Incident Response Playbook (for production issues)
+
+### Backend API Docs (OpenAPI/Swagger)
+
+**Current API Documentation:**
+- ✅ API_DOCUMENTATION.md - Manual documentation
+- ✅ `public/openapi-mcp.yaml` - OpenAPI schema for MCP tools (YAML)
+- ✅ `public/openapi-mcp.json` - OpenAPI schema for MCP tools (JSON)
+- ✅ `public/openapi.yaml` - Main OpenAPI schema (if exists)
+
+**Existing OpenAPI Schemas:**
+- MCP Tools (`search_knowledge_base`, `add_memory`, `generate_artifact`)
+- ChatGPT Actions endpoints (`/api/chatgpt/store-memory`, `/api/chatgpt/retrieve-memories`)
+
+**Missing (Would Be Helpful):**
+- ❌ Complete OpenAPI schema for all API routes (Next.js API routes)
+- ❌ OpenAPI schema for Server Actions (if possible, Next.js Server Actions are not HTTP-based)
+- ❌ Interactive API documentation (Swagger UI, ReDoc)
+- ❌ API examples (request/response examples for each endpoint)
+- ❌ Postman collection (for API testing)
+
+**Recommended Future:**
+- Generate OpenAPI schema from code (using tRPC or similar, or manual)
+- Host Swagger UI at `/api-docs` route
+- Include request/response examples in OpenAPI schema
+- Export Postman collection from OpenAPI schema
+
+### Database ERD
+
+**Current Status:**
+- ❌ No formal ERD (Entity Relationship Diagram)
+- ✅ Data models documented in `ARCHITECTURE.md` and this PRD (Section 5)
+- ✅ Firestore collections documented in `ARCHITECTURE.md`
+
+**Would Be Helpful:**
+- Visual ERD showing relationships between collections
+- Tool: Draw.io, Lucidchart, or database visualization tool
+- Include: Collections, fields, relationships, indexes
+- Export: PNG, PDF, or interactive HTML
+
+**Collections to Include in ERD:**
+- `history` (messages)
+- `threads`
+- `memories`
+- `artifacts`
+- `settings`
+- `users/{userId}/state`
+- `external_knowledge` (Phase 5)
+- `feedback` (Phase 6)
+- `performance_metrics` (Phase 6)
+- `meta_learning_state` (Phase 6)
+- `system_logs`
+- `system_phases`
+- `system_knowledge_graph`
+- `knowledge_edges`
+
+**Relationships:**
+- User → Threads (1:N)
+- User → Messages (1:N)
+- User → Memories (1:N)
+- User → Artifacts (1:N)
+- Thread → Messages (1:N)
+- Memory → Memory (via `knowledge_edges`, N:N)
+
+### Current UI Screenshots (Even Ugly Ones 😄)
+
+**Existing Screenshots (Would Be Helpful):**
+- ❌ No screenshots currently in documentation
+- ✅ UI components exist (can take screenshots)
+- ✅ Pages exist (can take screenshots)
+
+**Recommended Screenshots to Take:**
+- Chat interface (empty state, with messages)
+- Thread sidebar (with multiple threads)
+- Memory inspector (with memories)
+- Settings page (all sections)
+- Graph view (knowledge graph visualization)
+- PandoraUI dashboard (phase indicators, metrics)
+- Command menu (Cmd/Ctrl+K)
+- Settings modal/drawer
+- Error states (rate limit, network error, etc.)
+- Empty states (no threads, no memories, no artifacts)
+- Mobile view (responsive design)
+
+**Screenshot Guidelines:**
+- Format: PNG or JPEG
+- Size: 1920x1080 for desktop, 375x667 for mobile
+- Annotations: Add labels/arrows for important UI elements
+- Organize: Create `/docs/screenshots/` directory
+- Update: Take new screenshots when UI changes
+
+### Customer Support Tickets or Common Complaints
+
+**Current Status:**
+- ❌ No support ticket system implemented
+- ❌ No customer feedback collection system (except Phase 6 feedback for search results)
+- ❌ No public issue tracker (GitHub Issues, if applicable)
+
+**Would Be Helpful:**
+- Common user questions (FAQ based on real questions)
+- Common errors/issues (troubleshooting guide based on real issues)
+- Feature requests (prioritization based on user demand)
+- User feedback on UX (pain points, improvements)
+
+**Future Recommendations:**
+- Integrate support ticket system (Intercom, Zendesk, Freshdesk)
+- Create public issue tracker (GitHub Issues, if open source)
+- Collect user feedback in-app (feedback widget, survey)
+- Analyze Sentry errors for common issues
+- Create FAQ based on support tickets
+- Create troubleshooting guide based on common issues
+
+### Analytics (What Users Do Today, Funnels, Drop-offs)
+
+**Current Status:**
+- ✅ Basic analytics: `analytics.ts` (event tracking)
+- ✅ Phase 6: Performance metrics tracking (search effectiveness, satisfaction)
+- ❌ No comprehensive analytics dashboard
+- ❌ No funnel analysis
+- ❌ No drop-off tracking
+- ❌ No user behavior analytics
+
+**Existing Analytics (Phase 6):**
+- Search performance metrics (response time, satisfaction)
+- User feedback on search results
+- Meta-learning state (weight adjustments, strategy)
+
+**Missing Analytics (Would Be Helpful):**
+- ❌ User acquisition (signups per day, week, month)
+- ❌ User activation (first message sent, first thread created)
+- ❌ User engagement (messages per session, sessions per week)
+- ❌ Feature usage (which features are used most: threads, memory search, knowledge upload)
+- ❌ Funnel analysis (signup → first message → first memory → first artifact)
+- ❌ Drop-off points (where users abandon onboarding, where users stop using)
+- ❌ Retention (DAU, WAU, MAU, retention curves)
+- ❌ Churn analysis (when users stop using, why)
+- ❌ A/B testing results (if A/B testing implemented)
+
+**Future Recommendations:**
+- Integrate analytics service (Google Analytics, Mixpanel, Amplitude, PostHog)
+- Track key events:
+  - User signed up
+  - First message sent
+  - First thread created
+  - First memory stored
+  - First artifact generated
+  - First document uploaded
+  - First data export
+  - First API key generated
+- Create analytics dashboard (Admin Panel → Analytics)
+- Set up funnel tracking (signup → activation → engagement)
+- Set up retention analysis (cohort analysis, retention curves)
+- Set up feature usage analysis (which features drive retention)
+
+**Privacy Considerations:**
+- ✅ Anonymize user IDs in analytics (use hash, not Firebase UID)
+- ✅ Don't track PII in analytics (no email, no message content)
+- ✅ Provide opt-out mechanism (Settings → Privacy → Disable Analytics)
+- ✅ Comply with GDPR/CCPA (consent required for analytics)
+
+---
+
+## Conclusion
+
+This Product Requirements Document (PRD) provides a comprehensive overview of the Pandora's Box system, covering all 13 sections requested:
+
+1. ✅ Product Intent + Success Criteria
+2. ✅ Users, Roles, Permissions (RBAC/ABAC)
+3. ✅ Scope Map: Modules + Navigation
+4. ✅ Core Workflows
+5. ✅ Data Model (Front-End View)
+6. ✅ Screens Inventory
+7. ✅ Settings & Configuration
+8. ✅ Content + Copy Requirements
+9. ✅ Brand + Design Constraints
+10. ✅ Technical Constraints (Front-End Architecture)
+11. ✅ Edge Cases + Compliance + Security
+12. ✅ Operational Needs
+13. ✅ Assets I'd Love (But Not Mandatory)
+
+**Document Status:** Complete (Version 1.0, January 2025)
+
+**Next Steps:**
+1. Review and refine PRD based on stakeholder feedback
+2. Prioritize missing features (marked as "Future" or "Not Implemented")
+3. Create detailed design mockups based on this PRD
+4. Update implementation plan based on PRD specifications
+5. Use PRD as reference for development and testing
+
+---
+
+**Document Version:** 1.0  
+**Last Updated:** January 2025  
+**Author:** Product Team / Development Team  
+**Status:** Complete

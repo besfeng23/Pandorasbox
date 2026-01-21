@@ -43,8 +43,7 @@ Traditional chat applications (like ChatGPT) have limited context windows and ca
 - **Server Actions**: Next.js Server Actions (`'use server'`) for all backend logic
 - **API Routes**: Next.js API routes for external integrations (ChatGPT Actions, MCP HTTP bridge, cron jobs)
 - **Authentication**: Firebase Auth (client-side) + Firebase Admin SDK (server-side)
-- **API Client**: OpenAI SDK 4.52.7
-- **MCP Server**: Model Context Protocol server for Claude Desktop integration
+- **AI Clients**: Custom clients for vLLM (inference) and Qdrant (vector DB)
 
 ### Database & Storage
 
@@ -56,22 +55,23 @@ Traditional chat applications (like ChatGPT) have limited context windows and ca
     - `artifacts` - Generated code/markdown artifacts
     - `settings` - User preferences
     - `users/{userId}/state` - User state (context notes, suggestions)
-- **Vector Storage**: Firestore native vector search (using `findNearest()`)
-  - **Embedding Model**: OpenAI `text-embedding-3-small` (1536 dimensions)
-  - **Distance Measure**: COSINE similarity
+    - `external_knowledge` - Phase 5: Cached external search results (query, source, content, confidence, cachedAt, url, title)
+    - `feedback` - Phase 6: User feedback on search results (query, userId, resultIds, satisfaction, feedback)
+    - `performance_metrics` - Phase 6: Search performance tracking (query, userId, internalCount, externalCount, avgConfidence, responseTime, userSatisfaction)
+    - `meta_learning_state` - Phase 6: Per-user meta-learning state (internalWeight, externalWeight, learningRate, avgSatisfaction, strategy)
+    - `system_logs` - System operation logs and telemetry
+- **Vector Storage**: Qdrant Vector Database (local: `http://localhost:6333`)
+  - **Embedding Model**: `all-MiniLM-L6-v2` (384 dimensions)
+  - **Distance Measure**: COSINE similarity (handled by Qdrant)
 - **File Storage**: Firebase Storage
   - Images: `uploads/{userId}/{messageId}.jpeg`
   - Knowledge documents processed server-side
 
 ### AI Engine
 
-- **Framework**: Genkit 1.27.0 (Google's AI orchestration framework)
-- **Primary Models**: OpenAI GPT models (configurable: `gpt-4o`, `gpt-4-turbo`, `gpt-3.5-turbo`)
-- **Embedding Model**: OpenAI `text-embedding-3-small`
-- **Voice Transcription**: OpenAI Whisper (`whisper-1`)
-- **Library Integration**: 
-  - `@genkit-ai/firebase` - Firebase integration for Genkit
-  - `@genkit-ai/google-genai` - Google Gemini integration (available but not primary)
+- **Primary Models**: vLLM with `mistralai/Mistral-7B-Instruct-v0.3` (configurable)
+- **Embedding Model**: `all-MiniLM-L6-v2`
+- **Voice Transcription**: Local or hosted Whisper (future work)
 
 ---
 
@@ -357,11 +357,12 @@ admin.initializeApp({
 - `NEXT_PUBLIC_FIREBASE_APP_ID`
 
 **Secret Variables** (server-only):
-- `OPENAI_API_KEY` - OpenAI API access
-- `GEMINI_API_KEY` - Google Gemini (optional)
-- `MCP_API_KEY` - API key for MCP HTTP bridge and ChatGPT Actions
-- `CHATGPT_API_KEY` - Alternative to MCP_API_KEY (used if MCP_API_KEY not set)
-- `MCP_SERVER_URL` - Server URL for OpenAPI schema generation
+- `FIREBASE_SERVICE_ACCOUNT_KEY` - Service account key for Firebase Admin SDK
+- `CRON_SECRET` - Secret for securing cron job API routes
+- `INFERENCE_URL` - URL for the vLLM inference server
+- `INFERENCE_MODEL` - Model name used by the vLLM server (e.g., `mistralai/Mistral-7B-Instruct-v0.3`)
+- `QDRANT_URL` - URL for the Qdrant vector database
+- `EMBEDDING_MODEL` - Model name for embedding generation (e.g., `all-MiniLM-L6-v2`)
 - `TAVILY_API_KEY` - Tavily web search API key used by the Deep Research Agent
 
 **Service Account**:
@@ -424,6 +425,12 @@ Core utilities and libraries
 - `rate-limit.ts` - Rate limiting implementation (token bucket algorithm)
 - `analytics.ts` - Event tracking and user statistics
 - `tavily.ts` - Tavily web search helper used by the Deep Research Agent
+- `hybrid-search.ts` - Phase 5: Hybrid search combining internal memories with external web results (Phase 6: uses adaptive weights)
+- `external-cache.ts` - Phase 5: External knowledge result caching
+- `meta-learning.ts` - Phase 6: Meta-learning and continuous self-improvement (performance tracking, weight adaptation)
+- `feedback-manager.ts` - Phase 6: Feedback collection and analysis system
+- `performance-tracker.ts` - Phase 6: Performance metrics tracking for search operations
+- `adaptive-weights.ts` - Phase 6: Dynamic weight adjustment based on user performance
 
 ### `/src/ai/`
 AI orchestration using Genkit
@@ -435,6 +442,8 @@ AI orchestration using Genkit
   - `run-answer-lane.ts` - Response generation flow (also performs self-evaluation for low-confidence topics)
   - `suggest-follow-up-questions.ts` - Follow-up question generation
   - `summarize-long-chat.ts` - Thread summarization flow
+  - `run-hybrid-lane.ts` - Phase 5: Hybrid reasoning flow combining internal and external knowledge
+  - `run-self-improvement.ts` - Phase 6: Self-improvement flow for meta-learning and continuous optimization
 - `agents/` - Background / offline agents
   - `nightly-reflection.ts` - Nightly reflection agent that analyzes interactions and creates insight memories
   - `deep-research.ts` - Deep Research Agent that self-studies low-confidence topics from `learning_queue` and stores acquired knowledge
@@ -544,6 +553,17 @@ type AppSettings = {
   system_prompt_override: string;
   personal_api_key?: string;
 };
+
+// External knowledge cache stored in Firestore 'external_knowledge' collection (Phase 5)
+type ExternalKnowledgeCache = {
+  query: string; // Normalized (lowercase) search query
+  source: string; // Source identifier (e.g., 'tavily')
+  content: string; // Cached content/snippet
+  confidence: number; // Confidence score (0.0 to 1.0)
+  url?: string; // Source URL
+  title?: string; // Result title
+  cachedAt: Timestamp; // Cache timestamp
+};
 ```
 
 ---
@@ -606,9 +626,9 @@ type AppSettings = {
 
 ## 9. Key Design Decisions & Rationale
 
-1. **Firestore Vector Search vs. Separate Vector DB**
-   - **Decision**: Use Firestore's native vector search
-   - **Rationale**: Simpler architecture, no additional infrastructure, adequate for scale
+1. **Qdrant vs. Firestore Native Vector Search**
+   - **Decision**: Use Qdrant as a dedicated vector database.
+   - **Rationale**: Qdrant offers advanced vector search capabilities, better performance for large datasets, and more flexibility compared to Firestore's native vector search. It aligns with the self-hosted sovereign AI stack.
 
 2. **Server Actions vs. API Routes**
    - **Decision**: Next.js Server Actions for all backend operations

@@ -1,11 +1,11 @@
 # Settings for Backend (on Cloud Run).
 # See https://firebase.google.com/docs/app-hosting/configure#cloud-run
 runConfig:
-  minInstances: 0
-  # maxInstances: 100
-  # concurrency: 80
-  # cpu: 1
-  # memoryMiB: 512
+  minInstances: 1 # CRITICAL: Keeps the CPU from freezing immediately after response
+  maxInstances: 10
+  concurrency: 80
+  cpu: 1
+  memoryMiB: 2048
 
 # Environment variables and secrets.
 env:
@@ -46,6 +46,13 @@ env:
       - BUILD
       - RUNTIME
 
+  # Sentry DSN for error tracking
+  - variable: NEXT_PUBLIC_SENTRY_DSN
+    value: https://9c170ff10657b483a588e3f631bdfeb8@o4510689910784000.ingest.de.sentry.io/4510689928740944
+    availability:
+      - BUILD
+      - RUNTIME
+
   # API Keys - Using Cloud Secret Manager
   # See https://firebase.google.com/docs/app-hosting/configure#secret-parameters
   - variable: FIREBASE_SERVICE_ACCOUNT_KEY
@@ -62,12 +69,6 @@ env:
   # CRON_SECRET for securing API routes
   - variable: CRON_SECRET
     secret: cron-secret
-    availability:
-      - RUNTIME
-  
-  # ChatGPT API Key for Custom GPT Actions
-  - variable: CHATGPT_API_KEY
-    secret: chatgpt-api-key
     availability:
       - RUNTIME
   
@@ -89,5 +90,22 @@ env:
 
   - variable: EMBEDDING_MODEL
     value: all-MiniLM-L6-v2
+    availability:
+      - RUNTIME
+  
+  # Firebase Admin Credentials (using ADMIN_ prefix to avoid reserved FIREBASE_ prefix)
+  - variable: ADMIN_CLIENT_EMAIL
+    secret: firebase-client-email
+    availability:
+      - RUNTIME
+
+  - variable: ADMIN_PRIVATE_KEY
+    secret: firebase-private-key
+    availability:
+      - RUNTIME
+
+  # Tavily Search API
+  - variable: TAVILY_API_KEY
+    secret: tavily-api-key
     availability:
       - RUNTIME

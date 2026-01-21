@@ -4,7 +4,7 @@ import { useFirestore } from '@/firebase';
 import type { Artifact } from '@/lib/types';
 import { useArtifactStore } from '@/store/artifacts';
 import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestore';
-import { FileCode, Loader2 } from 'lucide-react';
+import { FileCode, Loader2, FileText } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -55,6 +55,7 @@ export function ArtifactList({ userId }: ArtifactListProps) {
 
   return (
     <div className="flex flex-col h-full">
+<<<<<<< HEAD:backend/src/components/artifacts/artifact-list.tsx
         <div className="p-4 border-b border-cyan-400/20">
             <h3 className="text-sm font-semibold mb-1 neon-text-purple">
                 Artifacts
@@ -70,6 +71,7 @@ export function ArtifactList({ userId }: ArtifactListProps) {
             </div>
             ) : artifacts.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center p-6">
+<<<<<<< HEAD:backend/src/components/artifacts/artifact-list.tsx
                 <div className="glass-panel rounded-lg border border-purple-400/20 p-6 max-w-sm">
                     <FileCode className="h-12 w-12 mx-auto mb-4 text-purple-400/60 animate-pulse-slow" strokeWidth={1.5} />
                     <p className="font-semibold text-sm neon-text-purple mb-2">No artifacts yet</p>
@@ -83,6 +85,7 @@ export function ArtifactList({ userId }: ArtifactListProps) {
                 {artifacts.map(artifact => (
                 <button 
                     key={artifact.id} 
+<<<<<<< HEAD:backend/src/components/artifacts/artifact-list.tsx
                     className="w-full text-left p-3 rounded-lg glass-panel border border-purple-400/20 hover:border-purple-400/30 hover:shadow-neon-purple-sm transition-all group"
                     onClick={() => setActiveArtifactId(artifact.id)}
                 >

@@ -1,0 +1,28 @@
+flowchart TD
+  ui[UI] -->|submit| chatAction[submitUserMessage]
+  chatAction --> history[(history)]
+  chatAction --> threads[(threads)]
+  chatAction --> chatLane[runChatLane]
+
+  chatLane --> memLane[runMemoryLane]
+  chatLane --> ansLane[runAnswerLane]
+
+  memLane --> openaiEmb[OpenAI_Embeddings]
+  openaiEmb --> history
+  memLane --> memories[(memories)]
+  memLane --> context[(users_state_context)]
+  memLane --> graph[(system_knowledge_graph)]
+  memLane --> edges[(knowledge_edges)]
+
+  ansLane --> vec[findNearest_VectorSearch]
+  vec --> memories
+  vec --> history
+  ansLane --> openaiChat[OpenAI_Chat]
+  ansLane --> artifacts[(artifacts)]
+  ansLane --> history
+
+  cron[CronRoutes] --> memories
+  cron --> context
+  cron --> external[(external_knowledge)]
+
+

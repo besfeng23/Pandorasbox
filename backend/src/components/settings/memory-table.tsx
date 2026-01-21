@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Trash2, Edit, Save, X, Search, FileText } from 'lucide-react';
+import { Loader2, Trash2, Edit, Save, X, Search, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
 import { Badge } from '../ui/badge';
@@ -29,10 +29,9 @@ import {
 
 interface MemoryTableProps {
   userId: string;
-  agentId: string; // Add agentId to props
 }
 
-export function MemoryTable({ userId, agentId }: MemoryTableProps) {
+export function MemoryTable({ userId }: MemoryTableProps) {
   const [memories, setMemories] = useState<Memory[]>([]);
   const [filteredMemories, setFilteredMemories] = useState<Memory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -51,9 +50,9 @@ export function MemoryTable({ userId, agentId }: MemoryTableProps) {
       return;
     }
 
-    console.log('[MemoryTable] Setting up listener for userId:', userId, 'agentId:', agentId);
+    console.log('[MemoryTable] Setting up listener for userId:', userId);
     setIsLoading(true);
-    const memoriesCollection = collection(firestore, `users/${userId}/agents/${agentId}/memories`); // Update path
+    const memoriesCollection = collection(firestore, 'memories');
     const q = query(
       memoriesCollection, 
       where('userId', '==', userId),
@@ -71,7 +70,7 @@ export function MemoryTable({ userId, agentId }: MemoryTableProps) {
             createdAt: toDate(data.createdAt),
           } as Memory;
         });
-        console.log('[MemoryTable] Received', memoryList.length, 'memories for userId:', userId, 'agentId:', agentId);
+        console.log('[MemoryTable] Received', memoryList.length, 'memories for userId:', userId);
         setMemories(memoryList);
         setIsLoading(false);
       },
@@ -93,7 +92,7 @@ export function MemoryTable({ userId, agentId }: MemoryTableProps) {
     );
 
     return () => unsubscribe();
-  }, [userId, agentId, firestore, toast]); // Add agentId to dependency array
+  }, [userId, firestore, toast]);
 
   // Apply search filter
   useEffect(() => {
@@ -111,7 +110,7 @@ export function MemoryTable({ userId, agentId }: MemoryTableProps) {
 
   const handleDelete = (id: string) => {
     startTransition(async () => {
-      const result = await deleteMemoryFromMemories(id, userId, agentId);
+      const result = await deleteMemoryFromMemories(id, userId);
       if (result.success) {
         setDeleteDialogOpen(null);
         toast({ title: 'Memory deleted' });
@@ -127,7 +126,7 @@ export function MemoryTable({ userId, agentId }: MemoryTableProps) {
         return;
     }
     startTransition(async () => {
-      const result = await updateMemoryInMemories(id, editText, userId, agentId);
+      const result = await updateMemoryInMemories(id, editText, userId);
       if (result.success) {
         toast({ title: 'Memory updated' });
         setEditingId(null);

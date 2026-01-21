@@ -39,6 +39,7 @@ next-env.d.ts
 
 .genkit/*
 .env*
+!.env.example
 
 # firebase
 firebase-debug.log
@@ -49,3 +50,23 @@ service-account.json
 .cursor/
 TECHNICAL_DESIGN.md
 frontend/.env.local
+
+# base44 logs
+src/base44/logs/*.log
+
+# jest logs
+jest-full.log
+jest-run.log
+
+# firebase build artifacts
+.firebase/
+
+# large zip files
+*.zip
+
+# duplicate/temporary directories
+Pandorasbox/
+PB_temp_extract/
+def/
+defa/
+.firebase/

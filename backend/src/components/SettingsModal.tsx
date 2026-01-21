@@ -26,6 +26,9 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/hooks/use-theme';
+<<<<<<< HEAD:backend/src/components/SettingsModal.tsx
+=======
+>>>>>>> bbd6b23ef01342a97a6705259cda62785d79f2ab:src/components/SettingsModal.tsx
 
 interface SettingsModalProps {
   open: boolean;
@@ -38,6 +41,9 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
   const [dataRetention, setDataRetention] = useState(true);
   const { theme, toggleTheme } = useTheme();
   const darkMode = theme === 'dark';
+<<<<<<< HEAD:backend/src/components/SettingsModal.tsx
+=======
+>>>>>>> bbd6b23ef01342a97a6705259cda62785d79f2ab:src/components/SettingsModal.tsx
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -53,26 +59,6 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
         </DialogHeader>
 
         <div className="space-y-6 py-4">
-          {/* Notifications Section */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Bell className="h-4 w-4 text-neon-cyan" strokeWidth={2} />
-              <h3 className="text-sm font-semibold text-white/90">Notifications</h3>
-            </div>
-            <div className="flex items-center justify-between pl-6">
-              <Label htmlFor="notifications" className="text-white/80 cursor-pointer">
-                Enable notification alerts
-              </Label>
-              <Switch
-                id="notifications"
-                checked={notifications}
-                onCheckedChange={setNotifications}
-                className="data-[state=checked]:bg-neon-cyan"
-              />
-            </div>
-          </div>
-
-          <Separator className="bg-white/10" />
 
           {/* Model Configuration Section */}
           <div className="space-y-4">

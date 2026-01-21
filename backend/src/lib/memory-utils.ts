@@ -18,7 +18,6 @@ export interface MemoryData {
   content: string;
   userId: string;
   source?: string;
-  agentId?: string; // Added agentId to support collection routing
   metadata?: Record<string, any>;
   type?: 'insight' | 'question_to_ask' | 'normal';
 }
@@ -60,7 +59,6 @@ export async function saveMemory(memoryData: MemoryData): Promise<MemoryResult> 
       userId: memoryData.userId,
       source: memoryData.source || 'system',
       type: memoryData.type || 'normal',
-      agentId: memoryData.agentId || 'universe',
       ...memoryData.metadata,
     });
 
@@ -69,8 +67,7 @@ export async function saveMemory(memoryData: MemoryData): Promise<MemoryResult> 
 
     // --- Qdrant Integration ---
     try {
-      const agentId = memoryData.agentId || 'universe';
-      const collectionName = `memories_${agentId}`;
+      const collectionName = `memories_${memoryData.userId}`;
       
       await upsertPoint(collectionName, {
         id: memoryRef.id,
@@ -78,7 +75,6 @@ export async function saveMemory(memoryData: MemoryData): Promise<MemoryResult> 
         payload: {
           content: memoryData.content.trim(),
           userId: memoryData.userId,
-          agentId: agentId,
           source: memoryData.source || 'system',
           type: memoryData.type || 'normal',
           createdAt: new Date().toISOString(),
@@ -160,15 +156,13 @@ export async function saveMemoriesBatch(memories: MemoryData[]): Promise<{
           userId: memoryData.userId,
           source: memoryData.source || 'system',
           type: memoryData.type || 'normal',
-          agentId: memoryData.agentId || 'universe',
           ...memoryData.metadata,
         };
 
         batch.set(docRef, data);
         
         // --- Individual Qdrant Upsert (Batch upsert would be better if Qdrant client supported it) ---
-        const agentId = memoryData.agentId || 'universe';
-        const collectionName = `memories_${agentId}`;
+        const collectionName = `memories_${memoryData.userId}`;
         await upsertPoint(collectionName, {
           id: docRef.id,
           vector: embedding,
@@ -229,7 +223,6 @@ export async function updateMemoryWithEmbedding(
     }
 
     const data = docSnap.data();
-    const agentId = data?.agentId || 'universe';
     const newEmbedding = await generateEmbedding(newContent.trim());
 
     // Update Firestore
@@ -240,14 +233,13 @@ export async function updateMemoryWithEmbedding(
     });
 
     // Update Qdrant
-    const collectionName = `memories_${agentId}`;
+    const collectionName = `memories_${userId}`;
     await upsertPoint(collectionName, {
       id: memoryId,
       vector: newEmbedding,
       payload: {
         content: newContent.trim(),
         userId,
-        agentId,
         source: data?.source,
         type: data?.type,
         updatedAt: new Date().toISOString()

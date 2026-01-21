@@ -1,24 +1,25 @@
 'use client';
 
 import React, { useState, useTransition, useCallback } from 'react';
-import { useDropzone } from 'react-dropzone';
+import { useDropzone };
 import { uploadKnowledge } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Loader2, UploadCloud, File, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useUser } from '@/firebase';
 
 interface KnowledgeUploadProps {
   userId: string;
-  agentId: string;
 }
 
-export function KnowledgeUpload({ userId, agentId }: KnowledgeUploadProps) {
+export function KnowledgeUpload({ userId }: KnowledgeUploadProps) {
   const [isPending, startTransition] = useTransition();
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const { toast } = useToast();
+  const { user } = useUser();
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
@@ -27,7 +28,6 @@ export function KnowledgeUpload({ userId, agentId }: KnowledgeUploadProps) {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('userId', userId);
-    formData.append('agentId', agentId);
     
     setFileName(file.name);
     setUploadProgress(0); // Start progress
@@ -45,29 +45,20 @@ export function KnowledgeUpload({ userId, agentId }: KnowledgeUploadProps) {
         });
       }, 500);
 
-      // Use the new sovereign connector for file upload
       try {
-        const result = await fetch('/api/connectors/file', {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'Authorization': `Bearer ${await (await import('@/firebase')).getAuthToken()}`
-            }
-        });
-        
-        if (!result.ok) {
-            throw new Error((await result.json()).error || 'Upload failed');
-        }
-
-        const data = await result.json();
+        const result = await uploadKnowledge(formData);
         
         clearInterval(progressInterval);
         setUploadProgress(100);
 
-        toast({
+        if (result.success) {
+          toast({
             title: 'Success!',
             description: `Successfully indexed ${fileName}`,
-        });
+          });
+        } else {
+          throw new Error(result.message || 'Upload failed');
+        }
       } catch (error: any) {
         clearInterval(progressInterval);
         setUploadProgress(null);
