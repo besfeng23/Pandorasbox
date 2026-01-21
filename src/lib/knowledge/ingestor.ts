@@ -5,7 +5,7 @@ import { randomUUID } from 'crypto';
 
 export async function processAndStore(content: string, source: string, agentId: string, userId: string) {
   // 1. Chunking
-  const chunks = chunkText(content, 500, 50);
+  const chunks = chunkText(content, 500);
 
   // 2. Embedding & Storage
   let processedChunks = 0;
