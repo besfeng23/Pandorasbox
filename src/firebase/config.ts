@@ -2,11 +2,10 @@
 // Your project's security is enforced by your Firestore Security Rules and not by hiding these keys.
 
 export const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
+  apiKey: "AIzaSyBd6iZ2jEx1jmniBLD35no5gu1J4D4tSCM",
+  authDomain: "seismic-vista-480710-q5.firebaseapp.com",
+  projectId: "seismic-vista-480710-q5",
+  storageBucket: "seismic-vista-480710-q5.firebasestorage.app",
+  messagingSenderId: "536979070288",
+  appId: "1:536979070288:web:57b05547304f0056526055"
 };
