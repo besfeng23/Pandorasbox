@@ -40,7 +40,7 @@
     "apphosting": {
       "port": 5002,
       "rootDirectory": "./",
-      "startCommand": "npm run dev"
+      "startCommand": "npm run dev
     },
     "functions": {
       "port": 5001

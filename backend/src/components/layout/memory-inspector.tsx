@@ -11,9 +11,10 @@ import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestor
 import { BrainCircuit, Loader2, Search, Trash2, Edit, X, Save, Plus } from 'lucide-react';
 import React, { useEffect, useState, useTransition } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { deleteMemoryFromMemories, updateMemoryInMemories, createMemoryFromSettings } from '@/app/actions';
+import { deleteMemoryFromMemories, updateMemoryInMemories, createMemoryFromSettings, fetchMemories } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { toDate } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -54,51 +55,35 @@ export function MemoryInspector({ userId, agentId }: MemoryInspectorProps) {
   const { toast } = useToast();
   const firestore = useFirestore();
 
-  // Fetch memories from memories collection (real-time listener)
-  useEffect(() => {
+  // Fetch memories from Qdrant via Server Action
+  const loadMemories = React.useCallback(async (query = '') => {
     if (!userId) return;
+    setIsLoading(true);
+    try {
+      const results = await fetchMemories(userId, agentId, query || 'recent');
+      const memoryList = results.map(r => ({
+        id: r.id,
+        content: r.text,
+        score: r.score,
+        createdAt: r.timestamp ? new Date(r.timestamp) : new Date(),
+        userId: userId,
+      } as Memory));
+      setMemories(memoryList);
+    } catch (err) {
+      console.error('Error fetching memories:', err);
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch memories from Qdrant.' });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [userId, agentId, toast]);
 
-    const memoriesCollection = collection(firestore, `users/${userId}/agents/${agentId}/memories`); // Update path
-    const q = query(
-      memoriesCollection, 
-      where('userId', '==', userId),
-      orderBy('createdAt', 'desc')
-    );
+  useEffect(() => {
+    loadMemories(searchQuery);
+  }, [loadMemories, searchQuery]);
 
-    const unsubscribe = onSnapshot(
-      q,
-      snapshot => {
-        const memoryList = snapshot.docs.map(doc => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            ...data,
-            createdAt: data.createdAt?.toDate(),
-          } as Memory;
-        });
-        setMemories(memoryList);
-        setIsLoading(false);
-      },
-      err => {
-        console.error('Error fetching memories:', err);
-        setIsLoading(false);
-      }
-    );
-
-    return () => unsubscribe();
-  }, [userId, agentId, firestore]); // Add agentId to dependency array
-
-  // Apply search and date filters
+  // Apply date filters locally (or we could extend fetchMemories to handle it)
   useEffect(() => {
     let filtered = [...memories];
-    
-    // Apply search filter
-    if (searchQuery.trim()) {
-      const queryLower = searchQuery.toLowerCase();
-      filtered = filtered.filter(m => 
-        m.content.toLowerCase().includes(queryLower)
-      );
-    }
     
     // Apply date filter
     if (dateFilter === 'last7days') {
@@ -118,15 +103,14 @@ export function MemoryInspector({ userId, agentId }: MemoryInspectorProps) {
     }
     
     setFilteredMemories(filtered);
-  }, [memories, dateFilter, searchQuery]);
+  }, [memories, dateFilter]);
 
   const handleDelete = (memoryId: string) => {
     startTransition(async () => {
       const result = await deleteMemoryFromMemories(memoryId, userId, agentId);
       if (result.success) {
-        setMemories(prev => prev.filter(m => m.id !== memoryId));
-        setDeleteDialogOpen(null);
         toast({ title: 'Memory deleted' });
+        loadMemories(searchQuery);
       } else {
         toast({ variant: 'destructive', title: 'Error', description: result.message });
       }
@@ -141,10 +125,10 @@ export function MemoryInspector({ userId, agentId }: MemoryInspectorProps) {
     startTransition(async () => {
       const result = await updateMemoryInMemories(memoryId, editText, userId, agentId);
       if (result.success) {
-        setMemories(prev => prev.map(m => m.id === memoryId ? { ...m, content: editText } : m));
         setEditingId(null);
         setEditText('');
         toast({ title: 'Memory updated' });
+        loadMemories(searchQuery);
       } else {
         toast({ variant: 'destructive', title: 'Error', description: result.message });
       }
@@ -167,7 +151,7 @@ export function MemoryInspector({ userId, agentId }: MemoryInspectorProps) {
         setCreateDialogOpen(false);
         setNewMemoryText('');
         toast({ title: 'Memory created' });
-        // Memory will be added via real-time listener
+        loadMemories(searchQuery);
       } else {
         toast({ variant: 'destructive', title: 'Error', description: result.message });
       }
@@ -185,7 +169,7 @@ export function MemoryInspector({ userId, agentId }: MemoryInspectorProps) {
                         Memory Inspector
                     </h3>
                     <p className="text-xs text-white/60">
-                        Live view of Pandora's long-term memory. These memories help the AI remember your preferences and context across conversations.
+                        Live view of Pandora's long-term memory via Qdrant.
                     </p>
                 </div>
                 <Button
@@ -203,7 +187,7 @@ export function MemoryInspector({ userId, agentId }: MemoryInspectorProps) {
             <div className="relative">
                 <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
                 <Input
-                    placeholder="Search memories..."
+                    placeholder="Semantic search..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-8 bg-black/40 border-white/10 text-white placeholder:text-white/40"
@@ -224,16 +208,22 @@ export function MemoryInspector({ userId, agentId }: MemoryInspectorProps) {
         </div>
         <ScrollArea className="flex-1">
             {isLoading ? (
-            <div className="flex items-center justify-center h-full p-8">
-                <Loader2 className="h-6 w-6 animate-spin text-cyan-400" />
+            <div className="flex flex-col gap-3 p-4">
+                {[1, 2, 3].map(i => (
+                    <div key={i} className="space-y-2">
+                        <Skeleton className="h-4 w-3/4 bg-white/5" />
+                        <Skeleton className="h-4 w-1/2 bg-white/5" />
+                        <Skeleton className="h-3 w-1/4 bg-white/5" />
+                    </div>
+                ))}
             </div>
             ) : displayMemories.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center p-6">
                 <div className="glass-panel rounded-lg border border-cyan-400/20 p-6 max-w-sm">
                     <BrainCircuit className="h-12 w-12 mx-auto mb-4 text-cyan-400/60 animate-pulse-slow" strokeWidth={1.5} />
-                    <p className="font-semibold text-sm neon-text-cyan mb-2">Memory is empty</p>
+                    <p className="font-semibold text-sm neon-text-cyan mb-2">No memories stored</p>
                     <p className="text-xs text-white/60 leading-relaxed">
-                        Start chatting with Pandora to build its memory. The AI will automatically remember important information about you, your preferences, and your conversations.
+                        No semantic matches found in Qdrant. Start chatting to build long-term memory.
                     </p>
                 </div>
             </div>

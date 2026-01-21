@@ -19,8 +19,7 @@ import { getThread, addMessage, getRecentMessages, writeMemory, MemoryMessage } 
 import { buildPrompt } from '@/lib/selfhosted/prompt-builder';
 import { processInteraction } from '@/lib/selfhosted/memory-pipeline';
 import { deriveAgentId } from '@/lib/selfhosted/agent-router';
-import { getEmbedding, getEmbeddingsBatch } from '@/lib/selfhosted/embeddings-client';
-import { embedText } from '@/lib/ai/embedding'; // New import for embedding
+import { embedText, embedTextsBatch as getEmbeddingsBatch } from '@/lib/ai/embedding';
 import { chatCompletion, ChatMessage } from '@/lib/sovereign/vllm-client';
 import { searchPoints, upsertPoint, QdrantSearchResult } from '@/lib/sovereign/qdrant-client';
 import { extractArtifacts } from '@/lib/sovereign/artifact-parser';
@@ -519,7 +518,7 @@ export async function updateMemory(id: string, newText: string, userId: string, 
         if (!docSnap.exists || docSnap.data()?.userId !== userId) {
             return { success: false, message: 'Permission denied.' };
         }
-            const newEmbedding = await getEmbedding(newText);
+            const newEmbedding = await embedText(newText);
         await docRef.update({
             content: newText,
             embedding: newEmbedding,
@@ -614,7 +613,7 @@ export async function updateMemoryInMemories(id: string, newText: string, userId
         if (!docSnap.exists || docSnap.data()?.userId !== userId) {
             return { success: false, message: 'Permission denied.' };
         }
-        const newEmbedding = await getEmbedding(newText);
+        const newEmbedding = await embedText(newText);
         await docRef.update({
             content: newText,
             embedding: newEmbedding,
@@ -789,7 +788,7 @@ export async function reindexMemories(userId: string, agentId: string): Promise<
                 console.log(`[ReindexMemories] Generating embedding for memory ${memoryId}: "${data.content.substring(0, 50)}..."`);
                 
                 // Generate embedding
-                const embedding = await getEmbedding(data.content);
+                const embedding = await embedText(data.content);
                 
                 // Update document with embedding in Firestore
                 batch.update(doc.ref, {
@@ -1057,6 +1056,20 @@ export async function deleteThread(threadId: string, userId: string, agentId: st
         Sentry.captureException(error, { tags: { function: 'deleteThread', userId, threadId } });
         return { success: false, message: 'Failed to delete thread.' };
     }
+}
+
+/**
+ * SOVEREIGN AI STACK: Alias for submitUserMessage to satisfy architecture rules.
+ */
+export async function chat(formData: FormData) {
+    return submitUserMessage(formData);
+}
+
+/**
+ * SOVEREIGN AI STACK: Fetches memories directly from Qdrant via semantic search.
+ */
+export async function fetchMemories(userId: string, agentId: string, queryText: string) {
+    return searchMemoryAction(queryText, userId, agentId);
 }
 
     

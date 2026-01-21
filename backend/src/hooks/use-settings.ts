@@ -7,7 +7,7 @@ import { useFirestore } from '@/firebase';
 import type { AppSettings } from '@/lib/types';
 
 const defaultSettings: AppSettings = {
-    active_model: 'gpt-4o',
+    active_model: 'mistralai/Mistral-7B-Instruct-v0.3',
     reply_style: 'detailed',
     system_prompt_override: '',
     personal_api_key: '',

@@ -1,16 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirestoreAdmin } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
-import OpenAI from 'openai';
-
-// Lazy initialization to avoid build-time errors
-function getOpenAI() {
-  const apiKey = process.env.OPENAI_API_KEY?.trim();
-  if (!apiKey) {
-    throw new Error('OPENAI_API_KEY is not configured. Please set it in your environment variables.');
-  }
-  return new OpenAI({ apiKey });
-}
+import { chatCompletion } from '@/server/inference-client';
 
 /**
  * API route for daily briefing generation.
@@ -24,12 +15,6 @@ function getOpenAI() {
  */
 export async function POST(request: NextRequest) {
   try {
-    // Optional: Verify the request is from Cloud Scheduler
-    // const authHeader = request.headers.get('authorization');
-    // if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    // }
-
     const firestoreAdmin = getFirestoreAdmin();
     const usersSnapshot = await firestoreAdmin.collection("users").get();
     
@@ -61,9 +46,7 @@ export async function POST(request: NextRequest) {
 
         const userContext = contextDoc.data()?.note || "No context available.";
 
-        const openai = getOpenAI();
-        const completion = await openai.chat.completions.create({
-          model: 'gpt-4o',
+        const completion = await chatCompletion({
           messages: [
             {
               role: "system",
@@ -116,4 +99,3 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   return POST(request);
 }
-

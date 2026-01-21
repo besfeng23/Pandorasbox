@@ -20,13 +20,13 @@ async function testMCPSetup() {
 
   // Test 1: Environment variables
   console.log('1️⃣ Checking environment variables...');
-  const openaiKey = process.env.OPENAI_API_KEY?.trim();
+  const vllmUrl = process.env.INFERENCE_URL?.trim();
   const firebaseKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY?.trim();
   
-  if (openaiKey) {
-    console.log('   ✅ OPENAI_API_KEY is set');
+  if (vllmUrl) {
+    console.log('   ✅ INFERENCE_URL is set');
   } else {
-    console.log('   ⚠️  OPENAI_API_KEY is not set (required for embeddings)');
+    console.log('   ⚠️  INFERENCE_URL is not set (required for vLLM)');
   }
   
   if (firebaseKey) {

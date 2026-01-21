@@ -58,22 +58,6 @@ env:
     availability:
       - BUILD
       - RUNTIME
-
-  - variable: OPENAI_API_KEY
-    secret: openai-api-key
-    availability:
-      - RUNTIME
-  
-  - variable: GEMINI_API_KEY
-    secret: gemini-api-key
-    availability:
-      - RUNTIME
-  
-  # ChatGPT API Key for Custom GPT Actions
-  - variable: CHATGPT_API_KEY
-    secret: chatgpt-api-key
-    availability:
-      - RUNTIME
   
   # CRON_SECRET for securing API routes
   - variable: CRON_SECRET
@@ -81,15 +65,6 @@ env:
     availability:
       - RUNTIME
   
-  # MEMORY_API_KEY removed - not currently used in the codebase
-
-  # Sentry (optional - add when configured)
-  # - variable: NEXT_PUBLIC_SENTRY_DSN
-  #   value: YOUR_SENTRY_DSN_HERE
-  #   availability:
-  #     - BUILD
-  #     - RUNTIME
-
   # Sovereign AI Configuration
   - variable: INFERENCE_URL
     value: http://10.128.0.4:8000/v1
@@ -97,7 +72,7 @@ env:
       - RUNTIME
 
   - variable: INFERENCE_MODEL
-    value: pandora
+    value: mistralai/Mistral-7B-Instruct-v0.3
     availability:
       - RUNTIME
 

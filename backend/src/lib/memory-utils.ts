@@ -2,7 +2,8 @@
  * Centralized memory management utilities
  * 
  * This module ensures ALL memories are automatically saved to the 'memories' collection
- * with proper embeddings and indexing. Use these functions for all memory creation.
+ * in Firestore AND to Qdrant for vector search.
+ * Use these functions for all memory creation.
  */
 
 'use server';
@@ -11,11 +12,13 @@ import { getFirestoreAdmin } from './firebase-admin';
 import { generateEmbedding, generateEmbeddingsBatch } from './vector';
 import { FieldValue } from 'firebase-admin/firestore';
 import { trackEvent } from './analytics';
+import { upsertPoint } from './sovereign/qdrant-client';
 
 export interface MemoryData {
   content: string;
   userId: string;
   source?: string;
+  agentId?: string; // Added agentId to support collection routing
   metadata?: Record<string, any>;
   type?: 'insight' | 'question_to_ask' | 'normal';
 }
@@ -27,8 +30,7 @@ export interface MemoryResult {
 }
 
 /**
- * Saves a single memory to the memories collection with automatic embedding generation.
- * This is the standard way to create memories - it ensures proper indexing.
+ * Saves a single memory to Firestore AND Qdrant with automatic embedding generation.
  * 
  * @param memoryData - The memory data to save
  * @returns Promise with success status and memory ID
@@ -49,20 +51,43 @@ export async function saveMemory(memoryData: MemoryData): Promise<MemoryResult> 
     // Generate embedding automatically
     const embedding = await generateEmbedding(memoryData.content.trim());
 
-    // Create memory document
+    // Create memory document in Firestore
     const memoryRef = await memoriesCollection.add({
       id: '', // Will be set after creation
       content: memoryData.content.trim(),
-      embedding: embedding, // Always include embedding for vector search
+      embedding: embedding,
       createdAt: FieldValue.serverTimestamp(),
       userId: memoryData.userId,
-      source: memoryData.source || 'system', // Track where memory came from
-      type: memoryData.type || 'normal', // Memory type: insight, question_to_ask, or normal
-      ...memoryData.metadata, // Include any additional metadata
+      source: memoryData.source || 'system',
+      type: memoryData.type || 'normal',
+      agentId: memoryData.agentId || 'universe',
+      ...memoryData.metadata,
     });
 
     // Update with the ID
     await memoryRef.update({ id: memoryRef.id });
+
+    // --- Qdrant Integration ---
+    try {
+      const agentId = memoryData.agentId || 'universe';
+      const collectionName = `memories_${agentId}`;
+      
+      await upsertPoint(collectionName, {
+        id: memoryRef.id,
+        vector: embedding,
+        payload: {
+          content: memoryData.content.trim(),
+          userId: memoryData.userId,
+          agentId: agentId,
+          source: memoryData.source || 'system',
+          type: memoryData.type || 'normal',
+          createdAt: new Date().toISOString(),
+          ...memoryData.metadata
+        }
+      });
+    } catch (qdrantError) {
+      console.warn('Memory saved to Firestore but Qdrant upsert failed:', qdrantError);
+    }
 
     // Track analytics
     try {
@@ -71,7 +96,6 @@ export async function saveMemory(memoryData: MemoryData): Promise<MemoryResult> 
         memory_id: memoryRef.id 
       });
     } catch (error) {
-      // Analytics is optional, don't fail if it's not available
       console.warn('Could not track analytics:', error);
     }
 
@@ -90,11 +114,7 @@ export async function saveMemory(memoryData: MemoryData): Promise<MemoryResult> 
 }
 
 /**
- * Saves multiple memories in batch with automatic embedding generation.
- * More efficient than saving individually.
- * 
- * @param memories - Array of memory data to save
- * @returns Promise with success status and count
+ * Saves multiple memories in batch to Firestore and Qdrant.
  */
 export async function saveMemoriesBatch(memories: MemoryData[]): Promise<{
   success: boolean;
@@ -107,7 +127,6 @@ export async function saveMemoriesBatch(memories: MemoryData[]): Promise<{
       return { success: true, saved: 0, failed: 0, message: 'No memories to save.' };
     }
 
-    // Filter out invalid memories
     const validMemories = memories.filter(m => 
       m.content && m.content.trim() && m.userId
     );
@@ -119,11 +138,10 @@ export async function saveMemoriesBatch(memories: MemoryData[]): Promise<{
     const firestoreAdmin = getFirestoreAdmin();
     const memoriesCollection = firestoreAdmin.collection('memories');
 
-    // Generate embeddings in batch for efficiency
+    // Generate embeddings in batch
     const contents = validMemories.map(m => m.content.trim());
     const embeddings = await generateEmbeddingsBatch(contents);
 
-    // Create batch write
     const batch = firestoreAdmin.batch();
     let saved = 0;
     let failed = 0;
@@ -134,40 +152,42 @@ export async function saveMemoriesBatch(memories: MemoryData[]): Promise<{
         const embedding = embeddings[i];
         const docRef = memoriesCollection.doc();
 
-        batch.set(docRef, {
+        const data = {
           id: docRef.id,
           content: memoryData.content.trim(),
-          embedding: embedding, // Always include embedding for vector search
+          embedding: embedding,
           createdAt: FieldValue.serverTimestamp(),
           userId: memoryData.userId,
           source: memoryData.source || 'system',
-          type: memoryData.type || 'normal', // Memory type: insight, question_to_ask, or normal
+          type: memoryData.type || 'normal',
+          agentId: memoryData.agentId || 'universe',
           ...memoryData.metadata,
+        };
+
+        batch.set(docRef, data);
+        
+        // --- Individual Qdrant Upsert (Batch upsert would be better if Qdrant client supported it) ---
+        const agentId = memoryData.agentId || 'universe';
+        const collectionName = `memories_${agentId}`;
+        await upsertPoint(collectionName, {
+          id: docRef.id,
+          vector: embedding,
+          payload: {
+            ...data,
+            createdAt: new Date().toISOString(),
+            embedding: undefined // Don't duplicate vector in payload
+          }
         });
 
         saved++;
       } catch (error) {
-        console.error(`Error preparing memory ${i}:`, error);
+        console.error(`Error processing memory ${i} for batch:`, error);
         failed++;
       }
     }
 
-    // Commit batch (Firestore limit is 500 operations per batch)
     if (saved > 0) {
       await batch.commit();
-      
-      // Track analytics
-      try {
-        const userId = validMemories[0]?.userId;
-        if (userId) {
-          await trackEvent(userId, 'memory_created', { 
-            count: saved,
-            source: validMemories[0]?.source || 'system'
-          });
-        }
-      } catch (error) {
-        console.warn('Could not track analytics:', error);
-      }
     }
 
     return {
@@ -188,13 +208,7 @@ export async function saveMemoriesBatch(memories: MemoryData[]): Promise<{
 }
 
 /**
- * Updates an existing memory and regenerates its embedding.
- * Ensures the memory remains searchable after updates.
- * 
- * @param memoryId - The ID of the memory to update
- * @param newContent - The new content for the memory
- * @param userId - The user ID (for permission check)
- * @returns Promise with success status
+ * Updates an existing memory in Firestore and Qdrant.
  */
 export async function updateMemoryWithEmbedding(
   memoryId: string,
@@ -214,14 +228,30 @@ export async function updateMemoryWithEmbedding(
       return { success: false, message: 'Permission denied or memory not found.' };
     }
 
-    // Regenerate embedding for updated content
+    const data = docSnap.data();
+    const agentId = data?.agentId || 'universe';
     const newEmbedding = await generateEmbedding(newContent.trim());
 
-    // Update memory with new content and embedding
+    // Update Firestore
     await docRef.update({
       content: newContent.trim(),
-      embedding: newEmbedding, // Always update embedding when content changes
+      embedding: newEmbedding,
       editedAt: FieldValue.serverTimestamp(),
+    });
+
+    // Update Qdrant
+    const collectionName = `memories_${agentId}`;
+    await upsertPoint(collectionName, {
+      id: memoryId,
+      vector: newEmbedding,
+      payload: {
+        content: newContent.trim(),
+        userId,
+        agentId,
+        source: data?.source,
+        type: data?.type,
+        updatedAt: new Date().toISOString()
+      }
     });
 
     return {
@@ -238,15 +268,6 @@ export async function updateMemoryWithEmbedding(
   }
 }
 
-/**
- * Helper function to save an insight memory with proper type and metadata.
- * This ensures insights are properly tagged for prioritization in search.
- * 
- * @param insight - The insight content to save
- * @param userId - The user ID
- * @param metadata - Additional metadata (reflectionDate, processedCount, etc.)
- * @returns Promise with success status and memory ID
- */
 export async function saveInsightMemory(
   insight: string,
   userId: string,
@@ -261,16 +282,6 @@ export async function saveInsightMemory(
   });
 }
 
-/**
- * Helper function to save a question memory with proper type and metadata.
- * These are questions the AI should ask the user based on weak answers identified.
- * 
- * @param question - The question content to save
- * @param userId - The user ID
- * @param topic - The topic the question relates to
- * @param metadata - Additional metadata
- * @returns Promise with success status and memory ID
- */
 export async function saveQuestionMemory(
   question: string,
   userId: string,
@@ -289,4 +300,3 @@ export async function saveQuestionMemory(
     },
   });
 }
-

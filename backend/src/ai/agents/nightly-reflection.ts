@@ -8,20 +8,10 @@
 
 'use server';
 
-import { ai } from '@/ai/genkit';
 import { getFirestoreAdmin } from '@/lib/firebase-admin';
 import { z } from 'zod';
-import OpenAI from 'openai';
 import admin from 'firebase-admin';
-
-// Lazy initialization to avoid build-time errors
-function getOpenAI() {
-  const apiKey = process.env.OPENAI_API_KEY?.trim();
-  if (!apiKey) {
-    throw new Error('OPENAI_API_KEY is not configured. Please set it in your environment variables.');
-  }
-  return new OpenAI({ apiKey });
-}
+import { chatCompletion } from '@/server/inference-client';
 
 const ReflectionInputSchema = z.object({
   userId: z.string(),
@@ -42,77 +32,69 @@ const ReflectionOutputSchema = z.object({
 export async function runReflectionFlow(
   input: z.infer<typeof ReflectionInputSchema>
 ): Promise<z.infer<typeof ReflectionOutputSchema>> {
-  const reflectionFlow = ai.defineFlow(
-    {
-      name: 'runReflectionFlow',
-      inputSchema: ReflectionInputSchema,
-      outputSchema: ReflectionOutputSchema,
-    },
-    async ({ userId }) => {
-      const firestoreAdmin = getFirestoreAdmin();
-      
-      try {
-        // Fetch last 50 messages from history
-        const historySnapshot = await firestoreAdmin
-          .collection('history')
-          .where('userId', '==', userId)
-          .orderBy('createdAt', 'desc')
-          .limit(50)
-          .get();
+  const { userId } = input;
+  const firestoreAdmin = getFirestoreAdmin();
+  
+  try {
+    // Fetch last 50 messages from history
+    const historySnapshot = await firestoreAdmin
+      .collection('history')
+      .where('userId', '==', userId)
+      .orderBy('createdAt', 'desc')
+      .limit(50)
+      .get();
 
-        // Fetch last 50 memories
-        const memoriesSnapshot = await firestoreAdmin
-          .collection('memories')
-          .where('userId', '==', userId)
-          .orderBy('createdAt', 'desc')
-          .limit(50)
-          .get();
+    // Fetch last 50 memories
+    const memoriesSnapshot = await firestoreAdmin
+      .collection('memories')
+      .where('userId', '==', userId)
+      .orderBy('createdAt', 'desc')
+      .limit(50)
+      .get();
 
-        // Combine and format interactions
-        const interactions: string[] = [];
+    // Combine and format interactions
+    const interactions: string[] = [];
 
-        // Add history messages
-        historySnapshot.docs.reverse().forEach(doc => {
-          const data = doc.data();
-          const role = data.role === 'user' ? 'User' : 'Assistant';
-          const timestamp = data.createdAt instanceof admin.firestore.Timestamp 
-            ? data.createdAt.toDate().toISOString() 
-            : new Date().toISOString();
-          interactions.push(`[${timestamp}] ${role}: ${data.content || ''}`);
-        });
+    // Add history messages
+    historySnapshot.docs.reverse().forEach(doc => {
+      const data = doc.data();
+      const role = data.role === 'user' ? 'User' : 'Assistant';
+      const timestamp = data.createdAt instanceof admin.firestore.Timestamp 
+        ? data.createdAt.toDate().toISOString() 
+        : new Date().toISOString();
+      interactions.push(`[${timestamp}] ${role}: ${data.content || ''}`);
+    });
 
-        // Add memories (excluding insights to avoid circular analysis)
-        memoriesSnapshot.docs.reverse().forEach(doc => {
-          const data = doc.data();
-          if (data.type !== 'insight' && data.type !== 'question_to_ask') {
-            const timestamp = data.createdAt && typeof data.createdAt.toDate === 'function'
-              ? data.createdAt.toDate().toISOString() 
-              : new Date().toISOString();
-            interactions.push(`[${timestamp}] Memory: ${data.content || ''}`);
-          }
-        });
+    // Add memories (excluding insights to avoid circular analysis)
+    memoriesSnapshot.docs.reverse().forEach(doc => {
+      const data = doc.data();
+      if (data.type !== 'insight' && data.type !== 'question_to_ask') {
+        const timestamp = data.createdAt && typeof data.createdAt.toDate === 'function'
+          ? data.createdAt.toDate().toISOString() 
+          : new Date().toISOString();
+        interactions.push(`[${timestamp}] Memory: ${data.content || ''}`);
+      }
+    });
 
-        const processedCount = interactions.length;
+    const processedCount = interactions.length;
 
-        if (processedCount === 0) {
-          return {
-            insights: [],
-            weakAnswer: null,
-            processedCount: 0,
-          };
-        }
+    if (processedCount === 0) {
+      return {
+        insights: [],
+        weakAnswer: null,
+        processedCount: 0,
+      };
+    }
 
-        // Prepare interaction text for analysis
-        const interactionsText = interactions.join('\n\n');
+    // Prepare interaction text for analysis
+    const interactionsText = interactions.join('\n\n');
 
-        // Use LLM to analyze and extract insights
-        const openai = getOpenAI();
-        const completion = await openai.chat.completions.create({
-          model: 'gpt-4o',
-          messages: [
-            {
-              role: 'system',
-              content: `You are a reflection agent analyzing user interactions to improve future AI responses.
+    // Use LLM to analyze and extract insights
+    const completion = await chatCompletion({
+      messages: [
+        {
+          role: 'system',
+          content: `You are a reflection agent analyzing user interactions to improve future AI responses.
 
 Your task is to:
 1. Identify 3 key facts you learned about the user (preferences, patterns, context, recurring themes)
@@ -124,38 +106,37 @@ Format requirements:
 - Focus on patterns and learnings that will help in future conversations
 - Weak answers should identify the topic and suggest a question to ask the user
 
-Return a JSON object with:
+Return ONLY a JSON object with:
 - "insights": array of 3 insight strings
 - "weakAnswer": object with "topic" (string) and "question" (string), or null if none found`
-            },
-            {
-              role: 'user',
-              content: `Analyze these recent user interactions:\n\n${interactionsText}\n\nExtract insights and identify weak answers.`
-            }
-          ],
-          response_format: { type: 'json_object' },
-        });
+        },
+        {
+          role: 'user',
+          content: `Analyze these recent user interactions:\n\n${interactionsText}\n\nExtract insights and identify weak answers.`
+        }
+      ],
+    });
 
-        const responseText = completion.choices[0].message.content || '{}';
-        const responseData = JSON.parse(responseText);
+    const responseText = completion.choices[0].message.content || '{}';
+    
+    // Attempt to extract JSON object if it's wrapped in text
+    const jsonMatch = responseText.match(/\{.*\}/s);
+    const jsonStr = jsonMatch ? jsonMatch[0] : responseText;
+    
+    const responseData = JSON.parse(jsonStr);
 
-        return {
-          insights: Array.isArray(responseData.insights) ? responseData.insights : [],
-          weakAnswer: responseData.weakAnswer && typeof responseData.weakAnswer === 'object'
-            ? {
-                topic: responseData.weakAnswer.topic || '',
-                question: responseData.weakAnswer.question || '',
-              }
-            : null,
-          processedCount,
-        };
-      } catch (error: any) {
-        console.error(`[ReflectionFlow] Error for user ${userId}:`, error);
-        throw error;
-      }
-    }
-  );
-
-  return reflectionFlow(input);
+    return {
+      insights: Array.isArray(responseData.insights) ? responseData.insights : [],
+      weakAnswer: responseData.weakAnswer && typeof responseData.weakAnswer === 'object'
+        ? {
+            topic: responseData.weakAnswer.topic || '',
+            question: responseData.weakAnswer.question || '',
+          }
+        : null,
+      processedCount,
+    };
+  } catch (error: any) {
+    console.error(`[ReflectionFlow] Error for user ${userId}:`, error);
+    throw error;
+  }
 }
-

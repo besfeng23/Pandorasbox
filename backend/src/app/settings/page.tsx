@@ -43,21 +43,19 @@ import { useTheme } from '@/hooks/use-theme';
  * Update this object to rebrand model names without changing backend logic.
  */
 const MODEL_NAMES: Record<string, string> = {
-  'gpt-4o': 'Pandora Deep (Complex Reasoning)',
-  'gpt-4o-mini': 'Pandora Spark (High Speed)',
-  'gpt-4-turbo': 'Pandora Turbo (Balanced Performance)',
-  'gpt-3.5-turbo': 'Pandora Classic (Fast & Efficient)',
+  'mistralai/Mistral-7B-Instruct-v0.3': 'Pandora Sovereign (Mistral 7B)',
+  'pandora-sovereign': 'Pandora Sovereign (GPU Optimized)',
 };
 
 /**
  * Get display name for a model ID, or return a default branded name for unknown models.
  */
 function getModelDisplayName(modelId: string): string {
-  return MODEL_NAMES[modelId] || 'Pandora Experimental';
+  return MODEL_NAMES[modelId] || 'Pandora Sovereign';
 }
 
 const settingsSchema = z.object({
-  active_model: z.enum(['gpt-4o', 'gpt-4-turbo', 'gpt-3.5-turbo']),
+  active_model: z.enum(['mistralai/Mistral-7B-Instruct-v0.3', 'pandora-sovereign']),
   reply_style: z.enum(['concise', 'detailed']),
   system_prompt_override: z.string().optional(),
   personal_api_key: z.string().optional(),
@@ -270,14 +268,11 @@ export default function SettingsPage() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent className="bg-gray-900 border-white/10">
-                            <SelectItem value="gpt-4o" className="text-white">
-                              {getModelDisplayName('gpt-4o')}
+                            <SelectItem value="mistralai/Mistral-7B-Instruct-v0.3" className="text-white">
+                              {getModelDisplayName('mistralai/Mistral-7B-Instruct-v0.3')}
                             </SelectItem>
-                            <SelectItem value="gpt-4-turbo" className="text-white">
-                              {getModelDisplayName('gpt-4-turbo')}
-                            </SelectItem>
-                            <SelectItem value="gpt-3.5-turbo" className="text-white">
-                              {getModelDisplayName('gpt-3.5-turbo')}
+                            <SelectItem value="pandora-sovereign" className="text-white">
+                              {getModelDisplayName('pandora-sovereign')}
                             </SelectItem>
                           </SelectContent>
                         </Select>

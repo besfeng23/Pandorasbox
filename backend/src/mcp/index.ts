@@ -4,13 +4,9 @@
  * MCP Server for Pandora's Box
  * 
  * This server exposes Pandora's Box capabilities as MCP tools:
- * - search_knowledge_base: Semantic search across memories and history
- * - add_memory: Store new memories with embeddings
+ * - search_knowledge_base: Semantic search across memories and history using Qdrant
+ * - add_memory: Store new memories with embeddings in Firestore and Qdrant
  * - generate_artifact: Create and save code/markdown artifacts
- * 
- * Usage:
- *   npm run mcp:dev    # Development mode
- *   npm run mcp:start  # Production mode
  */
 
 // Load environment variables from .env.local
@@ -34,7 +30,8 @@ import { handleGenerateArtifact } from './tools/generate-artifact';
 
 // Validate required environment variables
 function validateEnvironment() {
-  const requiredVars = ['OPENAI_API_KEY'];
+  // OPENAI_API_KEY is no longer required as we use self-hosted AI
+  const requiredVars: string[] = []; 
   const missing: string[] = [];
   
   for (const varName of requiredVars) {
@@ -49,7 +46,7 @@ function validateEnvironment() {
     throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
   }
   
-  // Check for Firebase service account (optional, will use ADC if not present)
+  // Check for Firebase service account
   const serviceAccountPath = join(process.cwd(), 'service-account.json');
   if (!existsSync(serviceAccountPath)) {
     console.warn('⚠️  service-account.json not found. Will use Application Default Credentials if available.');
@@ -58,7 +55,7 @@ function validateEnvironment() {
   }
 }
 
-// Initialize and validate on startup (non-blocking)
+// Initialize and validate on startup
 let envValidated = false;
 try {
   validateEnvironment();
@@ -66,8 +63,6 @@ try {
   console.error('✅ Environment variables validated');
 } catch (error: any) {
   console.error('❌ Environment validation failed:', error.message);
-  console.error('⚠️  Server will start but tools may fail until environment is configured');
-  // Don't exit immediately - let the server start and fail gracefully on first request
 }
 
 // Initialize the server
@@ -229,13 +224,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         );
     }
   } catch (error: any) {
-    // Handle known errors
     if (error instanceof McpError) {
       console.error(`❌ MCP Error in ${name}:`, error.message);
       throw error;
     }
 
-    // Handle validation errors
     if (error.message && typeof error.message === 'string') {
       console.error(`❌ Validation error in ${name}:`, error.message);
       throw new McpError(
@@ -244,7 +237,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       );
     }
 
-    // Handle unknown errors
     console.error(`❌ Unexpected error executing tool ${name}:`, error);
     if (error.stack) {
       console.error('Stack trace:', error.stack);
@@ -259,7 +251,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 // Start the server
 async function main() {
   try {
-    // Warn if environment wasn't validated
     if (!envValidated) {
       console.error('⚠️  Starting server with unvalidated environment. Tools may fail.');
     }
@@ -269,14 +260,12 @@ async function main() {
     console.error('✅ Pandora\'s Box MCP server running on stdio');
     console.error('📋 Available tools: search_knowledge_base, add_memory, generate_artifact');
     
-    // Test Firebase initialization (non-blocking)
     try {
       const { getFirestoreAdmin } = await import('@/lib/firebase-admin');
-      getFirestoreAdmin(); // This will initialize Firebase
+      getFirestoreAdmin();
       console.error('✅ Firebase Admin initialized');
     } catch (firebaseError: any) {
       console.warn('⚠️  Firebase initialization check failed:', firebaseError.message);
-      console.warn('⚠️  Tools requiring Firebase may fail until credentials are configured');
     }
   } catch (error: any) {
     console.error('❌ Fatal error starting MCP server:', error.message || error);
@@ -287,7 +276,6 @@ async function main() {
   }
 }
 
-// Handle uncaught errors
 process.on('uncaughtException', (error) => {
   console.error('Uncaught exception:', error);
   process.exit(1);
@@ -299,4 +287,3 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 main();
-

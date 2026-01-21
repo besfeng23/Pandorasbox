@@ -41,7 +41,7 @@ export type Memory = {
 };
 
 export type AppSettings = {
-    active_model: 'gpt-4o' | 'gpt-4-turbo' | 'gpt-3.5-turbo';
+    active_model: 'mistralai/Mistral-7B-Instruct-v0.3' | 'pandora-sovereign';
     reply_style: 'concise' | 'detailed';
     system_prompt_override: string;
     personal_api_key?: string;

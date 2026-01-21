@@ -6,13 +6,11 @@
  * This is a minimal MCP server entrypoint intended for use with Cursor's
  * `.cursor/mcp.json` configuration. It exposes:
  *
- * - add_memory: write a new memory to Firestore with embeddings
- * - query_knowledge: semantic search across history + memories
- *
- * It reuses the existing MCP tool handlers from `src/mcp/tools`.
+ * - add_memory: write a new memory to Firestore and Qdrant with embeddings
+ * - query_knowledge: semantic search across history + memories using Qdrant
  */
 
-// Load environment variables from .env.local (for OPENAI_API_KEY, etc.)
+// Load environment variables from .env.local
 import { config } from 'dotenv';
 import { resolve } from 'path';
 
@@ -33,23 +31,11 @@ import { handleSearchKnowledgeBase } from '@/mcp/tools/search-knowledge';
 
 // Validate required environment variables (best-effort)
 function validateEnvironment() {
-  const missing: string[] = [];
-
-  if (!process.env.OPENAI_API_KEY?.trim()) {
-    missing.push('OPENAI_API_KEY');
-  }
-
   if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY?.trim()) {
     console.warn(
       '⚠️  FIREBASE_SERVICE_ACCOUNT_KEY is not set. ' +
         'The MCP server will fall back to Application Default Credentials or service-account.json.'
     );
-  }
-
-  if (missing.length > 0) {
-    console.error('❌ Missing required environment variables:', missing.join(', '));
-    console.error('Please set these in .env.local or your MCP server environment.');
-    throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
   }
 }
 
@@ -60,7 +46,6 @@ try {
   console.error('✅ Environment variables validated');
 } catch (error: any) {
   console.error('⚠️  Environment validation failed:', error.message);
-  console.error('⚠️  Server will start but tools may fail until environment is configured');
 }
 
 // Initialize the server
@@ -97,7 +82,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       {
         name: 'add_memory',
         description:
-          'Add a new memory to the Pandora knowledge base. The memory will be embedded and stored in Firestore.',
+          'Add a new memory to the Pandora knowledge base. The memory will be embedded and stored in Firestore and Qdrant.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -237,5 +222,3 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 main();
-
-
