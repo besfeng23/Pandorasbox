@@ -29,7 +29,7 @@ export async function searchPoints(collection: string, vector: number[], limit: 
     if (!response.ok) {
         // If collection doesn't exist, we might return empty or throw
         if (response.status === 404) return [];
-        throw new Error(`Qdrant search failed: ${response.statusText}`);
+        throw new Error(`Qdrant search failed: ${response.statusText}. Memory System Offline - Check Container.`);
     }
 
     const data = await response.json();
@@ -73,7 +73,7 @@ export async function upsertPoint(collection: string, point: { id: string | numb
     });
 
     if (!response.ok) {
-        throw new Error(`Qdrant upsert failed: ${response.statusText}`);
+        throw new Error(`Qdrant upsert failed: ${response.statusText}. Memory System Offline - Check Container.`);
     }
 
     const result = await response.json();

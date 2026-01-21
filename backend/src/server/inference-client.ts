@@ -52,7 +52,7 @@ export async function chatCompletion(
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`vLLM inference failed: ${response.status} - ${errorText}`);
+    throw new Error(`vLLM inference failed: ${response.status} - ${errorText}. Inference System Offline - Check Container.`);
   }
 
   return response.json();

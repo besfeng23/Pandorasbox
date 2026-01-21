@@ -53,6 +53,19 @@ export function CommandRail() {
               </SidebarMenuButton>
             </Link>
           </SidebarMenuItem>
+          <SidebarMenuItem>
+            <Link href="/memory" passHref>
+              <SidebarMenuButton
+                tooltip="Memory"
+                isActive={pathname === '/memory'}
+                size="lg"
+                asChild
+                className={pathname === '/memory' ? 'bg-neon-cyan/20 border border-neon-cyan/30' : ''}
+              >
+                <Icons.memory strokeWidth={1.5} className={pathname === '/memory' ? 'text-neon-cyan' : 'text-white/60'} />
+              </SidebarMenuButton>
+            </Link>
+          </SidebarMenuItem>
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="p-2 border-t border-white/10">
