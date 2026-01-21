@@ -49,7 +49,7 @@ env:
   # API Keys - Using Cloud Secret Manager
   # See https://firebase.google.com/docs/app-hosting/configure#secret-parameters
   - variable: FIREBASE_SERVICE_ACCOUNT_KEY
-    secret: firebase-service-account-key
+    secret: firebase-service-account-key@1
     availability:
       - RUNTIME
 
