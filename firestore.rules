@@ -25,7 +25,7 @@ service cloud.firestore {
 
     // Threads collection - users can only access their own threads
     match /threads {
-      allow list: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow list: if request.auth != null && request.query.resource.data.userId == request.auth.uid;
     }
     match /threads/{threadId} {
       allow read, update, delete: if isOwner(resource.data.userId);
