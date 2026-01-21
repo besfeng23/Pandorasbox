@@ -2,3 +2,9 @@ build:
   command: "cd frontend && npm run build"
 run:
   command: "npm run start"
+env:
+  - variable: NEXT_PUBLIC_API_URL
+    value: "https://pandora-backend-536979070288.us-central1.run.app"
+    availability:
+      - BUILD
+      - RUNTIME
