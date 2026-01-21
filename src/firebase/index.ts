@@ -41,6 +41,16 @@ export function initializeFirebase(): {
   return { firebaseApp, firestore, auth };
 }
 
+export async function getAuthToken(): Promise<string | null> {
+  if (typeof window === 'undefined') return null;
+  
+  const { auth } = initializeFirebase();
+  if (auth?.currentUser) {
+    return await auth.currentUser.getIdToken();
+  }
+  return null;
+}
+
 export { FirebaseProvider, useFirebase, useFirebaseApp, useFirestore, useAuth } from './provider';
 export { FirebaseClientProvider } from './client-provider';
 export { useUser } from './auth/use-user';
