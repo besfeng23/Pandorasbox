@@ -127,7 +127,7 @@ export function ChatPanel({ threadId }: { threadId: string }) {
     setStreamingMessage(null); // Stream finished, onSnapshot will provide the final message
   };
 
-  const onSubmit = async (values: z.infer<typeof formSchema>>) => {
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (!user || !thread) {
       toast({
         variant: 'destructive',
