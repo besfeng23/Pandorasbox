@@ -24,10 +24,12 @@ service cloud.firestore {
     }
 
     // Threads collection - users can only access their own threads
+    match /threads {
+      allow list: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
     match /threads/{threadId} {
-      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
-      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow read, update, delete: if isOwner(resource.data.userId);
+      allow create: if isOwner(request.resource.data.userId);
     }
 
     // Artifacts collection - users can only access their own artifacts
