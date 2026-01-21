@@ -3,6 +3,8 @@ import './globals.css';
 import { cn } from '@/lib/utils';
 import { Providers } from '@/components/providers';
 
+console.log('NEXT_PUBLIC_API_URL during layout render:', process.env.NEXT_PUBLIC_API_URL);
+
 export const metadata: Metadata = {
   title: "Pandora's Box",
   description: 'Your personal AI companion.',
