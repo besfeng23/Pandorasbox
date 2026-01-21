@@ -1,4 +1,4 @@
 build:
-  command: "npm run build"
+  command: "cd frontend && npm run build"
 run:
   command: "npm run start"
