@@ -1,0 +1,30 @@
+{
+  "hosting": {
+    "public": "frontend/.next",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "/api/**",
+        "destination": "/backend"
+      }
+    ]
+  },
+  "apphosting": {
+    "source": ".",
+    "backends": [
+      {
+        "id": "frontend",
+        "rootDir": "frontend"
+      },
+      {
+        "id": "backend",
+        "rootDir": "backend",
+        "webFramework": "NEXT_JS"
+      }
+    ]
+  }
+}

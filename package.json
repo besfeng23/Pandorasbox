@@ -1,0 +1,17 @@
+{
+  "name": "pandorafullstack-monorepo",
+  "version": "1.0.0",
+  "description": "Monorepo for PandoraFullStack frontend and backend",
+  "main": "index.js",
+  "scripts": {
+    "install-all": "npm install --prefix frontend && npm install --prefix backend",
+    "dev": "concurrently \"npm run dev --prefix frontend\" \"npm run dev --prefix backend\"",
+    "build-all": "npm run build --prefix frontend && npm run build --prefix backend"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
