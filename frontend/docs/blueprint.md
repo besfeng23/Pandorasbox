@@ -1,0 +1,113 @@
+# **App Name**: Pandora's Box
+
+## Core Features:
+
+- Firebase Authentication: Secure user sign-in and sign-up using Firebase Authentication (email/password).
+- Agent Selection: Allow users to select between 'Builder' and 'Universe' agents.
+- Thread Management: Enable users to create, search, sort (by updatedAt), rename, and delete chat threads associated with the selected agent, with Firestore acting as the database.
+- Real-time Chat Interface: Provide a real-time chat interface with message lists updating dynamically from Firestore, ordered by creation time. Includes input, send button, and 'Generating...' status.
+- AI Chat Integration: Integrate with the /api/chat endpoint to send user messages and receive assistant replies. The LLM decides whether to use tools.
+- Error Handling and Retry: Implement error handling for API failures, allowing users to retry sending messages.
+- Account and Theme Settings: Provide account settings for profile management, logout, and theme selection (light/dark).
+- Cross-thread Search: Keyword + semantic search across all threads and both agents, with filters (date range, agent, tags, pinned, source).
+- Memory Extraction Pipeline: Automatically promotes durable “memories” from conversations (facts, preferences, commitments, people/places) into a separate memory store.
+- Memory Review + Edit: A “Memory Inspector” where users can approve, edit, merge, or delete extracted memories (with provenance pointing back to messages).
+- Pinning and Highlights: Pin a message, a summary, or a memory card; mark “important” moments.
+- Thread Summaries: Auto-generate rolling summaries (per thread and per agent), refreshed after N turns.
+- Knowledge Packs: User-curated collections (e.g., “Business”, “Dating”, “Ops”) that the agent can load/unload as context.
+- Memory Scoring/Decay: Confidence score, last-verified date, and optional decay rules so old/low-confidence items don’t over-influence.
+- Per-agent Settings: Tone, verbosity, tool access toggles, safety rails, retrieval strictness, memory write-policy (read-only vs read/write).
+- Custom Agents: Allow users to create agents from templates, each with isolated namespace and vector collection.
+- Agent “Profiles”: Separate instruction stacks (system prompt, behavior rules, domain constraints) and easy cloning.
+- Guardrails and Scopes: Explicit capability boundaries (e.g., Universe cannot access Builder memories, and vice versa), plus visibility indicators in the UI.
+- Streaming Responses: Token streaming rather than waiting for full completion.
+- Message Actions: Copy, quote, regenerate, edit-and-resend, bookmark, “make memory”, “add to knowledge pack”.
+- Keyboard Shortcuts and Command Palette: Search, new thread, switch agent, jump to thread, toggle theme.
+- Rich Rendering: Markdown, code blocks with syntax highlight, tables, and safe inline previews.
+- Attachments in Chat: Upload files and images; show attachment chips with metadata and source tracking.
+- Export a Thread: Export a thread (Markdown/JSON) and export all data (account-level archive).
+- Import Chat Logs: Import chat logs (e.g., JSON/CSV) into a thread or into “knowledge packs”.
+- Optional “Share Link”: Private link with access control, or public read-only.
+- Tool Trace / Reasoning Transparency Layer: Show “tools used”, inputs/outputs, and citations for tool-based answers (not chain-of-thought—just structured traces).
+- Connectors (later): Google Drive, Calendar, Gmail, Notion, Slack—scoped permissions, per-agent.
+- Web Retrieval Mode with Citations: Toggleable per message or per agent.
+- API keys / BYO model endpoints: Users can bring their own inference/embeddings endpoints if your architecture supports it.
+- Usage Dashboard: Latency, tokens, cost estimates, and daily/weekly usage.
+- Feedback Capture: Thumbs up/down, “report hallucination”, “this memory is wrong”.
+- Session Resilience: Offline-first caching of recent threads, optimistic UI, robust retry with dedupe to prevent double-sends.
+- Rate Limiting + Queueing: Protect your /api/chat endpoint and keep UI predictable under load.
+- Audit Log: Key actions (login, export, deletion, memory edits) for safety and support.
+- Fine-grained Firestore security rules: Per user/agent/thread/message; server-side enforcement for tool usage.
+- Data Retention Controls: Delete account, delete agent, delete all memories, retention window.
+- Device/Session Management: View active sessions, revoke.
+- Optional MFA Support: If you plan to serve business users.
+- Plans and Quotas: Free vs pro limits (messages/day, memory size, file uploads, tool access).
+- Billing Portal Integration: Stripe and in-app upgrade flow.
+- Referral/Affiliate Tracking: If you want growth loops.
+- Team/Workspace Mode: Shared knowledge packs, shared agents, role-based access.
+
+## Style Guidelines:
+
+- Use near-neutral surfaces, subtle borders, and a single accent color used sparingly (links, primary actions, focus). Avoid heavy gradients; if used, keep them extremely soft and rarely applied.
+- Light mode palette: Background: #F5F5F7 (page) or pure white #FFFFFF (content), Primary text: #1D1D1F, Secondary text: #6E6E73, Tertiary text: #86868B, Hairline border: rgba(0,0,0,0.08), Separator: rgba(0,0,0,0.12), Surface (cards): #FFFFFF, Elevated surface: #FFFFFF with subtle shadow, Accent (Apple-like blue): #007AFF, Success: #34C759, Warning: #FF9F0A, Error: #FF3B30
+- Dark mode palette: Background: #000000 or #0B0B0F (slightly lifted black), Surface: #1C1C1E, Elevated surface: #2C2C2E, Primary text: #FFFFFF, Secondary text: rgba(255,255,255,0.72), Tertiary text: rgba(255,255,255,0.55), Hairline border: rgba(255,255,255,0.10), Accent: #0A84FF (iOS dark blue)
+- Prefer “materials” over opaque panels for overlays: blur + translucency.
+- Use very light border + soft shadow instead of heavy drop shadows.
+- Keep contrast high for text and controls; avoid grey-on-grey.
+- Card shadow (light): 0 1px 2px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.08)
+- Card shadow (dark): 0 1px 2px rgba(0,0,0,0.50), 0 8px 24px rgba(0,0,0,0.35)
+- Hairline border is often enough; shadow should be barely noticeable.
+- Body and headline font: 'Inter', a grotesque-style sans-serif with a modern, machined, objective, neutral look, in line with top-level Apple typography feel.
+- Use a set of simple, consistent icons to represent different actions and states. Preferably outline icons.
+- Employ a clean, top-level Apple-esque layout with generous spacing, subtle shadows, and soft rounded corners for a modern, premium SaaS look. Ensure responsive design for mobile-friendliness.
+- Incorporate subtle animations for loading states, transitions, and user interactions. For example, a smooth fade-in for new messages.
+- Base unit: 8pt system (8, 16, 24, 32, 40, 48).
+- Micro spacing: 4pt only for tight internal padding or icon-label gaps.
+- Max content width: 1120–1200px for dense desktop views; 960px for reading-focused.
+- Side padding: 24px desktop, 16px tablet, 12–16px mobile.
+- Vertical rhythm: 24–32px between major sections; 12–16px between related elements.
+- Corner radius: 12px default; 16px for prominent cards/modals; 20–24px for hero surfaces.
+- Buttons: radius 10–12px (Apple-ish), with a clear pressed state.
+- Inputs: height 44px minimum; align to comfortable touch targets.
+- Use a single dominant header per view; keep toolbars minimal.
+- Prefer segmented controls, tabs, and inline filters over noisy side panels (unless enterprise density is required).
+- Avoid heavy dividers; rely on spacing and subtle separators.
+- Apple-feel is “calm” by default: fewer simultaneous accents, fewer competing card styles, less visual noise. If you need density, keep it typographic (clean tables, consistent columns) rather than decorative
+- If you can: SF Pro (iOS/macOS). On web, use the system stack to mimic it: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif Monospace: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace
+- Large Title: 34 / 41 (size/line-height), weight 600
+- Title 1: 28 / 34, weight 600
+- Title 2: 22 / 28, weight 600
+- Title 3: 20 / 25, weight 600
+- Headline: 17 / 22, weight 600
+- Body: 17 / 24, weight 400
+- Callout: 16 / 22, weight 400–500
+- Subhead: 15 / 20, weight 400–500
+- Footnote: 13 / 18, weight 400
+- Caption: 12 / 16, weight 400–500
+- Use weight and spacing more than color to establish hierarchy.
+- Avoid all-caps UI except for tiny labels; if used, letter spacing +2% to +6%.
+- Keep line length ~45–75 characters for reading blocks.
+- Links: use accent color + medium weight; avoid underlines except for dense text pages.
+- Think SF Symbols: geometric, rounded corners, consistent stroke, minimal detail.
+- Stroke: 1.5px (16–20px icons), 2px (24px icons).
+- End caps/joins: round.
+- Prefer outline icons for most UI; use filled icons only for “selected” states.
+- Common sizes: 16, 20, 24.
+- Optical alignment: icons often need 1px vertical nudges to feel centered.
+- Keep icon-to-label gap at 8px (or 6px in compact toolbars).
+- Do: consistent family, consistent stroke, consistent corner rounding.
+- Don’t: mix outline and solid styles randomly; avoid overly detailed glyphs; avoid “cute” icon sets unless your product is playful.
+- Motion should clarify cause/effect and feel physically plausible. No gimmicks, no excessive overshoot.
+- Tap/press feedback: 80–120ms
+- Small transitions (hover, toggle, focus): 120–180ms
+- Panel/dialog transitions: 240–320ms
+- Page-level transitions: 280–420ms (use sparingly)
+- Standard: cubic-bezier(0.2, 0.0, 0.0, 1.0) (fast-out, slow-in)
+- Emphasized: cubic-bezier(0.2, 0.0, 0.0, 1.0) with longer duration (not bouncier)
+- For springy feel (subtle): spring with low bounce (if using a spring system, keep bounce minimal)
+- Buttons: slight scale down on press (0.98) + subtle darken/overlay, return on release.
+- Cards: on hover, raise 2–4px with a slightly stronger shadow; keep it gentle.
+- Modals/sheets: fade + translate Y 8–16px + slight scale (0.98 → 1.0).
+- Lists: insertion/removal uses opacity + height; avoid wild sliding.
+- Respect “Reduced Motion”: replace transforms with simple fades.
+- Ensure focus rings are visible: 2px outline in accent color with ~30–40% alpha outer glow.
