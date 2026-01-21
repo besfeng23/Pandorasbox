@@ -39,7 +39,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  },
   env: {
     NEXT_PUBLIC_FIREBASE_API_KEY: process.env.FIREBASE_WEBAPP_CONFIG ? JSON.parse(process.env.FIREBASE_WEBAPP_CONFIG).apiKey : process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
     NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: process.env.FIREBASE_WEBAPP_CONFIG ? JSON.parse(process.env.FIREBASE_WEBAPP_CONFIG).authDomain : process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
