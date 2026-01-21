@@ -9,7 +9,7 @@
     "rewrites": [
       {
         "source": "/api/**",
-        "destination": "/backend"
+        "destination": "https://pandora-backend-536979070288.us-central1.run.app"
       }
     ]
   },
