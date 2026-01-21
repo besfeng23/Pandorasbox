@@ -274,7 +274,11 @@ export async function submitUserMessage(formData: FormData): Promise<{ ok: boole
 
       } catch (aiError: any) {
         console.error('Self-hosted AI failed:', aiError);
-        return { ok: false, code: 'AI_ERROR', error: aiError.message || 'AI inference failed.' };
+        // Propagate specific error message if available, otherwise a generic one
+        const errorMessage = aiError.message.includes('Inference System Offline') 
+          ? 'Inference System Offline - Check Container.' 
+          : (aiError.message.includes('Memory System Offline') ? 'Memory System Offline - Check Container.' : 'AI inference failed. System Offline - Check Container.');
+        return { ok: false, code: 'AI_ERROR', error: errorMessage };
       }
       // --- SELF-HOSTED AI LANE END ---
       
@@ -478,8 +482,10 @@ export async function getMemories(userId: string, agentId: string, query?: strin
       }
     } catch (error: any) {
       console.error('Error fetching memories:', error);
-      // Return empty array instead of throwing to prevent server component crash
-      return [];
+      const errorMessage = error.message.includes('Memory System Offline') 
+        ? 'Memory System Offline - Check Container.' 
+        : 'Failed to fetch memories. System Offline - Check Container.';
+      throw new Error(errorMessage);
     }
 }
   
