@@ -1,0 +1,49 @@
+
+.next/
+node_modules/
+npm-debug.log
+.env
+.env.local
+.env.development.local
+.env.production.local
+
+pnpm-debug.log
+.pnpm-store/
+yarn-debug.log
+.yarn/
+
+# IDEs and other ignored files
+.vscode/
+*.iml
+.DS_Store
+.git/
+
+# macOS specific
+.Trashes
+.Spotlight-V100
+.fseventsd
+
+# Next.js build output
+build/
+out/
+
+# Temp files
+*.tmp
+*~
+
+# Logs
+logs/
+
+# Coverage reports
+coverage/
+
+# Firebase configuration
+firebase-debug.log
+firebase-export.json
+
+# Editor backup files
+*.swp
+*.bak
+
+# Thumbnails
+.thumbnails/
