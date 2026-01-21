@@ -12,7 +12,7 @@ COPY package.json package-lock.json ./
 RUN npm install
 
 # Copy the rest of your backend application code
-COPY . /
+COPY . .
 
 # Build the Next.js application (if applicable, for production deployments)
 # This assumes your 'build' script generates the necessary output
