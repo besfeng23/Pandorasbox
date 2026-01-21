@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { MemoryTable } from '@/components/settings/memory-table';
+import { MemoryTable } from '@/components/MemoryTable';
 import { useUser } from '@/firebase';
 import { Loader2 } from 'lucide-react';
 

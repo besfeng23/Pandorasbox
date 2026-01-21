@@ -20,7 +20,7 @@ import { buildPrompt } from '@/lib/selfhosted/prompt-builder';
 import { processInteraction } from '@/lib/selfhosted/memory-pipeline';
 import { deriveAgentId } from '@/lib/selfhosted/agent-router';
 import { embedText, embedTextsBatch as getEmbeddingsBatch } from '@/lib/ai/embedding';
-import { chatCompletion, ChatMessage } from '@/lib/sovereign/vllm-client';
+import { streamInference, ChatMessage } from '@/lib/sovereign/vllm-client';
 import { searchPoints, upsertPoint, QdrantSearchResult } from '@/lib/sovereign/qdrant-client';
 import { extractArtifacts } from '@/lib/sovereign/artifact-parser';
 
@@ -90,7 +90,7 @@ export async function transcribeAndProcessMessage(formData: FormData) {
 }
 
 
-export async function submitUserMessage(formData: FormData): Promise<{ ok: boolean; threadId?: string; messageId?: string; code?: string; error?: string }> {
+export async function submitUserMessage(formData: FormData): Promise<Response | { ok: boolean; threadId?: string; messageId?: string; code?: string; error?: string }> {
     const messageContent = formData.get('message') as string;
     const idToken = formData.get('idToken') as string;
     let threadId = formData.get('threadId') as string | null;
@@ -180,110 +180,45 @@ export async function submitUserMessage(formData: FormData): Promise<{ ok: boole
           await userMessageRef.update({ imageUrl: imageUrl });
       }
   
-      // --- SELF-HOSTED AI LANE START ---
-      try {
-        // 1. Derive Agent
-        const threadDoc = await getThread(threadId);
-        const agentId = deriveAgentId(threadDoc?.agent);
+  // --- SELF-HOSTED AI LANE START ---
+  try {
+    // Instead of direct inference, call the /api/chat route for streaming
+    const apiResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9002'}/api/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${idToken}`,
+      },
+      body: JSON.stringify({
+        message: messageContent,
+        threadId: threadId,
+        agentId: agentId,
+      }),
+    });
 
-        // 2. Retrieve Context (Recent messages + RAG)
-        const recentMessages = await getRecentMessages(threadId); // Fetches from Firestore
-        // Also map to self-hosted message format
-        const mappedRecentMessages = recentMessages.map(m => ({
-            id: m.id || 'unknown',
-            createdAt: (m.createdAt instanceof Date ? m.createdAt : new Date()) as Date,
-            role: m.role as 'user'|'assistant',
-            content: m.content
-        }));
-        
-        const queryEmbedding = await embedText(messageContent);
-        // Map agentId to collection name, e.g. "memories_builder" or "memories_universe" (or just one collection with filter)
-        // For simplicity, we'll use a single collection "pandora_memories" and filter by payload if needed, 
-        // OR use separate collections. The plan says "agent-specific collection (e.g., memories_builder)".
-        const collectionName = `memories_${agentId}`;
-        
-        // Search Qdrant
-        const qdrantResults = await searchPoints(collectionName, queryEmbedding, 5);
-        const memories = qdrantResults.map((res: QdrantSearchResult) => ({
-            id: res.id,
-            text: res.payload?.content || '',
-            score: res.score,
-            source: res.payload?.source
-        }));
+    if (!apiResponse.ok) {
+      const errorText = await apiResponse.text();
+      throw new Error(errorText || 'Failed to get stream from /api/chat');
+    }
 
-        // 3. Build Prompt
-        const promptMessages = buildPrompt(agentId, mappedRecentMessages, memories);
-        
-        // Map to VLLM format
-        const vllmMessages: ChatMessage[] = promptMessages.map(m => ({
-            role: m.role as 'user'|'assistant'|'system',
-            content: m.content
-        }));
+    return apiResponse; // Return the raw streamable response
 
-        // 4. Inference
-        const assistantContent = await chatCompletion(vllmMessages);
+  } catch (apiError: any) {
+    console.error('API chat call failed:', apiError);
+    const errorMessage = apiError.message.includes('Inference System Offline') 
+      ? 'Inference System Offline - Check Container.' 
+      : (apiError.message.includes('Memory System Offline') ? 'Memory System Offline - Check Container.' : 'AI inference failed. System Offline - Check Container.');
+    return { ok: false, code: 'API_ERROR', error: errorMessage };
+  }
+  // --- SELF-HOSTED AI LANE END ---
 
-        // --- ARTIFACT EXTRACTION START ---
-        try {
-            const artifacts = extractArtifacts(assistantContent);
-            if (artifacts.length > 0) {
-                const artifactsRef = firestoreAdmin.collection(`users/${userId}/artifacts`); // Could be agent-scoped too if needed
-                const batch = firestoreAdmin.batch();
-                
-                artifacts.forEach(artifact => {
-                    const docRef = artifactsRef.doc();
-                    batch.set(docRef, {
-                        ...artifact,
-                        userId,
-                        agentId, // Tag with agentId
-                        threadId,
-                        createdAt: FieldValue.serverTimestamp(),
-                        source: 'chat_generation'
-                    });
-                });
-                await batch.commit();
-                console.log(`[Artifacts] Extracted and saved ${artifacts.length} artifacts.`);
-            }
-        } catch (artifactError) {
-            console.error('[Artifacts] Failed to extract/save artifacts:', artifactError);
-        }
-        // --- ARTIFACT EXTRACTION END ---
 
-        // 5. Write Response
-        await addMessage(threadId, { 
-            role: 'assistant', 
-            content: assistantContent, 
-            userId 
-        });
-        
-        // Also write to 'history' collection for backward compatibility/ChatPanel
-        const assistantMessageData = {
-            role: 'assistant',
-            content: assistantContent,
-            createdAt: FieldValue.serverTimestamp(),
-            userId: userId,
-            threadId: threadId,
-            agentId: agentId, // Include agentId
-            source: 'ai',
-        };
-        const assistantRef = await firestoreAdmin.collection(`users/${userId}/agents/${agentId}/history`).add(assistantMessageData); // Update history path
-        await assistantRef.update({ id: assistantRef.id });
+  // Old code block that was removed, keeping here for reference if needed
+  // ... (removed content from lines 184-282)
 
-        // 6. Memory Pipeline
-        await processInteraction(messageContent, assistantContent, userId, agentId);
-
-      } catch (aiError: any) {
-        console.error('Self-hosted AI failed:', aiError);
-        // Propagate specific error message if available, otherwise a generic one
-        const errorMessage = aiError.message.includes('Inference System Offline') 
-          ? 'Inference System Offline - Check Container.' 
-          : (aiError.message.includes('Memory System Offline') ? 'Memory System Offline - Check Container.' : 'AI inference failed. System Offline - Check Container.');
-        return { ok: false, code: 'AI_ERROR', error: errorMessage };
-      }
-      // --- SELF-HOSTED AI LANE END ---
-      
-  
-      return { ok: true, messageId: userMessageId, threadId: threadId };
+  // No longer return messageId and threadId directly after sending to API
+  // Frontend will update based on streamed response and Firestore listeners
+  // return { ok: true, messageId: userMessageId, threadId: threadId };
 
 
     } catch (error: any) {

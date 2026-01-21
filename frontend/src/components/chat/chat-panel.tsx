@@ -31,6 +31,8 @@ export function ChatPanel({ threadId }: { threadId: string }) {
   const [isSending, setIsSending] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [isExtracting, setIsExtracting] = useState(false);
+  const [isToolActive, setIsToolActive] = useState(false); // New state for tool indicator
+  const [activeToolName, setActiveToolName] = useState(''); // New state for active tool name
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { user } = useUser();
@@ -121,7 +123,27 @@ export function ChatPanel({ threadId }: { threadId: string }) {
         const { done, value } = await reader.read();
         if (done) break;
         const chunk = decoder.decode(value, { stream: true });
-        setStreamingMessage(prev => ({ ...prev!, content: prev!.content + chunk }));
+
+        // Check for experimental_streamData
+        if (chunk.startsWith('0: ')) {
+          const data = JSON.parse(chunk.substring(3)); // Remove '0: ' prefix
+          if (data.type === 'tool_start') {
+            setIsToolActive(true);
+            setActiveToolName(data.display || data.toolName);
+          } else if (data.type === 'tool_end') {
+            setIsToolActive(false);
+            setActiveToolName('');
+            if (data.status === 'error') {
+              toast({
+                variant: 'destructive',
+                title: `Tool Error: ${data.toolName}`,
+                description: data.error || 'An error occurred while using the tool.',
+              });
+            }
+          }
+        } else {
+          setStreamingMessage(prev => ({ ...prev!, content: prev!.content + chunk }));
+        }
     }
 
     setStreamingMessage(null); // Stream finished, onSnapshot will provide the final message
@@ -371,6 +393,19 @@ export function ChatPanel({ threadId }: { threadId: string }) {
                     />
                 </motion.div>
             )}
+            {isToolActive && (
+              <motion.div
+                layout
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+                className="flex items-center space-x-2 text-sm text-muted-foreground"
+              >
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>{activeToolName || 'AI is thinking...'}</span>
+              </motion.div>
+            )}
             <div ref={messagesEndRef} />
           </div>
         )}
@@ -385,29 +420,29 @@ export function ChatPanel({ threadId }: { threadId: string }) {
                 <FormItem className="flex-1">
                   <FormControl>
                     <Textarea
-                      placeholder={isSending || isRegenerating ? "Assistant is thinking..." : "Type your message here..."}
+                      placeholder={isSending || isRegenerating || isToolActive ? "Assistant is thinking..." : "Type your message here..."}
                       className="resize-none"
                       rows={1}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey && !isSending && !isRegenerating) {
+                        if (e.key === 'Enter' && !e.shiftKey && !isSending && !isRegenerating && !isToolActive) {
                           e.preventDefault();
                           form.handleSubmit(onSubmit)();
                         }
                       }}
                       {...field}
-                      disabled={!thread || isSending || isRegenerating}
+                      disabled={!thread || isSending || isRegenerating || isToolActive}
                     />
                   </FormControl>
                 </FormItem>
               )}
             />
-            {isSending || isRegenerating ? (
+            {isSending || isRegenerating || isToolActive ? (
               <Button variant="outline" size="icon" disabled>
                   <Loader2 className="h-4 w-4 animate-spin" />
                   <span className="sr-only">Generating...</span>
               </Button>
             ) : (
-              <Button type="submit" size="icon" disabled={!thread}>
+              <Button type="submit" size="icon" disabled={!thread || isToolActive}>
                 <Send className="h-4 w-4" />
                 <span className="sr-only">Send</span>
               </Button>

@@ -1,53 +1,42 @@
-import { INFERENCE_URL, INFERENCE_MODEL } from './config';
-import { logEvent } from '@/lib/observability/logger';
+import OpenAI from 'openai';
 
-export type ChatMessage = {
-  role: 'system' | 'user' | 'assistant';
-  content: string | any[];
-};
+// Use process.env.INFERENCE_URL as the base URL for the OpenAI client
+const INFERENCE_URL = process.env.INFERENCE_URL || 'http://localhost:8000/v1';
+const SOVEREIGN_KEY = process.env.SOVEREIGN_KEY || 'empty';
+const INFERENCE_MODEL = process.env.INFERENCE_MODEL || 'mistralai/Mistral-7B-Instruct-v0.3';
 
-export async function chatCompletion(messages: ChatMessage[], options: { temperature?: number; max_tokens?: number } = {}) {
-  const startTime = Date.now();
+const openai = new OpenAI({
+  apiKey: SOVEREIGN_KEY,
+  baseURL: INFERENCE_URL,
+});
+
+export async function getInference(prompt: string, maxTokens: number = 1000) {
   try {
-    const response = await fetch(`${INFERENCE_URL}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: INFERENCE_MODEL,
-        messages,
-        temperature: options.temperature ?? 0.7,
-        max_tokens: options.max_tokens ?? 2048,
-      }),
+    const response = await openai.chat.completions.create({
+      model: INFERENCE_MODEL,
+      messages: [{ role: 'user', content: prompt }],
+      stream: false,
+      max_tokens: maxTokens,
     });
+    return response.choices[0]?.message?.content || '';
+  } catch (error) {
+    console.error('Error getting inference from vLLM:', error);
+    throw new Error('Inference System Offline - Check Container.');
+  }
+}
 
-    if (!response.ok) {
-      throw new Error(`vLLM request failed: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    const content = data.choices[0].message.content;
-    const endTime = Date.now();
-
-    logEvent('AI_REQUEST', {
-      duration: endTime - startTime,
-      input_messages: messages.length,
-      output_chars: content.length,
-      model: data.model,
-      usage: data.usage
+export async function streamInference(prompt: string, maxTokens: number = 1000) {
+  try {
+    const stream = await openai.chat.completions.create({
+      model: INFERENCE_MODEL,
+      messages: [{ role: 'user', content: prompt }],
+      stream: true,
+      max_tokens: maxTokens,
     });
-
-    return content;
-  } catch (error: any) {
-    const endTime = Date.now();
-    logEvent('ERROR', {
-      type: 'AI_REQUEST_FAILED',
-      duration: endTime - startTime,
-      error: error.message
-    });
-    console.error('Sovereign AI connection failed:', error);
-    return "I cannot reach my brain right now. Please check if the vLLM service is running.";
+    return stream;
+  } catch (error) {
+    console.error('Error streaming inference from vLLM:', error);
+    throw new Error('Inference System Offline - Check Container.');
   }
 }
 
