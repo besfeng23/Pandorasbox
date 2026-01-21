@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getFirestoreAdmin } from '@/lib/firebase-admin'; // Import for server-side Firestore
+import { getFirestoreAdmin, getAuthAdmin } from '@/lib/firebase-admin'; 
 import { preCheck, postCheck } from '@/server/guardrails';
 import { chatCompletion } from '@/server/inference-client';
 import { isValidAgentId, getAgentConfig } from '@/lib/agent-types';
@@ -15,16 +15,33 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized: Token is empty' }, { status: 401 });
   }
 
+  // 1. Verify Authentication (Support both API Key and Firebase ID Token)
+  let userId: string | undefined;
   const adminDb = getFirestoreAdmin();
+  
   try {
-    const snapshot = await adminDb.collection('api_clients').where('apiKey', '==', token).get();
-    if (snapshot.empty) {
-      return NextResponse.json({ error: 'Unauthorized: Invalid API Key' }, { status: 401 });
+    // Attempt 1: Check if it's a Firebase ID Token
+    try {
+        const decodedToken = await getAuthAdmin().verifyIdToken(token);
+        userId = decodedToken.uid;
+    } catch (jwtError) {
+        // Not a valid JWT, fall back to API Key check
     }
-    // If a client is found, proceed. No need to pass 'auth' object further based on plan.
+
+    // Attempt 2: Check if it's an API Key (if not already verified as ID Token)
+    if (!userId) {
+        const snapshot = await adminDb.collection('api_clients').where('apiKey', '==', token).get();
+        if (!snapshot.empty) {
+            userId = 'api_client'; // Generic ID for API clients
+        }
+    }
+
+    if (!userId) {
+        return NextResponse.json({ error: 'Unauthorized: Invalid Token or API Key' }, { status: 401 });
+    }
   } catch (error) {
-    console.error('Error verifying API Key:', error);
-    return NextResponse.json({ error: 'Internal Server Error during API Key verification' }, { status: 500 });
+    console.error('Error verifying credentials:', error);
+    return NextResponse.json({ error: 'Internal Server Error during auth verification' }, { status: 500 });
   }
 
   const { message, agentId, threadId } = await request.json();
