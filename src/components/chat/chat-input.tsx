@@ -156,7 +156,7 @@ export function ChatInput({ userId, onMessageSubmit, isSending }: ChatInputProps
     }
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const message = formData.get('message') as string;
@@ -165,6 +165,12 @@ export function ChatInput({ userId, onMessageSubmit, isSending }: ChatInputProps
 
     if (imagePreview) {
         formData.append('image_data', imagePreview);
+    }
+    
+    // Append ID token for authentication
+    const idToken = await (await import('@/firebase')).getAuthToken();
+    if (idToken) {
+        formData.append('idToken', idToken);
     }
 
     const isProcessing = onMessageSubmit(formData);
@@ -178,10 +184,14 @@ export function ChatInput({ userId, onMessageSubmit, isSending }: ChatInputProps
     }
   };
 
-  const handleSuggestionClick = (suggestion: string) => {
+  const handleSuggestionClick = async (suggestion: string) => {
+    const idToken = await (await import('@/firebase')).getAuthToken();
     const formData = new FormData();
     formData.append('message', suggestion);
     formData.append('userId', userId);
+    if (idToken) {
+        formData.append('idToken', idToken);
+    }
     onMessageSubmit(formData);
   };
 
