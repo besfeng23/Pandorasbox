@@ -1,0 +1,120 @@
+# Pandora's Box
+
+An AI-powered chat application with persistent long-term memory and MCP (Model Context Protocol) server capabilities.
+
+## Features
+
+- **AI Chat Interface**: ChatGPT-like interface with persistent memory
+- **Vector Search**: Semantic search across conversation history and memories
+- **Memory Management**: Store and retrieve long-term memories with embeddings
+- **Artifact Creation**: Generate and save code/markdown artifacts
+- **MCP Server**: Expose capabilities to external AI agents (ChatGPT Actions, Claude Desktop)
+
+## MCP Server
+
+Pandora's Box includes a fully functional MCP server that exposes three tools:
+
+1. **search_knowledge_base**: Semantic search across memories and history
+2. **add_memory**: Store new memories with embeddings
+3. **generate_artifact**: Create and save code/markdown artifacts
+
+### Running the MCP Server
+
+```bash
+# Development mode
+npm run mcp:dev
+
+# Production mode
+npm run mcp:start
+
+# Generate OpenAPI schema for ChatGPT Actions
+npm run mcp:generate-schema
+```
+
+### Using with Claude Desktop
+
+Add to your Claude Desktop configuration (`claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "pandoras-box": {
+      "command": "node",
+      "args": ["path/to/Pandorasbox/src/mcp/index.ts"]
+    }
+  }
+}
+```
+
+### Using with ChatGPT Actions
+
+1. Generate the OpenAPI schema:
+   ```bash
+   npm run mcp:generate-schema
+   ```
+
+2. The schema will be generated at `public/openapi-mcp.json`
+
+3. Host the schema file at a publicly accessible URL
+
+4. Add it as a Custom Action in ChatGPT:
+   - Go to ChatGPT Settings → Actions
+   - Add Custom Action
+   - Provide the URL to your OpenAPI schema
+   - Set Authorization header: `Bearer YOUR_MCP_API_KEY`
+
+## Environment Variables
+
+### Required
+
+- `OPENAI_API_KEY`: OpenAI API key for embeddings and chat completions
+- Firebase service account credentials (via `service-account.json` or Application Default Credentials)
+
+### Local Infrastructure
+
+When running locally with the bundled inference, embeddings, and Qdrant services, add these to
+`.env.local`:
+
+```bash
+INFERENCE_BASE_URL=http://localhost:8000
+INFERENCE_MODEL=mistralai/Mistral-7B-Instruct-v0.2
+EMBEDDINGS_BASE_URL=http://localhost:8080
+EMBEDDINGS_DIMENSION=384
+QDRANT_URL=http://localhost:6333
+```
+
+### MCP Server
+
+- `MCP_API_KEY`: API key for MCP server authentication (defaults to `CHATGPT_API_KEY` if not set)
+- `MCP_SERVER_URL`: Base URL for OpenAPI schema (default: `http://localhost:9002`)
+
+### Optional
+
+- `CHATGPT_API_KEY`: API key for ChatGPT Actions integration (can be used as fallback for `MCP_API_KEY`)
+
+## Development
+
+```bash
+# Install dependencies
+npm install
+
+# Start local infrastructure (or: docker-compose up -d)
+npm run infra:up
+
+# Verify services
+curl http://localhost:6333/collections  # Qdrant
+curl http://localhost:8080/health        # Embeddings
+
+# Run Next.js development server
+npm run dev
+
+# Run MCP server (in separate terminal)
+npm run mcp:dev
+
+# Type checking
+npm run typecheck
+```
+
+## Getting Started
+
+To get started, take a look at `src/app/page.tsx`.

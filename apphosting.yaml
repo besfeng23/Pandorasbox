@@ -1,0 +1,112 @@
+# Settings for Backend (on Cloud Run).
+# See https://firebase.google.com/docs/app-hosting/configure#cloud-run
+runConfig:
+  minInstances: 0
+  # maxInstances: 100
+  # concurrency: 80
+  # cpu: 1
+  # memoryMiB: 512
+
+# Environment variables and secrets.
+env:
+  # Public Firebase configuration (needed at BUILD time for Next.js)
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    value: AIzaSyBd6iZ2jEx1jmniBLD35no5gu1J4D4tSCM
+    availability:
+      - BUILD
+      - RUNTIME
+  
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: seismic-vista-480710-q5.firebaseapp.com
+    availability:
+      - BUILD
+      - RUNTIME
+  
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: seismic-vista-480710-q5
+    availability:
+      - BUILD
+      - RUNTIME
+  
+  - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    value: seismic-vista-480710-q5.firebasestorage.app
+    availability:
+      - BUILD
+      - RUNTIME
+  
+  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    value: "536979070288"
+    availability:
+      - BUILD
+      - RUNTIME
+  
+  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    value: 1:536979070288:web:57b05547304f0056526055
+    availability:
+      - BUILD
+      - RUNTIME
+
+  # API Keys - Using Cloud Secret Manager
+  # See https://firebase.google.com/docs/app-hosting/configure#secret-parameters
+  - variable: FIREBASE_SERVICE_ACCOUNT_KEY
+    secret: firebase-service-account-key@1
+    availability:
+      - RUNTIME
+
+  - variable: FIREBASE_PROJECT_ID
+    value: seismic-vista-480710-q5
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: OPENAI_API_KEY
+    secret: openai-api-key
+    availability:
+      - RUNTIME
+  
+  - variable: GEMINI_API_KEY
+    secret: gemini-api-key
+    availability:
+      - RUNTIME
+  
+  # ChatGPT API Key for Custom GPT Actions
+  - variable: CHATGPT_API_KEY
+    secret: chatgpt-api-key
+    availability:
+      - RUNTIME
+  
+  # CRON_SECRET for securing API routes
+  - variable: CRON_SECRET
+    secret: cron-secret
+    availability:
+      - RUNTIME
+  
+  # MEMORY_API_KEY removed - not currently used in the codebase
+
+  # Sentry (optional - add when configured)
+  # - variable: NEXT_PUBLIC_SENTRY_DSN
+  #   value: YOUR_SENTRY_DSN_HERE
+  #   availability:
+  #     - BUILD
+  #     - RUNTIME
+
+  # Sovereign AI Configuration
+  - variable: INFERENCE_URL
+    value: http://10.128.0.4:8000/v1
+    availability:
+      - RUNTIME
+
+  - variable: INFERENCE_MODEL
+    value: pandora
+    availability:
+      - RUNTIME
+
+  - variable: QDRANT_URL
+    value: http://10.128.0.3:6333
+    availability:
+      - RUNTIME
+
+  - variable: EMBEDDING_MODEL
+    value: all-MiniLM-L6-v2
+    availability:
+      - RUNTIME
