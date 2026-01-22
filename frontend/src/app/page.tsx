@@ -8,8 +8,8 @@ import { useUser, useFirestore } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Loader2, PlusCircle, Bot, BrainCircuit, History, ArrowRight } from 'lucide-react';
-import { createThread } from '@/app/actions';
-import { collection, query, where, orderBy, limit, onSnapshot, Timestamp } from 'firebase/firestore';
+import { createThread, getRecentThreads } from '@/app/actions';
+import { Timestamp } from 'firebase/firestore';
 import type { Thread } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
@@ -83,40 +83,35 @@ export default function DashboardPage() {
   }, [user, userLoading, router]);
 
   useEffect(() => {
-    if (!user || !db) {
+    if (!user) {
         setIsLoadingThreads(false);
         return;
     };
 
-    setIsLoadingThreads(true);
-    const q = query(
-      collection(db, 'threads'),
-      where('userId', '==', user.uid),
-      orderBy('updatedAt', 'desc'),
-      limit(5)
-    );
+    const fetchThreads = async () => {
+        setIsLoadingThreads(true);
+        try {
+            const threads = await getRecentThreads(user.uid);
+            setRecentThreads(threads);
+        } catch (error) {
+            console.error('Error fetching threads:', error);
+            const permissionError = new FirestorePermissionError({
+                path: 'threads',
+                operation: 'list'
+            } satisfies SecurityRuleContext);
+            errorEmitter.emit('permission-error', permissionError);
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'Could not fetch recent threads.'
+            });
+        } finally {
+            setIsLoadingThreads(false);
+        }
+    };
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const threads: Thread[] = [];
-      snapshot.forEach(doc => threads.push({ id: doc.id, ...doc.data() } as Thread));
-      setRecentThreads(threads);
-      setIsLoadingThreads(false);
-    }, (error) => {
-        const permissionError = new FirestorePermissionError({
-            path: 'threads',
-            operation: 'list'
-        } satisfies SecurityRuleContext);
-        errorEmitter.emit('permission-error', permissionError);
-        toast({
-            variant: 'destructive',
-            title: 'Error',
-            description: 'Could not fetch recent threads.'
-        });
-        setIsLoadingThreads(false);
-    });
-
-    return () => unsubscribe();
-  }, [user, db, toast]);
+    fetchThreads();
+  }, [user, toast]);
 
   const handleCreateThread = async (agent: 'builder' | 'universe') => {
     if (user) {
@@ -124,9 +119,15 @@ export default function DashboardPage() {
     }
   };
 
-  const formatTimestamp = (timestamp: Timestamp | Date) => {
+  const formatTimestamp = (timestamp: any) => {
     if (!timestamp) return 'N/A';
-    const date = timestamp instanceof Timestamp ? timestamp.toDate() : timestamp;
+    // Handle Firestore Timestamp
+    if (timestamp instanceof Timestamp) {
+        return formatDistanceToNow(timestamp.toDate(), { addSuffix: true });
+    }
+    // Handle Date object or ISO string
+    const date = new Date(timestamp);
+    if (isNaN(date.getTime())) return 'N/A';
     return formatDistanceToNow(date, { addSuffix: true });
   };
   
@@ -216,3 +217,4 @@ export default function DashboardPage() {
     </AppLayout>
   );
 }
+ 

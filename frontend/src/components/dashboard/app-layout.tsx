@@ -4,8 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
-import { useFirestore, useUser, useAuthActions } from '@/firebase';
+import { useUser, useAuthActions } from '@/firebase';
 import type { Thread } from '@/lib/types';
 import {
   Sidebar,
@@ -68,7 +67,7 @@ import Image from 'next/image';
 import { PandoraBoxIcon } from '@/components/icons';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { createThread, renameThread, deleteThread } from '@/app/actions';
+import { createThread, renameThread, deleteThread, getRecentThreads } from '@/app/actions';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
@@ -79,7 +78,6 @@ import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/e
 export function AppLayout({ children, threadId }: { children: React.ReactNode; threadId?: string }) {
   const { user } = useUser();
   const { logout } = useAuthActions();
-  const db = useFirestore();
   const pathname = usePathname();
   const router = useRouter();
   const [agent, setAgent] = useState<'builder' | 'universe'>('builder');
@@ -96,6 +94,9 @@ export function AppLayout({ children, threadId }: { children: React.ReactNode; t
       await renameThread(currentThread.id, newThreadName.trim(), user.uid);
       toast({ title: "Thread renamed" });
       setRenameDialogOpen(false);
+      // Refresh threads
+      const fetchedThreads = await getRecentThreads(user.uid, agent);
+      setThreads(fetchedThreads);
     }
   };
 
@@ -106,31 +107,26 @@ export function AppLayout({ children, threadId }: { children: React.ReactNode; t
       setThreads([]);
       return;
     };
-    if (!db) return;
-    setIsLoading(true);
-    const q = query(
-      collection(db, 'threads'),
-      where('userId', '==', user.uid),
-      where('agent', '==', agent),
-      orderBy('updatedAt', 'desc')
-    );
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const fetchedThreads: Thread[] = [];
-      snapshot.forEach((doc) => {
-        fetchedThreads.push({ id: doc.id, ...doc.data() } as Thread);
-      });
-      setThreads(fetchedThreads);
-      setIsLoading(false);
-    }, (error) => {
-        const permissionError = new FirestorePermissionError({
-            path: 'threads',
-            operation: 'list'
-        } satisfies SecurityRuleContext);
-        errorEmitter.emit('permission-error', permissionError);
-        setIsLoading(false);
-    });
-    return () => unsubscribe();
-  }, [user, agent, toast, db]);
+    
+    const fetchThreads = async () => {
+        setIsLoading(true);
+        try {
+            const fetchedThreads = await getRecentThreads(user.uid, agent);
+            setThreads(fetchedThreads);
+        } catch (error) {
+            console.error('Error fetching threads:', error);
+            const permissionError = new FirestorePermissionError({
+                path: 'threads',
+                operation: 'list'
+            } satisfies SecurityRuleContext);
+            errorEmitter.emit('permission-error', permissionError);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    fetchThreads();
+  }, [user, agent]);
 
   return (
     <SidebarProvider>
@@ -240,6 +236,9 @@ export function AppLayout({ children, threadId }: { children: React.ReactNode; t
                                               if (user) {
                                                   await deleteThread(thread.id, user.uid);
                                                   toast({ title: `Thread "${thread.name}" deleted.` });
+                                                  // Refresh threads
+                                                  const fetchedThreads = await getRecentThreads(user.uid, agent);
+                                                  setThreads(fetchedThreads);
                                               }
                                           }}
                                       >
@@ -333,3 +332,4 @@ export function AppLayout({ children, threadId }: { children: React.ReactNode; t
     </SidebarProvider>
   );
 }
+ 

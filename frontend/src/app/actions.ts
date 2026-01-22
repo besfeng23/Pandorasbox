@@ -1,4 +1,3 @@
-
 'use server';
 
 import {
@@ -19,7 +18,7 @@ import {
 import { initializeFirebase } from '@/firebase';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import type { Memory, SearchResult } from '@/lib/types';
+import type { Memory, SearchResult, Thread, Message, UserConnector } from '@/lib/types';
 
 // Initialize firebase only if needed or guard it
 const getDb = () => {
@@ -87,6 +86,70 @@ export async function createMemoryFromSettings(content: string, userId: string, 
     return { success: true };
   } catch (error: any) {
     return { success: false, message: error.message };
+  }
+}
+
+export async function getRecentThreads(userId: string, agent?: string): Promise<Thread[]> {
+  try {
+    let url = `${BACKEND_URL}/api/threads?userId=${userId}`;
+    if (agent) {
+      url += `&agent=${agent}`;
+    }
+    const response = await fetch(url, {
+      headers: { 'Content-Type': 'application/json' },
+      cache: 'no-store'
+    });
+    if (!response.ok) throw new Error('Failed to fetch threads from backend');
+    const data = await response.json();
+    return data.threads || [];
+  } catch (error) {
+    console.error('Error in getRecentThreads action:', error);
+    return [];
+  }
+}
+
+export async function getThread(threadId: string, userId: string): Promise<Thread | null> {
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/threads/${threadId}?userId=${userId}`, {
+      headers: { 'Content-Type': 'application/json' },
+      cache: 'no-store'
+    });
+    if (!response.ok) return null;
+    const data = await response.json();
+    return data.thread;
+  } catch (error) {
+    console.error('Error in getThread action:', error);
+    return null;
+  }
+}
+
+export async function getMessages(threadId: string, userId: string): Promise<Message[]> {
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/threads/${threadId}/messages?userId=${userId}`, {
+      headers: { 'Content-Type': 'application/json' },
+      cache: 'no-store'
+    });
+    if (!response.ok) throw new Error('Failed to fetch messages from backend');
+    const data = await response.json();
+    return data.messages || [];
+  } catch (error) {
+    console.error('Error in getMessages action:', error);
+    return [];
+  }
+}
+
+export async function getUserConnectors(userId: string): Promise<UserConnector[]> {
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/connectors?userId=${userId}`, {
+      headers: { 'Content-Type': 'application/json' },
+      cache: 'no-store'
+    });
+    if (!response.ok) throw new Error('Failed to fetch connectors from backend');
+    const data = await response.json();
+    return data.connectors || [];
+  } catch (error) {
+    console.error('Error in getUserConnectors action:', error);
+    return [];
   }
 }
 
@@ -179,6 +242,23 @@ export async function deleteMemoryAction(memoryId: string, userId: string) {
 
     await deleteDoc(memoryRef);
     revalidatePath('/memory');
+}
+
+export async function deleteMessage(threadId: string, messageId: string, userId: string) {
+    const db = getDb();
+    if (!db || !userId) throw new Error('Database or User not available.');
+    
+    // Security check: Verify user owns the thread
+    const threadRef = doc(db, 'threads', threadId);
+    const threadDoc = await getDoc(threadRef);
+    if (!threadDoc.exists() || threadDoc.data().userId !== userId) {
+      throw new Error('Permission denied.');
+    }
+
+    const messageRef = doc(db, 'threads', threadId, 'messages', messageId);
+    await deleteDoc(messageRef);
+    
+    revalidatePath(`/chat/${threadId}`);
 }
 
 export async function connectDataSource(

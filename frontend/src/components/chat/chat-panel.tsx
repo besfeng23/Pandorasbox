@@ -5,7 +5,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { collection, query, orderBy, onSnapshot, doc, deleteDoc } from 'firebase/firestore';
+import { getThread, getMessages, deleteMessage } from '@/app/actions';
+import { Timestamp } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase';
 import type { Message as MessageType, Thread } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -44,64 +45,47 @@ export function ChatPanel({ threadId }: { threadId: string }) {
   });
 
   useEffect(() => {
-    if (!user || !db) {
+    if (!user) {
       setIsLoading(false);
       setThread(null);
       setMessages([]);
       return;
     }
 
-    setIsLoading(true);
+    const fetchData = async () => {
+        setIsLoading(true);
+        try {
+            const [threadData, messagesData] = await Promise.all([
+                getThread(threadId, user.uid),
+                getMessages(threadId, user.uid)
+            ]);
 
-    const threadDocRef = doc(db, 'threads', threadId);
-    
-    const unsubThread = onSnapshot(threadDocRef, (threadDoc) => {
-      if (threadDoc.exists() && threadDoc.data().userId === user.uid) {
-        setThread({ id: threadDoc.id, ...threadDoc.data() } as Thread);
-      } else {
-        setThread(null);
-        setMessages([]);
-        if (threadDoc.exists()) {
-          toast({
-              variant: 'destructive',
-              title: 'Access Denied',
-              description: "You don't have permission to view this thread.",
-          });
+            if (threadData) {
+                setThread(threadData);
+                setMessages(messagesData);
+            } else {
+                setThread(null);
+                setMessages([]);
+                toast({
+                    variant: 'destructive',
+                    title: 'Access Denied',
+                    description: "You don't have permission to view this thread or it doesn't exist.",
+                });
+            }
+        } catch (error) {
+            console.error('Error fetching chat data:', error);
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'Could not load chat conversation.',
+            });
+        } finally {
+            setIsLoading(false);
         }
-      }
-    }, (error) => {
-        const permissionError = new FirestorePermissionError({
-            path: threadDocRef.path,
-            operation: 'get'
-        } satisfies SecurityRuleContext);
-        errorEmitter.emit('permission-error', permissionError);
-    });
+    };
 
-    const q = query(collection(db, 'threads', threadId, 'messages'), orderBy('createdAt'));
-    const unsubMessages = onSnapshot(q, 
-      (querySnapshot) => {
-        const msgs: MessageType[] = [];
-        querySnapshot.forEach((doc) => {
-          msgs.push({ id: doc.id, ...doc.data() } as MessageType);
-        });
-        setMessages(msgs);
-        setIsLoading(false);
-      },
-      (error) => {
-        const permissionError = new FirestorePermissionError({
-            path: `threads/${threadId}/messages`,
-            operation: 'list'
-        } satisfies SecurityRuleContext);
-        errorEmitter.emit('permission-error', permissionError);
-        setIsLoading(false);
-      }
-    );
-
-    return () => {
-      unsubThread();
-      unsubMessages();
-    }
-  }, [threadId, user, toast, db]);
+    fetchData();
+  }, [threadId, user, toast]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -146,7 +130,12 @@ export function ChatPanel({ threadId }: { threadId: string }) {
         }
     }
 
-    setStreamingMessage(null); // Stream finished, onSnapshot will provide the final message
+    setStreamingMessage(null); // Stream finished
+    // Refresh messages from backend
+    if (user) {
+        const updatedMessages = await getMessages(threadId, user.uid);
+        setMessages(updatedMessages);
+    }
   };
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
@@ -211,7 +200,9 @@ export function ChatPanel({ threadId }: { threadId: string }) {
         }
         
         if (lastAssistantMessage) {
-            await deleteDoc(doc(db, 'threads', threadId, 'messages', lastAssistantMessage.id));
+            await deleteMessage(threadId, lastAssistantMessage.id, user.uid);
+            // Update local state immediately
+            setMessages(prev => prev.filter(m => m.id !== lastAssistantMessage.id));
         }
 
         const token = await user.getIdToken();
@@ -461,3 +452,4 @@ export function ChatPanel({ threadId }: { threadId: string }) {
     </div>
   );
 }
+ 

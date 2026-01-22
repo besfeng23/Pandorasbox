@@ -27,10 +27,9 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, onSnapshot, query } from 'firebase/firestore';
 import type { UserConnector } from '@/lib/types';
 import { staticConnectors, type StaticConnector } from '@/lib/connectors';
-import { connectDataSource, disconnectDataSource } from '@/app/actions';
+import { connectDataSource, disconnectDataSource, getUserConnectors } from '@/app/actions';
 import { Loader2 } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
@@ -55,31 +54,30 @@ export default function ConnectorsPage() {
   const [urlInput, setUrlInput] = useState('');
 
   useEffect(() => {
-    if (!user || !db) {
+    if (!user) {
         setIsLoading(false);
         return;
     };
 
-    setIsLoading(true);
-    const q = query(collection(db, 'users', user.uid, 'connectors'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-        const fetchedConnectors: UserConnector[] = [];
-        snapshot.forEach((doc) => {
-            fetchedConnectors.push({ id: doc.id, ...doc.data() } as UserConnector);
-        });
-        setUserConnectors(fetchedConnectors);
-        setIsLoading(false);
-    }, (error) => {
-        const permissionError = new FirestorePermissionError({
-            path: `users/${user.uid}/connectors`,
-            operation: 'list'
-        } satisfies SecurityRuleContext);
-        errorEmitter.emit('permission-error', permissionError);
-        setIsLoading(false);
-    });
+    const fetchConnectors = async () => {
+        setIsLoading(true);
+        try {
+            const connectors = await getUserConnectors(user.uid);
+            setUserConnectors(connectors);
+        } catch (error) {
+            console.error('Error fetching connectors:', error);
+            const permissionError = new FirestorePermissionError({
+                path: `users/${user.uid}/connectors`,
+                operation: 'list'
+            } satisfies SecurityRuleContext);
+            errorEmitter.emit('permission-error', permissionError);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
-    return () => unsubscribe();
-  }, [user, db]);
+    fetchConnectors();
+  }, [user]);
 
   const uiConnectors = useMemo((): UiConnector[] => {
     return staticConnectors.map((staticConnector) => {
@@ -131,6 +129,9 @@ export default function ConnectorsPage() {
               title: 'Connected!',
               description: `Successfully connected to ${connector.name}.`,
             });
+            // Refresh connectors
+            const updatedConnectors = await getUserConnectors(user.uid);
+            setUserConnectors(updatedConnectors);
           }
           setIsSubmitting(false);
         }, 1500);
@@ -163,6 +164,9 @@ export default function ConnectorsPage() {
       });
       setUrlDialogOpen(false);
       setUrlInput('');
+      // Refresh connectors
+      const updatedConnectors = await getUserConnectors(user.uid);
+      setUserConnectors(updatedConnectors);
     } catch(e: any) {
       toast({ variant: 'destructive', title: 'Error', description: e.message });
     } finally {
@@ -180,6 +184,9 @@ export default function ConnectorsPage() {
             description: `Successfully disconnected from ${selectedConnector.name}.`
         });
         setDisconnectDialogOpen(false);
+        // Refresh connectors
+        const updatedConnectors = await getUserConnectors(user.uid);
+        setUserConnectors(updatedConnectors);
     } catch(e: any) {
         toast({ variant: 'destructive', title: 'Error', description: e.message });
     } finally {
@@ -316,3 +323,4 @@ export default function ConnectorsPage() {
     </AppLayout>
   );
 }
+ 
