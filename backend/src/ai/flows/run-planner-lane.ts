@@ -70,7 +70,7 @@ export async function runPlannerLane(
       try {
         // Step 1: Memory Agent - Retrieve relevant memories
         console.log(`[PlannerLane] MemoryAgent: Retrieving memories for planning`);
-        const memoryResults = await searchMemories(goal, userId, 10);
+         const memoryResults = await searchMemories(goal, userId, 'universe', 10);
         const contextMemories = memoryResults.map(m => m.text).join('\n\n');
         const memoryIds = memoryResults.map(m => m.id);
 

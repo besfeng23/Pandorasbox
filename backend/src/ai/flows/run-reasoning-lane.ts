@@ -75,7 +75,7 @@ export async function runReasoningLane(
       try {
         // Step 1: Memory Agent - Retrieve relevant memories
         console.log(`[ReasoningLane] MemoryAgent: Retrieving memories for "${query}"`);
-        const memoryResults = await searchMemories(query, userId, 10);
+        const memoryResults = await searchMemories(query, userId, 'universe', 10);
         const contextMemories = memoryResults.map(m => m.text).join('\n\n');
         const memoryIds = memoryResults.map(m => m.id);
 
@@ -163,7 +163,9 @@ export async function runReasoningLane(
             userId,
             source: 'agent-reflection',
             type: 'insight',
-            importance: 0.8, // High importance for insights
+            metadata: {
+              importance: 0.8, // High importance for insights
+            },
           });
         }
 

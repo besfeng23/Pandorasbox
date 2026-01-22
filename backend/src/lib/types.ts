@@ -27,10 +27,7 @@ export type Thread = {
   summary?: string;
   pinned?: boolean;
   archived?: boolean;
-<<<<<<< HEAD:backend/src/lib/types.ts
   agent?: string;
-=======
->>>>>>> bbd6b23ef01342a97a6705259cda62785d79f2ab:src/lib/types.ts
   updatedAt?: Timestamp | Date | string;
 };
 
@@ -56,6 +53,7 @@ export type SearchResult = {
   text: string;
   score: number;
   timestamp: string;
+  source?: string;
 };
 
 export type Artifact = {

@@ -27,7 +27,7 @@ async function searchKnowledgeBase(
   limit: number = 10
 ): Promise<SearchKnowledgeBaseResult[]> {
   try {
-    const results = await searchMemories(queryText, userId, limit);
+    const results = await searchMemories(queryText, userId, 'universe', limit);
 
     return results.map(r => ({
       id: r.id,

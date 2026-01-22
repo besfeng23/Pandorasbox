@@ -12,8 +12,7 @@ interface StatusIndicatorProps {
 
 export function StatusIndicator({ userId }: StatusIndicatorProps) {
     // This triggers the connection listener
-<<<<<<< HEAD:backend/src/components/status-indicator.tsx
-    useChatHistory(userId, null);
+    useChatHistory(userId, null, 'universe');
     const { status, latency } = useConnectionStore();
 
     const statusConfig = {

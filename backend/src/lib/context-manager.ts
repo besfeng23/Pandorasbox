@@ -49,7 +49,7 @@ export async function getContextualMemories(
   sessionId?: string
 ): Promise<WeightedMemory[]> {
   // Get vector search results
-  const searchResults = await searchMemories(query, userId, limit * 2); // Get more to filter
+   const searchResults = await searchMemories(query, userId, 'universe', limit * 2); // Get more to filter
 
   if (searchResults.length === 0) {
     return [];

@@ -67,6 +67,7 @@ export function MemoryInspector({ userId, agentId }: MemoryInspectorProps) {
         score: r.score,
         createdAt: r.timestamp ? new Date(r.timestamp) : new Date(),
         userId: userId,
+        embedding: [], // Provide empty embedding as it's not needed for display
       } as Memory));
       setMemories(memoryList);
     } catch (err) {

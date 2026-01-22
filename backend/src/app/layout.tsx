@@ -1,5 +1,5 @@
 import type {Metadata, Viewport} from 'next';
-import './globals.css';
+// import '../styles/globals.css';
 import { Toaster } from "@/components/ui/toaster"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { FirebaseClientProvider } from '@/firebase/client-provider';
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     email: false,
     address: false,
     telephone: false,
-  },
+    },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -67,7 +67,6 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
-<<<<<<< HEAD:backend/src/app/layout.tsx
       <body className="font-body antialiased" style={{ minHeight: '100dvh', overflowY: 'auto' }}>
         <ThemeProvider>
           <TooltipProvider>

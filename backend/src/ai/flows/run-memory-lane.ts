@@ -77,7 +77,7 @@ IMPORTANT: Always generate at least 3-5 search_queries if there is ANY meaningfu
   });
 
   const responseText = completion.choices[0].message.content || '{}';
-  const jsonMatch = responseText.match(/\{.*\}/s);
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
   const responseData = JSON.parse(jsonMatch ? jsonMatch[0] : responseText);
 
   const stateCollection = firestoreAdmin.collection('users').doc(userId).collection('state');

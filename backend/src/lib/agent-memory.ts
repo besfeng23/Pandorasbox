@@ -115,7 +115,7 @@ export async function recordAgentExecution(
   
   // Update or add agent entry
   const agentIndex = agents.findIndex(a => a.type === agentType);
-  const agentEntry = {
+  const agentEntry: AgentSession['agents'][0] = {
     type: agentType,
     status: error ? 'error' : 'complete',
     result,

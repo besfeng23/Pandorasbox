@@ -98,7 +98,7 @@ export async function runAnswerLane(
                 console.warn('[AnswerLane] History search failed:', err);
                 return [];
             }),
-            searchMemories(message, userId, 10).catch(err => {
+            searchMemories(message, userId, 'universe', 10).catch(err => {
                 console.warn('[AnswerLane] Memories search failed:', err);
                 return [];
             })
@@ -176,7 +176,7 @@ ${memoryUsageInstructions}
             });
             
             const evalText = evalCompletion.choices[0].message.content || '{}';
-            const jsonMatch = evalText.match(/\{.*\}/s);
+            const jsonMatch = evalText.match(/\{[\s\S]*\}/);
             const evalData = JSON.parse(jsonMatch ? jsonMatch[0] : evalText);
             
             if (evalData.confidence < 0.6 && evalData.topic) {

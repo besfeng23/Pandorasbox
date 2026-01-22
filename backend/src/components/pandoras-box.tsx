@@ -119,25 +119,26 @@ export function PandorasBox({ user }: PandorasBoxProps) {
     startTransition(async () => {
         try {
             const result = await submitUserMessage(formData);
-            if (result?.error) {
+            const resultAny = result as any;
+            if (resultAny?.error) {
                 // Handle rate limit or other errors
-                if (result.error.toLowerCase().includes('rate limit')) {
+                if (resultAny.error.toLowerCase().includes('rate limit')) {
                     toast({
                         variant: 'destructive',
                         title: 'Rate Limit Exceeded',
-                        description: result.error || 'Please wait a moment before sending another message.',
+                        description: resultAny.error || 'Please wait a moment before sending another message.',
                     });
                 } else {
                     toast({
                         variant: 'destructive',
                         title: 'Error',
-                        description: result.error || 'Failed to send message. Please try again.',
+                        description: resultAny.error || 'Failed to send message. Please try again.',
                     });
                 }
                 return;
             }
-            if (result?.threadId && !currentThreadId) {
-                setCurrentThreadId(result.threadId);
+            if (resultAny?.threadId && !currentThreadId) {
+                setCurrentThreadId(resultAny.threadId);
             }
         } catch (error: any) {
             console.error('Error submitting message:', error);

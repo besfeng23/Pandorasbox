@@ -35,6 +35,7 @@ import {
 interface ThreadMenuProps {
   threadId: string;
   userId: string;
+  agentId?: string; // Add agentId prop
   threadTitle?: string;
   pinned?: boolean;
   archived?: boolean;
@@ -43,7 +44,7 @@ interface ThreadMenuProps {
   onDeleted?: () => void;
 }
 
-export function ThreadMenu({ threadId, userId, threadTitle = '', pinned, archived, onRename, onViewDetails, onDeleted }: ThreadMenuProps) {
+export function ThreadMenu({ threadId, userId, agentId = 'builder', threadTitle = '', pinned, archived, onRename, onViewDetails, onDeleted }: ThreadMenuProps) {
   const [isPending, startTransition] = useTransition();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
@@ -52,7 +53,7 @@ export function ThreadMenu({ threadId, userId, threadTitle = '', pinned, archive
 
   const handlePin = () => {
     startTransition(async () => {
-      const result = await updateThread(threadId, userId, { pinned: !pinned });
+      const result = await updateThread(threadId, userId, agentId, { pinned: !pinned });
       if (result.success) {
         toast({ title: pinned ? 'Thread unpinned' : 'Thread pinned' });
       } else {
@@ -63,7 +64,7 @@ export function ThreadMenu({ threadId, userId, threadTitle = '', pinned, archive
 
   const handleArchive = () => {
     startTransition(async () => {
-      const result = await updateThread(threadId, userId, { archived: !archived });
+      const result = await updateThread(threadId, userId, agentId, { archived: !archived });
       if (result.success) {
         toast({ title: archived ? 'Thread unarchived' : 'Thread archived' });
       } else {
@@ -74,7 +75,7 @@ export function ThreadMenu({ threadId, userId, threadTitle = '', pinned, archive
 
   const handleDelete = () => {
     startTransition(async () => {
-      const result = await deleteThread(threadId, userId);
+      const result = await deleteThread(threadId, userId, agentId);
       if (result.success) {
         toast({ title: 'Thread deleted' });
         setDeleteDialogOpen(false);
@@ -92,7 +93,7 @@ export function ThreadMenu({ threadId, userId, threadTitle = '', pinned, archive
     }
     
     startTransition(async () => {
-      const result = await updateThread(threadId, userId, { title: newTitle.trim() });
+      const result = await updateThread(threadId, userId, agentId, { title: newTitle.trim() });
       if (result.success) {
         toast({ title: 'Thread renamed' });
         setRenameDialogOpen(false);

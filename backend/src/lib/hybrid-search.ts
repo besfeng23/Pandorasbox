@@ -54,7 +54,7 @@ export async function hybridSearch(
     // Use adaptive weights to determine result distribution
     const [internalResults, externalResults] = await Promise.all([
       // Internal memory search - use adaptive weight to determine count
-      searchMemories(query, userId, Math.ceil(limit * weights.internal)),
+      searchMemories(query, userId, 'universe', Math.ceil(limit * weights.internal)),
       
       // External web search (use cache if available, otherwise fetch)
       cachedExternal.length > 0
@@ -148,9 +148,9 @@ export async function hybridSearch(
     console.error(`[hybridSearch] Error performing hybrid search for user ${userId}:`, error);
     
     // Fallback to internal search only if external fails
-    try {
-      const fallbackResults = await searchMemories(query, userId, limit);
-      return fallbackResults.map(result => ({
+      try {
+        const fallbackResults = await searchMemories(query, userId, 'universe', limit);
+        return fallbackResults.map(result => ({
         id: result.id,
         content: result.text,
         source: 'internal' as const,

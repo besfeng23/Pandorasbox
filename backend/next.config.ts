@@ -50,8 +50,7 @@ const nextConfig: NextConfig = {
   
   // Experimental features for the Async Nervous System
   experimental: {
-    // Enable if using unstable_after() for background tasks on Cloud Run
-    after: true, 
+    // experimental.after is no longer needed in Next.js 15
   },
 
   env: {

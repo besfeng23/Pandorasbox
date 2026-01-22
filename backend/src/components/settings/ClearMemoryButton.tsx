@@ -20,9 +20,10 @@ import {
 
 interface ClearMemoryButtonProps {
   variant?: 'default' | 'outline' | 'ghost' | 'destructive' | 'secondary' | 'link';
+  agentId?: string; // Add agentId prop
 }
 
-export function ClearMemoryButton({ variant = 'destructive' }: ClearMemoryButtonProps) {
+export function ClearMemoryButton({ variant = 'destructive', agentId = 'universe' }: ClearMemoryButtonProps) {
   const [isPending, startTransition] = useTransition();
   const [isOpen, setIsOpen] = React.useState(false);
   const { toast } = useToast();
@@ -35,8 +36,8 @@ export function ClearMemoryButton({ variant = 'destructive' }: ClearMemoryButton
     }
 
     startTransition(async () => {
-      const token = await user.getIdToken();
-      const result = await clearMemory(token);
+      // Use user.uid and agentId, not token
+      const result = await clearMemory(user.uid, agentId);
       
       setIsOpen(false);
       

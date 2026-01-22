@@ -40,7 +40,7 @@ Return ONLY a JSON array of 3 strings. e.g. ["question 1", "question 2", "questi
     }
 
     // Attempt to extract JSON array if it's wrapped in text
-    const jsonMatch = content.match(/\[.*\]/s);
+    const jsonMatch = content.match(/\[[\s\S]*\]/);
     const jsonStr = jsonMatch ? jsonMatch[0] : content;
 
     const result = JSON.parse(jsonStr);

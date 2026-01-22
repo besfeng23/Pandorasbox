@@ -5,6 +5,7 @@ import { AuthGuard } from '@/components/auth/auth-guard';
 import { PandorasBox } from '@/components/pandoras-box';
 import { useUser } from '@/firebase';
 import { Loader2 } from 'lucide-react';
+import { ErrorBoundary } from '@/components/error-boundary';
 
 export default function Home() {
   const { user, isLoading } = useUser();
@@ -19,7 +20,9 @@ export default function Home() {
 
   return (
     <AuthGuard>
-      <PandorasBox user={user!} />
+      <ErrorBoundary>
+        <PandorasBox user={user!} />
+      </ErrorBoundary>
     </AuthGuard>
   );
 }

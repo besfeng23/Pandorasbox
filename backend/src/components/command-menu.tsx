@@ -50,8 +50,8 @@ export function CommandMenu() {
 
     startSearchTransition(async () => {
       if (user) {
-        const token = await user.getIdToken();
-        const searchResults = await searchMemoryAction(debouncedQuery, token);
+        // userId should be the uid, not the token. And we need to pass agentId.
+        const searchResults = await searchMemoryAction(debouncedQuery, user.uid, 'universe');
         setResults(searchResults);
       }
     });

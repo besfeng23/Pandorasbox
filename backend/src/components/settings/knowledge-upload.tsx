@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useTransition, useCallback } from 'react';
-import { useDropzone };
+import { useDropzone } from 'react-dropzone';
 import { uploadKnowledge } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -12,9 +12,10 @@ import { useUser } from '@/firebase';
 
 interface KnowledgeUploadProps {
   userId: string;
+  agentId?: string;
 }
 
-export function KnowledgeUpload({ userId }: KnowledgeUploadProps) {
+export function KnowledgeUpload({ userId, agentId = 'universe' }: KnowledgeUploadProps) {
   const [isPending, startTransition] = useTransition();
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
@@ -28,6 +29,7 @@ export function KnowledgeUpload({ userId }: KnowledgeUploadProps) {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('userId', userId);
+    formData.append('agentId', agentId);
     
     setFileName(file.name);
     setUploadProgress(0); // Start progress

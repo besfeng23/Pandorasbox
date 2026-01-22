@@ -10,11 +10,20 @@ const openai = new OpenAI({
   baseURL: INFERENCE_URL,
 });
 
-export async function getInference(prompt: string, maxTokens: number = 1000) {
+export interface ChatMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+export async function getInference(input: string | ChatMessage[], maxTokens: number = 1000) {
   try {
+    const messages: ChatMessage[] = typeof input === 'string' 
+      ? [{ role: 'user', content: input }] 
+      : input;
+
     const response = await openai.chat.completions.create({
       model: INFERENCE_MODEL,
-      messages: [{ role: 'user', content: prompt }],
+      messages: messages,
       stream: false,
       max_tokens: maxTokens,
     });
@@ -25,11 +34,15 @@ export async function getInference(prompt: string, maxTokens: number = 1000) {
   }
 }
 
-export async function streamInference(prompt: string, maxTokens: number = 1000) {
+export async function streamInference(params: { messages: ChatMessage[] } | string, maxTokens: number = 2000) {
   try {
+    const messages: ChatMessage[] = typeof params === 'string'
+      ? [{ role: 'user', content: params }]
+      : params.messages;
+
     const stream = await openai.chat.completions.create({
       model: INFERENCE_MODEL,
-      messages: [{ role: 'user', content: prompt }],
+      messages: messages,
       stream: true,
       max_tokens: maxTokens,
     });
@@ -39,4 +52,3 @@ export async function streamInference(prompt: string, maxTokens: number = 1000) 
     throw new Error('Inference System Offline - Check Container.');
   }
 }
-

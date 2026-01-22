@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { streamInference, ChatMessage } from '@/lib/sovereign/vllm-client';
 import { getFirestoreAdmin, getAuthAdmin } from '@/lib/firebase-admin';
-import { AIStream, StreamingTextResponse, streamData } from 'ai';
+import { OpenAIStream, StreamingTextResponse, StreamData } from 'ai';
 import { preCheck, postCheck } from '@/server/guardrails';
 import { isValidAgentId, getAgentConfig } from '@/lib/agent-types';
 import { searchMemoryAction } from '@/app/actions'; // For tool calls
@@ -41,25 +41,32 @@ export async function POST(request: NextRequest) {
   }
 
   const preResult = preCheck(message, agentId);
-  if (!preResult.allowed) {
-    return new StreamingTextResponse(AIStream(() => new ReadableStream({
-      start(controller) {
-        controller.enqueue(JSON.stringify({ response: preResult.reason, blocked: true, agentId, threadId, streaming: false }));
-        controller.close();
-      },
-    })), { headers: corsHeaders() });
-  }
+      if (!preResult.allowed) {
+        return new StreamingTextResponse(
+          new ReadableStream({
+            start(controller) {
+              controller.enqueue(
+                new TextEncoder().encode(preResult.reason)
+              );
+              controller.close();
+            },
+          }),
+          { headers: corsHeaders() }
+        );
+      }
 
   const config = getAgentConfig(agentId);
   let initialMessages: ChatMessage[] = [
     { role: 'system', content: config.systemPrompt },
   ];
 
+  const streamData = new StreamData();
+
   // Simulate tool use: search_knowledge_base
   if (message.toLowerCase().includes('search memory') || message.toLowerCase().includes('search knowledge base')) {
     streamData.append({ type: 'tool_start', toolName: 'search_knowledge_base', display: 'Searching Knowledge Base...' });
     try {
-      const userId = 'placeholder'; // TODO: Get actual userId from auth
+      // userId is already extracted from token above
       const queryResults = await searchMemoryAction(message, userId, agentId);
       const formattedResults = queryResults.map(r => `[Memory ID: ${r.id}, Score: ${r.score}, Source: ${r.source}]\n${r.text}`).join('\n\n');
       
@@ -81,12 +88,12 @@ ${formattedResults}
     messages: initialMessages,
   });
 
-  const aiStream = AIStream(stream, {
+  const aiStream = OpenAIStream(stream as any, {
     async onFinal() {
-      streamData.close();
+      await streamData.close();
     },
     experimental_streamData: true,
   });
 
-  return new StreamingTextResponse(aiStream, { headers: corsHeaders() });
+  return new StreamingTextResponse(aiStream, { headers: { ...corsHeaders() } });
 }

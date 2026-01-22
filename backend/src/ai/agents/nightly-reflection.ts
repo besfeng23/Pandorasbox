@@ -120,7 +120,7 @@ Return ONLY a JSON object with:
     const responseText = completion.choices[0].message.content || '{}';
     
     // Attempt to extract JSON object if it's wrapped in text
-    const jsonMatch = responseText.match(/\{.*\}/s);
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
     const jsonStr = jsonMatch ? jsonMatch[0] : responseText;
     
     const responseData = JSON.parse(jsonStr);

@@ -84,7 +84,6 @@ export function ArtifactViewer({ artifactId }: ArtifactViewerProps) {
   }
 
   return (
-<<<<<<< HEAD:backend/src/components/artifacts/artifact-viewer.tsx
     <div className="flex h-full flex-col bg-card border-l border-border">
       <header className="flex h-14 items-center justify-between border-b border-border px-4 bg-background">
         <div className="flex items-center gap-2 min-w-0 flex-1">

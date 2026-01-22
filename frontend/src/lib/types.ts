@@ -76,3 +76,10 @@ export interface UserConnector {
     url?: string;
   };
 }
+
+export interface SearchResult {
+  id: string;
+  text: string;
+  score: number;
+  timestamp: string;
+}

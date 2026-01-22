@@ -19,13 +19,83 @@ import {
 import { initializeFirebase } from '@/firebase';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import type { Memory } from '@/lib/types';
+import type { Memory, SearchResult } from '@/lib/types';
 
-const { db } = initializeFirebase();
+// Initialize firebase only if needed or guard it
+const getDb = () => {
+    const { db } = initializeFirebase();
+    return db;
+};
+
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9002';
+
+/**
+ * SOVEREIGN AI STACK: Fetches memories directly from backend (Qdrant via semantic search).
+ */
+export async function fetchMemories(userId: string, agentId: string, queryText: string): Promise<SearchResult[]> {
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/memories?userId=${userId}&agentId=${agentId}&query=${encodeURIComponent(queryText)}`, {
+      headers: { 'Content-Type': 'application/json' },
+      cache: 'no-store'
+    });
+    if (!response.ok) throw new Error('Failed to fetch memories from backend');
+    return await response.json();
+  } catch (error) {
+    console.error('Error in fetchMemories action:', error);
+    // Fallback or empty list
+    return [];
+  }
+}
+
+export async function deleteMemoryFromMemories(id: string, userId: string, agentId: string) {
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/memories/${id}?userId=${userId}&agentId=${agentId}`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) throw new Error('Failed to delete memory from backend');
+    revalidatePath('/memory');
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+}
+
+export async function updateMemoryInMemories(id: string, newText: string, userId: string, agentId: string) {
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/memories/${id}?userId=${userId}&agentId=${agentId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: newText }),
+    });
+    if (!response.ok) throw new Error('Failed to update memory on backend');
+    revalidatePath('/memory');
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+}
+
+export async function createMemoryFromSettings(content: string, userId: string, agentId: string) {
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/memories?userId=${userId}&agentId=${agentId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content }),
+    });
+    if (!response.ok) throw new Error('Failed to create memory on backend');
+    revalidatePath('/memory');
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+}
+
+// --- Existing functions updated to use getDb() and handle nulls ---
 
 export async function createThread(agent: 'builder' | 'universe', userId: string) {
-  if (!userId) {
-    throw new Error('User is not authenticated.');
+  const db = getDb();
+  if (!db || !userId) {
+    throw new Error('Database or User not available.');
   }
 
   const now = new Date();
@@ -50,9 +120,9 @@ export async function createThread(agent: 'builder' | 'universe', userId: string
 }
 
 export async function renameThread(threadId: string, newName: string, userId: string) {
-  if (!userId) {
-    throw new Error('User is not authenticated.');
-  }
+  const db = getDb();
+  if (!db || !userId) throw new Error('Database or User not available.');
+  
   const threadRef = doc(db, 'threads', threadId);
   const now = new Date();
   
@@ -73,9 +143,8 @@ export async function renameThread(threadId: string, newName: string, userId: st
 }
 
 export async function deleteThread(threadId: string, userId: string) {
-  if (!userId) {
-    throw new Error('User is not authenticated.');
-  }
+  const db = getDb();
+  if (!db || !userId) throw new Error('Database or User not available.');
   
   const threadRef = doc(db, 'threads', threadId);
   const threadDoc = await getDoc(threadRef);
@@ -95,15 +164,13 @@ export async function deleteThread(threadId: string, userId: string) {
 
   revalidatePath('/');
   revalidatePath(`/chat/${threadId}`);
-  if (threadId === new URL(process.env.NEXT_PUBLIC_URL || '').pathname.split('/').pop()) {
-      redirect('/');
-  }
+  redirect('/');
 }
 
 export async function deleteMemoryAction(memoryId: string, userId: string) {
-    if (!userId) {
-        throw new Error('User is not authenticated.');
-    }
+    const db = getDb();
+    if (!db || !userId) throw new Error('Database or User not available.');
+    
     const memoryRef = doc(db, 'users', userId, 'memories', memoryId);
     const memoryDoc = await getDoc(memoryRef);
     if (!memoryDoc.exists() || memoryDoc.data().userId !== userId) {
@@ -119,9 +186,8 @@ export async function connectDataSource(
   connectorId: string,
   metadata?: Record<string, any>
 ) {
-  if (!userId) {
-    throw new Error('User is not authenticated.');
-  }
+  const db = getDb();
+  if (!db || !userId) throw new Error('Database or User not available.');
 
   const connectorRef = doc(db, 'users', userId, 'connectors', connectorId);
   const existingDoc = await getDoc(connectorRef);
@@ -145,9 +211,8 @@ export async function connectDataSource(
 }
 
 export async function disconnectDataSource(userId: string, connectorId: string) {
-  if (!userId) {
-    throw new Error('User is not authenticated.');
-  }
+  const db = getDb();
+  if (!db || !userId) throw new Error('Database or User not available.');
 
   const connectorRef = doc(db, 'users', userId, 'connectors', connectorId);
   

@@ -79,21 +79,11 @@ export default {
         'neon-glow-purple': 'linear-gradient(135deg, rgba(98, 0, 234, 0.1) 0%, rgba(98, 0, 234, 0) 100%)',
       },
       boxShadow: {
-<<<<<<< HEAD:backend/tailwind.config.ts
         'neon-cyan': '0 0 16px rgba(0, 229, 255, 0.15), 0 0 32px rgba(0, 229, 255, 0.06)',
         'neon-purple': '0 0 16px rgba(98, 0, 234, 0.15), 0 0 32px rgba(98, 0, 234, 0.06)',
         'neon-cyan-sm': '0 0 8px rgba(0, 229, 255, 0.1)',
         'neon-purple-sm': '0 0 8px rgba(98, 0, 234, 0.1)',
         'glass': '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
-=======
-        // Keep legacy keys but reduce intensity for premium feel
-        'neon-cyan': '0 0 0 1px rgba(0, 229, 255, 0.10), 0 0 24px rgba(0, 229, 255, 0.08)',
-        'neon-purple': '0 0 0 1px rgba(124, 58, 237, 0.10), 0 0 24px rgba(124, 58, 237, 0.08)',
-        'neon-cyan-sm': '0 0 0 1px rgba(0, 229, 255, 0.10)',
-        'neon-purple-sm': '0 0 0 1px rgba(124, 58, 237, 0.10)',
-        'glass': '0 10px 30px rgba(0, 0, 0, 0.35)',
-        'elev-1': '0 1px 0 rgba(255, 255, 255, 0.04), 0 12px 28px rgba(0, 0, 0, 0.42)',
->>>>>>> bbd6b23ef01342a97a6705259cda62785d79f2ab:tailwind.config.ts
       },
       keyframes: {
         'accordion-down': {

@@ -26,9 +26,6 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/hooks/use-theme';
-<<<<<<< HEAD:backend/src/components/SettingsModal.tsx
-=======
->>>>>>> bbd6b23ef01342a97a6705259cda62785d79f2ab:src/components/SettingsModal.tsx
 
 interface SettingsModalProps {
   open: boolean;
@@ -41,9 +38,6 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
   const [dataRetention, setDataRetention] = useState(true);
   const { theme, toggleTheme } = useTheme();
   const darkMode = theme === 'dark';
-<<<<<<< HEAD:backend/src/components/SettingsModal.tsx
-=======
->>>>>>> bbd6b23ef01342a97a6705259cda62785d79f2ab:src/components/SettingsModal.tsx
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
