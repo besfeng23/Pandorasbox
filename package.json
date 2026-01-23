@@ -13,7 +13,7 @@
     "typecheck:backend": "tsc --noEmit",
     "save-settings-memories": "tsx backend/scripts/save-all-settings-memories.ts",
     "test-tavily": "tsx backend/scripts/test-tavily-search.ts",
-    "auto-commit": "git add -A && git commit -m \"Auto-commit: $(date '+%Y-%m-%d %H:%M:%S')\" && git push origin HEAD"
+    "auto-commit": "tsx backend/scripts/auto-commit.ts"
   },
   "keywords": [],
   "author": "",
