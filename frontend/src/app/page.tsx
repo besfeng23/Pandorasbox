@@ -95,12 +95,7 @@ export default function DashboardPage() {
             setRecentThreads(threads);
         } catch (error) {
             console.error('Error fetching threads:', error);
-            const permissionError = new FirestorePermissionError({
-                path: 'threads',
-                operation: 'list'
-            } satisfies SecurityRuleContext);
-            errorEmitter.emit('permission-error', permissionError);
-            toast({
+             toast({
                 variant: 'destructive',
                 title: 'Error',
                 description: 'Could not fetch recent threads.'

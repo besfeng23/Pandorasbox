@@ -66,11 +66,11 @@ export default function ConnectorsPage() {
             setUserConnectors(connectors);
         } catch (error) {
             console.error('Error fetching connectors:', error);
-            const permissionError = new FirestorePermissionError({
-                path: `users/${user.uid}/connectors`,
-                operation: 'list'
-            } satisfies SecurityRuleContext);
-            errorEmitter.emit('permission-error', permissionError);
+            toast({
+                variant: 'destructive',
+                title: 'Error fetching connectors',
+                description: 'Could not fetch data connectors.'
+            });
         } finally {
             setIsLoading(false);
         }

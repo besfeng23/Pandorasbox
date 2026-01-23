@@ -115,11 +115,11 @@ export function AppLayout({ children, threadId }: { children: React.ReactNode; t
             setThreads(fetchedThreads);
         } catch (error) {
             console.error('Error fetching threads:', error);
-            const permissionError = new FirestorePermissionError({
-                path: 'threads',
-                operation: 'list'
-            } satisfies SecurityRuleContext);
-            errorEmitter.emit('permission-error', permissionError);
+            toast({
+                variant: 'destructive',
+                title: 'Error fetching threads',
+                description: error instanceof Error ? error.message : 'Unknown error occurred'
+            });
         } finally {
             setIsLoading(false);
         }

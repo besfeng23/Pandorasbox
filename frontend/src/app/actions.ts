@@ -91,6 +91,7 @@ export async function createMemoryFromSettings(content: string, userId: string, 
 
 export async function getRecentThreads(userId: string, agent?: string): Promise<Thread[]> {
   try {
+    console.log('getRecentThreads called for user:', userId);
     let url = `${BACKEND_URL}/api/threads?userId=${userId}`;
     if (agent) {
       url += `&agent=${agent}`;
@@ -99,7 +100,11 @@ export async function getRecentThreads(userId: string, agent?: string): Promise<
       headers: { 'Content-Type': 'application/json' },
       cache: 'no-store'
     });
-    if (!response.ok) throw new Error('Failed to fetch threads from backend');
+    if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Failed to fetch threads:', response.status, errorText);
+        throw new Error(`Failed to fetch threads from backend: ${response.status} ${errorText}`);
+    }
     const data = await response.json();
     return data.threads || [];
   } catch (error) {
