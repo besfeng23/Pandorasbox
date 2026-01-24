@@ -6,19 +6,11 @@
       "**/.*",
       "**/node_modules/**"
     ],
-<<<<<<< HEAD
     "rewrites": [
       {
         "source": "/api/**",
         "destination": "https://pandora-backend-536979070288.us-central1.run.app"
       }
-=======
-    "frameworksBackend": {
-      "region": "asia-southeast1"
-    },
-    "rewrites": [
-      { "source": "**", "destination": "/index.html" }
->>>>>>> bbd6b23ef01342a97a6705259cda62785d79f2ab
     ]
   },
   "firestore": {
@@ -28,7 +20,6 @@
     "indexes": "firestore.indexes.json"
   },
   "apphosting": {
-<<<<<<< HEAD
     "source": ".",
     "backends": [
       {
@@ -40,16 +31,6 @@
         "rootDir": "backend",
         "webFramework": "NEXT_JS"
       }
-=======
-    "backendId": "pandora-ui",
-    "rootDir": "/",
-    "ignore": [
-      "node_modules",
-      ".git",
-      "firebase-debug.log",
-      "firebase-debug.*.log",
-      "functions"
->>>>>>> bbd6b23ef01342a97a6705259cda62785d79f2ab
     ]
   },
   "storage": {
@@ -59,7 +40,7 @@
     "apphosting": {
       "port": 5002,
       "rootDirectory": "./",
-      "startCommand": "npm run dev
+      "startCommand": "npm run dev"
     },
     "functions": {
       "port": 5001

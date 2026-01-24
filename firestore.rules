@@ -1,0 +1,292 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // --- Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function platformRole() {
+      return request.auth.token.platformRole;
+    }
+
+    function isPlatformSupport() {
+      return isSignedIn() && (platformRole() == 'support' || platformRole() == 'superadmin');
+    }
+
+    function isPlatformSuperAdmin() {
+      return isSignedIn() && platformRole() == 'superadmin';
+    }
+
+    function isWorkspaceMember(workspaceId) {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid));
+    }
+
+    function isWorkspaceAdmin(workspaceId) {
+      return isWorkspaceMember(workspaceId)
+        && get(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Users collection
+    match /users/{userId}/{document=**} {
+      allow read, write: if isOwner(userId);
+    }
+    
+    // Workspaces (multi-tenant SaaS)
+    match /workspaces/{workspaceId} {
+      allow read: if isWorkspaceMember(workspaceId);
+      allow create: if isSignedIn() && request.resource.data.createdBy == request.auth.uid;
+      allow update: if isWorkspaceAdmin(workspaceId);
+      allow delete: if false;
+
+      match /members/{memberId} {
+        allow read: if isWorkspaceMember(workspaceId);
+        allow create, update, delete: if isWorkspaceAdmin(workspaceId);
+      }
+    }
+
+    // Workspace membership index (server-managed). Clients should use users/{uid}/workspaces/* instead.
+    match /workspace_members/{membershipId} {
+      allow read, write: if false;
+    }
+
+    // Workspace invites (minimal client support; server actions handle writes)
+    match /workspace_invites/{inviteId} {
+      allow read: if isSignedIn() && (
+        // inviter can read
+        resource.data.invitedBy == request.auth.uid ||
+        // invitee can read if email matches auth token email
+        (request.auth.token.email != null && resource.data.email == request.auth.token.email)
+      );
+      allow create: if isSignedIn() && isWorkspaceAdmin(request.resource.data.workspaceId);
+      allow update: if isSignedIn() && (
+        // workspace admins can update invites
+        isWorkspaceAdmin(resource.data.workspaceId) ||
+        // invitee can accept (status transition) if email matches
+        (request.auth.token.email != null && resource.data.email == request.auth.token.email)
+      );
+      allow delete: if isWorkspaceAdmin(resource.data.workspaceId);
+    }
+
+    // Settings
+    match /settings/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // History collection - users can only access their own messages
+    match /history/{messageId} {
+      allow read: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        (resource.data.workspaceId != null && resource.data.visibility == 'workspace' && isWorkspaceMember(resource.data.workspaceId))
+      );
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && (request.resource.data.workspaceId == null || isWorkspaceMember(request.resource.data.workspaceId));
+      allow update, delete: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        (resource.data.workspaceId != null && isWorkspaceAdmin(resource.data.workspaceId))
+      );
+    }
+
+    // Threads collection - users can only access their own threads
+    match /threads/{threadId} {
+      allow read: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        (resource.data.workspaceId != null && resource.data.visibility == 'workspace' && isWorkspaceMember(resource.data.workspaceId))
+      );
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && (request.resource.data.workspaceId == null || isWorkspaceMember(request.resource.data.workspaceId));
+      allow update, delete: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        (resource.data.workspaceId != null && isWorkspaceAdmin(resource.data.workspaceId))
+      );
+    }
+
+    // Artifacts collection - users can only access their own artifacts
+    match /artifacts/{artifactId} {
+      allow read: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        (resource.data.workspaceId != null && resource.data.scope == 'workspace' && isWorkspaceMember(resource.data.workspaceId))
+      );
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && (request.resource.data.workspaceId == null || isWorkspaceMember(request.resource.data.workspaceId));
+      allow update, delete: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        (resource.data.workspaceId != null && isWorkspaceAdmin(resource.data.workspaceId))
+      );
+    }
+
+    // Memories collection (root level) - users can only access their own memories
+    match /memories/{memoryId} {
+      allow read: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        (resource.data.workspaceId != null && resource.data.scope == 'workspace' && isWorkspaceMember(resource.data.workspaceId))
+      );
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && (request.resource.data.workspaceId == null || isWorkspaceMember(request.resource.data.workspaceId));
+      allow update, delete: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        (resource.data.workspaceId != null && isWorkspaceAdmin(resource.data.workspaceId))
+      );
+    }
+
+    // Analytics collection - users can only access their own analytics
+    match /analytics/{analyticsId} {
+      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
+
+    // Knowledge graph nodes - users can only access their own graph nodes
+    match /system_knowledge_graph/{nodeId} {
+      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
+
+    // Analytics collection - users can only access their own analytics
+    match /analytics/{analyticsId} {
+      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
+
+    // Knowledge graph edges - users can only access their own graph edges
+    match /knowledge_edges/{edgeId} {
+      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
+
+    // Phase 5: Graph analytics - users can only access their own analytics
+    match /graph_analytics/{snapshotId} {
+      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
+
+    // Phase 3: Context store - users can only access their own context sessions
+    match /context_store/{sessionId} {
+      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
+
+    // RateLimits collection - users can only access their own rate limit data
+    match /rateLimits/{rateLimitId} {
+      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
+
+    // Phase 5: External Knowledge cache - server-side only (no userId, public cache)
+    // This is a shared cache for external search results to reduce API calls
+    match /external_knowledge/{cacheId} {
+      // Allow server-side writes (from Firebase Admin SDK)
+      // Allow authenticated reads for any user (shared cache)
+      allow read: if request.auth != null;
+      allow write: if false; // Only server-side writes via Admin SDK
+    }
+
+    // Phase 6: Feedback collection - users can only access their own feedback
+    match /feedback/{feedbackId} {
+      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
+
+    // Phase 6: Performance metrics - users can only access their own metrics
+    match /performance_metrics/{metricId} {
+      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
+
+    // Phase 6: Meta-learning state - users can only access their own learning state
+    match /meta_learning_state/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && request.auth.uid == userId;
+      allow delete: if false; // Never allow deletion - preserve learning state
+    }
+
+    // System logs - server-side only (no userId, for system monitoring)
+    match /system_logs/{logId} {
+      allow read: if request.auth != null; // Authenticated users can read logs
+      allow write: if false; // Only server-side writes via Admin SDK
+    }
+
+    // System Phases - read-only for authenticated users (Phase 1-14 status)
+    match /system_phases/{phaseId} {
+      allow read: if request.auth != null; // Authenticated users can read phase status
+      allow write: if false; // Only server-side writes via Admin SDK
+    }
+
+    // System Governance (Phase 11) - read-only for authenticated users
+    match /system_governance/{docId} {
+      allow read: if request.auth != null; // Authenticated users can read governance metrics
+      allow write: if false; // Only server-side writes via Admin SDK
+    }
+
+    // System Federation (Phase 9) - read-only for authenticated users
+    match /system_federation/{docId} {
+      allow read: if request.auth != null; // Authenticated users can read federation metrics
+      allow write: if false; // Only server-side writes via Admin SDK
+    }
+
+    // System Self-Healing (Phase 7) - read-only for authenticated users
+    match /system_selfheal/{docId} {
+      allow read: if request.auth != null; // Authenticated users can read self-healing metrics
+      allow write: if false; // Only server-side writes via Admin SDK
+    }
+
+    // Learning Queue - authenticated users can read/write their own learning tasks
+    match /learning_queue/{docId} {
+      allow read, write: if request.auth != null && request.auth.uid != null;
+    }
+
+    // --- Admin cockpit collections (platformRole gated) ---
+    match /admin_audit/{docId} {
+      allow read: if isPlatformSupport();
+      allow write: if isPlatformSuperAdmin();
+    }
+
+    match /feature_flags/{flagId} {
+      allow read: if isPlatformSupport();
+      allow write: if isPlatformSuperAdmin();
+    }
+
+    match /prompt_templates/{templateId} {
+      allow read: if isPlatformSupport();
+      allow write: if isPlatformSuperAdmin();
+    }
+
+    match /model_policies/{policyId} {
+      allow read: if isPlatformSupport();
+      allow write: if isPlatformSuperAdmin();
+    }
+
+    match /moderation_queue/{itemId} {
+      allow read: if isPlatformSupport();
+      allow write: if isPlatformSupport(); // support can triage; superadmin can also
+    }
+
+    match /subscriptions/{subId} {
+      allow read: if isPlatformSupport();
+      allow write: if isPlatformSuperAdmin();
+    }
+
+    match /usage_events/{eventId} {
+      allow read: if isPlatformSupport();
+      allow write: if false; // typically server-managed
+    }
+  }
+}
