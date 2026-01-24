@@ -1,19 +1,12 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchMemories, createMemoryFromSettings } from '@/app/actions';
+import { handleOptions, corsHeaders } from '@/lib/cors';
 
 export const dynamic = 'force-dynamic';
 
-function corsHeaders() {
-  return {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  };
-}
-
 export async function OPTIONS() {
-  return NextResponse.json({}, { headers: corsHeaders() });
+  return handleOptions();
 }
 
 export async function GET(request: NextRequest) {

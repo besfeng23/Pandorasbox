@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirestoreAdmin } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
+import { handleOptions, corsHeaders } from '@/lib/cors';
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,7 +11,7 @@ export async function GET(request: NextRequest) {
     const agent = searchParams.get('agent');
 
     if (!userId) {
-      return NextResponse.json({ error: 'userId is required' }, { status: 400 });
+      return NextResponse.json({ error: 'userId is required' }, { status: 400, headers: corsHeaders() });
     }
 
     const firestoreAdmin = getFirestoreAdmin();
@@ -33,10 +34,10 @@ export async function GET(request: NextRequest) {
       updatedAt: doc.data().updatedAt?.toDate().toISOString(),
     }));
 
-    return NextResponse.json({ threads });
+    return NextResponse.json({ threads }, { headers: corsHeaders() });
   } catch (error: any) {
     console.error('Error fetching threads:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message }, { status: 500, headers: corsHeaders() });
   }
 }
 
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
     const { userId, agent } = body;
 
     if (!userId || !agent) {
-      return NextResponse.json({ error: 'userId and agent are required' }, { status: 400 });
+      return NextResponse.json({ error: 'userId and agent are required' }, { status: 400, headers: corsHeaders() });
     }
 
     const firestoreAdmin = getFirestoreAdmin();
@@ -74,21 +75,14 @@ export async function POST(request: NextRequest) {
         // Mock timestamps for immediate response
         createdAt: now.toISOString(),
         updatedAt: now.toISOString()
-    });
+    }, { headers: corsHeaders() });
 
   } catch (error: any) {
     console.error('Error creating thread:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message }, { status: 500, headers: corsHeaders() });
   }
 }
 
 export async function OPTIONS() {
-  return new NextResponse(null, {
-    status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS, PATCH',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    },
-  });
+  return handleOptions();
 }

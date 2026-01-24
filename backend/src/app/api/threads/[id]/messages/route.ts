@@ -1,6 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirestoreAdmin } from '@/lib/firebase-admin';
+import { handleOptions, corsHeaders } from '@/lib/cors';
 
 export async function GET(
   request: NextRequest,
@@ -12,7 +13,7 @@ export async function GET(
     const userId = searchParams.get('userId');
 
     if (!userId) {
-      return NextResponse.json({ error: 'userId is required' }, { status: 400 });
+      return NextResponse.json({ error: 'userId is required' }, { status: 400, headers: corsHeaders() });
     }
 
     const firestoreAdmin = getFirestoreAdmin();
@@ -20,7 +21,7 @@ export async function GET(
     // Security check: Verify user owns the thread
     const threadDoc = await firestoreAdmin.collection('threads').doc(threadId).get();
     if (!threadDoc.exists || threadDoc.data()?.userId !== userId) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+      return NextResponse.json({ error: 'Access denied' }, { status: 403, headers: corsHeaders() });
     }
 
     const snapshot = await firestoreAdmin
@@ -36,21 +37,14 @@ export async function GET(
       createdAt: doc.data().createdAt?.toDate().toISOString(),
     }));
 
-    return NextResponse.json({ messages });
+    return NextResponse.json({ messages }, { headers: corsHeaders() });
   } catch (error: any) {
     console.error('Error fetching messages:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message }, { status: 500, headers: corsHeaders() });
   }
 }
 
 export async function OPTIONS() {
-  return new NextResponse(null, {
-    status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS, PATCH',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    },
-  });
+  return handleOptions();
 }
 

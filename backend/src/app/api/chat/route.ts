@@ -6,18 +6,10 @@ import { preCheck, postCheck } from '@/server/guardrails';
 import { isValidAgentId, getAgentConfig } from '@/lib/agent-types';
 import { searchMemoryAction } from '@/app/actions'; // For tool calls
 import { embedText } from '@/lib/ai/embedding'; // For embedding search queries
+import { handleOptions, corsHeaders } from '@/lib/cors';
 
 export async function OPTIONS() {
-  return NextResponse.json({}, { headers: corsHeaders() });
-}
-
-// CORS headers helper
-function corsHeaders() {
-  return {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, OPTIONS, POST, PUT, DELETE',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-API-Key',
-  };
+  return handleOptions();
 }
 
 export async function POST(request: NextRequest) {

@@ -1,5 +1,6 @@
 
 import { NextResponse } from 'next/server';
+import { handleOptions, corsHeaders } from '@/lib/cors';
 
 export async function GET() {
   try {
@@ -23,20 +24,13 @@ export async function GET() {
       }
     ];
 
-    return NextResponse.json({ agents: tools });
+    return NextResponse.json({ agents: tools }, { headers: corsHeaders() });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message }, { status: 500, headers: corsHeaders() });
   }
 }
 
 export async function OPTIONS() {
-  return new NextResponse(null, {
-    status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS, PATCH',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    },
-  });
+  return handleOptions();
 }
 
