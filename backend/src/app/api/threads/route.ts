@@ -1,6 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirestoreAdmin } from '@/lib/firebase-admin';
+import { FieldValue } from 'firebase-admin/firestore';
 
 export async function GET(request: NextRequest) {
   try {
@@ -39,6 +40,48 @@ export async function GET(request: NextRequest) {
   }
 }
 
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { userId, agent } = body;
+
+    if (!userId || !agent) {
+      return NextResponse.json({ error: 'userId and agent are required' }, { status: 400 });
+    }
+
+    const firestoreAdmin = getFirestoreAdmin();
+    const now = new Date();
+    
+    const threadData = {
+      userId,
+      agent,
+      name: 'New Thread',
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+      version: 1,
+      history: [{
+        action: 'create',
+        userId,
+        timestamp: now,
+      }]
+    };
+
+    const docRef = await firestoreAdmin.collection('threads').add(threadData);
+
+    return NextResponse.json({ 
+        id: docRef.id,
+        ...threadData,
+        // Mock timestamps for immediate response
+        createdAt: now.toISOString(),
+        updatedAt: now.toISOString()
+    });
+
+  } catch (error: any) {
+    console.error('Error creating thread:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
 export async function OPTIONS() {
   return new NextResponse(null, {
     status: 204,
@@ -49,4 +92,3 @@ export async function OPTIONS() {
     },
   });
 }
-
