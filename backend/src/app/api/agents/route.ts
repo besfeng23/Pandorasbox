@@ -1,4 +1,3 @@
-
 import { NextResponse } from 'next/server';
 
 // 1. FIX CORS: Handle the browser's "Preflight" check
@@ -15,24 +14,12 @@ export async function OPTIONS() {
 
 // 2. SERVE DATA: Return the list of "Agents" (Tools)
 export async function GET() {
-  // Define the capabilities of your Sovereign Stack based on MCP tools
+  // Define the capabilities of your Sovereign Stack
   const agents = [
     {
-      id: 'search_knowledge_base',
-      name: 'Knowledge Base',
-      description: 'Search the knowledge base using semantic search (Qdrant).',
-      status: 'active',
-    },
-    {
-      id: 'add_memory',
-      name: 'Memory Bank',
-      description: 'Add new memories to the knowledge base.',
-      status: 'active',
-    },
-    {
-      id: 'generate_artifact',
-      name: 'Artifact Builder',
-      description: 'Create code and markdown artifacts.',
+      id: 'memory-search',
+      name: 'Memory Search',
+      description: 'Searches your local Qdrant vector database for past context.',
       status: 'active',
     },
     {
@@ -40,13 +27,18 @@ export async function GET() {
       name: 'Live Web Access',
       description: 'Disabled in Sovereign Mode (Air-Gapped).',
       status: 'inactive',
+    },
+    {
+      id: 'code-interpreter',
+      name: 'Artifact Builder',
+      description: 'Generates and executes code artifacts locally.',
+      status: 'active',
     }
   ];
 
-  return NextResponse.json({ agents }, {
+  return NextResponse.json(agents, {
     headers: {
       'Access-Control-Allow-Origin': '*',
     },
   });
 }
-
