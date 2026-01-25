@@ -10,6 +10,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 
 // --- BACKEND LOGIC (Direct DB/AI Access) ---
+// This comment is added to force a new build.
 
 export async function searchMemoryAction(query: string, userId: string, agentId: string): Promise<SearchResult[]> {
   if (!query.trim()) return [];
