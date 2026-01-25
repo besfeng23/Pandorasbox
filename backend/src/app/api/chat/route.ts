@@ -281,6 +281,7 @@ ${contextChunks.join('\n\n')}
     ];
 
     // 4. LLM Interaction & Streaming: Call streamInference with augmented prompt
+    const stream = await streamInference(messages);
     let fullCompletion = '';
 
     const aiStream = OpenAIStream(stream as any, {
