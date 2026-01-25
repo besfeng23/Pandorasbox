@@ -14,7 +14,7 @@
       {
         "backendId": "studio",
         "rootDir": "backend",
-        "webFramework": "ANGULAR",
+        "webFramework": "NEXT_JS",
         "location": "us-central1"
       }
     ]
