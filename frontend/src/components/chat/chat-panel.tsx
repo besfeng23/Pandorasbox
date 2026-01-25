@@ -44,6 +44,8 @@ export function ChatPanel({ threadId }: { threadId: string }) {
     defaultValues: { content: '' },
   });
 
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   useEffect(() => {
     if (!user) {
       setIsLoading(false);
@@ -86,6 +88,17 @@ export function ChatPanel({ threadId }: { threadId: string }) {
 
     fetchData();
   }, [threadId, user, toast]);
+
+  const handleStop = () => {
+    if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+        setIsSending(false);
+        setIsRegenerating(false);
+        setStreamingMessage(null);
+        toast({ title: 'Generation stopped' });
+    }
+  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -159,13 +172,21 @@ export function ChatPanel({ threadId }: { threadId: string }) {
         agentId,
       };
       
+      // Abort previous request if any
+      if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+      }
+      const abortController = new AbortController();
+      abortControllerRef.current = abortController;
+
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/chat`, {
           method: 'POST',
           headers: {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${token}`
           },
-          body: JSON.stringify(messagePayload)
+          body: JSON.stringify(messagePayload),
+          signal: abortController.signal
       });
 
       if (!response.ok) {
@@ -442,7 +463,7 @@ export function ChatPanel({ threadId }: { threadId: string }) {
         </Form>
         {(isSending || isRegenerating) && (
           <div className="mt-2 flex justify-center">
-              <Button variant="destructive" size="sm" onClick={() => window.location.reload() /* A simple way to stop generation */}>
+              <Button variant="destructive" size="sm" onClick={handleStop}>
                   <Square className="mr-2 h-3 w-3" /> Stop generating
                   <span className="sr-only">Stop generating</span>
               </Button>

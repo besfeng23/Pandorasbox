@@ -31,8 +31,15 @@ export function MemoryTable({ userId }: MemoryTableProps) {
     setLoading(true);
     setError(null);
     try {
-      const fetchedMemories = await fetchMemories(userId, agentId, ''); // Fetch all memories
-      setMemories(fetchedMemories);
+      const fetchedResults = await fetchMemories(userId, agentId, ''); // Fetch all memories (returns SearchResult[])
+      // Map SearchResult to Memory
+      const mappedMemories: Memory[] = fetchedResults.map(res => ({
+        id: res.id,
+        content: res.text,
+        createdAt: res.timestamp,
+        source: 'manual' // Default or infer from timestamp/metadata
+      }));
+      setMemories(mappedMemories);
     } catch (err: any) {
       console.error('Failed to fetch memories:', err);
       setError(err.message || 'Failed to load memories.');
@@ -192,4 +199,3 @@ export function MemoryTable({ userId }: MemoryTableProps) {
     </div>
   );
 }
-

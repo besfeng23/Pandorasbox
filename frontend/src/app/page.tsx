@@ -14,12 +14,11 @@ import type { Thread } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 import { ErrorBoundary } from '@/components/error-boundary';
 
 function WelcomeScreen() {
     const { user } = useUser();
+    const { toast } = useToast();
     const handleCreateThread = async (agent: 'builder' | 'universe') => {
         if (!user) return;
         try {
@@ -220,4 +219,3 @@ export default function DashboardPage() {
     </AppLayout>
   );
 }
- 

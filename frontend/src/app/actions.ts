@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import type { Memory, SearchResult, Thread, Message, UserConnector } from '@/lib/types';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9002';
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 /**
  * SOVEREIGN AI STACK: Fetches memories directly from backend (Qdrant via semantic search).
