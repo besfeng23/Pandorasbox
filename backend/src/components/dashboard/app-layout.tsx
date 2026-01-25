@@ -63,6 +63,8 @@ import {
   Edit,
   Trash2,
   Bot,
+  Database,
+  Sparkles,
 } from 'lucide-react';
 import { PandoraBoxIcon } from '@/components/icons';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -181,6 +183,22 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
                 <SidebarMenuButton isActive={pathname.startsWith('/agents')} className="w-full justify-start">
                   <Bot />
                   <span>Agents</span>
+                </SidebarMenuButton>
+              </Link>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <Link href="/studio" className="w-full" onClick={handleNavClick}>
+                <SidebarMenuButton isActive={pathname.startsWith('/studio') && !pathname.includes('/generate')} className="w-full justify-start">
+                  <Database />
+                  <span>Firebase Studio</span>
+                </SidebarMenuButton>
+              </Link>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <Link href="/studio/generate" className="w-full" onClick={handleNavClick}>
+                <SidebarMenuButton isActive={pathname.includes('/studio/generate')} className="w-full justify-start">
+                  <Sparkles />
+                  <span>Generate UI</span>
                 </SidebarMenuButton>
               </Link>
             </SidebarMenuItem>
