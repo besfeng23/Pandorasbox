@@ -8,8 +8,7 @@
   "apphosting": {
     "ignore": [
       "node_modules/",
-      ".next/",
-      "dummy/"
+      ".next/"
     ],
     "backends": [
       {
