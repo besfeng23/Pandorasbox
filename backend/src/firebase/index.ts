@@ -31,6 +31,12 @@ export function initializeFirebase(): {
     } else {
       firebaseApp = getApp();
     }
+
+    if (!firebaseApp) {
+      console.error('Firebase Error: firebaseApp is null or undefined.');
+      return { firebaseApp: null, firestore: null, auth: null };
+    }
+
     auth = getAuth(firebaseApp);
     firestore = getFirestore(firebaseApp);
     

@@ -55,8 +55,8 @@ export function FirebaseProvider({
  */
 export function useFirebase() {
   const context = useContext(FirebaseContext);
-  if (context === undefined) {
-    throw new Error('useFirebase must be used within a FirebaseProvider');
+  if (context === undefined || context === null) {
+    throw new Error('useFirebase must be used within a FirebaseProvider. Context is ' + (context === null ? 'null' : 'undefined'));
   }
   return context;
 }
@@ -68,7 +68,7 @@ export function useFirebase() {
 export function useFirebaseApp() {
   const { firebaseApp } = useFirebase();
   if (!firebaseApp) {
-    throw new Error('Firebase app not available');
+    throw new Error('Firebase app not available. Context exists but firebaseApp is null.');
   }
   return firebaseApp;
 }
@@ -80,7 +80,7 @@ export function useFirebaseApp() {
 export function useFirestore() {
   const { firestore } = useFirebase();
   if (!firestore) {
-    throw new Error('Firestore not available');
+    throw new Error('Firestore not available. Context exists but firestore is null.');
   }
   return firestore;
 }
@@ -92,7 +92,7 @@ export function useFirestore() {
 export function useAuth() {
   const { auth } = useFirebase();
   if (!auth) {
-    throw new Error('Auth not available');
+    throw new Error('Auth not available. Context exists but auth is null.');
   }
   return auth;
 }
