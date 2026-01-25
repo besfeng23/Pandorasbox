@@ -7,11 +7,6 @@
   },
   "apphosting": [
     {
-      "backendId": "studio-sg",
-      "rootDir": "backend",
-      "webFramework": "NEXT_JS"
-    },
-    {
       "backendId": "studio",
       "rootDir": "backend",
       "webFramework": "NEXT_JS"
