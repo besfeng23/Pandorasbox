@@ -37,7 +37,13 @@ export default function AgentsPage() {
         setIsLoadingCapabilities(true);
         try {
             const token = await user.getIdToken();
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/agents`, {
+
+            // Handle old/incorrect API_URL
+            const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || '';
+            const isOldBackend = rawApiUrl.includes('pandora-backend-536979070288');
+            const API_URL = isOldBackend ? '' : rawApiUrl;
+
+            const response = await fetch(`${API_URL}/api/agents`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (!response.ok) {

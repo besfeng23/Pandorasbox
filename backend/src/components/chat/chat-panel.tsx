@@ -160,7 +160,12 @@ export function ChatPanel({ threadId }: { threadId: string }) {
       const abortController = new AbortController();
       abortControllerRef.current = abortController;
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/chat`, {
+      // Handle old/incorrect API_URL
+      const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || '';
+      const isOldBackend = rawApiUrl.includes('pandora-backend-536979070288');
+      const API_URL = isOldBackend ? '' : rawApiUrl;
+
+      const response = await fetch(`${API_URL}/api/chat`, {
           method: 'POST',
           headers: {
               'Content-Type': 'application/json',
@@ -206,7 +211,13 @@ export function ChatPanel({ threadId }: { threadId: string }) {
         }
 
         const token = await user.getIdToken();
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/chat`, {
+        
+        // Handle old/incorrect API_URL
+        const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || '';
+        const isOldBackend = rawApiUrl.includes('pandora-backend-536979070288');
+        const API_URL = isOldBackend ? '' : rawApiUrl;
+
+        const response = await fetch(`${API_URL}/api/chat`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -239,7 +250,13 @@ export function ChatPanel({ threadId }: { threadId: string }) {
     try {
         const conversationText = messages.map(m => `${m.role}: ${m.content}`).join('\n\n');
         const token = await user.getIdToken();
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/memory`, {
+
+        // Handle old/incorrect API_URL
+        const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || '';
+        const isOldBackend = rawApiUrl.includes('pandora-backend-536979070288');
+        const API_URL = isOldBackend ? '' : rawApiUrl;
+
+        const response = await fetch(`${API_URL}/api/memory`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

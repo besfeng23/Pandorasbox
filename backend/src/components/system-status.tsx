@@ -11,7 +11,11 @@ type ServiceStatus = 'online' | 'offline' | 'checking';
 export function SystemStatus() {
   const [inferenceStatus, setInferenceStatus] = useState<ServiceStatus>('checking');
   const [memoryStatus, setMemoryStatus] = useState<ServiceStatus>('checking');
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+  
+  // Use relative paths if the API_URL is pointing to the old backend
+  const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || '';
+  const isOldBackend = rawApiUrl.includes('pandora-backend-536979070288');
+  const API_URL = isOldBackend ? '' : rawApiUrl;
 
   const checkHealth = async () => {
     try {

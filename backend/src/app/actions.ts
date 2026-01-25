@@ -141,13 +141,17 @@ export async function getMessages(threadId: string, userId: string): Promise<Mes
 }
 
 export async function createThread(agent: 'builder' | 'universe', userId: string) {
+    console.log(`[createThread] Starting for user: ${userId}, agent: ${agent}`);
     try {
         const db = getFirestoreAdmin();
+        console.log(`[createThread] Firestore Admin initialized`);
+        
         // 1. Get current user - Assuming userId is already passed from the frontend
         // For actual auth, replace with Firebase Admin SDK's auth().verifyIdToken(...) or similar
         const actualUserId = userId; 
 
         // 2. Create the thread WITHOUT AI generation first (Safe Mode)
+        console.log(`[createThread] Adding document to users/${actualUserId}/threads`);
         const threadRef = await db.collection(`users/${actualUserId}/threads`).add({
             userId: actualUserId,
             agent,
@@ -156,12 +160,15 @@ export async function createThread(agent: 'builder' | 'universe', userId: string
             updatedAt: FieldValue.serverTimestamp(),
             messages: [] // Initialize with an empty messages array
         });
+        console.log(`[createThread] Thread created with ID: ${threadRef.id}`);
 
         revalidatePath('/');
         return { id: threadRef.id };
-    } catch (error) {
+    } catch (error: any) {
         console.error("CRITICAL ERROR in createThread:", error);
-        throw new Error("Failed to create thread");
+        console.error("Error stack:", error.stack);
+        console.error("Error code:", error.code);
+        throw new Error(`Failed to create thread: ${error.message}`);
     }
 }
 
