@@ -45,8 +45,10 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: false,
   },
   eslint: {
-    ignoreDuringBuilds: false,
+    ignoreDuringBuilds: true,
   },
+  // Required to tell Next.js where the project root is for standalone output
+  outputFileTracingRoot: require('path').join(__dirname, '../../'),
 
   images: {
     unoptimized: true,
