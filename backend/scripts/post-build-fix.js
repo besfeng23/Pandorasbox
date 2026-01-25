@@ -12,12 +12,14 @@ const path = require('path');
 
 // Get the backend directory (where this script runs from)
 const backendDir = process.cwd();
+// Get workspace root (one level up from backend)
+const workspaceRoot = path.resolve(backendDir, '..');
 const nextDir = path.join(backendDir, '.next');
 const routesManifestPath = path.join(nextDir, 'routes-manifest.json');
-const standaloneDir = path.join(nextDir, 'standalone');
 
 console.log('[Post-build] Fixing routes-manifest.json location for Firebase App Hosting...');
 console.log(`[Post-build] Backend dir: ${backendDir}`);
+console.log(`[Post-build] Workspace root: ${workspaceRoot}`);
 console.log(`[Post-build] Source: ${routesManifestPath}`);
 
 // Check if source exists
@@ -27,35 +29,50 @@ if (!fs.existsSync(routesManifestPath)) {
   process.exit(0);
 }
 
-// The adapter looks for: .next/standalone/.next/routes-manifest.json
-// We need to create the nested .next directory inside standalone
-const targetDir = path.join(standaloneDir, '.next');
-const targetManifestPath = path.join(targetDir, 'routes-manifest.json');
+// The adapter looks for routes-manifest.json in TWO locations:
+// 1. /workspace/backend/.next/standalone/.next/routes-manifest.json (backend standalone)
+// 2. /workspace/.next/standalone/.next/routes-manifest.json (workspace root - what adapter actually uses)
 
-console.log(`[Post-build] Target: ${targetManifestPath}`);
-
-// Create target directory if it doesn't exist
-if (!fs.existsSync(targetDir)) {
-  console.log(`[Post-build] Creating directory: ${targetDir}`);
-  fs.mkdirSync(targetDir, { recursive: true });
-}
-
-// Copy the file
-try {
-  fs.copyFileSync(routesManifestPath, targetManifestPath);
-  console.log(`[Post-build] ✅ Successfully copied routes-manifest.json`);
-  console.log(`[Post-build]    From: ${routesManifestPath}`);
-  console.log(`[Post-build]    To:   ${targetManifestPath}`);
+const copyToLocation = (targetBaseDir, locationName) => {
+  const standaloneDir = path.join(targetBaseDir, '.next', 'standalone');
+  const targetDir = path.join(standaloneDir, '.next');
+  const targetManifestPath = path.join(targetDir, 'routes-manifest.json');
   
-  // Verify the copy was successful
-  if (fs.existsSync(targetManifestPath)) {
-    console.log(`[Post-build] ✅ Verification: Target file exists`);
-  } else {
-    console.error(`[Post-build] ❌ Verification failed: Target file does not exist`);
-    process.exit(1);
+  console.log(`[Post-build] ${locationName} target: ${targetManifestPath}`);
+  
+  // Create target directory if it doesn't exist
+  if (!fs.existsSync(targetDir)) {
+    console.log(`[Post-build] Creating directory: ${targetDir}`);
+    fs.mkdirSync(targetDir, { recursive: true });
   }
-} catch (error) {
-  console.error(`[Post-build] ❌ Failed to copy routes-manifest.json:`, error);
+  
+  // Copy the file
+  try {
+    fs.copyFileSync(routesManifestPath, targetManifestPath);
+    console.log(`[Post-build] ✅ Successfully copied to ${locationName}`);
+    
+    // Verify the copy was successful
+    if (fs.existsSync(targetManifestPath)) {
+      console.log(`[Post-build] ✅ Verification: ${locationName} file exists`);
+      return true;
+    } else {
+      console.error(`[Post-build] ❌ Verification failed: ${locationName} file does not exist`);
+      return false;
+    }
+  } catch (error) {
+    console.error(`[Post-build] ❌ Failed to copy to ${locationName}:`, error);
+    return false;
+  }
+};
+
+// Copy to both locations
+const backendSuccess = copyToLocation(backendDir, 'Backend');
+const workspaceSuccess = copyToLocation(workspaceRoot, 'Workspace root');
+
+if (!backendSuccess || !workspaceSuccess) {
+  console.error(`[Post-build] ❌ Failed to copy routes-manifest.json to all required locations`);
   process.exit(1);
 }
+
+console.log(`[Post-build] ✅ All copies successful!`);
 
