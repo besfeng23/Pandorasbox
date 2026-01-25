@@ -12,10 +12,8 @@ export function SystemStatus() {
   const [inferenceStatus, setInferenceStatus] = useState<ServiceStatus>('checking');
   const [memoryStatus, setMemoryStatus] = useState<ServiceStatus>('checking');
   
-  // Use relative paths if the API_URL is pointing to the old backend
-  const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || '';
-  const isOldBackend = rawApiUrl.includes('pandora-backend-536979070288');
-  const API_URL = isOldBackend ? '' : rawApiUrl;
+  // Use window.location.origin for relative API calls if NEXT_PUBLIC_API_URL is not explicitly set
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
 
   const checkHealth = async () => {
     try {

@@ -160,10 +160,8 @@ export function ChatPanel({ threadId }: { threadId: string }) {
       const abortController = new AbortController();
       abortControllerRef.current = abortController;
 
-      // Handle old/incorrect API_URL
-      const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || '';
-      const isOldBackend = rawApiUrl.includes('pandora-backend-536979070288');
-      const API_URL = isOldBackend ? '' : rawApiUrl;
+      // Use window.location.origin for relative API calls if NEXT_PUBLIC_API_URL is not explicitly set
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
 
       const response = await fetch(`${API_URL}/api/chat`, {
           method: 'POST',
@@ -212,10 +210,8 @@ export function ChatPanel({ threadId }: { threadId: string }) {
 
         const token = await user.getIdToken();
         
-        // Handle old/incorrect API_URL
-        const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || '';
-        const isOldBackend = rawApiUrl.includes('pandora-backend-536979070288');
-        const API_URL = isOldBackend ? '' : rawApiUrl;
+        // Use window.location.origin for relative API calls if NEXT_PUBLIC_API_URL is not explicitly set
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
 
         const response = await fetch(`${API_URL}/api/chat`, {
             method: 'POST',
@@ -251,10 +247,8 @@ export function ChatPanel({ threadId }: { threadId: string }) {
         const conversationText = messages.map(m => `${m.role}: ${m.content}`).join('\n\n');
         const token = await user.getIdToken();
 
-        // Handle old/incorrect API_URL
-        const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || '';
-        const isOldBackend = rawApiUrl.includes('pandora-backend-536979070288');
-        const API_URL = isOldBackend ? '' : rawApiUrl;
+        // Use window.location.origin for relative API calls if NEXT_PUBLIC_API_URL is not explicitly set
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
 
         const response = await fetch(`${API_URL}/api/memory`, {
             method: 'POST',

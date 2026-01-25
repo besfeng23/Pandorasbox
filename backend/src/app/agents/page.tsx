@@ -38,10 +38,8 @@ export default function AgentsPage() {
         try {
             const token = await user.getIdToken();
 
-            // Handle old/incorrect API_URL
-            const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || '';
-            const isOldBackend = rawApiUrl.includes('pandora-backend-536979070288');
-            const API_URL = isOldBackend ? '' : rawApiUrl;
+            // Use window.location.origin for relative API calls if NEXT_PUBLIC_API_URL is not explicitly set
+            const API_URL = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
 
             const response = await fetch(`${API_URL}/api/agents`, {
                 headers: { 'Authorization': `Bearer ${token}` }
