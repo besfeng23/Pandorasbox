@@ -20,7 +20,6 @@ export default [
         sourceType: "module",
         project: [
           path.resolve(__dirname, "./tsconfig.json"),
-          path.resolve(__dirname, "./tsconfig.mcp.json"),
         ],
       },
       globals: {
