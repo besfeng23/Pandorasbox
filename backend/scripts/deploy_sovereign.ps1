@@ -168,7 +168,7 @@ gcloud run deploy "$SERVICE_NAME" `
   --allow-unauthenticated `
   --vpc-connector "projects/$PROJECT_ID/locations/$REGION/connectors/$CONNECTOR_NAME" `
   --set-env-vars "INFERENCE_URL=http://$VLLM_IP`:8000/v1" `
-  --set-env-vars "INFERENCE_MODEL=pandora" `
+  --set-env-vars "INFERENCE_MODEL=mistralai/Mistral-7B-Instruct-v0.3" `
   --set-env-vars "QDRANT_URL=http://$QDRANT_IP`:6333" `
   --set-env-vars "EMBEDDING_MODEL=all-MiniLM-L6-v2" `
   --set-env-vars "FIREBASE_PROJECT_ID=$PROJECT_ID" `

@@ -26,3 +26,25 @@ services:
       - ./qdrant_data:/qdrant/storage
     networks:
       - pandora-net
+
+  vllm:
+    image: vllm/vllm-openai:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - vllm-cache:/root/.cache/huggingface
+    environment:
+      - HUGGING_FACE_HUB_TOKEN=${HUGGING_FACE_HUB_TOKEN}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    command: --model mistralai/Mistral-7B-Instruct-v0.3 --host 0.0.0.0 --port 8000
+    networks:
+      - pandora-net
+
+volumes:
+  vllm-cache:
