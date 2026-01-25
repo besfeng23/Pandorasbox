@@ -11,12 +11,6 @@
       ".next/"
     ],
     "backends": [
-      {
-        "backendId": "studio",
-        "rootDir": "backend",
-        "webFramework": "NEXT_JS",
-        "location": "us-central1"
-      }
     ]
   },
   "storage": {
