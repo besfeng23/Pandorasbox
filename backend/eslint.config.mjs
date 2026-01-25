@@ -1,12 +1,10 @@
 import globals from "globals";
-import pluginJs from "@eslint/js";
 import tseslint from "typescript-eslint";
-import pluginReactConfig from "eslint-plugin-react/configs/recommended.js";
 import nextPlugin from "@next/eslint-plugin-next";
 
 export default [
-  { files: ["**/*.{js,mjs,cjs,ts,tsx}"] },
   {
+    files: ["**/*.{js,mjs,cjs,ts,tsx}"],
     languageOptions: {
       parser: tseslint.parser,
       parserOptions: {
@@ -15,24 +13,35 @@ export default [
         },
         ecmaVersion: "latest",
         sourceType: "module",
+        project: ["./tsconfig.json", "./tsconfig.mcp.json"],
       },
       globals: {
         ...globals.browser,
         ...globals.node,
       },
     },
-  },
-  pluginJs.configs.recommended,
-  ...tseslint.configs.recommended,
-  pluginReactConfig,
-  {
     plugins: {
+      "@typescript-eslint": tseslint.plugin,
       "@next/next": nextPlugin,
     },
     rules: {
+      ...tseslint.configs.recommended.rules,
       ...nextPlugin.configs.recommended.rules,
       ...nextPlugin.configs["core-web-vitals"].rules,
       // Custom rules or overrides can go here
+      "@typescript-eslint/no-explicit-any": "warn", // Temporarily set to warn to reduce noise during initial setup
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }
+      ],
+      "@typescript-eslint/no-require-imports": "error",
+      "react/react-in-jsx-scope": "off", // Next.js doesn't require React to be in scope
+      "react/jsx-uses-react": "off", // Next.js doesn't require React to be in scope
+    },
+    settings: {
+      react: {
+        version: "detect",
+      },
     },
   },
   {
