@@ -100,7 +100,7 @@ function initializeAdmin() {
     const serviceAccountPath = path.join(process.cwd(), 'service-account.json');
     
     if (fs.existsSync(serviceAccountPath)) {
-      const serviceAccount = require(serviceAccountPath);
+      const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf-8'));
       console.log("[Firebase Admin] Initializing Firebase Admin with local service-account.json...");
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),

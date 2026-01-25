@@ -53,6 +53,7 @@ export interface GraphRecommendation {
   reason: string;
   confidence: number;
   action?: 'explore' | 'connect' | 'investigate';
+  suggestedActions?: string[];
   relatedNodes?: string[];
 }
 
