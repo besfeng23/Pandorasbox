@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getFirestoreAdmin } from '@/lib/firebase-admin';
 import { handleOptions, corsHeaders } from '@/lib/cors';
 import { getUserThreads, createThread } from '@/app/actions';
 
@@ -17,8 +16,9 @@ export async function GET(request: NextRequest) {
   try {
     const threads = await getUserThreads(userId, agentId);
     return NextResponse.json({ threads }, { headers: corsHeaders() });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500, headers: corsHeaders() });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'An unknown error occurred';
+    return NextResponse.json({ error: message }, { status: 500, headers: corsHeaders() });
   }
 }
 
@@ -29,7 +29,8 @@ export async function POST(request: NextRequest) {
     
     const threadId = await createThread(agent || 'builder', userId);
     return NextResponse.json({ id: threadId }, { headers: corsHeaders() });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500, headers: corsHeaders() });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'An unknown error occurred';
+    return NextResponse.json({ error: message }, { status: 500, headers: corsHeaders() });
   }
 }
