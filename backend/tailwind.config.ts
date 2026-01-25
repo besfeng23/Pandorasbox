@@ -44,8 +44,9 @@ export default {
           'Arial',
           'sans-serif',
         ],
-        // Design System: SF Mono fallback stack
+        // Design System: JetBrains Mono primary, SF Mono fallback stack
         mono: [
+          '"JetBrains Mono"',
           'ui-monospace',
           '"SF Mono"',
           'Menlo',
@@ -56,6 +57,7 @@ export default {
           'monospace',
         ],
         code: [
+          '"JetBrains Mono"',
           'ui-monospace',
           '"SF Mono"',
           'Menlo',

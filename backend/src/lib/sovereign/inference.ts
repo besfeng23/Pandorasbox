@@ -1,6 +1,9 @@
 import OpenAI from 'openai';
 
-const INFERENCE_URL = process.env.INFERENCE_URL || 'http://localhost:8000/v1';
+// Support both INFERENCE_BASE_URL (preferred) and INFERENCE_URL (legacy)
+// INFERENCE_BASE_URL might not include /v1, so we handle both cases
+const baseUrl = process.env.INFERENCE_BASE_URL || process.env.INFERENCE_URL || 'http://localhost:8000';
+const INFERENCE_URL = baseUrl.endsWith('/v1') ? baseUrl : `${baseUrl}/v1`;
 const SOVEREIGN_KEY = process.env.SOVEREIGN_KEY || 'empty';
 
 // Enforce Sovereign Architecture: Local vLLM only.

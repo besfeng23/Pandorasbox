@@ -22,8 +22,12 @@ export async function getServerConfig(): Promise<ServerConfig> {
       const res = await fetch(secretsUrl);
       if (res.ok) {
         const secrets = await res.json();
+        // Support both INFERENCE_BASE_URL (preferred) and INFERENCE_URL (legacy)
+        const inferenceUrl = secrets.INFERENCE_BASE_URL || secrets.INFERENCE_URL || 
+                             process.env.INFERENCE_BASE_URL || process.env.INFERENCE_URL || 
+                             'http://localhost:8000';
         cachedConfig = {
-          inferenceBaseUrl: secrets.INFERENCE_URL || process.env.INFERENCE_URL || 'http://localhost:8000',
+          inferenceBaseUrl: inferenceUrl,
           inferenceModel:
             secrets.INFERENCE_MODEL || process.env.INFERENCE_MODEL || 'mistralai/Mistral-7B-Instruct-v0.3',
           embeddingsBaseUrl:
@@ -43,8 +47,10 @@ export async function getServerConfig(): Promise<ServerConfig> {
   }
 
   // Fallback to environment variables
+  // Support both INFERENCE_BASE_URL (preferred) and INFERENCE_URL (legacy)
+  const inferenceUrl = process.env.INFERENCE_BASE_URL || process.env.INFERENCE_URL || 'http://localhost:8000';
   cachedConfig = {
-    inferenceBaseUrl: process.env.INFERENCE_URL || 'http://localhost:8000',
+    inferenceBaseUrl: inferenceUrl,
     inferenceModel: process.env.INFERENCE_MODEL || 'mistralai/Mistral-7B-Instruct-v0.3',
     embeddingsBaseUrl: process.env.EMBEDDINGS_BASE_URL || 'http://localhost:8080',
     embeddingsDimension: parseInt(process.env.EMBEDDINGS_DIMENSION || '384', 10),
