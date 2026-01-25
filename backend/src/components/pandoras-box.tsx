@@ -9,7 +9,7 @@ import { ArtifactViewer } from './artifacts/artifact-viewer';
 import { ArtifactList } from './artifacts/artifact-list';
 import { MemoryInspector } from './layout/memory-inspector';
 import { useChatHistory } from '@/hooks/use-chat-history';
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect, useTransition, useRef } from 'react';
 import { ChatSidebar } from './chat/chat-sidebar';
 import { Button } from './ui/button';
 import { submitUserMessage } from '@/app/actions';
@@ -37,6 +37,7 @@ export function PandorasBox({ user }: PandorasBoxProps) {
   const [currentThreadId, setCurrentThreadId] = useState<string | null>(null);
   const { messages, thread, isLoading, error } = useChatHistory(user.uid, currentThreadId, agentId);
   const [streamingContent, setStreamingContent] = useState<string>('');
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -107,6 +108,15 @@ export function PandorasBox({ user }: PandorasBoxProps) {
     }
   };
 
+  const handleStopGeneration = () => {
+    if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+        setStreamingContent(''); // Or keep it as partial?
+        toast({ title: 'Generation stopped' });
+    }
+  };
+
   const handleMessageSubmit = (formData: FormData) => {
     formData.append('agentId', agentId);
     const messageContent = formData.get('message') as string;
@@ -137,6 +147,13 @@ export function PandorasBox({ user }: PandorasBoxProps) {
             // 2. Trigger Streaming Request directly to API
             setStreamingContent(''); // Reset
             
+            // Abort previous request if any
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+            }
+            const abortController = new AbortController();
+            abortControllerRef.current = abortController;
+
             const idToken = await user.getIdToken();
             const response = await fetch('/api/chat', {
                 method: 'POST',
@@ -149,6 +166,7 @@ export function PandorasBox({ user }: PandorasBoxProps) {
                     agentId: agentId,
                     threadId: activeThreadId,
                 }),
+                signal: abortController.signal,
             });
 
             if (!response.ok || !response.body) {
@@ -157,41 +175,36 @@ export function PandorasBox({ user }: PandorasBoxProps) {
 
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
-            let accumulatedContent = '';
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                
-                const chunk = decoder.decode(value, { stream: true });
-                // Note: ai sdk might stream structured data, but we are using simple text streaming
-                // If using 'ai' SDK on server, it might send data chunks like "0: 'text'\n"
-                // For now, let's assume raw text or handle basic parsing if 'ai' SDK is used on server.
-                // Since we used OpenAIStream without complex protocol on server (StreamingTextResponse),
-                // it usually sends raw text chunks. 
-                // BUT wait, StreamingTextResponse from 'ai' sends formatted protocol data by default in newer versions?
-                // Actually OpenAIStream returns a ReadableStream that yields text.
-                // Let's assume text for now.
-                accumulatedContent += chunk;
-                setStreamingContent(prev => prev + chunk);
-            }
             
-            // Stream finished. Firestore listener will eventually pick up the saved assistant message.
-            // We keep streamingContent until the listener updates (which might cause a duplicate flash if not handled).
-            // Actually, once listener updates with the new Assistant message, we should clear streamingContent.
-            // But we can't easily know WHICH message corresponds to this stream without IDs.
-            // For simplicity: Clear streaming content after a short delay or when messages length increases.
-            // Better: ChatMessages can display streamingContent only if it's the "latest" and pending.
+            try {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    const chunk = decoder.decode(value, { stream: true });
+                    setStreamingContent(prev => prev + chunk);
+                }
+            } catch (err: any) {
+                if (err.name === 'AbortError') {
+                    console.log('Stream aborted by user');
+                } else {
+                    throw err;
+                }
+            } finally {
+                abortControllerRef.current = null;
+            }
             
             setTimeout(() => setStreamingContent(''), 1000); // Temporary cleanup
 
         } catch (error: any) {
-            console.error('Error submitting message:', error);
-            toast({
-                variant: 'destructive',
-                title: 'Connection Error',
-                description: error?.message || 'Failed to send message.',
-            });
+            if (error.name !== 'AbortError') {
+                console.error('Error submitting message:', error);
+                toast({
+                    variant: 'destructive',
+                    title: 'Connection Error',
+                    description: error?.message || 'Failed to send message.',
+                });
+            }
         }
     });
     return isPending;
@@ -331,6 +344,7 @@ export function PandorasBox({ user }: PandorasBoxProps) {
                 userId={user.uid} 
                 onMessageSubmit={handleMessageSubmit} 
                 isSending={isPending || streamingContent.length > 0} 
+                onStop={handleStopGeneration}
               />
             </div>
           </div>

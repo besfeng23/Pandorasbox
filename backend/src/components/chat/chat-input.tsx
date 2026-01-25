@@ -1,9 +1,8 @@
-
 'use client';
 
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowUp, Loader2, Paperclip, X, Sparkles, Pin, HelpCircle } from 'lucide-react';
+import { ArrowUp, Loader2, Paperclip, X, Sparkles, Pin, HelpCircle, StopCircle } from 'lucide-react';
 import React, { useRef, useState, useTransition, useEffect } from 'react';
 import Image from 'next/image';
 import { VoiceInput } from './voice-input';
@@ -17,13 +16,13 @@ interface ChatInputProps {
   userId: string;
   onMessageSubmit: (formData: FormData) => boolean;
   isSending: boolean;
+  onStop?: () => void; // New prop for stop functionality
 }
 
 function FollowUpSuggestions({ userId, onSuggestionClick }: { userId: string, onSuggestionClick: (suggestion: string) => void }) {
     const { suggestions, dismissSuggestion, pinSuggestion, pinnedIds } = useSuggestions(userId);
     const [originalSuggestions, setOriginalSuggestions] = useState<string[]>([]);
   
-    // Track original suggestions for dismiss/pin functionality
     useEffect(() => {
       if (suggestions.length > 0) {
         setOriginalSuggestions(suggestions);
@@ -126,7 +125,7 @@ function FollowUpSuggestions({ userId, onSuggestionClick }: { userId: string, on
     );
   }
 
-export function ChatInput({ userId, onMessageSubmit, isSending }: ChatInputProps) {
+export function ChatInput({ userId, onMessageSubmit, isSending, onStop }: ChatInputProps) {
   const [isTranscribing, setIsTranscribing] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -290,22 +289,34 @@ export function ChatInput({ userId, onMessageSubmit, isSending }: ChatInputProps
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
-                  type="submit"
-                  size="icon"
-                  className="h-9 w-9 sm:h-8 sm:w-8 bg-gradient-to-br from-cyan-400/90 to-purple-500/90 text-white hover:from-cyan-300 hover:to-purple-400 rounded-full touch-manipulation shadow-neon-cyan-sm hover:scale-110 active:scale-95 transition-transform duration-200 send-action-pulse"
-                  disabled={isProcessing}
-                  aria-label="Send message"
-                >
-                  {isSending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.5} />
-                  ) : (
-                    <ArrowUp className="h-4 w-4" strokeWidth={1.5} />
-                  )}
-                </Button>
+                {isSending && onStop ? (
+                    <Button
+                        type="button"
+                        size="icon"
+                        onClick={onStop}
+                        className="h-9 w-9 sm:h-8 sm:w-8 bg-red-500/90 text-white hover:bg-red-400 rounded-full touch-manipulation shadow-neon-red-sm hover:scale-110 active:scale-95 transition-transform duration-200"
+                        aria-label="Stop generation"
+                    >
+                        <StopCircle className="h-4 w-4 fill-current" />
+                    </Button>
+                ) : (
+                    <Button
+                        type="submit"
+                        size="icon"
+                        className="h-9 w-9 sm:h-8 sm:w-8 bg-gradient-to-br from-cyan-400/90 to-purple-500/90 text-white hover:from-cyan-300 hover:to-purple-400 rounded-full touch-manipulation shadow-neon-cyan-sm hover:scale-110 active:scale-95 transition-transform duration-200 send-action-pulse"
+                        disabled={isProcessing}
+                        aria-label="Send message"
+                    >
+                    {isSending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.5} />
+                    ) : (
+                        <ArrowUp className="h-4 w-4" strokeWidth={1.5} />
+                    )}
+                    </Button>
+                )}
               </TooltipTrigger>
               <TooltipContent className="glass-panel-strong border border-cyan-400/30 text-white">
-                <p>Send message</p>
+                <p>{isSending ? "Stop generation" : "Send message"}</p>
               </TooltipContent>
             </Tooltip>
           </div>

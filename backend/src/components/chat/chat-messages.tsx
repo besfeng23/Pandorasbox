@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Message } from './message';
-import { FileText, Loader2 } from 'lucide-react';
+import { FileText, Loader2, BrainCircuit } from 'lucide-react';
 
 interface ChatMessagesProps {
   messages: MessageType[];
@@ -29,6 +29,13 @@ export function ChatMessages({ messages, thread, userId, isLoading, streamingCon
 
   const hasSummary = thread?.summary && thread.summary.length > 0;
 
+  // Detect "Thinking..." state: If messages exist, the last one is from User, and we are NOT streaming content yet.
+  // Note: 'isLoading' here might refer to history loading, not inference.
+  // We can use a heuristic: if streamingContent is empty but we expect a reply (managed by parent state usually, but here we can infer).
+  // Actually, parent 'isSending' handles this better, but we don't have it here.
+  // Let's rely on streamingContent being present OR if we assume "waiting" state.
+  // For now, let's just show streamingContent if present.
+  
   return (
     <div
       ref={scrollAreaRef}
@@ -69,7 +76,7 @@ export function ChatMessages({ messages, thread, userId, isLoading, streamingCon
             </div>
           ))}
           
-          {streamingContent && (
+          {streamingContent ? (
             <div className="flex items-start gap-3 justify-start">
                <Message message={{
                    id: 'streaming-temp',
@@ -81,6 +88,9 @@ export function ChatMessages({ messages, thread, userId, isLoading, streamingCon
                    embedding: []
                }} />
             </div>
+          ) : (
+             /* Thinking Indicator - could be passed as prop or inferred */
+             null
           )}
         </div>
         <div ref={messagesEndRef} />
