@@ -1,5 +1,5 @@
 import type {Metadata, Viewport} from 'next';
-// import '../styles/globals.css';
+import '../styles/globals.css';
 import { Toaster } from "@/components/ui/toaster"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { FirebaseClientProvider } from '@/firebase/client-provider';
