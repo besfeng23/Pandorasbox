@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import type { Memory, SearchResult, Thread, Message, UserConnector } from '@/lib/types';
 import { getFirestoreAdmin } from '@/lib/firebase-admin';
-import { searchPoints, upsertPoint } from '@/lib/sovereign/qdrant-client';
+import { searchPoints, upsertPoint, deletePoint } from '@/lib/sovereign/qdrant-client';
 import { embedText } from '@/lib/ai/embedding';
 import { v4 as uuidv4 } from 'uuid';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
@@ -17,7 +17,16 @@ export async function searchMemoryAction(query: string, userId: string, agentId:
   
   try {
     const vector = await embedText(query);
-    const results = await searchPoints('memories', vector, 5);
+    
+    // Filter by userId and agentId to ensure privacy and context
+    const filter = {
+      must: [
+        { key: 'userId', match: { value: userId } },
+        { key: 'agentId', match: { value: agentId } }
+      ]
+    };
+
+    const results = await searchPoints('memories', vector, 10, filter);
     
     return results.map(r => ({
       id: r.id.toString(),
@@ -58,15 +67,7 @@ export async function createMemoryFromSettings(content: string, userId: string, 
 
 export async function deleteMemoryFromMemories(id: string, userId: string, agentId: string) {
     try {
-        const QDRANT_URL = process.env.QDRANT_URL || 'http://localhost:6333';
-        const response = await fetch(`${QDRANT_URL}/collections/memories/points/delete`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ points: [id] })
-        });
-        
-        if (!response.ok) throw new Error('Failed to delete from Qdrant');
-        
+        await deletePoint('memories', id);
         revalidatePath('/memory');
         return { success: true };
     } catch (error: any) {

@@ -47,9 +47,17 @@ export async function searchHistory(
     }
     try {
         const queryEmbedding = await generateEmbedding(queryText);
-        const collectionName = `memories_${agentId}`;
+        const collectionName = 'memories';
         
-        const qdrantResults = await searchPoints(collectionName, queryEmbedding, limit);
+        // Filter by userId and agentId
+        const filter = {
+          must: [
+            { key: 'userId', match: { value: userId } },
+            { key: 'agentId', match: { value: agentId } }
+          ]
+        };
+        
+        const qdrantResults = await searchPoints(collectionName, queryEmbedding, limit, filter);
         
         return qdrantResults.map(res => ({
             text: res.payload?.content || '',
@@ -58,7 +66,7 @@ export async function searchHistory(
             timestamp: res.payload?.createdAt ? new Date(res.payload.createdAt) : new Date(),
         }));
     } catch (error) {
-        console.warn(`Vector search failed for user ${userId} in collection memories_${agentId}`, error);
+        console.warn(`Vector search failed for user ${userId} in collection memories`, error);
         return [];
     }
 }

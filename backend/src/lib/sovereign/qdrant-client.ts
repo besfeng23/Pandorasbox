@@ -11,19 +11,25 @@ export interface QdrantSearchResult {
   };
 }
 
-export async function searchPoints(collection: string, vector: number[], limit: number = 5): Promise<QdrantSearchResult[]> {
+export async function searchPoints(collection: string, vector: number[], limit: number = 5, filter?: any): Promise<QdrantSearchResult[]> {
   const startTime = Date.now();
   try {
+    const body: any = {
+      vector,
+      limit,
+      with_payload: true,
+    };
+
+    if (filter) {
+      body.filter = filter;
+    }
+
     const response = await fetch(`${QDRANT_URL}/collections/${collection}/points/search`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        vector,
-        limit,
-        with_payload: true,
-      }),
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {
@@ -96,6 +102,47 @@ export async function upsertPoint(collection: string, point: { id: string | numb
       error: error.message
     });
     console.error('Qdrant upsert error:', error);
+    throw error;
+  }
+}
+
+export async function deletePoint(collection: string, id: string | number) {
+  const startTime = Date.now();
+  try {
+    const response = await fetch(`${QDRANT_URL}/collections/${collection}/points/delete?wait=true`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        points: [id],
+      }),
+    });
+
+    if (!response.ok) {
+        throw new Error(`Qdrant delete failed: ${response.statusText}. Memory System Offline - Check Container.`);
+    }
+
+    const result = await response.json();
+    const endTime = Date.now();
+    
+    logEvent('MEMORY_DELETE', {
+      duration: endTime - startTime,
+      collection,
+      point_id: id,
+      status: 'success'
+    });
+
+    return result;
+  } catch (error: any) {
+    const endTime = Date.now();
+    logEvent('ERROR', {
+      type: 'DELETE_FAILED',
+      duration: endTime - startTime,
+      collection,
+      error: error.message
+    });
+    console.error('Qdrant delete error:', error);
     throw error;
   }
 }

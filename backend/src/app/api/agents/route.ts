@@ -16,16 +16,16 @@ export async function OPTIONS() {
 export async function GET() {
   const agents = [
     {
-      name: 'Search Knowledge Base',
-      description: 'Semantic search across memories and history using Qdrant.',
+      name: 'search_knowledge_base',
+      description: 'Search the knowledge base using semantic search. Searches both conversation history and stored memories to find relevant information.',
     },
     {
-      name: 'Add Memory',
-      description: 'Store new memories with embeddings in Firestore and Qdrant.',
+      name: 'add_memory',
+      description: 'Add a new memory to the knowledge base. The memory will be stored with an embedding for future semantic search.',
     },
     {
-      name: 'Generate Artifact',
-      description: 'Create and save code or markdown artifacts for later use.',
+      name: 'generate_artifact',
+      description: 'Create and save a code or markdown artifact. Artifacts can be code snippets, documentation, or other structured content.',
     }
   ];
 
