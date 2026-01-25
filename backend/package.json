@@ -9,7 +9,9 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "save-settings-memories": "tsx scripts/save-all-settings-memories.ts",
-    "test-tavily": "tsx scripts/test-tavily-search.ts"
+    "test-tavily": "tsx scripts/test-tavily-search.ts",
+    "postinstall": "npm run build",
+    "predeploy": "npm run build"
   },
   "dependencies": {
     "@google-cloud/firestore": "^7.8.0",
