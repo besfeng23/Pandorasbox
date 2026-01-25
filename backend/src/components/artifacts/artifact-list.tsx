@@ -17,7 +17,7 @@ interface ArtifactListProps {
 export function ArtifactList({ userId }: ArtifactListProps) {
   const [artifacts, setArtifacts] = useState<Artifact[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const setActiveArtifactId = useArtifactStore(state => state.setActiveArtifactId);
+  const setActiveArtifact = useArtifactStore(state => state.setActiveArtifact);
   const firestore = useFirestore();
 
   useEffect(() => {
@@ -84,7 +84,7 @@ export function ArtifactList({ userId }: ArtifactListProps) {
                 <button 
                     key={artifact.id} 
                     className="w-full text-left p-3 rounded-lg glass-panel border border-purple-400/20 hover:border-purple-400/30 hover:shadow-neon-purple-sm transition-all group"
-                    onClick={() => setActiveArtifactId(artifact.id)}
+                    onClick={() => setActiveArtifact(artifact)}
                 >
                     <p className="font-medium text-sm truncate text-white/90 group-hover:text-purple-400/80 transition-colors">{artifact.title}</p>
                     <div className="flex justify-between items-center mt-1">

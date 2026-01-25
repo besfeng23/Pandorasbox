@@ -85,11 +85,13 @@ export interface UserConnector {
 
 export interface Artifact {
     id: string;
+    userId?: string;
     title: string;
     type: 'code' | 'markdown' | 'html' | 'svg' | 'react';
     content: string;
     language?: string;
     createdAt?: Date;
+    updatedAt?: Date;
 }
 
 export interface AppSettings {

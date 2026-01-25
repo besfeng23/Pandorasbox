@@ -26,9 +26,28 @@ import {
   McpError,
 } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
-import { SearchKnowledgeBaseInputSchema } from "./tools/search-knowledge";
-import { AddMemoryInputSchema } from "./tools/add-memory";
-import { GenerateArtifactInputSchema } from "./tools/generate-artifact";
+import { handleSearchKnowledgeBase } from "./tools/search-knowledge";
+import { handleAddMemory } from "./tools/add-memory";
+import { handleGenerateArtifact } from "./tools/generate-artifact";
+
+// MCP Input Schemas
+const SearchKnowledgeBaseInputSchema = z.object({
+  query: z.string().min(1),
+  user_email: z.string().email(),
+  limit: z.number().min(1).max(50).optional(),
+});
+
+const AddMemoryInputSchema = z.object({
+  memory: z.string().min(1),
+  user_email: z.string().email(),
+});
+
+const GenerateArtifactInputSchema = z.object({
+  title: z.string().min(1),
+  type: z.enum(['code', 'markdown']),
+  content: z.string().min(1),
+  user_email: z.string().email(),
+});
 
 // Validate required environment variables
 function validateEnvironment() {

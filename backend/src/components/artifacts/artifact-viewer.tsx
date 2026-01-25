@@ -27,7 +27,7 @@ export function ArtifactViewer({ artifactId }: ArtifactViewerProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [hasCopied, setHasCopied] = useState(false);
   const firestore = useFirestore();
-  const setActiveArtifactId = useArtifactStore(state => state.setActiveArtifactId);
+  const setActiveArtifact = useArtifactStore(state => state.setActiveArtifact);
 
   useEffect(() => {
     setIsLoading(true);
@@ -109,7 +109,7 @@ export function ArtifactViewer({ artifactId }: ArtifactViewerProps) {
           <Button variant="ghost" size="icon" onClick={handleCopy} className="hover:bg-accent" title="Copy to clipboard">
             {hasCopied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => setActiveArtifactId(null)} className="hover:bg-destructive/10" title="Close">
+          <Button variant="ghost" size="icon" onClick={() => setActiveArtifact(null)} className="hover:bg-destructive/10" title="Close">
             <X className="h-4 w-4" />
           </Button>
         </div>

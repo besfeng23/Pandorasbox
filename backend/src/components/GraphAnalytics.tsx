@@ -366,7 +366,7 @@ export function GraphAnalytics({ userId, onNodeClick }: GraphAnalyticsProps) {
                       <p className="text-sm text-gray-300 mb-2">{rec.reason}</p>
                       {rec.suggestedActions && rec.suggestedActions.length > 0 && (
                         <div className="flex flex-wrap gap-2 mt-2">
-                          {rec.suggestedActions.map((action, idx) => (
+                          {rec.suggestedActions.map((action: string, idx: number) => (
                             <Badge key={idx} variant="secondary" className="text-xs">
                               {action}
                             </Badge>
