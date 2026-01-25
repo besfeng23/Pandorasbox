@@ -4,7 +4,7 @@ import React, { useState, useEffect, useTransition } from 'react';
 import { Command } from 'cmdk';
 import { searchMemoryAction } from '@/app/actions';
 import { useUser } from '@/firebase';
-import { Database, Loader2, Home, Settings, GitGraph, Building2, Library, Boxes, Sparkles } from 'lucide-react';
+import { Database, Loader2, Home, Settings, GitGraph, Building2, Library, Boxes } from 'lucide-react';
 import { SearchResult } from '@/lib/types';
 import { useDebounce } from '@/hooks/use-debounce';
 import { formatDistanceToNow } from 'date-fns';
@@ -26,8 +26,6 @@ export function CommandMenu() {
     { id: 'memories', label: 'Memories', icon: Database, path: '/memories' },
     { id: 'artifacts', label: 'Artifacts', icon: Boxes, path: '/artifacts' },
     { id: 'graph', label: 'Graph', icon: GitGraph, path: '/graph' },
-    { id: 'studio', label: 'Firebase Studio', icon: Database, path: '/studio' },
-    { id: 'generate', label: 'Generate UI', icon: Sparkles, path: '/studio/generate' },
     { id: 'settings', label: 'Settings', icon: Settings, path: '/settings' },
   ];
 

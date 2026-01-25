@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { AppLayout } from '@/components/dashboard/app-layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -94,7 +95,8 @@ export default function GeneratePage() {
   };
 
   return (
-    <div className="container mx-auto p-6 max-w-7xl">
+    <AppLayout>
+      <div className="flex-1 space-y-6 p-4 md:p-8 max-w-7xl mx-auto">
       <div className="mb-6">
         <h1 className="text-3xl font-bold mb-2 flex items-center gap-3">
           <Sparkles className="h-8 w-8" />
@@ -251,7 +253,8 @@ export default function GeneratePage() {
           </div>
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </AppLayout>
   );
 }
 

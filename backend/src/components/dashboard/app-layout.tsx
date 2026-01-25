@@ -188,17 +188,9 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
             </SidebarMenuItem>
             <SidebarMenuItem>
               <Link href="/studio" className="w-full" onClick={handleNavClick}>
-                <SidebarMenuButton isActive={pathname.startsWith('/studio') && !pathname.includes('/generate')} className="w-full justify-start">
+                <SidebarMenuButton isActive={pathname.startsWith('/studio')} className="w-full justify-start">
                   <Database />
                   <span>Firebase Studio</span>
-                </SidebarMenuButton>
-              </Link>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <Link href="/studio/generate" className="w-full" onClick={handleNavClick}>
-                <SidebarMenuButton isActive={pathname.includes('/studio/generate')} className="w-full justify-start">
-                  <Sparkles />
-                  <span>Generate UI</span>
                 </SidebarMenuButton>
               </Link>
             </SidebarMenuItem>

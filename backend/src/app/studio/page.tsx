@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { AppLayout } from '@/components/dashboard/app-layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -116,7 +117,8 @@ export default function StudioPage() {
   });
 
   return (
-    <div className="container mx-auto p-6 max-w-7xl">
+    <AppLayout>
+      <div className="flex-1 space-y-6 p-4 md:p-8 max-w-7xl mx-auto">
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold mb-2">Firebase Studio</h1>
@@ -254,7 +256,8 @@ export default function StudioPage() {
           </TabsContent>
         )}
       </Tabs>
-    </div>
+      </div>
+    </AppLayout>
   );
 }
 
