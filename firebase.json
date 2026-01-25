@@ -6,7 +6,7 @@
     "indexes": "firestore.indexes.json"
   },
   "apphosting": {
-    "source": "backend",
+    "source": ".",
     "backends": [
       {
         "id": "studio-sg",
