@@ -5,10 +5,11 @@ import { handleOptions, corsHeaders } from '@/lib/cors';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const threadId = params.id;
+    const { id } = await params;
+    const threadId = id;
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
 

@@ -5,10 +5,11 @@ import { FieldValue } from 'firebase-admin/firestore';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const threadId = await params.id;
+    const { id } = await params;
+    const threadId = id;
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
 
@@ -44,10 +45,11 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const threadId = await params.id;
+    const { id } = await params;
+    const threadId = id;
     const body = await request.json();
     const { userId, name } = body;
 
@@ -88,10 +90,11 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const threadId = await params.id;
+    const { id } = await params;
+    const threadId = id;
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
 
