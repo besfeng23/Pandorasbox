@@ -14,6 +14,7 @@ An AI-powered chat application with persistent long-term memory and MCP (Model C
 
 ### Required
 
+- None (Local vLLM)
 - `INFERENCE_URL`: URL to your vLLM instance (e.g., `http://localhost:8000/v1`)
 - `QDRANT_URL`: URL to your Qdrant instance (e.g., `http://localhost:6333`)
 - `EMBEDDINGS_BASE_URL`: URL to your local embeddings service
