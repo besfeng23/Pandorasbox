@@ -1,367 +1,160 @@
+import type { Message as MessageType } from '@/lib/types';
+import { cn } from '@/lib/utils';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { User, Bot, Cog, RefreshCw, Loader2, Globe } from 'lucide-react';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Button } from '@/components/ui/button';
+import { ArtifactViewer } from './artifact-viewer';
 
-'use client';
-
-import { Message as MessageType } from '@/lib/types';
-import { cn, formatTime, formatMessageTime, formatFullDateTime, toDate } from '@/lib/utils';
-import { useState } from 'react';
-import { AlertTriangle, Sun, CheckCircle2, Clock, XCircle, User, BrainCircuit } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import Image from 'next/image';
-import { ThinkingIndicator } from './thinking-indicator';
-import { useArtifactStore } from '@/store/artifacts';
-import { Button } from '../ui/button';
-import { useToast } from '@/hooks/use-toast';
-import { useUser } from '@/firebase';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
-import { FileText } from 'lucide-react';
-import { CodeBlock } from './code-block';
-import { MessageMenu } from './message-menu';
-import type { Components } from 'react-markdown';
-import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
-import { Copy, Check } from 'lucide-react';
-
-interface MessageProps {
-  message: MessageType;
+function ToolIoDisplay({ data }: { data: any }) {
+    if (typeof data !== 'object' || data === null) {
+      return <p className="text-sm">{String(data)}</p>;
+    }
+  
+    return (
+      <div className="space-y-1">
+        {Object.entries(data).map(([key, value]) => (
+          <div key={key} className="flex gap-2">
+            <span className="font-semibold text-foreground/80">{key}:</span>
+            <span className="break-all text-foreground/90">{JSON.stringify(value)}</span>
+          </div>
+        ))}
+      </div>
+    );
 }
 
-export function Message({ message }: MessageProps) {
+export function Message({ 
+  message,
+  onRegenerate,
+  isLastAssistantMessage,
+  isRegenerating,
+}: { 
+  message: MessageType,
+  onRegenerate?: () => void,
+  isLastAssistantMessage?: boolean,
+  isRegenerating?: boolean
+}) {
   const isUser = message.role === 'user';
-  const timestamp = formatMessageTime(message.createdAt);
-  const fullTimestamp = formatFullDateTime(message.createdAt);
-  const setActiveArtifactId = useArtifactStore(state => state.setActiveArtifactId);
-  const { toast } = useToast();
-  const { user } = useUser();
-  const firestore = useFirestore();
-  const [copied, setCopied] = useState(false);
-
-  // Determine status indicator for user messages
-  const getStatusIcon = () => {
-    if (!isUser) return null;
-    if (message.status === 'error') {
-      return <XCircle className="h-3 w-3 text-red-400" />;
-    }
-    if (message.status === 'processing') {
-      return <Clock className="h-3 w-3 text-cyan-400/70 animate-pulse" />;
-    }
-    return <CheckCircle2 className="h-3 w-3 text-cyan-400/70" />;
-  };
-
-  const ARTIFACT_REGEX = /\[Artifact Created: (.*?)\]/g;
-  
-  const handleArtifactClick = async (title: string, e: React.MouseEvent) => {
-    e.preventDefault();
-    if (!user?.uid) {
-      toast({ variant: "destructive", title: "Error", description: "User not authenticated." });
-      return;
-    }
-
-    try {
-      const q = query(collection(firestore, 'artifacts'), where('userId', '==', user.uid), where('title', '==', title));
-      const querySnapshot = await getDocs(q);
-      if (!querySnapshot.empty) {
-        const artifactDoc = querySnapshot.docs[0];
-        setActiveArtifactId(artifactDoc.id);
-      } else {
-        toast({ variant: "destructive", title: "Error", description: `Artifact "${title}" not found.` });
-      }
-    } catch (error) {
-      console.error("Error fetching artifact by title:", error);
-      toast({ variant: "destructive", title: "Error", description: "Failed to retrieve artifact." });
-    }
-  };
-
-  const markdownComponents: Components = {
-    code({ node, className, children, ...props }: any) {
-      const inline = !className || !className.includes('language-');
-      const match = /language-(\w+)/.exec(className || '');
-      const codeString = String(children).replace(/\n$/, '');
-      
-      if (!inline && match) {
-        return (
-          <CodeBlock
-            code={codeString}
-            language={match[1]}
-            className="my-4"
-          />
-        );
-      }
-      
-      return (
-        <code
-          className="px-1.5 py-0.5 rounded bg-white/10 border border-cyan-400/20 text-cyan-300 text-sm font-mono"
-          {...props}
-        >
-          {children}
-        </code>
-      );
-    },
-    a({ node, href, children, ...props }) {
-      return (
-        <a
-          href={href}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-cyan-400 hover:text-cyan-300 underline underline-offset-2 transition-colors"
-          {...props}
-        >
-          {children}
-        </a>
-      );
-    },
-    ul({ node, children, ...props }) {
-      return (
-        <ul className="list-disc list-inside space-y-1 my-2 ml-4" {...props}>
-          {children}
-        </ul>
-      );
-    },
-    ol({ node, children, ...props }) {
-      return (
-        <ol className="list-decimal list-inside space-y-1 my-2 ml-4" {...props}>
-          {children}
-        </ol>
-      );
-    },
-    li({ node, children, ...props }) {
-      return (
-        <li className="pl-2" {...props}>
-          {children}
-        </li>
-      );
-    },
-    table({ node, children, ...props }) {
-      return (
-        <div className="overflow-x-auto my-4">
-          <table className="min-w-full border-collapse glass-panel rounded-lg border border-cyan-400/15" {...props}>
-            {children}
-          </table>
-        </div>
-      );
-    },
-    thead({ node, children, ...props }) {
-      return (
-        <thead className="bg-white/5" {...props}>
-          {children}
-        </thead>
-      );
-    },
-    th({ node, children, ...props }) {
-      return (
-        <th className="px-4 py-2 text-left border-b border-cyan-400/20 text-cyan-400 font-semibold" {...props}>
-          {children}
-        </th>
-      );
-    },
-    td({ node, children, ...props }) {
-      return (
-        <td className="px-4 py-2 border-b border-cyan-400/10" {...props}>
-          {children}
-        </td>
-      );
-    },
-    p({ node, children, ...props }) {
-      return (
-        <p className="my-2 leading-loose" {...props}>
-          {children}
-        </p>
-      );
-    },
-    h1({ node, children, ...props }) {
-      return (
-        <h1 className="text-2xl font-bold my-4 neon-text-cyan" {...props}>
-          {children}
-        </h1>
-      );
-    },
-    h2({ node, children, ...props }) {
-      return (
-        <h2 className="text-xl font-bold my-3 neon-text-cyan" {...props}>
-          {children}
-        </h2>
-      );
-    },
-    h3({ node, children, ...props }) {
-      return (
-        <h3 className="text-lg font-semibold my-2 text-cyan-400" {...props}>
-          {children}
-        </h3>
-      );
-    },
-    blockquote({ node, children, ...props }) {
-      return (
-        <blockquote className="border-l-4 border-cyan-400/30 pl-4 my-3 italic text-white/70" {...props}>
-          {children}
-        </blockquote>
-      );
-    },
-  };
-
-  const renderContent = (content: string) => {
-    const parts = content.split(ARTIFACT_REGEX);
-    return parts.map((part, index) => {
-      if (index % 2 === 1) {
-        const artifactTitle = part;
-        return (
-          <Button
-            key={index}
-            variant="secondary"
-            size="sm"
-            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-md bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-800"
-            onClick={(e) => handleArtifactClick(artifactTitle, e)}
-          >
-            <FileText className="h-3 w-3" />
-            {artifactTitle}
-          </Button>
-        );
-      }
-      return (
-        <ReactMarkdown
-          key={index}
-          remarkPlugins={[remarkGfm]}
-          components={markdownComponents}
-          className="prose prose-sm prose-zinc dark:prose-invert max-w-none"
-        >
-          {part}
-        </ReactMarkdown>
-      );
-    });
-  };
-
-  if (message.role === 'system') {
-    return (
-      <div className="flex items-center gap-3 my-2 text-xs text-red-400 font-medium justify-center w-full">
-        <AlertTriangle className="h-4 w-4 text-red-400" strokeWidth={1.5} />
-        <span>{message.content}</span>
-      </div>
-    )
-  }
-
-  if (message.type === 'briefing') {
-    return (
-        <div className="w-full my-4 p-4 rounded-lg glass-panel border border-cyan-400/20">
-            <div className="flex items-center gap-2 mb-3">
-                <Sun className="h-5 w-5 text-cyan-400" />
-                <h3 className="font-semibold text-base neon-text-cyan">Morning Briefing</h3>
-                <span className="text-xs text-white/40 ml-auto">{timestamp}</span>
-            </div>
-             <article className="prose prose-sm prose-zinc dark:prose-invert max-w-none">
-                <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>{message.content}</ReactMarkdown>
-            </article>
-        </div>
-    )
-  }
 
   return (
-      <div className="flex items-start gap-3 w-full">
-        {/* Avatar/Icon */}
+    <div className="group/message">
+      <div className={cn('flex items-start gap-4', isUser ? 'justify-end' : 'justify-start')}>
         {!isUser && (
-          <div className="flex-shrink-0 mt-1">
-            <div className="h-8 w-8 rounded-full glass-panel border border-purple-400/30 flex items-center justify-center shadow-neon-purple-sm">
-              <BrainCircuit className="h-4 w-4 text-purple-400" strokeWidth={1.5} />
-            </div>
-          </div>
+          <Avatar className="h-8 w-8">
+            <AvatarFallback>
+              <Bot className="h-5 w-5" />
+            </AvatarFallback>
+          </Avatar>
         )}
-        
         <div
           className={cn(
-            'group rounded-2xl px-4 py-3 sm:px-5 sm:py-4 flex flex-col relative transition-all duration-200',
-            'max-w-[85%] sm:max-w-[75%]',
-            'hover:scale-[1.01] hover:shadow-lg active:scale-[0.99]',
+            'max-w-2xl w-full rounded-lg px-4 py-3',
             isUser
-              ? 'bg-gradient-to-br from-cyan-400/80 to-cyan-500/70 text-white border border-cyan-300/25 shadow-neon-cyan-sm hover:border-cyan-300/35'
-              : 'glass-panel border border-purple-400/20 text-white/90 shadow-lg hover:border-purple-400/30'
+              ? 'rounded-br-none bg-primary text-primary-foreground'
+              : 'rounded-bl-none bg-card'
           )}
         >
-          
-          {/* Quick copy button - visible on hover */}
-          <div className="absolute top-2 right-2 z-10 flex items-center gap-1">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className={cn(
-                    'h-7 w-7 text-white/40 hover:text-white/80 hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200',
-                    copied && 'opacity-100 text-green-400'
-                  )}
-                  onClick={async (e) => {
-                    e.stopPropagation();
-                    try {
-                      await navigator.clipboard.writeText(message.content);
-                      setCopied(true);
-                      setTimeout(() => setCopied(false), 2000);
-                    } catch (error) {
-                      toast({
-                        variant: 'destructive',
-                        title: 'Failed to copy',
-                        description: 'Could not copy message to clipboard',
-                      });
-                    }
-                  }}
-                  aria-label="Copy message"
-                >
-                  {copied ? (
-                    <Check className="h-4 w-4" />
-                  ) : (
-                    <Copy className="h-4 w-4" />
-                  )}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent className="glass-panel-strong border border-cyan-400/30 text-white">
-                <p>{copied ? 'Copied!' : 'Copy'}</p>
-              </TooltipContent>
-            </Tooltip>
-            <MessageMenu
-              content={message.content}
-              role={message.role}
-              onRegenerate={message.role === 'assistant' ? undefined : undefined}
-            />
-          </div>
-          {isUser ? (
-            <p className="message-text whitespace-pre-wrap break-words">
-              {message.content}
-            </p>
-        ) : message.status === 'processing' ? (
-          <ThinkingIndicator logs={message.progress_log || []} createdAt={message.createdAt} />
-        ) : (
-            <div className="message-text prose prose-sm dark:prose-invert max-w-none break-words">
-              {renderContent(message.content)}
+          <p className="text-base whitespace-pre-wrap">{message.content}</p>
+          {message.isError && (
+              <p className="mt-2 text-xs text-destructive-foreground/80">Could not generate response.</p>
+          )}
+          {message.toolUsages && message.toolUsages.length > 0 && (
+            <div className="mt-4">
+              <Accordion type="single" collapsible className="w-full">
+                <AccordionItem value="item-1" className="border-b-0">
+                  <AccordionTrigger className="text-xs hover:no-underline p-2 rounded-md hover:bg-white/10">
+                    <div className="flex items-center gap-2">
+                      <Cog className="h-4 w-4" />
+                      <span>View Agent Reasoning</span>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <div className="space-y-4 p-2 bg-background/50 rounded-md mt-1">
+                      {message.toolUsages.map((tool, index) => {
+                        if (tool.toolName === 'web_retrieval') {
+                            return (
+                                <div key={index} className="text-xs border-t border-border pt-3 first:border-t-0 first:pt-0">
+                                    <p className="font-semibold text-foreground text-sm mb-2 flex items-center gap-2"><Globe className="h-4 w-4" /> Web Results</p>
+                                    <div className="mt-1 space-y-2">
+                                        {(tool.output as any[]).map((citation: any, idx) => (
+                                            <div key={idx} className="p-2 bg-muted/50 rounded-md">
+                                                <a href={citation.source} target="_blank" rel="noopener noreferrer" className="text-primary font-medium hover:underline block truncate text-sm">{citation.title}</a>
+                                                <p className="text-muted-foreground text-xs mt-1">{citation.source}</p>
+                                                <p className="mt-2 text-foreground/90 italic">"{citation.snippet}"</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )
+                        }
+                        
+                        // Handle Artifacts
+                        if (tool.toolName === 'generate_artifact') {
+                            const { title, type, content } = tool.input;
+                            // Sometimes content might be in output if it was generated by the tool logic, 
+                            // but usually for 'generate' tools, the LLM provides the content in the input arguments.
+                            // We'll check both or assume input as per the tool definition.
+                            const artifactContent = content || tool.output?.content || '';
+                            
+                            return (
+                                <div key={index} className="text-xs border-t border-border pt-3 first:border-t-0 first:pt-0">
+                                     <p className="font-semibold text-foreground text-sm mb-2">Generated Artifact</p>
+                                     <ArtifactViewer 
+                                        title={title || 'Untitled Artifact'} 
+                                        type={type || 'code'} 
+                                        content={artifactContent} 
+                                     />
+                                </div>
+                            );
+                        }
+
+                        return (
+                        <div key={index} className="text-xs border-t border-border pt-3 first:border-t-0 first:pt-0">
+                          <p className="font-semibold text-foreground text-sm mb-2">{tool.toolName}</p>
+                          <div className="mt-1 space-y-3 p-2 bg-muted/50 rounded-md">
+                            <div>
+                              <p className="font-medium text-muted-foreground mb-1">Input</p>
+                              <ToolIoDisplay data={tool.input} />
+                            </div>
+                            <div>
+                              <p className="font-medium text-muted-foreground mt-2 mb-1">Output</p>
+                             <ToolIoDisplay data={tool.output} />
+                            </div>
+                          </div>
+                        </div>
+                      )})}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
             </div>
           )}
-
-          {message.imageUrl && (
-            <div className="relative w-full max-w-sm mt-3 rounded-lg overflow-hidden">
-              <Image src={message.imageUrl} alt="Uploaded content" width={400} height={300} className="object-cover" />
-            </div>
-          )}
-
-          {/* Timestamp and status indicator */}
-          <div className={cn(
-            "flex items-center gap-1.5 mt-2 text-xs",
-            isUser ? "justify-end text-white/70" : "justify-start text-white/50"
-          )}>
-            {isUser && getStatusIcon()}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="cursor-help">{timestamp}</span>
-              </TooltipTrigger>
-              <TooltipContent className="glass-panel-strong border border-cyan-400/30 text-white">
-                <p>{fullTimestamp}</p>
-              </TooltipContent>
-            </Tooltip>
-          </div>
         </div>
-        
-        {/* Avatar/Icon for user messages (after) */}
         {isUser && (
-          <div className="flex-shrink-0 mt-1">
-            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-cyan-400/80 to-cyan-500/70 border border-cyan-300/30 flex items-center justify-center shadow-neon-cyan-sm">
-              <User className="h-4 w-4 text-white" strokeWidth={1.5} />
-            </div>
-          </div>
+          <Avatar className="h-8 w-8">
+            <AvatarFallback>
+              <User className="h-5 w-5" />
+            </AvatarFallback>
+          </Avatar>
         )}
       </div>
+      {isLastAssistantMessage && onRegenerate && (
+          <div className={cn('flex pt-2 transition-opacity group-hover/message:opacity-100', isRegenerating ? 'opacity-100' : 'opacity-0' , isUser ? 'justify-end' : 'justify-start pl-12')}>
+              <Button variant="outline" size="sm" onClick={onRegenerate} disabled={isRegenerating}>
+                  {isRegenerating ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                  )}
+                  Regenerate
+              </Button>
+          </div>
+        )}
+    </div>
   );
 }

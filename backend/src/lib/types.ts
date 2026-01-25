@@ -1,67 +1,101 @@
+import { Timestamp } from 'firebase/firestore';
 
-import type { Timestamp } from 'firebase/firestore';
+// --- FRONTEND TYPES (Merged) ---
 
-export type Message = {
+export interface ChangeHistoryItem {
+  timestamp: Timestamp | Date;
+  userId: string;
+  action: string;
+  changes?: Record<string, any>;
+}
+
+export interface ToolUsage {
+  toolName: string;
+  input: any;
+  output: any;
+  citation?: string;
+}
+
+export interface Thread {
+  id: string;
+  name: string;
+  agent: 'builder' | 'universe';
+  userId: string;
+  createdAt: Timestamp; // Using Firestore Timestamp
+  updatedAt: Timestamp;
+  version: number;
+  history?: ChangeHistoryItem[];
+  pinned?: boolean; // Frontend property
+  archived?: boolean; // Frontend property
+  title?: string; // Frontend alias for name
+  summary?: string; // Frontend property
+}
+
+export interface Message {
   id: string;
   role: 'user' | 'assistant' | 'system';
   content: string;
-  createdAt: Timestamp | Date;
-  threadId?: string; // Added for multi-chat
-  embedding?: number[];
+  createdAt: Timestamp;
+  updatedAt?: Timestamp;
+  isError?: boolean;
+  confidence?: number;
+  toolUsages?: ToolUsage[];
+  history: ChangeHistoryItem[];
+  source?: string;
   imageUrl?: string;
-  imageDescription?: string;
-  source?: 'text' | 'voice';
-  type?: 'briefing' | 'standard' | 'knowledge_chunk';
-  status?: 'processing' | 'complete' | 'error';
-  progress_log?: string[];
-  source_filename?: string;
-  userId?: string;
-  editedAt?: Timestamp | Date;
-};
+  status?: string;
+  progress_log?: any[];
+}
 
-export type Thread = {
+export interface Memory {
   id: string;
   userId: string;
-  title: string;
-  createdAt: Timestamp | Date | string;
-  summary?: string;
-  pinned?: boolean;
-  archived?: boolean;
-  agent?: string;
-  updatedAt?: Timestamp | Date | string;
-};
-
-export type Memory = {
-  id: string;
+  type?: 'fact' | 'preference' | 'commitment' | 'person' | 'place';
   content: string;
-  embedding: number[];
-  createdAt: Timestamp | Date;
-  userId: string;
-  source?: string; // e.g., 'chatgpt', 'system'
-};
+  relevance?: number;
+  confidence?: number;
+  sourceMessageId?: string;
+  createdAt: Timestamp | Date; // Allow Date
+  updatedAt?: Timestamp | Date; // Allow Date
+  version?: number;
+  history?: ChangeHistoryItem[];
+  source?: string; // Frontend property
+  score?: number; // Frontend property for search results
+  embedding?: number[];
+}
 
-export type AppSettings = {
-    active_model: 'mistralai/Mistral-7B-Instruct-v0.3' | 'pandora-sovereign';
-    reply_style: 'concise' | 'detailed';
-    system_prompt_override: string;
-    personal_api_key?: string;
-    agentId?: 'builder' | 'universe'; // New agentId field
-};
-
-export type SearchResult = {
+export interface SearchResult {
   id: string;
   text: string;
   score: number;
   timestamp: string;
-  source?: string;
-};
+  payload?: any;
+}
 
-export type Artifact = {
+export interface UserConnector {
   id: string;
   userId: string;
-  title: string;
-  type: 'markdown' | 'code';
-  content: string;
-  version: number;
-  createdAt: Timestamp | Date;
-};
+  status: 'connected' | 'error' | 'disconnected';
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  metadata?: {
+    url?: string;
+  };
+}
+
+export interface Artifact {
+    id: string;
+    title: string;
+    type: 'code' | 'markdown' | 'html' | 'svg' | 'react';
+    content: string;
+    language?: string;
+    createdAt?: Date;
+}
+
+export interface AppSettings {
+    theme: 'light' | 'dark' | 'system';
+    system_prompt_override?: string;
+}
+
+// --- BACKEND SPECIFIC TYPES (if any unique) ---
+// (Already covered by interfaces above generally)

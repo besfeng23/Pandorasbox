@@ -8,8 +8,9 @@ export async function OPTIONS() {
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  props: { params: Promise<{ id: string }> }
 ) {
+  const params = await props.params;
   const searchParams = request.nextUrl.searchParams;
   const userId = searchParams.get('userId');
   const agentId = searchParams.get('agentId') || 'builder';
@@ -27,8 +28,9 @@ export async function DELETE(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  props: { params: Promise<{ id: string }> }
 ) {
+  const params = await props.params;
   const searchParams = request.nextUrl.searchParams;
   const userId = searchParams.get('userId');
   const agentId = searchParams.get('agentId') || 'builder';

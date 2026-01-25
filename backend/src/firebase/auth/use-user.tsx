@@ -1,8 +1,9 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
-import { type User, onAuthStateChanged } from 'firebase/auth';
-import { useAuth } from '..';
+import { onAuthStateChanged, type User } from 'firebase/auth';
+import { useAuth } from '../provider';
 
 export function useUser() {
   const auth = useAuth();
@@ -10,13 +11,20 @@ export function useUser() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    if (!auth) {
+        setIsLoading(false);
+        return;
+    }
+
+    // onAuthStateChanged returns an unsubscribe function
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       setIsLoading(false);
     });
 
+    // Cleanup subscription on unmount
     return () => unsubscribe();
   }, [auth]);
 
-  return { user, isLoading };
+  return { user, isLoading, loading: isLoading }; // Expose both for compatibility
 }

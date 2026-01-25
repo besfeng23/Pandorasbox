@@ -1,98 +1,46 @@
-
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
 import { Timestamp } from "firebase/firestore";
-import { format, isToday, isSameDay } from 'date-fns';
-
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
 
-/**
- * Safely converts a Firestore timestamp-like object to a JavaScript Date.
- * Handles `Timestamp` objects, plain date objects, and server-side objects with `_seconds`.
- *
- * @param timestamp The timestamp object to convert.
- * @returns A `Date` object.
- */
-export function toDate(timestamp: any): Date {
-  if (timestamp instanceof Timestamp) {
-    return timestamp.toDate();
-  }
-  if (timestamp instanceof Date) {
-    return timestamp;
-  }
-  // Handle server-side rendered timestamps (often plain objects)
-  if (timestamp && typeof timestamp.seconds === 'number' && typeof timestamp.nanoseconds === 'number') {
-    return new Timestamp(timestamp.seconds, timestamp.nanoseconds).toDate();
-  }
-  // Handle ISO string dates from serialization
-  if (typeof timestamp === 'string') {
-    const date = new Date(timestamp);
-    if (!isNaN(date.getTime())) {
-      return date;
+export function formatTime(date: Date | Timestamp | string | number): string {
+    const d = toDate(date);
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+export function formatFullDateTime(date: Date | Timestamp | string | number): string {
+    const d = toDate(date);
+    return d.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+}
+
+export function toDate(timestamp: Date | Timestamp | string | number | any): Date {
+    if (!timestamp) return new Date();
+    if (timestamp instanceof Date) return timestamp;
+    if (typeof timestamp.toDate === 'function') return timestamp.toDate();
+    if (typeof timestamp === 'string' || typeof timestamp === 'number') return new Date(timestamp);
+    // Fallback for serialized objects
+    if (timestamp.seconds) return new Date(timestamp.seconds * 1000);
+    return new Date();
+}
+
+export function chunkText(text: string, maxLength: number = 1000): string[] {
+    const chunks: string[] = [];
+    let currentChunk = '';
+    
+    const sentences = text.split(/(?<=[.!?])\s+/);
+    
+    for (const sentence of sentences) {
+        if ((currentChunk + sentence).length > maxLength) {
+            chunks.push(currentChunk.trim());
+            currentChunk = sentence;
+        } else {
+            currentChunk += (currentChunk ? ' ' : '') + sentence;
+        }
     }
-  }
-  // Fallback for unexpected formats
-  return new Date();
-}
-
-export function formatTime(timestamp: any): string {
-  if (!timestamp) {
-    return '...';
-  }
-
-  try {
-    const date = toDate(timestamp);
-    return format(date, 'h:mm a');
-  } catch (error) {
-    console.error("Invalid date for formatting:", timestamp);
-    return "Invalid date";
-  }
-}
-
-/**
- * Formats a timestamp for display in messages.
- * Returns "HH:MM" for today, "MMM DD, HH:MM" for older dates.
- */
-export function formatMessageTime(timestamp: any): string {
-  if (!timestamp) {
-    return '';
-  }
-
-  try {
-    const date = toDate(timestamp);
-    if (isToday(date)) {
-      return format(date, 'HH:mm');
-    }
-    return format(date, 'MMM dd, HH:mm');
-  } catch (error) {
-    console.error("Invalid date for formatting:", timestamp);
-    return '';
-  }
-}
-
-/**
- * Formats a full date/time for tooltips.
- */
-export function formatFullDateTime(timestamp: any): string {
-  if (!timestamp) {
-    return '';
-  }
-
-  try {
-    const date = toDate(timestamp);
-    return format(date, 'PPpp'); // e.g., "Apr 29th, 2021 at 08:30 AM"
-  } catch (error) {
-    console.error("Invalid date for formatting:", timestamp);
-    return '';
-  }
-}
-export function chunkText(text: string, chunkSize: number = 1000): string[] {
-  const chunks: string[] = [];
-  for (let i = 0; i < text.length; i += chunkSize) {
-    chunks.push(text.substring(i, i + chunkSize));
-  }
-  return chunks;
+    if (currentChunk) chunks.push(currentChunk.trim());
+    
+    return chunks;
 }
