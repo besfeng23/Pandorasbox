@@ -21,8 +21,16 @@ import { ErrorBoundary } from '@/components/error-boundary';
 function WelcomeScreen() {
     const { user } = useUser();
     const handleCreateThread = async (agent: 'builder' | 'universe') => {
-        if (user) {
+        if (!user) return;
+        try {
             await createThread(agent, user.uid);
+        } catch (error: any) {
+            console.error('Error creating thread:', error);
+            toast({
+                variant: 'destructive',
+                title: 'Failed to create thread',
+                description: error.message || 'An unknown error occurred.',
+            });
         }
     };
 

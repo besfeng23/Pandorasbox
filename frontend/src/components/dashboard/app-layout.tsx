@@ -177,7 +177,23 @@ export function AppLayout({ children, threadId }: { children: React.ReactNode; t
             </TabsList>
           </Tabs>
           
-          <Button variant="outline" className="mt-4 w-full" onClick={() => user && createThread(agent, user.uid)}>
+          <Button 
+            variant="outline" 
+            className="mt-4 w-full" 
+            onClick={async () => {
+              if (user) {
+                try {
+                  await createThread(agent, user.uid);
+                } catch (error: any) {
+                  toast({
+                    variant: 'destructive',
+                    title: 'Error',
+                    description: error.message || 'Failed to create thread'
+                  });
+                }
+              }
+            }}
+          >
             <PlusCircle className="mr-2 h-4 w-4" /> New Thread
           </Button>
 
