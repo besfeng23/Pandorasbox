@@ -1,17 +1,18 @@
 
 'use client';
 
-import { useEffect, use } from 'react';
+import { useEffect, use, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppLayout } from '@/components/dashboard/app-layout';
-import { useUser } from '@/firebase';
-import { ChatPanel } from '@/components/chat/chat-panel';
+import { useAuthContext } from '@/lib/auth/AuthContext';
+import { ChatWindow } from '@/components/chat/ChatWindow';
 import { Loader2 } from 'lucide-react';
 import { ErrorBoundary } from '@/components/error-boundary';
+import { getThread } from '@/app/actions';
 
 export default function ChatPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { user, loading } = useUser();
+  const { user, isLoading: loading } = useAuthContext();
   const router = useRouter();
 
   useEffect(() => {
@@ -19,6 +20,19 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
       router.replace('/login');
     }
   }, [user, loading, router]);
+
+  // Determine agentId from thread
+  const [agentId, setAgentId] = useState<'builder' | 'universe'>('universe');
+
+  useEffect(() => {
+    if (user && id) {
+      getThread(id, user.uid).then((thread) => {
+        if (thread?.agent) {
+          setAgentId(thread.agent as 'builder' | 'universe');
+        }
+      });
+    }
+  }, [user, id]);
 
   if (loading || !user) {
     return (
@@ -31,7 +45,9 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
   return (
     <AppLayout threadId={id}>
       <ErrorBoundary>
-        <ChatPanel threadId={id} />
+        <div className="flex h-full flex-col">
+          <ChatWindow threadId={id} agentId={agentId} />
+        </div>
       </ErrorBoundary>
     </AppLayout>
   );

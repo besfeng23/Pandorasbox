@@ -1,10 +1,8 @@
 'use client';
 
-import React, { useState, useTransition, useCallback } from 'react';
+import React, { useState, useTransition, useCallback, useEffect, useRef } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { uploadKnowledge } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Loader2, UploadCloud, File, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -15,69 +13,182 @@ interface KnowledgeUploadProps {
   agentId?: string;
 }
 
+interface JobStatus {
+  id: string;
+  status: 'PENDING' | 'CHUNKING' | 'EMBEDDING' | 'INDEXING' | 'COMPLETED' | 'FAILED';
+  filename: string;
+  totalChunks: number;
+  processedChunks: number;
+  progress: number;
+  error?: string;
+}
+
 export function KnowledgeUpload({ userId, agentId = 'universe' }: KnowledgeUploadProps) {
   const [isPending, startTransition] = useTransition();
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
+  const [jobId, setJobId] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string>('');
   const { toast } = useToast();
   const { user } = useUser();
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    const file = acceptedFiles[0];
-    if (!file) return;
-
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('userId', userId);
-    formData.append('agentId', agentId);
-    
-    setFileName(file.name);
-    setUploadProgress(0); // Start progress
-
-    startTransition(async () => {
-      // Simulate progress for large file processing
-      const progressInterval = setInterval(() => {
-        setUploadProgress(prev => {
-            if (prev === null) return 0;
-            if (prev >= 95) {
-                clearInterval(progressInterval);
-                return prev;
-            }
-            return prev + 5;
-        });
-      }, 500);
+  // Poll job status
+  const pollJobStatus = useCallback(
+    async (jobId: string) => {
+      if (!user) return;
 
       try {
-        const result = await uploadKnowledge(formData);
-        
-        clearInterval(progressInterval);
-        setUploadProgress(100);
+        const token = await user.getIdToken();
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || window.location.origin;
 
-        if (result.success) {
+        const response = await fetch(`${API_URL}/api/ingest/${jobId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch job status');
+        }
+
+        const jobStatus: JobStatus = await response.json();
+
+        // Update progress
+        setUploadProgress(jobStatus.progress);
+        setStatusMessage(
+          `${jobStatus.status} (${jobStatus.processedChunks}/${jobStatus.totalChunks} chunks)`
+        );
+
+        // Handle completion or failure
+        if (jobStatus.status === 'COMPLETED') {
+          if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+            pollingIntervalRef.current = null;
+          }
+          setUploadProgress(100);
+          setStatusMessage('Indexing Complete!');
           toast({
             title: 'Success!',
-            description: `Successfully indexed ${fileName}`,
+            description: `Successfully indexed ${jobStatus.filename}`,
           });
-        } else {
-          throw new Error(result.message || 'Upload failed');
+          // Reset UI after delay
+          setTimeout(() => {
+            setUploadProgress(null);
+            setFileName(null);
+            setJobId(null);
+            setStatusMessage('');
+          }, 3000);
+        } else if (jobStatus.status === 'FAILED') {
+          if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+            pollingIntervalRef.current = null;
+          }
+          setUploadProgress(null);
+          toast({
+            variant: 'destructive',
+            title: 'Processing Failed',
+            description: jobStatus.error || 'Failed to process file',
+          });
+          setTimeout(() => {
+            setFileName(null);
+            setJobId(null);
+            setStatusMessage('');
+          }, 2000);
         }
       } catch (error: any) {
-        clearInterval(progressInterval);
-        setUploadProgress(null);
-        toast({
+        console.error('Error polling job status:', error);
+        // Continue polling on error (might be transient)
+      }
+    },
+    [user, toast]
+  );
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
+  }, []);
+
+  // Start polling when jobId is set
+  useEffect(() => {
+    if (jobId && user) {
+      // Poll immediately, then every 2 seconds
+      pollJobStatus(jobId);
+      pollingIntervalRef.current = setInterval(() => {
+        pollJobStatus(jobId);
+      }, 2000);
+    }
+
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+    };
+  }, [jobId, user, pollJobStatus]);
+
+  const onDrop = useCallback(
+    (acceptedFiles: File[]) => {
+      const file = acceptedFiles[0];
+      if (!file || !user) return;
+
+      setFileName(file.name);
+      setUploadProgress(0);
+      setStatusMessage('Uploading file...');
+
+      startTransition(async () => {
+        try {
+          // 1. Prepare FormData
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('agentId', agentId);
+
+          // 2. Get auth token
+          const token = await user.getIdToken();
+          const API_URL = process.env.NEXT_PUBLIC_API_URL || window.location.origin;
+
+          // 3. Call the new Ingestion API
+          const response = await fetch(`${API_URL}/api/ingest`, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            body: formData,
+          });
+
+          if (response.status === 202) {
+            const data = await response.json();
+            console.log(`Ingestion Job Started: ${data.jobId}`);
+            setJobId(data.jobId);
+            setStatusMessage('Processing started...');
+            toast({
+              title: 'Upload Started',
+              description: `Processing ${file.name} in the background.`,
+            });
+          } else {
+            const error = await response.json();
+            throw new Error(error.error || 'Ingestion failed.');
+          }
+        } catch (error: any) {
+          console.error('Upload Error:', error);
+          setUploadProgress(null);
+          setFileName(null);
+          setJobId(null);
+          setStatusMessage('');
+          toast({
             variant: 'destructive',
             title: 'Upload Failed',
-            description: error.message,
-        });
-      }
-
-      // Reset UI after a short delay
-      setTimeout(() => {
-        setUploadProgress(null);
-        setFileName(null);
-      }, 2000);
-    });
-  }, [userId, toast]);
+            description: error.message || 'Failed to upload file',
+          });
+        }
+      });
+    },
+    [agentId, user, toast]
+  );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -113,8 +224,15 @@ export function KnowledgeUpload({ userId, agentId = 'universe' }: KnowledgeUploa
                     <>
                         <File className="h-10 w-10 text-primary mb-2" />
                         <p className="text-sm font-semibold text-primary mb-2 truncate">{fileName}</p>
-                        <Progress value={uploadProgress} className="w-full h-2" />
-                        <p className="text-xs text-muted-foreground mt-2">Indexing document, please wait...</p>
+                        <Progress value={uploadProgress || 0} className="w-full h-2" />
+                        <p className="text-xs text-muted-foreground mt-2">
+                            {statusMessage || 'Processing document, please wait...'}
+                        </p>
+                        {jobId && (
+                            <p className="text-xs text-muted-foreground/70 mt-1">
+                                Job ID: {jobId.substring(0, 8)}...
+                            </p>
+                        )}
                     </>
                 )}
             </div>

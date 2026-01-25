@@ -1,29 +1,73 @@
 
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { AuthForm } from '@/components/auth/auth-form';
-import { useUser } from '@/firebase';
+import { useAuthContext } from '@/lib/auth/AuthContext';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Loader2 } from 'lucide-react';
 import { PandoraBoxIcon } from '@/components/icons';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+
+const loginSchema = z.object({
+  email: z.string().email({ message: 'Please enter a valid email address.' }),
+  password: z.string().min(1, { message: 'Password is required.' }),
+});
+
+type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
-  const { user, loading } = useUser();
+  const { user, isLoading, login } = useAuthContext();
   const router = useRouter();
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const form = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+  });
 
   useEffect(() => {
-    if (!loading && user) {
+    if (!isLoading && user) {
       router.replace('/');
     }
-  }, [user, loading, router]);
+  }, [user, isLoading, router]);
+
+  const onSubmit = async (values: LoginFormValues) => {
+    setIsSubmitting(true);
+    try {
+      await login(values.email, values.password);
+      // Login successful - onAuthStateChanged will update user state
+      // and useEffect will redirect to '/'
+      toast({
+        title: 'Welcome back!',
+        description: 'You have been successfully logged in.',
+      });
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Login Failed',
+        description: error.message || 'An error occurred during login.',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const authBg = PlaceHolderImages.find(img => img.id === 'auth-background');
 
-  if (loading || user) {
+  if (isLoading || user) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -44,7 +88,38 @@ export default function LoginPage() {
               Sign in to access your dashboard.
             </p>
           </div>
-          <AuthForm mode="login" />
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="name@example.com"
+                {...form.register('email')}
+                disabled={isSubmitting}
+              />
+              {form.formState.errors.email && (
+                <p className="text-sm text-destructive">{form.formState.errors.email.message}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="••••••••"
+                {...form.register('password')}
+                disabled={isSubmitting}
+              />
+              {form.formState.errors.password && (
+                <p className="text-sm text-destructive">{form.formState.errors.password.message}</p>
+              )}
+            </div>
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Log In
+            </Button>
+          </form>
           <p className="mt-6 text-center text-sm text-muted-foreground">
             Don&apos;t have an account?{' '}
             <Link href="/signup" className="font-medium text-primary hover:underline">

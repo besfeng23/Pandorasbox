@@ -35,3 +35,29 @@ export async function streamInference(messages: ChatMessage[]) {
   }
 }
 
+/**
+ * Non-streaming inference for summarization and metadata extraction
+ * @param messages Array of chat messages
+ * @param temperature Temperature for generation (default: 0.3 for more focused summaries)
+ * @returns The complete response text
+ */
+export async function completeInference(
+  messages: ChatMessage[],
+  temperature: number = 0.3
+): Promise<string> {
+  try {
+    const completion = await openai.chat.completions.create({
+      model: INFERENCE_MODEL,
+      messages: messages,
+      stream: false,
+      temperature: temperature,
+      max_tokens: 500, // Limit for summaries
+    });
+    
+    return completion.choices[0]?.message?.content || '';
+  } catch (error) {
+    console.error('Sovereign Inference Error (non-streaming):', error);
+    throw new Error('Inference System Offline - Check Container.');
+  }
+}
+

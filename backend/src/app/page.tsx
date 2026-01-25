@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppLayout } from '@/components/dashboard/app-layout';
-import { useUser, useFirestore } from '@/firebase';
+import { useAuthContext } from '@/lib/auth/AuthContext';
+import { useFirestore } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Loader2, Bot, BrainCircuit, History, ArrowRight } from 'lucide-react';
@@ -18,19 +19,13 @@ import { useToast } from '@/hooks/use-toast';
 import { ErrorBoundary } from '@/components/error-boundary';
 
 export default function DashboardPage() {
-  const { user, loading: userLoading } = useUser();
+  const { user, isLoading: userLoading } = useAuthContext();
   const router = useRouter();
   const db = useFirestore();
   const { toast } = useToast();
 
   const [recentThreads, setRecentThreads] = useState<Thread[]>([]);
   const [isLoadingThreads, setIsLoadingThreads] = useState(true);
-
-  useEffect(() => {
-    if (!userLoading && !user) {
-      router.replace('/login');
-    }
-  }, [user, userLoading, router]);
 
   useEffect(() => {
     if (!user) {

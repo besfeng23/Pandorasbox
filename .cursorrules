@@ -1,27 +1,25 @@
-# Cursor AI Rules - Auto-Commit After Changes
+# Pandora's Box - Self-Hosted AI Stack
 
-## Automatic Workflow
+## Tech Stack
+- **Framework**: Next.js 14 (App Router)
+- **Backend**: Firebase (Firestore, Auth, Admin SDK)
+- **Vector Database**: Qdrant
+- **Styling**: Tailwind CSS
+- **Deployment**: Google Cloud Run
 
-After making ANY file changes, automatically:
-1. Stage all changes: `git add -A`
-2. Commit with timestamp: `git commit -m "Auto-commit: [timestamp] - [files]"`
-3. Push to GitHub: `git push origin HEAD`
-4. Send events to Kairos: `npm run kairos:production-fixes`
+## Design System
+- **Style**: Apple-esque glassmorphism
+- **Theme**: "Digital Void" Cyberpunk Glassmorphism
+- **Components**: shadcn/ui primitives with custom glassmorphism utilities
 
-## Implementation
+## Architecture Principles
+- **Sovereign**: All AI processing uses local vLLM (no external APIs)
+- **Self-Hosted**: Qdrant for vector storage, local inference endpoints
+- **Server-Side**: Processing happens on server (API Routes/Lib)
+- **Asynchronous**: Background processing for heavy operations
 
-After completing any task or making file edits, immediately run:
-```bash
-npm run auto-commit
-```
-
-This ensures:
-- ✅ All changes are tracked in git
-- ✅ All changes are pushed to GitHub
-- ✅ All changes are tracked in Kairos
-- ✅ No manual intervention needed
-
-## Important
-
-**NEVER skip this step.** Every change must be committed, pushed, and tracked.
-
+## Code Standards
+- TypeScript strict mode
+- Server Actions for data mutations
+- Firebase Admin SDK for server-side operations
+- CORS handling for all API routes
