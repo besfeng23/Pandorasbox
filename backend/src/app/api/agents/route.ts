@@ -1,44 +1,35 @@
 import { NextResponse } from 'next/server';
 
-// 1. FIX CORS: Handle the browser's "Preflight" check
+// 1. FIX CORS: Handle the security check
 export async function OPTIONS() {
   return new NextResponse(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin': '*', // Allow your frontend to talk to this
+      'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     },
   });
 }
 
-// 2. SERVE DATA: Return the list of "Agents" (Tools)
+// 2. PROVIDE DATA: Return the list of agents
 export async function GET() {
-  // Define the capabilities of your Sovereign Stack
   const agents = [
     {
-      id: 'memory-search',
-      name: 'Memory Search',
-      description: 'Searches your local Qdrant vector database for past context.',
+      id: 'builder',
+      name: 'Builder',
+      description: 'Specialized in code generation and architecture.',
       status: 'active',
     },
     {
-      id: 'web-search',
-      name: 'Live Web Access',
-      description: 'Disabled in Sovereign Mode (Air-Gapped).',
-      status: 'inactive',
-    },
-    {
-      id: 'code-interpreter',
-      name: 'Artifact Builder',
-      description: 'Generates and executes code artifacts locally.',
+      id: 'universe',
+      name: 'Universe',
+      description: 'General knowledge and creative exploration.',
       status: 'active',
     }
   ];
 
   return NextResponse.json(agents, {
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-    },
+    headers: { 'Access-Control-Allow-Origin': '*' },
   });
 }
