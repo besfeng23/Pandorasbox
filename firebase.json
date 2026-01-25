@@ -23,11 +23,12 @@
     "source": ".",
     "backends": [
       {
-        "id": "frontend",
-        "rootDir": "frontend"
+        "id": "studio-sg",
+        "rootDir": "backend",
+        "webFramework": "NEXT_JS"
       },
       {
-        "id": "backend",
+        "id": "studio",
         "rootDir": "backend",
         "webFramework": "NEXT_JS"
       }
