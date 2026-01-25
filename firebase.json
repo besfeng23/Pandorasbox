@@ -5,21 +5,18 @@
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },
-  "apphosting": {
-    "source": ".",
-    "backends": [
-      {
-        "id": "studio-sg",
-        "rootDir": "backend",
-        "webFramework": "NEXT_JS"
-      },
-      {
-        "id": "studio",
-        "rootDir": "backend",
-        "webFramework": "NEXT_JS"
-      }
-    ]
-  },
+  "apphosting": [
+    {
+      "backendId": "studio-sg",
+      "rootDir": "backend",
+      "webFramework": "NEXT_JS"
+    },
+    {
+      "backendId": "studio",
+      "rootDir": "backend",
+      "webFramework": "NEXT_JS"
+    }
+  ],
   "storage": {
     "rules": "backend/storage.rules"
   },
