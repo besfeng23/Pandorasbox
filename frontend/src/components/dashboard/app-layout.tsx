@@ -73,6 +73,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { errorEmitter } from '@/firebase/error-emitter';
+import { SystemStatus } from '@/components/system-status';
 import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 
 export function AppLayout({ children, threadId }: { children: React.ReactNode; threadId?: string }) {
@@ -273,6 +274,7 @@ export function AppLayout({ children, threadId }: { children: React.ReactNode; t
         </SidebarContent>
 
         <SidebarFooter>
+          <SystemStatus />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="w-full justify-start gap-2 p-2">

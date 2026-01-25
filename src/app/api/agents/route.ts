@@ -20,17 +20,41 @@ export async function OPTIONS() {
   return NextResponse.json({}, { headers: corsHeaders() });
 }
 
+// 2. SERVE DATA: Return the list of "Agents" (Tools)
 export async function GET() {
-  try {
-    const activeAgents = await getActiveTools();
-    return NextResponse.json({ success: true, agents: activeAgents }, { headers: corsHeaders() });
-  } catch (error: any) {
-    console.error('Error fetching active agents:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch agents', details: error.message },
-      { status: 500, headers: corsHeaders() }
-    );
-  }
+  // Define the capabilities of your Sovereign Stack based on MCP tools
+  const agents = [
+    {
+      id: 'search_knowledge_base',
+      name: 'Knowledge Base',
+      description: 'Search the knowledge base using semantic search (Qdrant).',
+      status: 'active',
+    },
+    {
+      id: 'add_memory',
+      name: 'Memory Bank Bank',
+      description: 'Add new memories to the knowledge base.',
+      status: 'active',
+    },
+    {
+      id: 'generate_artifact',
+      name: 'Artifact Builder',
+      description: 'Create code and markdown artifacts.',
+      status: 'active',
+    },
+    {
+      id: 'web-search',
+      name: 'Live Web Access',
+      description: 'Disabled in Sovereign Mode (Air-Gapped).',
+      status: 'inactive',
+    }
+  ];
+
+  return NextResponse.json({ agents }, {
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+    },
+  });
 }
 
 
