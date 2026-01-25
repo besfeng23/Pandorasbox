@@ -19,7 +19,7 @@ export default [
         ecmaVersion: "latest",
         sourceType: "module",
         project: [
-          path.resolve(process.cwd(), "tsconfig.json"),
+          "./tsconfig.json"
         ],
       },
       globals: {
