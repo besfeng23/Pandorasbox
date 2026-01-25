@@ -63,7 +63,6 @@ import {
   Edit,
   Trash2,
   Bot,
-  Database,
   Sparkles,
 } from 'lucide-react';
 import { PandoraBoxIcon } from '@/components/icons';
