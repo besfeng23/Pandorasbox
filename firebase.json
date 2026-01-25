@@ -1,18 +1,4 @@
 {
-  "hosting": {
-    "public": "backend/.next",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
-    "rewrites": [
-      {
-        "source": "/api/**",
-        "destination": "https://pandora-backend-536979070288.us-central1.run.app"
-      }
-    ]
-  },
   "firestore": {
     "database": "(default)",
     "location": "asia-southeast1",
