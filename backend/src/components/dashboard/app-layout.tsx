@@ -186,14 +186,6 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
                 </SidebarMenuButton>
               </Link>
             </SidebarMenuItem>
-            <SidebarMenuItem>
-              <Link href="/studio" className="w-full" onClick={handleNavClick}>
-                <SidebarMenuButton isActive={pathname.startsWith('/studio')} className="w-full justify-start">
-                  <Database />
-                  <span>Firebase Studio</span>
-                </SidebarMenuButton>
-              </Link>
-            </SidebarMenuItem>
           </SidebarMenu>
 
           <SidebarSeparator className="my-2" />
