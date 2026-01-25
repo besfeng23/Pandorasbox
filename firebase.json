@@ -21,7 +21,7 @@
     ]
   },
   "storage": {
-    "rules": "storage.rules"
+    "rules": "backend/storage.rules"
   },
   "emulators": {
     "apphosting": {
