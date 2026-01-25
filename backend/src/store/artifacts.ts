@@ -1,11 +1,16 @@
 import { create } from 'zustand';
+import type { Artifact } from '@/lib/types';
 
 interface ArtifactState {
-  activeArtifactId: string | null;
-  setActiveArtifactId: (id: string | null) => void;
+  activeArtifact: Artifact | null;
+  setActiveArtifact: (artifact: Artifact | null) => void;
+  isOpen: boolean;
+  setIsOpen: (isOpen: boolean) => void;
 }
 
 export const useArtifactStore = create<ArtifactState>((set) => ({
-  activeArtifactId: null,
-  setActiveArtifactId: (id) => set({ activeArtifactId: id }),
+  activeArtifact: null,
+  setActiveArtifact: (artifact) => set({ activeArtifact: artifact, isOpen: !!artifact }),
+  isOpen: false,
+  setIsOpen: (isOpen) => set({ isOpen }),
 }));

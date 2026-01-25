@@ -20,6 +20,7 @@ import {
   SidebarTrigger,
   SidebarGroup,
   SidebarSeparator,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import {
   DropdownMenu,
@@ -63,7 +64,6 @@ import {
   Trash2,
   Bot,
 } from 'lucide-react';
-import Image from 'next/image';
 import { PandoraBoxIcon } from '@/components/icons';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -72,79 +72,94 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { errorEmitter } from '@/firebase/error-emitter';
 import { SystemStatus } from '@/components/system-status';
-import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 
-export function AppLayout({ children, threadId }: { children: React.ReactNode; threadId?: string }) {
-  const { user } = useUser();
-  const { logout } = useAuthActions();
-  const pathname = usePathname();
-  const router = useRouter();
-  const [agent, setAgent] = useState<'builder' | 'universe'>('builder');
-  const [threads, setThreads] = useState<Thread[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const { toast } = useToast();
+function SidebarContentInternal({ threadId }: { threadId?: string }) {
+    const { user } = useUser();
+    const { logout } = useAuthActions();
+    const pathname = usePathname();
+    const router = useRouter();
+    const { isMobile, setOpenMobile } = useSidebar();
+    const [agent, setAgent] = useState<'builder' | 'universe'>('builder');
+    const [threads, setThreads] = useState<Thread[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const { toast } = useToast();
 
-  const [renameDialogOpen, setRenameDialogOpen] = useState(false);
-  const [currentThread, setCurrentThread] = useState<Thread | null>(null);
-  const [newThreadName, setNewThreadName] = useState('');
+    const [renameDialogOpen, setRenameDialogOpen] = useState(false);
+    const [currentThread, setCurrentThread] = useState<Thread | null>(null);
+    const [newThreadName, setNewThreadName] = useState('');
 
-  const handleRenameSubmit = async () => {
-    if (currentThread && user && newThreadName.trim()) {
-      await renameThread(currentThread.id, newThreadName.trim(), user.uid);
-      toast({ title: "Thread renamed" });
-      setRenameDialogOpen(false);
-      // Refresh threads
-      const fetchedThreads = await getRecentThreads(user.uid, agent);
-      setThreads(fetchedThreads);
-    }
-  };
-
-
-  useEffect(() => {
-    if (!user) {
-      setIsLoading(false);
-      setThreads([]);
-      return;
-    };
-    
-    const fetchThreads = async () => {
-        setIsLoading(true);
-        try {
+    const handleRenameSubmit = async () => {
+        if (currentThread && user && newThreadName.trim()) {
+            await renameThread(currentThread.id, newThreadName.trim(), user.uid);
+            toast({ title: "Thread renamed" });
+            setRenameDialogOpen(false);
             const fetchedThreads = await getRecentThreads(user.uid, agent);
             setThreads(fetchedThreads);
-        } catch (error) {
-            console.error('Error fetching threads:', error);
-            toast({
-                variant: 'destructive',
-                title: 'Error fetching threads',
-                description: error instanceof Error ? error.message : 'Unknown error occurred'
-            });
-        } finally {
-            setIsLoading(false);
         }
     };
 
-    fetchThreads();
-  }, [user, agent]);
+    useEffect(() => {
+        if (!user) {
+            setIsLoading(false);
+            setThreads([]);
+            return;
+        };
+        
+        const fetchThreads = async () => {
+            setIsLoading(true);
+            try {
+                const fetchedThreads = await getRecentThreads(user.uid, agent);
+                setThreads(fetchedThreads);
+            } catch (error) {
+                console.error('Error fetching threads:', error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
 
-  return (
-    <SidebarProvider>
-      <Sidebar>
+        fetchThreads();
+    }, [user, agent]);
+
+    const handleNavClick = () => {
+        if (isMobile) {
+            setOpenMobile(false);
+        }
+    };
+
+    const handleCreateThread = async () => {
+        if (user) {
+            try {
+                const result = await createThread(agent, user.uid);
+                if (result?.id) {
+                    handleNavClick();
+                    router.push(`/chat/${result.id}`);
+                }
+            } catch (error: any) {
+                toast({
+                    variant: 'destructive',
+                    title: 'Error',
+                    description: error.message || 'Failed to create thread'
+                });
+            }
+        }
+    };
+
+    return (
+        <>
         <SidebarHeader>
-          <div className="flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-2" onClick={handleNavClick}>
             <PandoraBoxIcon className="h-8 w-8 text-primary" />
             <span className="text-lg font-headline font-semibold text-foreground">
               Pandora's Box
             </span>
-          </div>
+          </Link>
         </SidebarHeader>
 
         <SidebarContent className="p-2">
           <SidebarMenu>
             <SidebarMenuItem>
-              <Link href="/memory" className="w-full">
+              <Link href="/memory" className="w-full" onClick={handleNavClick}>
                 <SidebarMenuButton isActive={pathname.startsWith('/memory')} className="w-full justify-start">
                   <BrainCircuit />
                   <span>Memory</span>
@@ -152,7 +167,7 @@ export function AppLayout({ children, threadId }: { children: React.ReactNode; t
               </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <Link href="/connectors" className="w-full">
+              <Link href="/connectors" className="w-full" onClick={handleNavClick}>
                 <SidebarMenuButton isActive={pathname.startsWith('/connectors')} className="w-full justify-start">
                   <Plug />
                   <span>Data Connectors</span>
@@ -160,7 +175,7 @@ export function AppLayout({ children, threadId }: { children: React.ReactNode; t
               </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <Link href="/agents" className="w-full">
+              <Link href="/agents" className="w-full" onClick={handleNavClick}>
                 <SidebarMenuButton isActive={pathname.startsWith('/agents')} className="w-full justify-start">
                   <Bot />
                   <span>Agents</span>
@@ -181,19 +196,7 @@ export function AppLayout({ children, threadId }: { children: React.ReactNode; t
           <Button 
             variant="outline" 
             className="mt-4 w-full" 
-            onClick={async () => {
-              if (user) {
-                try {
-                  await createThread(agent, user.uid);
-                } catch (error: any) {
-                  toast({
-                    variant: 'destructive',
-                    title: 'Error',
-                    description: error.message || 'Failed to create thread'
-                  });
-                }
-              }
-            }}
+            onClick={handleCreateThread}
           >
             <PlusCircle className="mr-2 h-4 w-4" /> New Thread
           </Button>
@@ -207,7 +210,7 @@ export function AppLayout({ children, threadId }: { children: React.ReactNode; t
             <SidebarMenu>
               {threads.map((thread) => (
                 <SidebarMenuItem key={thread.id}>
-                  <Link href={`/chat/${thread.id}`} className="w-full">
+                  <Link href={`/chat/${thread.id}`} className="w-full" onClick={handleNavClick}>
                     <SidebarMenuButton isActive={threadId === thread.id} className="w-full justify-start">
                       <MessageSquare />
                       <span>{thread.name}</span>
@@ -253,7 +256,6 @@ export function AppLayout({ children, threadId }: { children: React.ReactNode; t
                                               if (user) {
                                                   await deleteThread(thread.id, user.uid);
                                                   toast({ title: `Thread "${thread.name}" deleted.` });
-                                                  // Refresh threads
                                                   const fetchedThreads = await getRecentThreads(user.uid, agent);
                                                   setThreads(fetchedThreads);
                                               }
@@ -294,7 +296,7 @@ export function AppLayout({ children, threadId }: { children: React.ReactNode; t
             <DropdownMenuContent side="top" align="start" className="w-56">
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={() => router.push('/settings')}>
+              <DropdownMenuItem onSelect={() => { handleNavClick(); router.push('/settings'); }}>
                 <Settings className="mr-2 h-4 w-4" />
                 <span>Settings</span>
               </DropdownMenuItem>
@@ -310,44 +312,52 @@ export function AppLayout({ children, threadId }: { children: React.ReactNode; t
             </DropdownMenuContent>
           </DropdownMenu>
         </SidebarFooter>
-      </Sidebar>
 
-      <SidebarInset>
-        <div className="md:hidden p-2 border-b flex items-center">
-            <SidebarTrigger />
-            <span className="font-semibold mx-auto">Pandora's Box</span>
-        </div>
-        {children}
-      </SidebarInset>
+        <Dialog open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Rename Thread</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={(e) => { e.preventDefault(); handleRenameSubmit(); }}>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="name" className="text-right">Name</Label>
+                            <Input
+                                id="name"
+                                value={newThreadName}
+                                onChange={(e) => setNewThreadName(e.target.value)}
+                                className="col-span-3"
+                                autoFocus
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setRenameDialogOpen(false)}>Cancel</Button>
+                        <Button type="submit">Save Changes</Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+        </>
+    );
+}
 
-      <Dialog open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Rename Thread</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={(e) => { e.preventDefault(); handleRenameSubmit(); }}>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="name" className="text-right">
-                  Name
-                </Label>
-                <Input
-                  id="name"
-                  value={newThreadName}
-                  onChange={(e) => setNewThreadName(e.target.value)}
-                  className="col-span-3"
-                  autoFocus
-                />
-              </div>
+export function AppLayout({ children, threadId }: { children: React.ReactNode; threadId?: string }) {
+  return (
+    <SidebarProvider>
+      <div className="flex min-h-screen w-full bg-background">
+        <Sidebar>
+            <SidebarContentInternal threadId={threadId} />
+        </Sidebar>
+
+        <SidebarInset>
+            <div className="md:hidden p-2 border-b flex items-center bg-card sticky top-0 z-10">
+                <SidebarTrigger />
+                <span className="font-headline font-semibold mx-auto">Pandora's Box</span>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setRenameDialogOpen(false)}>Cancel</Button>
-              <Button type="submit">Save Changes</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+            {children}
+        </SidebarInset>
+      </div>
     </SidebarProvider>
   );
 }
- 

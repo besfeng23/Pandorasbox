@@ -7,72 +7,15 @@ import { AppLayout } from '@/components/dashboard/app-layout';
 import { useUser, useFirestore } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Loader2, PlusCircle, Bot, BrainCircuit, History, ArrowRight } from 'lucide-react';
+import { Loader2, Bot, BrainCircuit, History, ArrowRight } from 'lucide-react';
 import { createThread, getRecentThreads } from '@/app/actions';
 import { Timestamp } from 'firebase/firestore';
+import { WelcomeScreen } from '@/components/chat/welcome-screen';
 import type { Thread } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { ErrorBoundary } from '@/components/error-boundary';
-
-function WelcomeScreen() {
-    const { user } = useUser();
-    const { toast } = useToast();
-    const handleCreateThread = async (agent: 'builder' | 'universe') => {
-        if (!user) return;
-        try {
-            await createThread(agent, user.uid);
-        } catch (error: any) {
-            console.error('Error creating thread:', error);
-            toast({
-                variant: 'destructive',
-                title: 'Failed to create thread',
-                description: error.message || 'An unknown error occurred.',
-            });
-        }
-    };
-
-    return (
-        <div className="text-center">
-            <h1 className="font-headline text-4xl font-bold tracking-tight">Welcome to Pandora's Box</h1>
-            <p className="mt-4 text-lg text-muted-foreground">
-              Your personal AI companion for building and exploring. Let's get you started.
-            </p>
-            <Card className="mt-8">
-                <CardHeader>
-                    <CardTitle className="flex items-center justify-center gap-2">
-                        <PlusCircle className="h-6 w-6" />
-                        Create your first thread
-                    </CardTitle>
-                    <CardDescription>
-                        Choose an agent to start a new conversation. Each agent has a unique purpose.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="grid gap-6 md:grid-cols-2">
-                    <div className="flex flex-col space-y-3 rounded-lg border p-6">
-                        <h3 className="font-semibold">Builder Agent</h3>
-                        <p className="flex-grow text-sm text-muted-foreground">
-                            The Builder agent helps you create and refine ideas. It's your collaborative partner for brainstorming, writing, and problem-solving.
-                        </p>
-                        <Button onClick={() => handleCreateThread('builder')} className="mt-auto">
-                            <Bot className="mr-2 h-4 w-4" /> Start with Builder
-                        </Button>
-                    </div>
-                    <div className="flex flex-col space-y-3 rounded-lg border p-6">
-                        <h3 className="font-semibold">Universe Agent</h3>
-                        <p className="flex-grow text-sm text-muted-foreground">
-                            The Universe agent has access to a broad range of knowledge. Use it to learn new things, explore topics, and get answers to your questions.
-                        </p>
-                        <Button onClick={() => handleCreateThread('universe')} className="mt-auto">
-                            <BrainCircuit className="mr-2 h-4 w-4" /> Start with Universe
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
-        </div>
-    );
-}
 
 export default function DashboardPage() {
   const { user, loading: userLoading } = useUser();
@@ -91,8 +34,8 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!user) {
-        setIsLoadingThreads(false);
-        return;
+      setIsLoadingThreads(false);
+      return;
     };
 
     const fetchThreads = async () => {
@@ -117,7 +60,10 @@ export default function DashboardPage() {
 
   const handleCreateThread = async (agent: 'builder' | 'universe') => {
     if (user) {
-      await createThread(agent, user.uid);
+      const result = await createThread(agent, user.uid);
+      if (result?.id) {
+        router.push(`/chat/${result.id}`);
+      }
     }
   };
 
