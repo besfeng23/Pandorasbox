@@ -18,9 +18,6 @@ export default [
         },
         ecmaVersion: "latest",
         sourceType: "module",
-        project: [
-          "./tsconfig.json"
-        ],
       },
       globals: {
         ...globals.browser,
