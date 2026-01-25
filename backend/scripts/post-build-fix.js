@@ -3,6 +3,8 @@
  * Post-build script to fix Firebase App Hosting adapter path issues
  * The adapter looks for routes-manifest.json at .next/standalone/.next/routes-manifest.json
  * but Next.js places it at .next/routes-manifest.json
+ * 
+ * This script copies the routes-manifest.json to where the adapter expects it.
  */
 
 const fs = require('fs');
@@ -44,6 +46,14 @@ try {
   console.log(`[Post-build] ✅ Successfully copied routes-manifest.json`);
   console.log(`[Post-build]    From: ${routesManifestPath}`);
   console.log(`[Post-build]    To:   ${targetManifestPath}`);
+  
+  // Verify the copy was successful
+  if (fs.existsSync(targetManifestPath)) {
+    console.log(`[Post-build] ✅ Verification: Target file exists`);
+  } else {
+    console.error(`[Post-build] ❌ Verification failed: Target file does not exist`);
+    process.exit(1);
+  }
 } catch (error) {
   console.error(`[Post-build] ❌ Failed to copy routes-manifest.json:`, error);
   process.exit(1);
