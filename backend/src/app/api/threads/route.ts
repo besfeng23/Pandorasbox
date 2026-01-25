@@ -27,8 +27,8 @@ export async function POST(request: NextRequest) {
     const { userId, agent } = await request.json();
     if (!userId) return NextResponse.json({ error: 'Missing userId' }, { status: 400, headers: corsHeaders() });
     
-    const threadId = await createThread(agent || 'builder', userId);
-    return NextResponse.json({ id: threadId }, { headers: corsHeaders() });
+    const result = await createThread(agent || 'builder', userId);
+    return NextResponse.json({ id: result.id }, { headers: corsHeaders() });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'An unknown error occurred';
     return NextResponse.json({ error: message }, { status: 500, headers: corsHeaders() });

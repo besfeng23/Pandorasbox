@@ -1,6 +1,10 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirestoreAdmin } from '@/lib/firebase-admin';
+import { handleOptions, corsHeaders } from '@/lib/cors';
+
+export async function OPTIONS() {
+  return handleOptions();
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -8,7 +12,7 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get('userId');
 
     if (!userId) {
-      return NextResponse.json({ error: 'userId is required' }, { status: 400 });
+      return NextResponse.json({ error: 'userId is required' }, { status: 400, headers: corsHeaders() });
     }
 
     const firestoreAdmin = getFirestoreAdmin();
@@ -25,21 +29,10 @@ export async function GET(request: NextRequest) {
       createdAt: doc.data().createdAt?.toDate().toISOString(),
     }));
 
-    return NextResponse.json({ connectors });
+    return NextResponse.json({ connectors }, { headers: corsHeaders() });
   } catch (error: any) {
     console.error('Error fetching connectors:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message }, { status: 500, headers: corsHeaders() });
   }
-}
-
-export async function OPTIONS() {
-  return new NextResponse(null, {
-    status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS, PATCH',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    },
-  });
 }
 
