@@ -10,9 +10,61 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        body: ['Inter', 'system-ui', 'sans-serif'],
-        headline: ['Inter', 'system-ui', 'sans-serif'],
-        code: ['"JetBrains Mono"', 'monospace'],
+        // Design System: Inter primary, SF Pro fallback, system stack
+        sans: [
+          'Inter',
+          'system-ui',
+          '-apple-system',
+          'BlinkMacSystemFont',
+          '"Segoe UI"',
+          'Roboto',
+          'Helvetica',
+          'Arial',
+          'sans-serif',
+        ],
+        body: [
+          'Inter',
+          'system-ui',
+          '-apple-system',
+          'BlinkMacSystemFont',
+          '"Segoe UI"',
+          'Roboto',
+          'Helvetica',
+          'Arial',
+          'sans-serif',
+        ],
+        headline: [
+          'Inter',
+          'system-ui',
+          '-apple-system',
+          'BlinkMacSystemFont',
+          '"Segoe UI"',
+          'Roboto',
+          'Helvetica',
+          'Arial',
+          'sans-serif',
+        ],
+        // Design System: SF Mono fallback stack
+        mono: [
+          'ui-monospace',
+          '"SF Mono"',
+          'Menlo',
+          'Monaco',
+          'Consolas',
+          '"Liberation Mono"',
+          '"Courier New"',
+          'monospace',
+        ],
+        code: [
+          'ui-monospace',
+          '"SF Mono"',
+          'Menlo',
+          'Monaco',
+          'Consolas',
+          '"Liberation Mono"',
+          '"Courier New"',
+          'monospace',
+        ],
       },
       colors: {
         // Digital Void Theme
@@ -68,9 +120,24 @@ export default {
         surface: 'hsl(var(--card))'
       },
       borderRadius: {
-        lg: 'var(--radius)',
-        md: 'calc(var(--radius) - 2px)',
-        sm: 'calc(var(--radius) - 4px)',
+        // Design System: 12px default, 16px prominent, 20-24px hero
+        DEFAULT: '12px', // Default card radius
+        lg: '16px', // Prominent cards/modals
+        xl: '20px', // Hero surfaces
+        '2xl': '24px', // Hero surfaces (alternative)
+        md: '10px', // Buttons (Apple-ish)
+        sm: '8px',
+        full: '9999px',
+      },
+      spacing: {
+        // Design System: 8pt system with 4pt micro spacing
+        '0.5': '4px', // Micro spacing (icon-label gaps, tight padding)
+        '1': '8px',
+        '2': '16px',
+        '3': '24px',
+        '4': '32px',
+        '5': '40px',
+        '6': '48px',
       },
       backgroundImage: {
         'void-gradient': 'linear-gradient(135deg, #02040A 0%, #0A0E27 50%, #02040A 100%)',
@@ -79,6 +146,11 @@ export default {
         'neon-glow-purple': 'linear-gradient(135deg, rgba(98, 0, 234, 0.1) 0%, rgba(98, 0, 234, 0) 100%)',
       },
       boxShadow: {
+        // Design System: Light card shadow
+        'card-light': '0 1px 2px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.08)',
+        // Design System: Dark card shadow
+        'card-dark': '0 1px 2px rgba(0,0,0,0.50), 0 8px 24px rgba(0,0,0,0.35)',
+        // Legacy neon shadows (keep for compatibility)
         'neon-cyan': '0 0 16px rgba(0, 229, 255, 0.15), 0 0 32px rgba(0, 229, 255, 0.06)',
         'neon-purple': '0 0 16px rgba(98, 0, 234, 0.15), 0 0 32px rgba(98, 0, 234, 0.06)',
         'neon-cyan-sm': '0 0 8px rgba(0, 229, 255, 0.1)',
@@ -146,13 +218,28 @@ export default {
         },
       },
       animation: {
-        'accordion-down': 'accordion-down 0.2s ease-out',
-        'accordion-up': 'accordion-up 0.2s ease-out',
+        // Design System: Standard easing cubic-bezier(0.2, 0.0, 0.0, 1.0)
+        'accordion-down': 'accordion-down 0.2s cubic-bezier(0.2, 0.0, 0.0, 1.0)',
+        'accordion-up': 'accordion-up 0.2s cubic-bezier(0.2, 0.0, 0.0, 1.0)',
+        // Design System: Small transitions 120-180ms
+        'fade-in': 'fade-in 0.15s cubic-bezier(0.2, 0.0, 0.0, 1.0)',
+        // Design System: Panel transitions 240-320ms
+        'slide-up': 'slide-up 0.28s cubic-bezier(0.2, 0.0, 0.0, 1.0)',
+        // Legacy animations (keep for compatibility)
         'pulse-slow': 'pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-        'slide-up': 'slide-up 0.3s ease-out',
-        'fade-in': 'fade-in 0.3s ease-out',
         'glow-cyan': 'glow-cyan 2s ease-in-out infinite',
         'glow-purple': 'glow-purple 2s ease-in-out infinite',
+      },
+      transitionTimingFunction: {
+        // Design System: Standard easing
+        'standard': 'cubic-bezier(0.2, 0.0, 0.0, 1.0)',
+      },
+      transitionDuration: {
+        // Design System timing
+        'tap': '100ms', // Tap/press feedback: 80-120ms
+        'small': '150ms', // Small transitions: 120-180ms
+        'panel': '280ms', // Panel/dialog: 240-320ms
+        'page': '350ms', // Page-level: 280-420ms
       },
     },
   },

@@ -28,7 +28,7 @@
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
-    --radius: 0.75rem;
+    --radius: 0.75rem; /* 12px - Design System default */
     --sidebar-background: 240 4% 94%;
     --sidebar-foreground: 240 1.8% 44.1%;
     --sidebar-primary: 211 100% 50%;
