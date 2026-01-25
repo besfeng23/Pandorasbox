@@ -5,13 +5,19 @@
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },
-  "apphosting": [
-    {
-      "backendId": "studio",
-      "rootDir": "backend",
-      "webFramework": "NEXT_JS"
-    }
-  ],
+  "apphosting": {
+    "ignore": [
+      "node_modules/",
+      ".next/"
+    ],
+    "backends": [
+      {
+        "backendId": "studio",
+        "rootDir": "backend",
+        "webFramework": "NEXT_JS"
+      }
+    ]
+  },
   "storage": {
     "rules": "backend/storage.rules"
   },
