@@ -23,6 +23,7 @@
 # misc
 .DS_Store
 *.pem
+vllm-cache/
 
 # debug
 npm-debug.log*
