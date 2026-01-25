@@ -40,7 +40,6 @@ const nextConfig: NextConfig = {
     ]
   },
   reactStrictMode: true,
-  output: "standalone",
   
   typescript: {
     ignoreBuildErrors: false,
@@ -48,8 +47,6 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // Required to tell Next.js where the project root is for standalone output
-  outputFileTracingRoot: path.join(__dirname, '../'),
 
   images: {
     unoptimized: true,
