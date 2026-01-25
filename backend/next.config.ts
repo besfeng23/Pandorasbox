@@ -4,22 +4,43 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        // Match ALL API routes
         source: "/api/:path*",
         headers: [
           { key: "Access-Control-Allow-Origin", value: "*" },
           { key: "Access-Control-Allow-Methods", value: "GET,DELETE,PATCH,POST,PUT,OPTIONS" },
-          { key: "Access-Control-Allow-Headers", value: "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version" },
+          { key: "Access-Control-Allow-Headers", value: "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization" },
         ]
-      }
+      },
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          {
+            key: 'X-XSS-Protection',
+            value: '1; mode=block',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin',
+          },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=*, microphone=*', // Allow for voice/video features
+          },
+        ],
+      },
     ]
   },
   reactStrictMode: true,
-  // App Hosting handles standalone automatically, but explicit is fine
   output: "standalone",
   
-  /* config options here */
-
   typescript: {
     ignoreBuildErrors: false,
   },
@@ -27,7 +48,6 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: false,
   },
 
-  // Important for Firebase Image support if you use <Image>
   images: {
     unoptimized: true,
     remotePatterns: [
@@ -40,9 +60,7 @@ const nextConfig: NextConfig = {
     ],
   },
   
-  // Experimental features for the Async Nervous System
   experimental: {
-    // experimental.after is no longer needed in Next.js 15
   },
 
   env: {
