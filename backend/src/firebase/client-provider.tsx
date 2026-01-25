@@ -26,7 +26,11 @@ export function FirebaseClientProvider({
   useEffect(() => {
     // This effect runs only on the client, after the component mounts.
     const { firebaseApp, firestore, auth } = initializeFirebase();
-    setInstances({ firebaseApp, firestore, auth });
+    if (firebaseApp && firestore && auth) {
+      setInstances({ firebaseApp, firestore, auth });
+    } else {
+      console.error('Failed to initialize Firebase instances');
+    }
   }, []);
 
   if (!instances) {

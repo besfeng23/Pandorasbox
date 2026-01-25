@@ -8,12 +8,12 @@ let auth: Auth;
 let firestore: Firestore;
 
 // This function can be called safely on both the server and client.
-// On the server, it will return uninitialized instances.
+// On the server, it will return null instances.
 // On the client, it will return initialized instances.
 export function initializeFirebase(): {
-  firebaseApp: FirebaseApp;
-  firestore: Firestore;
-  auth: Auth;
+  firebaseApp: FirebaseApp | null;
+  firestore: Firestore | null;
+  auth: Auth | null;
 } {
   if (typeof window !== 'undefined') {
     // Client-side execution
@@ -23,9 +23,9 @@ export function initializeFirebase(): {
         !firebaseConfig.authDomain ||
         !firebaseConfig.projectId
       ) {
-        throw new Error(
-          'Firebase configuration is missing. Make sure to set NEXT_PUBLIC_FIREBASE_API_KEY, NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN, and NEXT_PUBLIC_FIREBASE_PROJECT_ID in your .env file.'
-        );
+        // Log error but don't throw during initialization to avoid crashing SSR
+        console.error('Firebase configuration is missing in client.');
+        return { firebaseApp: null, firestore: null, auth: null };
       }
       firebaseApp = initializeApp(firebaseConfig);
     } else {
@@ -33,12 +33,12 @@ export function initializeFirebase(): {
     }
     auth = getAuth(firebaseApp);
     firestore = getFirestore(firebaseApp);
+    
+    return { firebaseApp, firestore, auth };
   }
 
-  // Return instances for both server and client.
-  // On the server, they will be uninitialized and will be properly
-  // initialized on the client.
-  return { firebaseApp, firestore, auth };
+  // Return null instances for server-side
+  return { firebaseApp: null, firestore: null, auth: null };
 }
 
 export async function getAuthToken(): Promise<string | null> {

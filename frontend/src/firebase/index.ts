@@ -6,17 +6,29 @@ import { firebaseConfig } from './config';
 
 export function initializeFirebase() {
     if (!firebaseConfig.apiKey) {
-        // Return dummy objects during build/prerendering if API key is missing
+        // Log a descriptive error for the developer
+        console.error('Firebase Error: NEXT_PUBLIC_FIREBASE_API_KEY is missing. Check your environment variables.');
+        
+        // Return null objects during build/prerendering, but these will be checked by hooks
         return { 
             app: null as any, 
             auth: null as any, 
             db: null as any 
         };
     }
-    const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-    return { app, auth, db };
+    try {
+        const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        return { app, auth, db };
+    } catch (error) {
+        console.error('Error initializing Firebase:', error);
+        return { 
+            app: null as any, 
+            auth: null as any, 
+            db: null as any 
+        };
+    }
 }
 
 // Re-export hooks and providers

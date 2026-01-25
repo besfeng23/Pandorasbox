@@ -9,9 +9,9 @@ import { initializeFirebase } from './index';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 
 interface FirebaseContextType {
-  app: FirebaseApp;
-  auth: Auth;
-  db: Firestore;
+  app: FirebaseApp | null;
+  auth: Auth | null;
+  db: Firestore | null;
 }
 
 const FirebaseContext = createContext<FirebaseContextType | undefined>(undefined);
@@ -40,6 +40,9 @@ export function useFirebaseApp() {
   if (context === undefined) {
     throw new Error('useFirebaseApp must be used within a FirebaseProvider');
   }
+  if (!context.app) {
+    throw new Error('Firebase App is not initialized. Please check your NEXT_PUBLIC_FIREBASE_* environment variables.');
+  }
   return context.app;
 }
 
@@ -48,6 +51,9 @@ export function useAuth() {
   if (context === undefined) {
     throw new Error('useAuth must be used within a FirebaseProvider');
   }
+  if (!context.auth) {
+    throw new Error('Firebase Auth is not initialized. Please check your NEXT_PUBLIC_FIREBASE_* environment variables.');
+  }
   return context.auth;
 }
 
@@ -55,6 +61,9 @@ export function useFirestore() {
   const context = useContext(FirebaseContext);
   if (context === undefined) {
     throw new Error('useFirestore must be used within a FirebaseProvider');
+  }
+  if (!context.db) {
+    throw new Error('Firebase Firestore is not initialized. Please check your NEXT_PUBLIC_FIREBASE_* environment variables.');
   }
   return context.db;
 }
