@@ -335,7 +335,7 @@ export function ChatPanel({ threadId }: { threadId: string }) {
     }
   }
 
-  if (isLoading) {
+  if (isLoading && !messages.length) {
     return (
       <div className="flex flex-1 flex-col p-4 space-y-4">
         <Skeleton className="h-12 w-1/4" />

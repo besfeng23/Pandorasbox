@@ -34,8 +34,6 @@ export function useChatHistory(userId: string | null, threadId: string | null, a
     // Clear messages immediately when switching threads to prevent stale data
     setMessages([]);
 
-    console.log(`[useChatHistory] Loading thread ${threadId} for user ${userId} and agent ${agentId}`);
-
     // Listener for thread data (including summary)
     const threadDocRef = doc(firestore, `users/${userId}/agents/${agentId}/threads`, threadId);
     const unsubscribeThread = onSnapshot(
@@ -47,9 +45,8 @@ export function useChatHistory(userId: string | null, threadId: string | null, a
             id: doc.id,
             ...data,
             createdAt: toDate(data.createdAt),
-          } as Thread;
+          } as any as Thread;
           setThread(threadData);
-          console.log(`[useChatHistory] Thread loaded: ${doc.id}`, threadData);
         } else {
           console.warn(`[useChatHistory] Thread ${threadId} does not exist`);
           setThread(null);
@@ -73,13 +70,10 @@ export function useChatHistory(userId: string | null, threadId: string | null, a
     );
 
     queryRef.current = newQuery;
-    console.log(`[useChatHistory] Subscribing to messages for thread ${threadId}`);
 
     const unsubscribeMessages = onSnapshot(
       newQuery,
       (snapshot) => {
-        console.log(`[useChatHistory] Received ${snapshot.docs.length} messages for thread ${threadId}`);
-        
         const history = snapshot.docs.map((doc) => {
           const data = doc.data();
           
@@ -89,7 +83,7 @@ export function useChatHistory(userId: string | null, threadId: string | null, a
             createdAt: toDate(data.createdAt),
             content: data.content,
             role: data.role
-          } as Message;
+          } as any as Message;
         });
 
         history.forEach(message => {
@@ -102,7 +96,6 @@ export function useChatHistory(userId: string | null, threadId: string | null, a
         setIsLoading(false);
         setError(null);
         setConnectionStatus(pendingMessages.size > 0 ? 'syncing' : 'live');
-        console.log(`[useChatHistory] Messages updated: ${history.length} messages loaded`);
       },
       (err) => {
         console.error('[useChatHistory] Error fetching chat history (onSnapshot error):', err);

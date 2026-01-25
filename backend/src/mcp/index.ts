@@ -264,7 +264,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       );
     }
 
-    if (typeof error.message === 'string') {
+    if (error instanceof Error) {
       console.error(`❌ Unexpected error executing tool ${name}:`, error.message);
       throw new McpError(
         ErrorCode.InternalError,

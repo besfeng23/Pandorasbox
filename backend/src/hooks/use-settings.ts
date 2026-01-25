@@ -6,12 +6,13 @@ import { doc, onSnapshot } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import type { AppSettings } from '@/lib/types';
 
-const defaultSettings: AppSettings = {
+  const defaultSettings: AppSettings = {
+    theme: 'system',
     active_model: 'mistralai/Mistral-7B-Instruct-v0.3',
     reply_style: 'detailed',
     system_prompt_override: '',
     personal_api_key: '',
-};
+  };
 
 export function useSettings(userId?: string) {
   const [settings, setSettings] = useState<AppSettings>(defaultSettings);

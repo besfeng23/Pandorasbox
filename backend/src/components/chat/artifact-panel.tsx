@@ -27,7 +27,7 @@ export function ArtifactPanel() {
           animate={{ x: 0 }}
           exit={{ x: '100%' }}
           transition={{ type: 'spring', damping: 20, stiffness: 100 }}
-          className="fixed inset-y-0 right-0 w-full md:w-[500px] lg:w-[600px] xl:w-[800px] bg-background border-l shadow-2xl z-50 flex flex-col"
+          className="w-full md:w-[500px] lg:w-[600px] xl:w-[800px] bg-background border-l shadow-2xl z-50 flex flex-col h-full"
         >
           <header className="flex items-center justify-between border-b px-6 py-4">
             <div className="flex items-center gap-3">

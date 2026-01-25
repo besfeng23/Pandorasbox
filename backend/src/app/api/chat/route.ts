@@ -110,7 +110,6 @@ You are "Pandora", a helpful and intelligent AI.
             
             const docRef = await historyCollection.add(assistantMessage);
             await docRef.update({ id: docRef.id });
-            console.log(`Saved assistant response to thread ${threadId}`);
         } catch (saveError) {
             console.error('Failed to save assistant response to Firestore:', saveError);
         }

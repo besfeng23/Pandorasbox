@@ -40,7 +40,7 @@ export function ChatSidebar({ userId, activeThreadId, agentId, onSelectThread }:
     const query = searchQuery.toLowerCase();
     return threads.filter(thread => 
       !thread.archived && 
-      thread.title.toLowerCase().includes(query)
+      (thread.title || thread.name || '').toLowerCase().includes(query)
     );
   }, [threads, searchQuery]);
 
@@ -105,12 +105,12 @@ export function ChatSidebar({ userId, activeThreadId, agentId, onSelectThread }:
                             ? "neon-text-cyan" 
                             : "text-white/90 group-hover:text-cyan-400/80"
                         )}>
-                          {thread.title}
+                          {thread.title || thread.name}
                         </p>
                       </TooltipTrigger>
-                      {thread.title.length > 30 && (
+                      {(thread.title || thread.name || '').length > 30 && (
                         <TooltipContent className="glass-panel-strong border border-cyan-400/30 text-white max-w-xs">
-                          <p>{thread.title}</p>
+                          <p>{thread.title || thread.name}</p>
                         </TooltipContent>
                       )}
                     </Tooltip>
@@ -129,7 +129,7 @@ export function ChatSidebar({ userId, activeThreadId, agentId, onSelectThread }:
                     threadId={thread.id}
                     userId={userId}
                     agentId={agentId} // Pass agentId
-                    threadTitle={thread.title}
+                    threadTitle={thread.title || thread.name}
                     pinned={thread.pinned}
                     archived={thread.archived}
                     onRename={() => {

@@ -5,11 +5,12 @@ export function buildPrompt(agentId: string, recentMessages: Message[], memories
   // Placeholder for prompt building logic based on agent, recent messages, and retrieved memories
   console.log(`[PromptBuilder] Building prompt for agent ${agentId}`);
   const systemPrompt = `You are a ${agentId} AI assistant.`;
-  return [{
-    id: `system-${Date.now()}`,
-    createdAt: new Date(),
-    role: "system",
-    content: systemPrompt
-  }, ...recentMessages];
+    return [{
+      id: `system-${Date.now()}`,
+      createdAt: new Date() as any,
+      role: "system",
+      content: systemPrompt,
+      history: []
+    }, ...recentMessages];
 }
 

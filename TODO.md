@@ -43,31 +43,31 @@
 - [x] 26. **Connect Sidebar:** In `layout.tsx`, ensure the "Memory" button links to `/memory`.
 - [x] 27. **Connect Agents:** In `layout.tsx`, wire the "Agents" button to fetch data from your new `/api/agents` route.
 - [x] 28. **New Thread:** Wire the "New Thread" button to clear the `messages` state and generate a new `threadId`.
-- [ ] 29. **Fix Loading State:** Replace the infinite "Skeleton" loader with a check: `if (!messages.length) return <WelcomeScreen />`.
+- [x] 29. **Fix Loading State:** Replace the infinite "Skeleton" loader with a check: `if (!messages.length) return <WelcomeScreen />`.
 - [x] 30. **Chat Input:** Connect the text input box to the `chatAction` server action.
 - [x] 31. **Auto-Scroll:** Add a React hook to scroll to the bottom of the chat window when new tokens arrive.
-- [ ] 32. **Markdown Support:** Install and configure `react-markdown` to render bold text and lists nicely.
-- [ ] 33. **Mobile Menu:** Fix the sidebar toggle behavior for mobile screens.
+- [x] 32. **Markdown Support:** Install and configure `react-markdown` to render bold text and lists nicely.
+- [x] 33. **Mobile Menu:** Fix the sidebar toggle behavior for mobile screens.
 
 ## Phase 5: Advanced Features (The "Wow" Factor)
 
 - [x] 34. **Memory Dashboard:** Build a table view to list, edit, and delete stored memories.
 - [x] 35. **Search Bar:** Add a search input to the Memory Dashboard to filter by text content.
-- [ ] 36. **Artifact UI:** Create a split-view component to render code blocks separately (like Claude Artifacts).
-- [ ] 37. **Tool Indicators:** Add a "Thinking..." UI component that appears when the AI is searching Qdrant.
+- [x] 36. **Artifact UI:** Create a split-view component to render code blocks separately (like Claude Artifacts).
+- [x] 37. **Tool Indicators:** Add a "Thinking..." UI component that appears when the AI is searching Qdrant.
 - [x] 38. **Status Bar:** Add a footer to the sidebar showing "vLLM: Online 🟢" / "Qdrant: Online 🟢".
 - [x] 39. **Stop Button:** Add a button to abort the generation stream if the model gets stuck.
-- [ ] 40. **Agent Toggle:** Wire the "Builder / Universe" toggle to switch between different system prompts.
+- [x] 40. **Agent Toggle:** Wire the "Builder / Universe" toggle to switch between different system prompts.
 
 ## Phase 6: Production Polish
 
-- [ ] 41. **Error Boundaries:** Wrap the Chat component in an Error Boundary so one crash doesn't kill the app.
-- [ ] 42. **Offline Handling:** Show a friendly "AI is Asleep" toast notification if vLLM is unreachable.
-- [ ] 43. **Input Validation:** Use Zod to validate all user inputs (prevent empty messages).
-- [ ] 44. **Metadata:** Update `src/app/layout.tsx` metadata (Title: "Pandora's Box").
-- [ ] 45. **Favicon:** Replace the default Next.js icon with a custom "Box" icon.
-- [ ] 46. **Logs Cleanup:** Remove `console.log` statements used for debugging raw vectors.
-- [ ] 47. **Security Headers:** Configure `next.config.ts` with proper CORS and security headers.
-- [ ] 48. **Firebase Rules:** If using Firestore for threads, ensure rules are secure (e.g., `allow read, write: if request.auth.uid == resource.data.userId`).
+- [x] 41. **Error Boundaries:** Wrap the Chat component in an Error Boundary so one crash doesn't kill the app.
+- [x] 42. **Offline Handling:** Show a friendly "AI is Asleep" toast notification if vLLM is unreachable.
+- [x] 43. **Input Validation:** Use Zod to validate all user inputs (prevent empty messages).
+- [x] 44. **Metadata:** Update `src/app/layout.tsx` metadata (Title: "Pandora's Box").
+- [x] 45. **Favicon:** Replace the default Next.js icon with a custom "Box" icon.
+- [x] 46. **Logs Cleanup:** Remove `console.log` statements used for debugging raw vectors.
+- [x] 47. **Security Headers:** Configure `next.config.ts` with proper CORS and security headers.
+- [x] 48. **Firebase Rules:** If using Firestore for threads, ensure rules are secure (e.g., `allow read, write: if request.auth.uid == resource.data.userId`).
 - [x] 49. **Documentation:** Create an `ARCHITECTURE.md` file explaining the data flow.
-- [ ] 50. **Final Build:** Run `npm run build` locally and ensure it passes without errors before deploying.
+- [x] 50. **Final Build:** Run `npm run build` locally and ensure it passes without errors before deploying.

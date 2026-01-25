@@ -143,17 +143,14 @@ export async function getMessages(threadId: string, userId: string): Promise<Mes
 }
 
 export async function createThread(agent: 'builder' | 'universe', userId: string) {
-    console.log(`[createThread] Starting for user: ${userId}, agent: ${agent}`);
     try {
         const db = getFirestoreAdmin();
-        console.log(`[createThread] Firestore Admin initialized`);
         
         // 1. Get current user - Assuming userId is already passed from the frontend
         // For actual auth, replace with Firebase Admin SDK's auth().verifyIdToken(...) or similar
         const actualUserId = userId; 
 
         // 2. Create the thread WITHOUT AI generation first (Safe Mode)
-        console.log(`[createThread] Adding document to users/${actualUserId}/threads`);
         const threadRef = await db.collection(`users/${actualUserId}/threads`).add({
             userId: actualUserId,
             agent,
@@ -162,7 +159,6 @@ export async function createThread(agent: 'builder' | 'universe', userId: string
             updatedAt: FieldValue.serverTimestamp(),
             messages: [] // Initialize with an empty messages array
         });
-        console.log(`[createThread] Thread created with ID: ${threadRef.id}`);
 
         revalidatePath('/');
         return { id: threadRef.id };
@@ -174,27 +170,30 @@ export async function createThread(agent: 'builder' | 'universe', userId: string
     }
 }
 
-export async function deleteThread(threadId: string, userId: string) {
+export async function deleteThread(threadId: string, userId: string, agentId?: string) {
     try {
         const db = getFirestoreAdmin();
         await db.doc(`users/${userId}/threads/${threadId}`).delete();
         revalidatePath('/');
+        return { success: true };
     } catch (error) {
         console.error('Delete Thread Error:', error);
-        throw error;
+        return { success: false, message: 'Failed to delete thread' };
     }
 }
 
 export async function deleteMessage(threadId: string, messageId: string, userId: string) {
     try {
         const thread = await getThread(threadId, userId);
-        if (!thread) return;
+        if (!thread) return { success: false, message: 'Thread not found' };
         const db = getFirestoreAdmin();
         const historyRef = db.collection(`users/${userId}/agents/${thread.agent}/history`);
         await historyRef.doc(messageId).delete();
         revalidatePath(`/chat/${threadId}`);
+        return { success: true };
     } catch (error) {
         console.error('Delete Message Error:', error);
+        return { success: false, message: 'Failed to delete message' };
     }
 }
 
@@ -208,24 +207,36 @@ export async function transcribeAndProcessMessage(formData: FormData) {
     return { success: true, message: 'Audio processed' };
 }
 
-export async function updateThread(threadId: string, data: any, userId: string) {
-    return { success: true, message: 'Thread updated' };
+export async function updateThread(threadId: string, userId: string, agentId: string, data: any) {
+    try {
+        const db = getFirestoreAdmin();
+        await db.doc(`users/${userId}/threads/${threadId}`).update({
+            ...data,
+            updatedAt: FieldValue.serverTimestamp()
+        });
+        revalidatePath('/');
+        revalidatePath(`/chat/${threadId}`);
+        return { success: true };
+    } catch (error) {
+        console.error('Update Thread Error:', error);
+        return { success: false, message: 'Failed to update thread' };
+    }
 }
 
-export async function reindexMemories(userId: string) {
+export async function reindexMemories(userId: string, agentId?: string) {
     return { success: true, message: 'Memories reindexed', processed: 0 };
 }
 
 export async function generateUserApiKey(userId: string) {
-    return { success: true, apiKey: 'sk-placeholder' };
+    return { success: true, apiKey: 'sk-placeholder', message: 'API key generated' };
 }
 
-export async function clearMemory(userId: string) {
+export async function clearMemory(userId: string, agentId?: string) {
     return { success: true, message: 'Memory cleared' };
 }
 
 export async function exportUserData(userId: string) {
-    return { success: true, data: JSON.stringify({ threads: [], memories: [] }) };
+    return { success: true, data: JSON.stringify({ threads: [], memories: [] }), message: 'Data exported' };
 }
 
 export async function uploadKnowledge(formData: FormData) {

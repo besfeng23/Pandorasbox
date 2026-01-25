@@ -96,7 +96,10 @@ export interface Artifact {
 
 export interface AppSettings {
     theme: 'light' | 'dark' | 'system';
+    active_model?: string;
+    reply_style?: 'concise' | 'detailed' | 'creative';
     system_prompt_override?: string;
+    personal_api_key?: string;
 }
 
 // --- BACKEND SPECIFIC TYPES (if any unique) ---

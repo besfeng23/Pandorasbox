@@ -74,6 +74,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { SystemStatus } from '@/components/system-status';
 import { ArtifactPanel } from '@/components/chat/artifact-panel';
+import { useArtifactStore } from '@/store/artifacts';
 
 function SidebarContentInternal({ threadId }: { threadId?: string }) {
     const { user } = useUser();
@@ -344,19 +345,31 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
 }
 
 export function AppLayout({ children, threadId }: { children: React.ReactNode; threadId?: string }) {
+  const { isOpen } = useArtifactStore();
+  
   return (
-    <div className="flex min-h-screen w-full bg-background">
+    <div className="flex min-h-screen w-full bg-background overflow-hidden">
       <Sidebar>
           <SidebarContentInternal threadId={threadId} />
       </Sidebar>
 
-      <SidebarInset>
-          <div className="md:hidden p-2 border-b flex items-center bg-card sticky top-0 z-10">
-              <SidebarTrigger />
-              <span className="font-headline font-semibold mx-auto">Pandora's Box</span>
+      <SidebarInset className="flex flex-row overflow-hidden p-0">
+          <div className={cn(
+            "flex flex-col flex-1 min-w-0 transition-all duration-300 ease-in-out",
+            isOpen ? "hidden md:flex" : "flex"
+          )}>
+              <div className="md:hidden p-2 border-b flex items-center bg-card sticky top-0 z-10">
+                  <SidebarTrigger />
+                  <span className="font-headline font-semibold mx-auto">Pandora's Box</span>
+              </div>
+              {children}
           </div>
-          {children}
-          <ArtifactPanel />
+          
+          {isOpen && (
+            <div className="w-full md:w-auto h-full border-l border-border bg-background z-20">
+              <ArtifactPanel />
+            </div>
+          )}
       </SidebarInset>
     </div>
   );
