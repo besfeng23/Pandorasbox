@@ -1,4 +1,4 @@
-import { FlatCompat } from "@eslint/compat";
+import FlatCompat from "@eslint/compat";
 import path from "path";
 import { fileURLToPath } from "url";
 
