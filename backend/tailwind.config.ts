@@ -243,7 +243,53 @@ export default {
         'panel': '280ms', // Panel/dialog: 240-320ms
         'page': '350ms', // Page-level: 280-420ms
       },
+      fontSize: {
+        // Design System: Type Scale (size / line-height, weight)
+        'large-title': ['34px', { lineHeight: '41px', fontWeight: '600' }],
+        'title-1': ['28px', { lineHeight: '34px', fontWeight: '600' }],
+        'title-2': ['22px', { lineHeight: '28px', fontWeight: '600' }],
+        'title-3': ['20px', { lineHeight: '25px', fontWeight: '600' }],
+        'headline': ['17px', { lineHeight: '22px', fontWeight: '600' }],
+        'body': ['17px', { lineHeight: '24px', fontWeight: '400' }],
+        'callout': ['16px', { lineHeight: '22px', fontWeight: '400' }],
+        'subhead': ['15px', { lineHeight: '20px', fontWeight: '400' }],
+        'footnote': ['13px', { lineHeight: '18px', fontWeight: '400' }],
+        'caption': ['12px', { lineHeight: '16px', fontWeight: '400' }],
+      },
+      maxWidth: {
+        // Design System: Max content width
+        'content-dense': '1200px', // 1120-1200px for dense desktop views
+        'content-reading': '960px', // 960px for reading-focused
+      },
     },
   },
-  plugins: [require('tailwindcss-animate'), require('@tailwindcss/typography')],
+  plugins: [
+    require('tailwindcss-animate'), 
+    require('@tailwindcss/typography'),
+    // Custom plugin for button press animation
+    function({ addUtilities }: any) {
+      addUtilities({
+        '.press-animation': {
+          transition: 'transform 100ms cubic-bezier(0.2, 0.0, 0.0, 1.0)',
+          '&:active': {
+            transform: 'scale(0.98)',
+          },
+        },
+        '.card-hover': {
+          transition: 'transform 150ms cubic-bezier(0.2, 0.0, 0.0, 1.0), box-shadow 150ms cubic-bezier(0.2, 0.0, 0.0, 1.0)',
+          '&:hover': {
+            transform: 'translateY(-2px)',
+          },
+        },
+        '.focus-ring': {
+          '&:focus-visible': {
+            outline: '2px solid',
+            outlineColor: 'hsl(var(--ring))',
+            outlineOffset: '2px',
+            boxShadow: '0 0 0 4px hsl(var(--ring) / 0.3)',
+          },
+        },
+      });
+    },
+  ],
 } satisfies Config;
