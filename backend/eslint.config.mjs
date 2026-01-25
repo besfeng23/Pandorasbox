@@ -1,10 +1,15 @@
 import globals from "globals";
 import tseslint from "typescript-eslint";
 import nextPlugin from "@next/eslint-plugin-next";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export default [
+  { files: ["**/*.{js,mjs,cjs,ts,tsx}"] },
   {
-    files: ["**/*.{js,mjs,cjs,ts,tsx}"],
     languageOptions: {
       parser: tseslint.parser,
       parserOptions: {
@@ -13,7 +18,10 @@ export default [
         },
         ecmaVersion: "latest",
         sourceType: "module",
-        project: ["./tsconfig.json", "./tsconfig.mcp.json"],
+        project: [
+          path.resolve(__dirname, "./tsconfig.json"),
+          path.resolve(__dirname, "./tsconfig.mcp.json"),
+        ],
       },
       globals: {
         ...globals.browser,
