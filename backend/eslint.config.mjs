@@ -2,8 +2,8 @@ import nextCoreWebVitals from "eslint-config-next/core-web-vitals.js";
 import nextTypescript from "eslint-config-next/typescript.js";
 
 const eslintConfig = [
-  ...nextCoreWebVitals,
-  ...nextTypescript,
+  nextCoreWebVitals,
+  nextTypescript,
   {
     ignores: [
       "node_modules/**",
