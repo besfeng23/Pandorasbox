@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { streamInference, ChatMessage } from '@/lib/sovereign/vllm-client';
+import { streamInference, ChatMessage } from '@/lib/sovereign/inference';
 import { getFirestoreAdmin, getAuthAdmin } from '@/lib/firebase-admin';
 import { OpenAIStream, StreamingTextResponse, StreamData } from 'ai';
-import { preCheck, postCheck } from '@/server/guardrails';
+import { preCheck } from '@/server/guardrails';
 import { isValidAgentId, getAgentConfig } from '@/lib/agent-types';
 import { searchMemoryAction } from '@/app/actions'; // For tool calls
-import { embedText } from '@/lib/ai/embedding'; // For embedding search queries
 import { handleOptions, corsHeaders } from '@/lib/cors';
+import { FieldValue } from 'firebase-admin/firestore';
+import { embedText } from '@/lib/ai/embedding';
 
 export async function OPTIONS() {
   return handleOptions();
@@ -33,56 +34,87 @@ export async function POST(request: NextRequest) {
   }
 
   const preResult = preCheck(message, agentId);
-      if (!preResult.allowed) {
-        return new StreamingTextResponse(
-          new ReadableStream({
-            start(controller) {
-              controller.enqueue(
-                new TextEncoder().encode(preResult.reason)
-              );
-              controller.close();
-            },
-          }),
-          { headers: corsHeaders() }
-        );
-      }
+  if (!preResult.allowed) {
+    return new StreamingTextResponse(
+      new ReadableStream({
+        start(controller) {
+          controller.enqueue(
+            new TextEncoder().encode(preResult.reason)
+          );
+          controller.close();
+        },
+      }),
+      { headers: corsHeaders() }
+    );
+  }
 
   const config = getAgentConfig(agentId);
+  const SOVEREIGN_PROMPT = `You are a private, air-gapped AI assistant running on Sovereign Infrastructure.
+You are "Pandora", a helpful and intelligent AI.
+- You do NOT have access to the public internet.
+- You have access to a local knowledge base (memories).
+- Always verify information from the provided Context.
+- If the user asks a question, check the Context first.
+- Keep responses concise and relevant.`;
+
   let initialMessages: ChatMessage[] = [
-    { role: 'system', content: config.systemPrompt },
+    { role: 'system', content: `${SOVEREIGN_PROMPT}\n\n${config.systemPrompt}` },
   ];
 
   const streamData = new StreamData();
 
-  // Simulate tool use: search_knowledge_base
-  if (message.toLowerCase().includes('search memory') || message.toLowerCase().includes('search knowledge base')) {
-    streamData.append({ type: 'tool_start', toolName: 'search_knowledge_base', display: 'Searching Knowledge Base...' });
-    try {
-      // userId is already extracted from token above
-      const queryResults = await searchMemoryAction(message, userId, agentId);
-      const formattedResults = queryResults.map(r => `[Memory ID: ${r.id}, Score: ${r.score}, Source: ${r.source}]\n${r.text}`).join('\n\n');
+  if (message.length > 5) {
+      streamData.append({ type: 'tool_start', toolName: 'search_knowledge_base', display: 'Searching Knowledge Base...' });
       
-      initialMessages.push({ role: 'system', content: `Found relevant knowledge:
-${formattedResults}
-` });
-      streamData.append({ type: 'tool_end', toolName: 'search_knowledge_base', status: 'success' });
-    } catch (toolError: any) {
-      console.error('Error during search_knowledge_base tool call:', toolError);
-      streamData.append({ type: 'tool_end', toolName: 'search_knowledge_base', status: 'error', error: toolError.message });
-      // Optionally, add an error message to the prompt or stream it to the user
-      initialMessages.push({ role: 'system', content: `Failed to search knowledge base: ${toolError.message}` });
-    }
+      try {
+        const queryResults = await searchMemoryAction(message, userId, agentId);
+        
+        if (queryResults.length > 0) {
+            const formattedResults = queryResults.map(r => `[Memory ID: ${r.id}, Score: ${r.score.toFixed(2)}]\n${r.text}`).join('\n\n');
+            
+            initialMessages.push({ role: 'system', content: `CONTEXT FROM MEMORY:\n${formattedResults}\n\nEND CONTEXT` });
+            streamData.append({ type: 'tool_end', toolName: 'search_knowledge_base', status: 'success', result: `Found ${queryResults.length} memories.` });
+        } else {
+            streamData.append({ type: 'tool_end', toolName: 'search_knowledge_base', status: 'success', result: 'No relevant memories found.' });
+        }
+      } catch (toolError: any) {
+        console.error('Error during search_knowledge_base tool call:', toolError);
+        streamData.append({ type: 'tool_end', toolName: 'search_knowledge_base', status: 'error', error: toolError.message });
+      }
   }
 
   initialMessages.push({ role: 'user', content: message });
 
-  const stream = await streamInference({
-    messages: initialMessages,
-  });
+  const stream = await streamInference(initialMessages);
 
   const aiStream = OpenAIStream(stream as any, {
-    async onFinal() {
+    async onFinal(completion) {
       await streamData.close();
+      
+      // Save assistant response to Firestore
+      if (threadId) {
+        try {
+            const firestoreAdmin = getFirestoreAdmin();
+            const historyCollection = firestoreAdmin.collection(`users/${userId}/agents/${agentId}/history`);
+            const embedding = await embedText(completion);
+            
+            const assistantMessage = {
+                role: 'assistant',
+                content: completion,
+                createdAt: FieldValue.serverTimestamp(),
+                userId: userId,
+                threadId: threadId,
+                embedding: embedding,
+                source: 'inference',
+            };
+            
+            const docRef = await historyCollection.add(assistantMessage);
+            await docRef.update({ id: docRef.id });
+            console.log(`Saved assistant response to thread ${threadId}`);
+        } catch (saveError) {
+            console.error('Failed to save assistant response to Firestore:', saveError);
+        }
+      }
     },
     experimental_streamData: true,
   });

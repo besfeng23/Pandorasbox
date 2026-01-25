@@ -20,7 +20,7 @@ import { buildPrompt } from '@/lib/selfhosted/prompt-builder';
 import { processInteraction } from '@/lib/selfhosted/memory-pipeline';
 import { deriveAgentId } from '@/lib/selfhosted/agent-router';
 import { embedText, embedTextsBatch as getEmbeddingsBatch } from '@/lib/ai/embedding';
-import { streamInference, ChatMessage } from '@/lib/sovereign/vllm-client';
+import { streamInference, ChatMessage } from '@/lib/sovereign/inference';
 import { searchPoints, upsertPoint, QdrantSearchResult } from '@/lib/sovereign/qdrant-client';
 import { extractArtifacts } from '@/lib/sovereign/artifact-parser';
 
@@ -181,35 +181,11 @@ export async function submitUserMessage(formData: FormData): Promise<Response | 
       }
   
   // --- SELF-HOSTED AI LANE START ---
-  try {
-    // Instead of direct inference, call the /api/chat route for streaming
-    const apiResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9002'}/api/chat`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${idToken}`,
-      },
-      body: JSON.stringify({
-        message: messageContent,
-        threadId: threadId,
-        agentId: agentId,
-      }),
-    });
+  // The client will now handle the streaming request to /api/chat directly
+  // after this function returns success.
+  
+  return { ok: true, messageId: userMessageId, threadId: threadId };
 
-    if (!apiResponse.ok) {
-      const errorText = await apiResponse.text();
-      throw new Error(errorText || 'Failed to get stream from /api/chat');
-    }
-
-    return apiResponse; // Return the raw streamable response
-
-  } catch (apiError: any) {
-    console.error('API chat call failed:', apiError);
-    const errorMessage = apiError.message.includes('Inference System Offline') 
-      ? 'Inference System Offline - Check Container.' 
-      : (apiError.message.includes('Memory System Offline') ? 'Memory System Offline - Check Container.' : 'AI inference failed. System Offline - Check Container.');
-    return { ok: false, code: 'API_ERROR', error: errorMessage };
-  }
   // --- SELF-HOSTED AI LANE END ---
 
 

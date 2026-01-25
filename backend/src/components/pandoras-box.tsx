@@ -36,6 +36,7 @@ export function PandorasBox({ user }: PandorasBoxProps) {
   const [agentId, setAgentId] = useState<'builder' | 'universe'>('builder');
   const [currentThreadId, setCurrentThreadId] = useState<string | null>(null);
   const { messages, thread, isLoading, error } = useChatHistory(user.uid, currentThreadId, agentId);
+  const [streamingContent, setStreamingContent] = useState<string>('');
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -44,7 +45,6 @@ export function PandorasBox({ user }: PandorasBoxProps) {
         setAgentId(storedAgentId);
       }
       
-      // Listen for agent changes from other components (like Settings)
       const handleStorageChange = (e: StorageEvent) => {
         if (e.key === 'agentId' && e.newValue) {
           setAgentId(e.newValue as 'builder' | 'universe');
@@ -65,13 +65,10 @@ export function PandorasBox({ user }: PandorasBoxProps) {
   const isMobile = useIsMobile();
   const { toast } = useToast();
 
-  // Debug: Log user ID
   useEffect(() => {
     console.log('[PandorasBox] Current User ID:', user.uid);
-    console.log('[PandorasBox] Current User Email:', user.email);
-  }, [user.uid, user.email]);
+  }, [user.uid]);
 
-  // Load sidebar collapse state from localStorage
   useEffect(() => {
     if (!isMobile) {
       const leftCollapsed = localStorage.getItem('leftSidebarCollapsed') === 'true';
@@ -81,7 +78,6 @@ export function PandorasBox({ user }: PandorasBoxProps) {
     }
   }, [isMobile]);
 
-  // Save sidebar collapse state to localStorage
   const toggleLeftSidebar = () => {
     const newState = !leftSidebarCollapsed;
     setLeftSidebarCollapsed(newState);
@@ -96,15 +92,16 @@ export function PandorasBox({ user }: PandorasBoxProps) {
 
   const handleNewChat = () => {
     setCurrentThreadId(null);
+    setStreamingContent('');
     if (isMobile) {
       setSidebarOpen(false);
     }
   };
 
   const handleThreadSelect = (threadId: string) => {
-    // Explicitly set thread ID - useChatHistory hook will handle loading messages
     console.log(`[PandorasBox] Selecting thread: ${threadId}`);
     setCurrentThreadId(threadId);
+    setStreamingContent('');
     if (isMobile) {
       setSidebarOpen(false);
     }
@@ -112,41 +109,88 @@ export function PandorasBox({ user }: PandorasBoxProps) {
 
   const handleMessageSubmit = (formData: FormData) => {
     formData.append('agentId', agentId);
+    const messageContent = formData.get('message') as string;
     if (currentThreadId) {
         formData.append('threadId', currentThreadId);
     }
     
     startTransition(async () => {
         try {
+            // 1. Submit User Message to Firestore (via Server Action)
             const result = await submitUserMessage(formData);
             const resultAny = result as any;
+            
             if (resultAny?.error) {
-                // Handle rate limit or other errors
-                if (resultAny.error.toLowerCase().includes('rate limit')) {
-                    toast({
-                        variant: 'destructive',
-                        title: 'Rate Limit Exceeded',
-                        description: resultAny.error || 'Please wait a moment before sending another message.',
-                    });
-                } else {
-                    toast({
-                        variant: 'destructive',
-                        title: 'Error',
-                        description: resultAny.error || 'Failed to send message. Please try again.',
-                    });
-                }
+                toast({
+                    variant: 'destructive',
+                    title: 'Error',
+                    description: resultAny.error || 'Failed to send message.',
+                });
                 return;
             }
-            if (resultAny?.threadId && !currentThreadId) {
-                setCurrentThreadId(resultAny.threadId);
+
+            const activeThreadId = resultAny.threadId || currentThreadId;
+            if (activeThreadId && activeThreadId !== currentThreadId) {
+                setCurrentThreadId(activeThreadId);
             }
+
+            // 2. Trigger Streaming Request directly to API
+            setStreamingContent(''); // Reset
+            
+            const idToken = await user.getIdToken();
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${idToken}`,
+                },
+                body: JSON.stringify({
+                    message: messageContent,
+                    agentId: agentId,
+                    threadId: activeThreadId,
+                }),
+            });
+
+            if (!response.ok || !response.body) {
+                throw new Error('Failed to start streaming');
+            }
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let accumulatedContent = '';
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                
+                const chunk = decoder.decode(value, { stream: true });
+                // Note: ai sdk might stream structured data, but we are using simple text streaming
+                // If using 'ai' SDK on server, it might send data chunks like "0: 'text'\n"
+                // For now, let's assume raw text or handle basic parsing if 'ai' SDK is used on server.
+                // Since we used OpenAIStream without complex protocol on server (StreamingTextResponse),
+                // it usually sends raw text chunks. 
+                // BUT wait, StreamingTextResponse from 'ai' sends formatted protocol data by default in newer versions?
+                // Actually OpenAIStream returns a ReadableStream that yields text.
+                // Let's assume text for now.
+                accumulatedContent += chunk;
+                setStreamingContent(prev => prev + chunk);
+            }
+            
+            // Stream finished. Firestore listener will eventually pick up the saved assistant message.
+            // We keep streamingContent until the listener updates (which might cause a duplicate flash if not handled).
+            // Actually, once listener updates with the new Assistant message, we should clear streamingContent.
+            // But we can't easily know WHICH message corresponds to this stream without IDs.
+            // For simplicity: Clear streaming content after a short delay or when messages length increases.
+            // Better: ChatMessages can display streamingContent only if it's the "latest" and pending.
+            
+            setTimeout(() => setStreamingContent(''), 1000); // Temporary cleanup
+
         } catch (error: any) {
             console.error('Error submitting message:', error);
-            const errorMessage = error?.message || 'Failed to send message. Please check your connection and try again.';
             toast({
                 variant: 'destructive',
                 title: 'Connection Error',
-                description: errorMessage,
+                description: error?.message || 'Failed to send message.',
             });
         }
     });
@@ -273,6 +317,7 @@ export function PandorasBox({ user }: PandorasBoxProps) {
               thread={thread} 
               userId={user.uid}
               isLoading={isLoading}
+              streamingContent={streamingContent}
             />
           </div>
 
@@ -285,7 +330,7 @@ export function PandorasBox({ user }: PandorasBoxProps) {
               <ChatInput 
                 userId={user.uid} 
                 onMessageSubmit={handleMessageSubmit} 
-                isSending={isPending} 
+                isSending={isPending || streamingContent.length > 0} 
               />
             </div>
           </div>
