@@ -29,6 +29,7 @@ export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSettingSession, setIsSettingSession] = useState(false);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -44,12 +45,32 @@ export default function LoginPage() {
     }
   }, [user, isLoading, router]);
 
+  // Handle setting session cookie after user is authenticated
+  useEffect(() => {
+    const setSession = async () => {
+      if (user && !isSettingSession) {
+        setIsSettingSession(true);
+        try {
+          const idToken = await user.getIdToken();
+          const { handleLogin } = await import('@/app/auth/actions');
+          await handleLogin(idToken);
+        } catch (error: any) {
+          console.error('Failed to set session cookie:', error);
+          // Don't show error toast - user is already logged in client-side
+        } finally {
+          setIsSettingSession(false);
+        }
+      }
+    };
+    setSession();
+  }, [user, isSettingSession]);
+
   const onSubmit = async (values: LoginFormValues) => {
     setIsSubmitting(true);
     try {
+      // Authenticate with Firebase Client SDK
+      // The useEffect above will handle setting the session cookie
       await login(values.email, values.password);
-      // Login successful - onAuthStateChanged will update user state
-      // and useEffect will redirect to '/'
       toast({
         title: 'Welcome back!',
         description: 'You have been successfully logged in.',

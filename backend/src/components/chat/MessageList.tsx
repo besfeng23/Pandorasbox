@@ -1,6 +1,6 @@
 'use client';
 
-import { ChatMessage } from './ChatContainer';
+import { type ChatMessage } from '@/lib/llm/llm-client';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { User, Bot } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -37,7 +37,7 @@ export function MessageList({ messages }: MessageListProps) {
 
         return (
           <div
-            key={message.id || index}
+            key={index}
             className={cn(
               'flex items-start gap-3',
               isUser ? 'justify-end' : 'justify-start'
