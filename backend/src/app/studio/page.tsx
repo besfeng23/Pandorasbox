@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Database, Search, Plus, Trash2, Edit, RefreshCw } from 'lucide-react';
+import { Database, Search, Plus, Trash2, Edit, RefreshCw, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import Link from 'next/link';
 
 interface Collection {
   name: string;
@@ -116,11 +117,19 @@ export default function StudioPage() {
 
   return (
     <div className="container mx-auto p-6 max-w-7xl">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2">Firebase Studio</h1>
-        <p className="text-muted-foreground">
-          Auto-discovered collections from your Firestore backend
-        </p>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">Firebase Studio</h1>
+          <p className="text-muted-foreground">
+            Auto-discovered collections from your Firestore backend
+          </p>
+        </div>
+        <Link href="/studio/generate">
+          <Button>
+            <Sparkles className="h-4 w-4 mr-2" />
+            Generate UI from Prompt
+          </Button>
+        </Link>
       </div>
 
       <Tabs defaultValue="collections" className="w-full">
