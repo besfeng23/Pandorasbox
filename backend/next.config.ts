@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const nextConfig: NextConfig = {
   async headers() {
@@ -48,7 +49,7 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   // Required to tell Next.js where the project root is for standalone output
-  outputFileTracingRoot: require('path').join(__dirname, '../../'),
+  outputFileTracingRoot: path.join(__dirname, '../../'),
 
   images: {
     unoptimized: true,

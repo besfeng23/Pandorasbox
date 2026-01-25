@@ -17,9 +17,8 @@ export async function processAndStore(content: string, source: string, agentId: 
     const vector = await embedText(chunk);
     
     // Store in Qdrant
-    // Using a specific collection for external knowledge or mixing it with memories
-    // Ideally we might have `knowledge_base` collection, or `memories_{agentId}` with type='external'
-    const collectionName = `memories_${agentId}`; 
+    // Using the main 'memories' collection
+    const collectionName = 'memories'; 
     
     await upsertPoint(collectionName, {
       id: randomUUID(),

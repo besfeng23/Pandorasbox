@@ -10,7 +10,9 @@
  */
 
 import { config } from 'dotenv';
-import { resolve } from 'path';
+import { resolve, join } from 'path';
+import * as fs from 'fs';
+import path from 'path';
 
 // Load environment variables
 config({ path: resolve(process.cwd(), '.env.local') });
@@ -44,8 +46,9 @@ async function testMCPSetup() {
     console.log('   ✅ Firebase Admin initialized successfully');
     console.log('   ✅ Firestore instance available');
     console.log('   ✅ Auth instance available');
-  } catch (error: any) {
-    console.log(`   ⚠️  Firebase Admin initialization failed: ${error.message}`);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'An unknown error occurred during Firebase Admin initialization';
+    console.log(`   ⚠️  Firebase Admin initialization failed: ${message}`);
     console.log('   (This is okay if service account is not configured)');
   }
 
@@ -66,9 +69,10 @@ async function testMCPSetup() {
     } else {
       console.log('   ❌ handleSearchKnowledgeBase is not a function');
     }
-  } catch (error: any) {
-    console.log(`   ❌ Failed to import tool handlers: ${error.message}`);
-    if (error.stack) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'An unknown error occurred during tool handler imports';
+    console.log(`   ❌ Failed to import tool handlers: ${message}`);
+    if (error instanceof Error && error.stack) {
       console.log(`   Stack: ${error.stack.split('\n').slice(0, 3).join('\n')}`);
     }
   }
@@ -76,8 +80,6 @@ async function testMCPSetup() {
   // Test 4: MCP Server file structure
   console.log('\n4️⃣ Verifying MCP server file...');
   try {
-    const fs = require('fs');
-    const path = require('path');
     const serverPath = path.join(process.cwd(), 'src/server/mcp-server.ts');
     
     if (fs.existsSync(serverPath)) {
@@ -98,8 +100,9 @@ async function testMCPSetup() {
     } else {
       console.log('   ❌ MCP server file not found');
     }
-  } catch (error: any) {
-    console.log(`   ⚠️  Could not verify file: ${error.message}`);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'An unknown error occurred during file verification';
+    console.log(`   ⚠️  Could not verify file: ${message}`);
   }
 
   console.log('\n✅ Test complete!\n');

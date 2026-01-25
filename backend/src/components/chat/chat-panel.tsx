@@ -19,6 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { AnimatePresence, motion } from 'framer-motion';
 import { PandoraBoxIcon } from '@/components/icons';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ThinkingIndicator } from './thinking-indicator';
 
 const formSchema = z.object({
   content: z.string().min(1, 'Message cannot be empty.'),
@@ -33,7 +34,8 @@ export function ChatPanel({ threadId }: { threadId: string }) {
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [isExtracting, setIsExtracting] = useState(false);
   const [isToolActive, setIsToolActive] = useState(false);
-  const [activeToolName, setActiveToolName] = useState('');
+  const [thinkingLogs, setThinkingLogs] = useState<string[]>([]);
+  const [toolStartTime, setToolStartTime] = useState<Date | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { user } = useUser();
@@ -101,6 +103,7 @@ export function ChatPanel({ threadId }: { threadId: string }) {
   const handleStream = async (response: Response) => {
     const reader = response.body!.getReader();
     const decoder = new TextDecoder();
+    let buffer = '';
 
     setStreamingMessage({
         id: 'assistant-streaming',
@@ -109,29 +112,80 @@ export function ChatPanel({ threadId }: { threadId: string }) {
         createdAt: new Date() as any,
         history: [],
     });
+    
+    setThinkingLogs([]);
 
     while (true) {
         const { done, value } = await reader.read();
         if (done) break;
+        
         const chunk = decoder.decode(value, { stream: true });
+        buffer += chunk;
+        
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || ''; // Keep the last partial line in the buffer
 
-        if (chunk.startsWith('0: ')) {
-          try {
-            const data = JSON.parse(chunk.substring(3));
-            if (data.type === 'tool_start') {
-              setIsToolActive(true);
-              setActiveToolName(data.display || data.toolName);
-            } else if (data.type === 'tool_end') {
-              setIsToolActive(false);
-              setActiveToolName('');
+        for (const line of lines) {
+            if (!line.trim()) continue;
+            
+            const colonIndex = line.indexOf(':');
+            if (colonIndex === -1) continue;
+            
+            const type = line.substring(0, colonIndex);
+            const content = line.substring(colonIndex + 1);
+            
+            try {
+                const data = JSON.parse(content);
+                
+                if (type === '0') { // Text
+                    setStreamingMessage(prev => ({ 
+                        ...prev!, 
+                        content: prev!.content + data 
+                    }));
+                } else if (type === '2') { // Data from StreamData
+                    if (Array.isArray(data)) {
+                        for (const item of data) {
+                            if (item.type === 'tool_start') {
+                                setIsToolActive(true);
+                                setToolStartTime(new Date());
+                                setThinkingLogs(prev => [...prev, item.display || `Executing ${item.toolName}...`]);
+                            } else if (item.type === 'tool_end') {
+                                // We keep the log but maybe update status?
+                                // For now just clear tool active state after a short delay or when next tool starts
+                                if (item.status === 'error') {
+                                    setThinkingLogs(prev => [...prev, `Error: ${item.error || 'Unknown error'}`]);
+                                }
+                                // We don't necessarily want to hide the logs immediately
+                            }
+                        }
+                    }
+                }
+            } catch (e) {
+                // Not JSON or partial chunk, ignore for now
+                console.warn('Failed to parse line:', line, e);
             }
-          } catch (e) {
-            // Not JSON or partial chunk
-          }
-        } else {
-          setStreamingMessage(prev => ({ ...prev!, content: prev!.content + chunk }));
         }
     }
+
+    // Final buffer check
+    if (buffer.trim()) {
+        const colonIndex = buffer.indexOf(':');
+        if (colonIndex !== -1) {
+            const type = buffer.substring(0, colonIndex);
+            const content = buffer.substring(colonIndex + 1);
+            try {
+                const data = JSON.parse(content);
+                if (type === '0') {
+                    setStreamingMessage(prev => ({ ...prev!, content: prev!.content + data }));
+                }
+            } catch (e) {}
+        }
+    }
+
+    // After stream ends, wait a bit then hide tool indicator if it's still there
+    setTimeout(() => {
+        setIsToolActive(false);
+    }, 1000);
 
     setStreamingMessage(null);
     if (user) {
@@ -182,10 +236,13 @@ export function ChatPanel({ threadId }: { threadId: string }) {
       }
     } catch (error: any) {
       if (error.name !== 'AbortError') {
+        const isOffline = error.message?.includes('fetch') || error.message?.includes('Network');
         toast({
           variant: 'destructive',
-          title: 'Error',
-          description: error.message || 'Failed to send message.',
+          title: isOffline ? 'AI is Asleep' : 'Error',
+          description: isOffline 
+            ? 'The Sovereign Brain is currently unreachable. Check your container status.' 
+            : (error.message || 'Failed to send message.'),
         });
       }
     } finally {
@@ -230,10 +287,13 @@ export function ChatPanel({ threadId }: { threadId: string }) {
         if (response.body) await handleStream(response);
 
     } catch (error: any) {
+        const isOffline = error.message?.includes('fetch') || error.message?.includes('Network');
         toast({
             variant: 'destructive',
-            title: 'Error Regenerating',
-            description: error.message || 'Could not regenerate response.',
+            title: isOffline ? 'AI is Asleep' : 'Error Regenerating',
+            description: isOffline 
+                ? 'The Sovereign Brain is currently unreachable. Check your container status.' 
+                : (error.message || 'Could not regenerate response.'),
         });
     } finally {
         setIsRegenerating(false);
@@ -390,10 +450,9 @@ export function ChatPanel({ threadId }: { threadId: string }) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
-              className="flex items-center space-x-2 text-sm text-muted-foreground bg-accent/30 p-2 rounded-md border border-accent/50 w-fit"
+              className="bg-accent/20 p-3 rounded-lg border border-accent/30 max-w-md"
             >
-              <Loader2 className="h-4 w-4 animate-spin text-primary" />
-              <span className="font-medium">{activeToolName || 'Thinking...'}</span>
+              <ThinkingIndicator logs={thinkingLogs} createdAt={toolStartTime} />
             </motion.div>
           )}
           <div ref={messagesEndRef} />

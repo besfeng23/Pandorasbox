@@ -73,6 +73,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { SystemStatus } from '@/components/system-status';
+import { ArtifactPanel } from '@/components/chat/artifact-panel';
 
 function SidebarContentInternal({ threadId }: { threadId?: string }) {
     const { user } = useUser();
@@ -344,20 +345,19 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
 
 export function AppLayout({ children, threadId }: { children: React.ReactNode; threadId?: string }) {
   return (
-    <SidebarProvider>
-      <div className="flex min-h-screen w-full bg-background">
-        <Sidebar>
-            <SidebarContentInternal threadId={threadId} />
-        </Sidebar>
+    <div className="flex min-h-screen w-full bg-background">
+      <Sidebar>
+          <SidebarContentInternal threadId={threadId} />
+      </Sidebar>
 
-        <SidebarInset>
-            <div className="md:hidden p-2 border-b flex items-center bg-card sticky top-0 z-10">
-                <SidebarTrigger />
-                <span className="font-headline font-semibold mx-auto">Pandora's Box</span>
-            </div>
-            {children}
-        </SidebarInset>
-      </div>
-    </SidebarProvider>
+      <SidebarInset>
+          <div className="md:hidden p-2 border-b flex items-center bg-card sticky top-0 z-10">
+              <SidebarTrigger />
+              <span className="font-headline font-semibold mx-auto">Pandora's Box</span>
+          </div>
+          {children}
+          <ArtifactPanel />
+      </SidebarInset>
+    </div>
   );
 }

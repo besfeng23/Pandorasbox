@@ -38,7 +38,7 @@ export default [
         "warn",
         { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }
       ],
-      "@typescript-eslint/no-require-imports": "off",
+      "@typescript-eslint/no-require-imports": "error",
       "react/react-in-jsx-scope": "off", // Next.js doesn't require React to be in scope
       "react/jsx-uses-react": "off", // Next.js doesn't require React to be in scope
     },

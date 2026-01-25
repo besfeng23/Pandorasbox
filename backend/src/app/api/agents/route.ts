@@ -16,20 +16,20 @@ export async function OPTIONS() {
 export async function GET() {
   const agents = [
     {
-      id: 'builder',
-      name: 'Builder',
-      description: 'Specialized in code generation and architecture.',
-      status: 'active',
+      name: 'Search Knowledge Base',
+      description: 'Semantic search across memories and history using Qdrant.',
     },
     {
-      id: 'universe',
-      name: 'Universe',
-      description: 'General knowledge and creative exploration.',
-      status: 'active',
+      name: 'Add Memory',
+      description: 'Store new memories with embeddings in Firestore and Qdrant.',
+    },
+    {
+      name: 'Generate Artifact',
+      description: 'Create and save code or markdown artifacts for later use.',
     }
   ];
 
-  return NextResponse.json(agents, {
+  return NextResponse.json({ agents }, {
     headers: { 'Access-Control-Allow-Origin': '*' },
   });
 }

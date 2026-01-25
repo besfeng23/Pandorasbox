@@ -8,12 +8,12 @@
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { generateEmbedding } from '../src/lib/vector';
+import serviceAccount from '../service-account.json';
 
 // Initialize Firebase Admin
 if (getApps().length === 0) {
-  const serviceAccount = require('../serviceAccountKey.json');
   initializeApp({
-    credential: cert(serviceAccount),
+    credential: cert(serviceAccount as any),
   });
 }
 

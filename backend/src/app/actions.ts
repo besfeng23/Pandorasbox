@@ -243,7 +243,17 @@ export async function getRecentThreads(userId: string, agent?: string): Promise<
 }
 
 export async function getUserConnectors(userId: string): Promise<UserConnector[]> {
-    return [];
+    try {
+        const db = getFirestoreAdmin();
+        const snapshot = await db.collection(`users/${userId}/connectors`).get();
+        return snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        })) as UserConnector[];
+    } catch (error) {
+        console.error('Get Connectors Error:', error);
+        return [];
+    }
 }
 
 export async function renameThread(threadId: string, newName: string, userId: string) {
@@ -257,9 +267,61 @@ export async function renameThread(threadId: string, newName: string, userId: st
 }
 
 export async function connectDataSource(userId: string, connectorId: string, metadata?: any) {
-    // Placeholder
+    try {
+        const db = getFirestoreAdmin();
+        const connectorRef = db.doc(`users/${userId}/connectors/${connectorId}`);
+        
+        await connectorRef.set({
+            id: connectorId,
+            userId,
+            status: 'connected',
+            metadata: metadata || {},
+            createdAt: FieldValue.serverTimestamp(),
+            updatedAt: FieldValue.serverTimestamp(),
+        });
+
+        // Trigger indexing for public website if URL is provided
+        if (connectorId === 'public-website' && metadata?.url) {
+            try {
+                const response = await fetch(metadata.url);
+                if (response.ok) {
+                    const html = await response.text();
+                    const cheerio = await import('cheerio');
+                    const $ = cheerio.load(html);
+                    
+                    // Basic cleanup
+                    $('script, style, nav, footer, header').remove();
+                    const text = $('body').text().replace(/\s+/g, ' ').trim();
+                    
+                    if (text) {
+                        const { processAndStore } = await import('@/lib/knowledge/ingestor');
+                        // Index for both main agents
+                        await processAndStore(text, metadata.url, 'builder', userId);
+                        await processAndStore(text, metadata.url, 'universe', userId);
+                    }
+                }
+            } catch (indexError) {
+                console.error('Failed to index website during connection:', indexError);
+                // We still consider the connector "connected" but log the error
+            }
+        }
+        
+        revalidatePath('/connectors');
+        return { success: true };
+    } catch (error: any) {
+        console.error('Connect Data Source Error:', error);
+        throw error;
+    }
 }
 
 export async function disconnectDataSource(userId: string, connectorId: string) {
-    // Placeholder
+    try {
+        const db = getFirestoreAdmin();
+        await db.doc(`users/${userId}/connectors/${connectorId}`).delete();
+        revalidatePath('/connectors');
+        return { success: true };
+    } catch (error: any) {
+        console.error('Disconnect Data Source Error:', error);
+        throw error;
+    }
 }
