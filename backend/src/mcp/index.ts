@@ -11,8 +11,9 @@
 
 // Load environment variables from .env.local
 import { config } from 'dotenv';
-import { resolve, join } from 'path';
+import { resolve } from 'path';
 import { existsSync } from 'fs';
+import { join } from 'path';
 config({ path: resolve(process.cwd(), '.env.local') });
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
@@ -24,9 +25,10 @@ import {
   ErrorCode,
   McpError,
 } from '@modelcontextprotocol/sdk/types.js';
-import { handleSearchKnowledgeBase } from './tools/search-knowledge';
-import { handleAddMemory } from './tools/add-memory';
-import { handleGenerateArtifact } from './tools/generate-artifact';
+import { z } from 'zod';
+import { SearchKnowledgeBaseInputSchema } from "./tools/search-knowledge";
+import { AddMemoryInputSchema } from "./tools/add-memory";
+import { GenerateArtifactInputSchema } from "./tools/generate-artifact";
 
 // Validate required environment variables
 function validateEnvironment() {
@@ -60,10 +62,11 @@ let envValidated = false;
 try {
   validateEnvironment();
   envValidated = true;
-  console.error('✅ Environment variables validated');
-} catch (error: any) {
-  console.error('❌ Environment validation failed:', error.message);
-}
+    console.error('✅ Environment variables validated');
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'An unknown error occurred';
+    console.error('❌ Environment validation failed:', message);
+  }
 
 // Initialize the server
 const server = new Server(
@@ -178,7 +181,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     
     switch (name) {
       case 'search_knowledge_base': {
-        const result = await handleSearchKnowledgeBase(args as any);
+        const parsedArgs = SearchKnowledgeBaseInputSchema.parse(args);
+        const result = await handleSearchKnowledgeBase(parsedArgs);
         console.error(`✅ search_knowledge_base completed: ${result.length} results`);
         return {
           content: [
@@ -191,7 +195,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'add_memory': {
-        const result = await handleAddMemory(args as any);
+        const parsedArgs = AddMemoryInputSchema.parse(args);
+        const result = await handleAddMemory(parsedArgs);
         console.error(`✅ add_memory completed: memory_id=${result.memory_id}`);
         return {
           content: [
@@ -204,7 +209,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'generate_artifact': {
-        const result = await handleGenerateArtifact(args as any);
+        const parsedArgs = GenerateArtifactInputSchema.parse(args);
+        const result = await handleGenerateArtifact(parsedArgs);
         console.error(`✅ generate_artifact completed: artifact_id=${result.artifact_id}`);
         return {
           content: [
@@ -223,27 +229,34 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           `Unknown tool: ${name}`
         );
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'An unknown error occurred';
+
     if (error instanceof McpError) {
       console.error(`❌ MCP Error in ${name}:`, error.message);
       throw error;
     }
 
-    if (error.message && typeof error.message === 'string') {
-      console.error(`❌ Validation error in ${name}:`, error.message);
+    if (error instanceof z.ZodError) {
+      console.error(`❌ Validation error in ${name}:`, error.errors);
       throw new McpError(
         ErrorCode.InvalidParams,
-        error.message
+        `Validation failed: ${error.errors.map(err => err.message).join(', ')}`
+      );
+    }
+
+    if (typeof error.message === 'string') {
+      console.error(`❌ Unexpected error executing tool ${name}:`, error.message);
+      throw new McpError(
+        ErrorCode.InternalError,
+        `Failed to execute tool: ${error.message}`
       );
     }
 
     console.error(`❌ Unexpected error executing tool ${name}:`, error);
-    if (error.stack) {
-      console.error('Stack trace:', error.stack);
-    }
     throw new McpError(
       ErrorCode.InternalError,
-      `Failed to execute tool: ${error.message || 'Unknown error'}`
+      'Failed to execute tool: An unknown error occurred'
     );
   }
 });
@@ -264,12 +277,14 @@ async function main() {
       const { getFirestoreAdmin } = await import('@/lib/firebase-admin');
       getFirestoreAdmin();
       console.error('✅ Firebase Admin initialized');
-    } catch (firebaseError: any) {
-      console.warn('⚠️  Firebase initialization check failed:', firebaseError.message);
+    } catch (firebaseError: unknown) {
+      const message = firebaseError instanceof Error ? firebaseError.message : 'An unknown error occurred during Firebase initialization';
+      console.warn('⚠️  Firebase initialization check failed:', message);
     }
-  } catch (error: any) {
-    console.error('❌ Fatal error starting MCP server:', error.message || error);
-    if (error.stack) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'An unknown error occurred';
+    console.error('❌ Fatal error starting MCP server:', message);
+    if (error instanceof Error && error.stack) {
       console.error('Stack trace:', error.stack);
     }
     process.exit(1);
