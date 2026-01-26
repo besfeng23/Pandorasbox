@@ -14,11 +14,20 @@ let firestoreAdmin: admin.firestore.Firestore;
 let authAdmin: admin.auth.Auth;
 
 function initializeAdmin() {
-  console.log('[Firebase Admin] Attempting to initialize Firebase Admin SDK...');
   if (admin.apps.length > 0) {
-    console.log('[Firebase Admin] Firebase Admin SDK already initialized.');
+    // Already initialized, skip
     return;
   }
+  
+  console.log('[Firebase Admin] Attempting to initialize Firebase Admin SDK...');
+  console.log('[Firebase Admin] Environment check:', {
+    hasServiceAccountKey: !!process.env.FIREBASE_SERVICE_ACCOUNT_KEY,
+    hasFirebaseConfig: !!process.env.FIREBASE_CONFIG,
+    hasFirebaseProjectId: !!process.env.FIREBASE_PROJECT_ID,
+    hasNextPublicProjectId: !!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+    nodeEnv: process.env.NODE_ENV,
+    nextPhase: process.env.NEXT_PHASE
+  });
 
   const serviceAccountEnv = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
   if (!serviceAccountEnv && process.env.NEXT_PHASE === 'phase-production-build') {
@@ -178,27 +187,57 @@ function initializeAdmin() {
 
 // Use a getter to ensure the app is initialized before accessing services
 function getFirestoreAdmin() {
-  initializeAdmin();
-  if (!firestoreAdmin) {
-    const app = admin.apps[0];
-    if (!app) {
-      throw new Error('Firebase Admin app not initialized.');
+  try {
+    initializeAdmin();
+    if (!firestoreAdmin) {
+      const app = admin.apps[0];
+      if (!app) {
+        // Try one more time to initialize
+        console.error('[Firebase Admin] No app found after initialization. Attempting emergency initialization...');
+        initializeAdmin();
+        const retryApp = admin.apps[0];
+        if (!retryApp) {
+          const errorMsg = 'Firebase Admin app not initialized. Check FIREBASE_PROJECT_ID and service account configuration.';
+          console.error(`[Firebase Admin] ${errorMsg}`);
+          throw new Error(errorMsg);
+        }
+        firestoreAdmin = retryApp.firestore();
+      } else {
+        firestoreAdmin = app.firestore();
+      }
     }
-    firestoreAdmin = app.firestore();
+    return firestoreAdmin;
+  } catch (error: any) {
+    console.error('[Firebase Admin] Error getting Firestore:', error);
+    throw error;
   }
-  return firestoreAdmin;
 }
 
 function getAuthAdmin() {
-    initializeAdmin();
-    if (!authAdmin) {
-        const app = admin.apps[0];
-        if (!app) {
-          throw new Error('Firebase Admin app not initialized.');
+    try {
+        initializeAdmin();
+        if (!authAdmin) {
+            const app = admin.apps[0];
+            if (!app) {
+                // Try one more time to initialize
+                console.error('[Firebase Admin] No app found after initialization. Attempting emergency initialization...');
+                initializeAdmin();
+                const retryApp = admin.apps[0];
+                if (!retryApp) {
+                    const errorMsg = 'Firebase Admin app not initialized. Check FIREBASE_PROJECT_ID and service account configuration.';
+                    console.error(`[Firebase Admin] ${errorMsg}`);
+                    throw new Error(errorMsg);
+                }
+                authAdmin = retryApp.auth();
+            } else {
+                authAdmin = app.auth();
+            }
         }
-        authAdmin = app.auth();
+        return authAdmin;
+    } catch (error: any) {
+        console.error('[Firebase Admin] Error getting Auth:', error);
+        throw error;
     }
-    return authAdmin;
 }
 
 // Export the getter functions
