@@ -13,14 +13,65 @@ const path = require('path');
 // Get the backend directory - use __dirname to get the script's directory, then go up one level
 // This is more reliable than process.cwd() in containerized environments
 const scriptDir = __dirname;
-const backendDir = path.resolve(scriptDir, '..');
-// Get workspace root (one level up from backend)
+const currentWorkingDir = process.cwd();
+
+// Try to find .next directory - it should be in the same directory as package.json
+// Check multiple possible locations
+let backendDir = null;
+let nextDir = null;
+let routesManifestPath = null;
+
+// Strategy 1: If script is in backend/scripts/, backend is one level up
+if (scriptDir.includes('/backend/scripts') || scriptDir.includes('\\backend\\scripts')) {
+  backendDir = path.resolve(scriptDir, '..');
+  nextDir = path.join(backendDir, '.next');
+  routesManifestPath = path.join(nextDir, 'routes-manifest.json');
+  if (fs.existsSync(routesManifestPath)) {
+    console.log('[Post-build] Found .next directory using script location strategy');
+  } else {
+    backendDir = null;
+  }
+}
+
+// Strategy 2: Check if .next exists in current working directory
+if (!backendDir || !fs.existsSync(routesManifestPath)) {
+  const cwdNextDir = path.join(currentWorkingDir, '.next');
+  const cwdRoutesManifest = path.join(cwdNextDir, 'routes-manifest.json');
+  if (fs.existsSync(cwdRoutesManifest)) {
+    backendDir = currentWorkingDir;
+    nextDir = cwdNextDir;
+    routesManifestPath = cwdRoutesManifest;
+    console.log('[Post-build] Found .next directory using current working directory strategy');
+  }
+}
+
+// Strategy 3: Check if .next exists one level up from script (if script is in scripts/)
+if (!backendDir || !fs.existsSync(routesManifestPath)) {
+  const parentDir = path.resolve(scriptDir, '..');
+  const parentNextDir = path.join(parentDir, '.next');
+  const parentRoutesManifest = path.join(parentNextDir, 'routes-manifest.json');
+  if (fs.existsSync(parentRoutesManifest)) {
+    backendDir = parentDir;
+    nextDir = parentNextDir;
+    routesManifestPath = parentRoutesManifest;
+    console.log('[Post-build] Found .next directory using parent directory strategy');
+  }
+}
+
+// Fallback: Use script directory's parent
+if (!backendDir) {
+  backendDir = path.resolve(scriptDir, '..');
+  nextDir = path.join(backendDir, '.next');
+  routesManifestPath = path.join(nextDir, 'routes-manifest.json');
+  console.log('[Post-build] Using fallback: script directory parent');
+}
+
+// Get workspace root (one level up from backend) - but be careful if it's root
 const workspaceRoot = path.resolve(backendDir, '..');
-const nextDir = path.join(backendDir, '.next');
-const routesManifestPath = path.join(nextDir, 'routes-manifest.json');
 
 console.log('[Post-build] Fixing routes-manifest.json location for Firebase App Hosting...');
 console.log(`[Post-build] Script dir: ${scriptDir}`);
+console.log(`[Post-build] Current working dir: ${currentWorkingDir}`);
 console.log(`[Post-build] Backend dir: ${backendDir}`);
 console.log(`[Post-build] Workspace root: ${workspaceRoot}`);
 console.log(`[Post-build] Source: ${routesManifestPath}`);
@@ -149,12 +200,24 @@ const copyToLocation = (targetBaseDir, locationName) => {
 const backendSuccess = copyToLocation(backendDir, 'Backend');
 
 // Only copy to workspace root if it's safe (optional)
+// CRITICAL: Never attempt to copy to root directory - it will cause permission errors
 let workspaceSuccess = false;
 const normalizedWorkspaceRoot = path.resolve(workspaceRoot);
-if (normalizedWorkspaceRoot !== '/' && normalizedWorkspaceRoot !== path.sep && normalizedWorkspaceRoot.length > 1) {
-  workspaceSuccess = copyToLocation(workspaceRoot, 'Workspace root');
+
+// Explicit check: if workspace root is root filesystem, skip it entirely
+if (normalizedWorkspaceRoot === '/' || normalizedWorkspaceRoot === path.sep || normalizedWorkspaceRoot.length <= 1) {
+  console.warn(`[Post-build] ⚠️  Skipping workspace root copy - path resolves to root filesystem (${normalizedWorkspaceRoot})`);
+  console.warn(`[Post-build] This is safe - the adapter will use the backend location instead.`);
+  workspaceSuccess = false; // Explicitly set to false
 } else {
-  console.warn(`[Post-build] ⚠️  Skipping workspace root copy - path is unsafe (${normalizedWorkspaceRoot})`);
+  // Additional safety: check if the target path would be at root level
+  const potentialTargetPath = path.resolve(workspaceRoot, '.next', 'standalone', '.next');
+  if (potentialTargetPath.startsWith('/.next') || potentialTargetPath === '/.next' || potentialTargetPath.length <= 6) {
+    console.warn(`[Post-build] ⚠️  Skipping workspace root copy - target path would be unsafe (${potentialTargetPath})`);
+    workspaceSuccess = false;
+  } else {
+    workspaceSuccess = copyToLocation(workspaceRoot, 'Workspace root');
+  }
 }
 
 // Only require backend location to succeed (workspace root is optional)
