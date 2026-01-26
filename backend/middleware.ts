@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { verifySessionCookie } from '@/lib/auth/session';
+import { verifySession } from '@/lib/auth/session';
 
 /**
  * Public routes that don't require authentication
@@ -56,7 +56,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Verify session cookie
-  const decodedToken = await verifySessionCookie();
+  const decodedToken = await verifySession();
   const isAuthenticated = decodedToken !== null;
   const isPublic = isPublicRoute(pathname);
   const isProtected = isProtectedRoute(pathname);
