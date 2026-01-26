@@ -87,6 +87,11 @@ export async function updateMemoryInMemories(id: string, newText: string, userId
 
 export async function getUserThreads(userId: string, agent?: string): Promise<Thread[]> {
     try {
+        if (!userId || typeof userId !== 'string') {
+            console.error('[getUserThreads] Invalid userId:', userId);
+            return [];
+        }
+        
         const db = getFirestoreAdmin();
         let query = db.collection(`users/${userId}/threads`).orderBy('updatedAt', 'desc');
         
@@ -101,8 +106,12 @@ export async function getUserThreads(userId: string, agent?: string): Promise<Th
             createdAt: (doc.data().createdAt as Timestamp),
             updatedAt: (doc.data().updatedAt as Timestamp)
         })) as Thread[];
-    } catch (error) {
-        console.error('Get Threads Error:', error);
+    } catch (error: any) {
+        console.error('[getUserThreads] Error:', error);
+        console.error('[getUserThreads] Error stack:', error?.stack);
+        console.error('[getUserThreads] Error code:', error?.code);
+        console.error('[getUserThreads] Error message:', error?.message);
+        // Return empty array instead of throwing to prevent Server Action failures
         return [];
     }
 }
@@ -144,17 +153,21 @@ export async function getMessages(threadId: string, userId: string): Promise<Mes
 
 export async function createThread(agent: 'builder' | 'universe', userId: string) {
     try {
-        if (!userId) {
+        if (!userId || typeof userId !== 'string') {
+            console.error('[createThread] Invalid userId:', userId);
             throw new Error('User ID is required to create a thread');
         }
         
+        console.log('[createThread] Attempting to get Firestore Admin...');
         const db = getFirestoreAdmin();
+        console.log('[createThread] Firestore Admin obtained successfully');
         
         // 1. Get current user - Assuming userId is already passed from the frontend
         // For actual auth, replace with Firebase Admin SDK's auth().verifyIdToken(...) or similar
         const actualUserId = userId; 
 
         // 2. Create the thread WITHOUT AI generation first (Safe Mode)
+        console.log('[createThread] Creating thread for user:', actualUserId, 'agent:', agent);
         const threadRef = await db.collection(`users/${actualUserId}/threads`).add({
             userId: actualUserId,
             agent,
@@ -164,26 +177,36 @@ export async function createThread(agent: 'builder' | 'universe', userId: string
             messages: [] // Initialize with an empty messages array
         });
 
+        console.log('[createThread] Thread created successfully:', threadRef.id);
         revalidatePath('/');
         return { id: threadRef.id };
     } catch (error: any) {
-        console.error("CRITICAL ERROR in createThread:", error);
-        console.error("Error stack:", error.stack);
-        console.error("Error code:", error.code);
-        console.error("Error message:", error.message);
+        console.error("[createThread] CRITICAL ERROR:", error);
+        console.error("[createThread] Error stack:", error?.stack);
+        console.error("[createThread] Error code:", error?.code);
+        console.error("[createThread] Error message:", error?.message);
+        console.error("[createThread] Error name:", error?.name);
         
         // Provide more specific error messages
-        if (error.message?.includes('Firebase Admin app not initialized')) {
-            throw new Error('Firebase Admin is not initialized. Please check your Firebase configuration.');
+        if (error?.message?.includes('Firebase Admin app not initialized')) {
+            const errorMsg = 'Firebase Admin is not initialized. Please check your Firebase configuration.';
+            console.error('[createThread]', errorMsg);
+            throw new Error(errorMsg);
         }
-        if (error.code === 'permission-denied' || error.message?.includes('permission')) {
-            throw new Error('Permission denied. Please check your Firestore security rules.');
+        if (error?.code === 'permission-denied' || error?.message?.includes('permission')) {
+            const errorMsg = 'Permission denied. Please check your Firestore security rules.';
+            console.error('[createThread]', errorMsg);
+            throw new Error(errorMsg);
         }
-        if (error.code === 'unavailable' || error.message?.includes('unavailable')) {
-            throw new Error('Firestore is currently unavailable. Please try again later.');
+        if (error?.code === 'unavailable' || error?.message?.includes('unavailable')) {
+            const errorMsg = 'Firestore is currently unavailable. Please try again later.';
+            console.error('[createThread]', errorMsg);
+            throw new Error(errorMsg);
         }
         
-        throw new Error(`Failed to create thread: ${error.message || 'Unknown error'}`);
+        const errorMsg = `Failed to create thread: ${error?.message || 'Unknown error'}`;
+        console.error('[createThread]', errorMsg);
+        throw new Error(errorMsg);
     }
 }
 
