@@ -95,15 +95,23 @@ if (!fs.existsSync(routesManifestPath)) {
 // 2. /workspace/.next/standalone/.next/routes-manifest.json (workspace root - what adapter actually uses)
 
 const copyToLocation = (targetBaseDir, locationName) => {
-  // Safety check: don't allow root directory
-  if (targetBaseDir === '/' || targetBaseDir === path.sep) {
-    console.warn(`[Post-build] ⚠️  Skipping ${locationName} - target directory is root (unsafe)`);
+  // Safety check: don't allow root directory or paths that resolve to root
+  const normalizedBaseDir = path.resolve(targetBaseDir);
+  if (normalizedBaseDir === '/' || normalizedBaseDir === path.sep || normalizedBaseDir.length <= 1) {
+    console.warn(`[Post-build] ⚠️  Skipping ${locationName} - target directory is root or unsafe (${normalizedBaseDir})`);
     return false;
   }
   
   const standaloneDir = path.join(targetBaseDir, '.next', 'standalone');
   const targetDir = path.join(standaloneDir, '.next');
   const targetManifestPath = path.join(targetDir, 'routes-manifest.json');
+  
+  // Additional safety check: ensure target path is not at root
+  const normalizedTargetDir = path.resolve(targetDir);
+  if (normalizedTargetDir.startsWith('/.next') || normalizedTargetDir === '/.next' || normalizedTargetDir.length <= 6) {
+    console.warn(`[Post-build] ⚠️  Skipping ${locationName} - target path is unsafe (${normalizedTargetDir})`);
+    return false;
+  }
   
   console.log(`[Post-build] ${locationName} target: ${targetManifestPath}`);
   
@@ -137,9 +145,17 @@ const copyToLocation = (targetBaseDir, locationName) => {
   }
 };
 
-// Copy to both locations (but skip workspace root if it's unsafe)
+// Copy to backend location (required)
 const backendSuccess = copyToLocation(backendDir, 'Backend');
-const workspaceSuccess = copyToLocation(workspaceRoot, 'Workspace root');
+
+// Only copy to workspace root if it's safe (optional)
+let workspaceSuccess = false;
+const normalizedWorkspaceRoot = path.resolve(workspaceRoot);
+if (normalizedWorkspaceRoot !== '/' && normalizedWorkspaceRoot !== path.sep && normalizedWorkspaceRoot.length > 1) {
+  workspaceSuccess = copyToLocation(workspaceRoot, 'Workspace root');
+} else {
+  console.warn(`[Post-build] ⚠️  Skipping workspace root copy - path is unsafe (${normalizedWorkspaceRoot})`);
+}
 
 // Only require backend location to succeed (workspace root is optional)
 if (!backendSuccess) {
@@ -148,8 +164,8 @@ if (!backendSuccess) {
 }
 
 if (!workspaceSuccess) {
-  console.warn(`[Post-build] ⚠️  Warning: Failed to copy to workspace root, but backend copy succeeded.`);
-  console.warn(`[Post-build] This may be okay if the adapter uses the backend location.`);
+  console.warn(`[Post-build] ⚠️  Warning: Skipped workspace root copy (unsafe path), but backend copy succeeded.`);
+  console.warn(`[Post-build] This is okay - the adapter should use the backend location.`);
 }
 
 console.log(`[Post-build] ✅ Post-build fix completed!`);
