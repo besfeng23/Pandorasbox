@@ -208,9 +208,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   if (isLoading) {
     return (
       <AuthContext.Provider value={value}>
-        <div className="flex h-screen w-full items-center justify-center">
-          <div>Loading...</div>
-        </div>
+        <div>Loading...</div>
       </AuthContext.Provider>
     );
   }
@@ -231,3 +229,4 @@ export function useAuth(): AuthContextType {
   }
   return context;
 }
+

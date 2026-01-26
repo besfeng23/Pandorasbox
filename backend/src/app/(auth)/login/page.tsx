@@ -1,10 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { signIn } from '@/lib/auth/auth-actions';
-import { getAuth } from '@/lib/firebase/firebase-client';
 import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '@/lib/firebase/firebase-client';
+import { createSession } from '@/app/auth/actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,7 +11,6 @@ import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function LoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -24,17 +22,16 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      // Step 1: Authenticate with Firebase Client SDK
-      const auth = getAuth();
+      // Sign in with Firebase Client SDK
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       
-      // Step 2: Get ID token
+      // Get the ID token
       const idToken = await userCredential.user.getIdToken();
-
-      // Step 3: Call Server Action to create session cookie
-      await signIn(idToken);
       
-      // Redirect happens in the Server Action
+      // Pass token to Server Action to create session
+      await createSession(idToken);
+      
+      // Note: createSession will redirect, so we won't reach here
     } catch (error: any) {
       console.error('Login error:', error);
       
@@ -57,6 +54,9 @@ export default function LoginPage() {
           case 'auth/too-many-requests':
             errorMessage = 'Too many failed login attempts. Please try again later.';
             break;
+          case 'auth/network-request-failed':
+            errorMessage = 'Network error. Please check your connection.';
+            break;
           default:
             errorMessage = error.message || 'Failed to sign in. Please try again.';
         }
@@ -65,7 +65,6 @@ export default function LoginPage() {
       }
       
       setError(errorMessage);
-    } finally {
       setIsLoading(false);
     }
   };
@@ -127,4 +126,3 @@ export default function LoginPage() {
     </div>
   );
 }
-

@@ -4,7 +4,7 @@
 import { useEffect, use, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppLayout } from '@/components/dashboard/app-layout';
-import { useAuthContext } from '@/lib/auth/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 import { ChatWindow } from '@/components/chat/ChatWindow';
 import { Loader2 } from 'lucide-react';
 import { ErrorBoundary } from '@/components/error-boundary';
@@ -12,7 +12,7 @@ import { getThread } from '@/app/actions';
 
 export default function ChatPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { user, isLoading: loading } = useAuthContext();
+  const { user, isLoading: loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {

@@ -1,74 +1,78 @@
+'use server';
+
 import 'server-only';
 import admin from 'firebase-admin';
 
-let adminApp: admin.app.App | null = null;
-let adminAuth: admin.auth.Auth | null = null;
-let adminFirestore: admin.firestore.Firestore | null = null;
+/**
+ * Global type declaration for Next.js hot-reload support
+ * This ensures the singleton instance persists across hot-reloads
+ */
+declare global {
+  // eslint-disable-next-line no-var
+  var __firebaseAdminApp: admin.app.App | undefined;
+}
 
 /**
- * Initialize Firebase Admin SDK using service account credentials from environment variables
- * This function creates a singleton instance and handles private key encoding carefully
+ * Initialize Firebase Admin SDK using service account credentials
+ * This function creates a singleton instance using globalThis to prevent
+ * re-initialization warnings during Next.js hot-reload
+ * 
+ * Configuration:
+ * Uses FIREBASE_SERVICE_ACCOUNT environment variable which holds the raw JSON string
+ * of the service account key. This is parsed to initialize the application credentials.
  */
-function initializeAdminApp(): void {
-  if (adminApp) {
-    return; // Already initialized
+function initializeAdminApp(): admin.app.App {
+  // Check globalThis first (for Next.js hot-reload support)
+  if (globalThis.__firebaseAdminApp) {
+    return globalThis.__firebaseAdminApp;
   }
 
   // Check if app already exists (e.g., from another import)
   if (admin.apps.length > 0) {
-    adminApp = admin.apps[0]!;
-    adminAuth = adminApp.auth();
-    adminFirestore = adminApp.firestore();
-    return;
+    const existingApp = admin.apps[0]!;
+    globalThis.__firebaseAdminApp = existingApp;
+    return existingApp;
   }
 
-  // Validate required environment variables
-  const projectId = process.env.FIREBASE_PROJECT_ID;
-  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY;
+  let credential: admin.credential.Credential;
+  let projectId: string;
 
-  if (!projectId) {
+  // Use FIREBASE_SERVICE_ACCOUNT (raw JSON string)
+  const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT;
+  
+  if (!serviceAccount) {
     throw new Error(
-      'FIREBASE_PROJECT_ID environment variable is required. Please set it to your Firebase project ID.'
-    );
-  }
-
-  if (!clientEmail) {
-    throw new Error(
-      'FIREBASE_CLIENT_EMAIL environment variable is required. Please set it to your Firebase service account client email.'
-    );
-  }
-
-  if (!privateKey) {
-    throw new Error(
-      'FIREBASE_PRIVATE_KEY environment variable is required. Please set it to your Firebase service account private key.'
+      'FIREBASE_SERVICE_ACCOUNT environment variable is required. Please set it to the raw JSON string of your Firebase service account key.'
     );
   }
 
   try {
-    // Handle private key encoding carefully
-    // The private key may come with escaped newlines (\n) or actual newlines
-    // Firebase Admin SDK expects the key with actual newlines
-    const formattedPrivateKey = privateKey.replace(/\\n/g, '\n');
+    const serviceAccountJson = JSON.parse(serviceAccount);
+    credential = admin.credential.cert(serviceAccountJson);
+    projectId = serviceAccountJson.project_id;
+    
+    if (!projectId) {
+      throw new Error('Service account JSON is missing project_id field');
+    }
+  } catch (error: any) {
+    throw new Error(
+      `Failed to parse FIREBASE_SERVICE_ACCOUNT: ${error.message}. Please ensure it is valid JSON.`
+    );
+  }
 
-    // Create service account credential object
-    const serviceAccount: admin.ServiceAccount = {
-      projectId,
-      clientEmail,
-      privateKey: formattedPrivateKey,
-    };
-
+  try {
     // Initialize Firebase Admin SDK
-    adminApp = admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
+    const app = admin.initializeApp({
+      credential,
       projectId,
     });
 
-    // Initialize Auth and Firestore instances
-    adminAuth = adminApp.auth();
-    adminFirestore = adminApp.firestore();
+    // Store in globalThis for Next.js hot-reload persistence
+    globalThis.__firebaseAdminApp = app;
 
     console.log(`[Firebase Admin] Successfully initialized for project: ${projectId}`);
+    
+    return app;
   } catch (error: any) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('[Firebase Admin] Initialization failed:', errorMessage);
@@ -79,51 +83,28 @@ function initializeAdminApp(): void {
 /**
  * Get Firebase Admin App instance
  * Initializes the Admin SDK if it hasn't been initialized yet
+ * This is the primary exported function for accessing the Admin SDK
+ * 
  * @returns The Firebase Admin App instance
+ * @throws Error if initialization fails or if called on client-side
+ * 
+ * @example
+ * ```ts
+ * import { getAdminApp } from '@/lib/firebase/firebase-admin';
+ * 
+ * // In an API route or Server Action
+ * const app = getAdminApp();
+ * const auth = app.auth();
+ * const firestore = app.firestore();
+ * ```
  */
 export function getAdminApp(): admin.app.App {
-  if (!adminApp) {
-    initializeAdminApp();
+  // Prevent client-side usage
+  if (typeof window !== 'undefined') {
+    throw new Error(
+      'Firebase Admin can only be used on the server side. This function must be called from API routes or Server Actions.'
+    );
   }
 
-  if (!adminApp) {
-    throw new Error('Firebase Admin App not initialized. Please check your configuration.');
-  }
-
-  return adminApp!; // Non-null assertion: we've checked above
+  return initializeAdminApp();
 }
-
-/**
- * Get Firebase Admin Auth instance
- * Initializes the Admin SDK if it hasn't been initialized yet
- * @returns The Firebase Admin Auth instance for server-side token verification
- */
-export function getAuthAdmin(): admin.auth.Auth {
-  if (!adminAuth) {
-    initializeAdminApp();
-  }
-
-  if (!adminAuth) {
-    throw new Error('Firebase Admin Auth not initialized. Please check your configuration.');
-  }
-
-  return adminAuth!; // Non-null assertion: we've checked above
-}
-
-/**
- * Get Firebase Admin Firestore instance
- * Initializes the Admin SDK if it hasn't been initialized yet
- * @returns The Firebase Admin Firestore instance for server-side database operations
- */
-export function getFirestoreAdmin(): admin.firestore.Firestore {
-  if (!adminFirestore) {
-    initializeAdminApp();
-  }
-
-  if (!adminFirestore) {
-    throw new Error('Firebase Admin Firestore not initialized. Please check your configuration.');
-  }
-
-  return adminFirestore!; // Non-null assertion: we've checked above
-}
-

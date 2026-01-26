@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useAuthContext } from '@/lib/auth/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
 import { Loader2 } from 'lucide-react';
@@ -22,7 +22,7 @@ interface ChatWindowProps {
  * Main ChatWindow component that orchestrates the entire chat experience
  */
 export function ChatWindow({ threadId, agentId = 'universe' }: ChatWindowProps) {
-  const { user } = useAuthContext();
+  const { user } = useAuth();
   const { toast } = useToast();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);

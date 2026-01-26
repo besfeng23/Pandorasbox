@@ -1,7 +1,12 @@
 'use server';
 
 import 'server-only';
-import { QdrantClient } from '@qdrant/js-client-rest';
+import { QdrantClient } from '@qdrant/qdrant-js';
+
+/**
+ * Primary vector collection name for Pandora's Box memory storage
+ */
+export const VECTOR_COLLECTION = 'pandora_memory';
 
 /**
  * Global type declaration for Next.js hot-reload support
@@ -9,7 +14,7 @@ import { QdrantClient } from '@qdrant/js-client-rest';
  */
 declare global {
   // eslint-disable-next-line no-var
-  var __qdrantClient: QdrantClient | undefined;
+  var __qdrantVectorStoreClient: QdrantClient | undefined;
 }
 
 /**
@@ -45,8 +50,8 @@ function getQdrantUrl(): string {
  */
 function initializeQdrantClient(): QdrantClient {
   // Check globalThis first (for Next.js hot-reload support)
-  if (globalThis.__qdrantClient) {
-    return globalThis.__qdrantClient;
+  if (globalThis.__qdrantVectorStoreClient) {
+    return globalThis.__qdrantVectorStoreClient;
   }
 
   try {
@@ -65,14 +70,14 @@ function initializeQdrantClient(): QdrantClient {
     const client = new QdrantClient(clientConfig);
 
     // Store in globalThis for Next.js hot-reload persistence
-    globalThis.__qdrantClient = client;
+    globalThis.__qdrantVectorStoreClient = client;
 
-    console.log(`[Qdrant Client] Initialized client for ${url}${apiKey ? ' (with API key)' : ''}`);
+    console.log(`[Qdrant Vector Store] Initialized client for ${url}${apiKey ? ' (with API key)' : ''}`);
 
     return client;
   } catch (error: any) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('[Qdrant Client] Initialization failed:', errorMessage);
+    console.error('[Qdrant Vector Store] Initialization failed:', errorMessage);
     throw new Error(`Failed to initialize Qdrant client: ${errorMessage}`);
   }
 }
@@ -85,13 +90,13 @@ function initializeQdrantClient(): QdrantClient {
  * 
  * @example
  * ```ts
- * import { qdrantClient } from '@/lib/qdrant/qdrant-client';
+ * import { qdrantClient, VECTOR_COLLECTION } from '@/lib/vector-store/qdrant-client';
  * 
  * // In an API route or Server Action
  * const collections = await qdrantClient.getCollections();
  * 
- * // Upsert vectors to a collection
- * await qdrantClient.upsert('my_collection', {
+ * // Upsert vectors to the primary collection
+ * await qdrantClient.upsert(VECTOR_COLLECTION, {
  *   points: [{ id: '1', vector: [0.1, 0.2, 0.3] }]
  * });
  * ```
@@ -106,3 +111,4 @@ export const qdrantClient: QdrantClient = (() => {
 
   return initializeQdrantClient();
 })();
+

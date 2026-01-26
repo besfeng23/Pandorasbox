@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useAuthContext } from '@/lib/auth/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
 import { Loader2 } from 'lucide-react';
@@ -23,7 +23,7 @@ interface ChatContainerProps {
  * Handles conversation creation, message streaming, and conversationId capture
  */
 export function ChatContainer({ initialConversationId = null }: ChatContainerProps = {}) {
-  const { user } = useAuthContext();
+  const { user } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
   const [messages, setMessages] = useState<ChatMessage[]>([]);

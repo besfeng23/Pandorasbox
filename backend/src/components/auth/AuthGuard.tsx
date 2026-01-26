@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { useAuthContext } from '@/lib/auth/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 import { Loader2 } from 'lucide-react';
 
 interface AuthGuardProps {
@@ -21,7 +21,7 @@ export function AuthGuard({
   requireAuth = true,
   redirectTo = '/login' 
 }: AuthGuardProps) {
-  const { user, isLoading } = useAuthContext();
+  const { user, isLoading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 

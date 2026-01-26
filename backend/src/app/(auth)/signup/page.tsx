@@ -1,10 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { signUp } from '@/lib/auth/auth-actions';
-import { getAuth } from '@/lib/firebase/firebase-client';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '@/lib/firebase/firebase-client';
+import { createSession } from '@/app/auth/actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,10 +11,8 @@ import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function SignUpPage() {
-  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,25 +21,17 @@ export default function SignUpPage() {
     setIsLoading(true);
     setError(null);
 
-    // Validate passwords match
-    if (password !== confirmPassword) {
-      setError("Passwords don't match.");
-      setIsLoading(false);
-      return;
-    }
-
     try {
-      // Step 1: Create user with Firebase Client SDK
-      const auth = getAuth();
+      // Create user with Firebase Client SDK (automatically logs in)
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       
-      // Step 2: Get ID token
+      // Get the ID token
       const idToken = await userCredential.user.getIdToken();
-
-      // Step 3: Call Server Action to create session cookie
-      await signUp(idToken);
       
-      // Redirect happens in the Server Action
+      // Pass token to Server Action to create session
+      await createSession(idToken);
+      
+      // Note: createSession will redirect, so we won't reach here
     } catch (error: any) {
       console.error('Signup error:', error);
       
@@ -62,6 +51,9 @@ export default function SignUpPage() {
           case 'auth/weak-password':
             errorMessage = 'Password is too weak. Please use a stronger password.';
             break;
+          case 'auth/network-request-failed':
+            errorMessage = 'Network error. Please check your connection.';
+            break;
           default:
             errorMessage = error.message || 'Failed to create account. Please try again.';
         }
@@ -70,7 +62,6 @@ export default function SignUpPage() {
       }
       
       setError(errorMessage);
-    } finally {
       setIsLoading(false);
     }
   };
@@ -117,20 +108,6 @@ export default function SignUpPage() {
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Confirm Password</Label>
-            <Input
-              id="confirmPassword"
-              type="password"
-              placeholder="••••••••"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-              disabled={isLoading}
-              minLength={6}
-            />
-          </div>
-
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Sign Up
@@ -147,4 +124,3 @@ export default function SignUpPage() {
     </div>
   );
 }
-

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppLayout } from '@/components/dashboard/app-layout';
-import { useAuthContext } from '@/lib/auth/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 import { useFirestore } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -19,7 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ErrorBoundary } from '@/components/error-boundary';
 
 export default function DashboardPage() {
-  const { user, isLoading: userLoading } = useAuthContext();
+  const { user, isLoading: userLoading } = useAuth();
   const router = useRouter();
   const db = useFirestore();
   const { toast } = useToast();
