@@ -4,44 +4,10 @@ import 'server-only';
 import { QdrantClient } from '@qdrant/qdrant-js';
 
 /**
- * PointStruct type definition for Qdrant points
- * Represents a point with an ID, vector, and optional payload
+ * Primary vector collection name for Pandora's Box memory storage
+ * This collection stores conversation memories and knowledge embeddings
  */
-export type PointStruct = {
-  id: string | number;
-  vector: number[];
-  payload?: Record<string, any>;
-};
-
-/**
- * ScoredPoint type definition for Qdrant search results
- * Represents a point with a similarity score from a search operation
- */
-export type ScoredPoint = {
-  id: string | number;
-  version?: number;
-  score: number;
-  payload?: Record<string, unknown> | { [key: string]: unknown } | null;
-  vector?: number[] | Record<string, unknown> | number[][] | null;
-  shard_key?: string | number | null;
-  order_value?: number | null;
-};
-
-/**
- * Filter type definition for Qdrant search filters
- * Used to filter search results based on payload conditions
- */
-export type Filter = {
-  must?: Array<{
-    key: string;
-    match?: { value: string | number | boolean };
-    range?: { [key: string]: { gte?: number; lte?: number; gt?: number; lt?: number } };
-    [key: string]: any;
-  }>;
-  should?: Array<any>;
-  must_not?: Array<any>;
-  [key: string]: any;
-};
+export const PANDORA_MEMORY_V1 = 'PANDORA_MEMORY_V1';
 
 /**
  * Global type declaration for Next.js hot-reload support
@@ -79,51 +45,10 @@ function getQdrantUrl(): string {
 }
 
 /**
- * Get Qdrant API key from environment variables
- * @returns The Qdrant API key
- * @throws Error if QDRANT_API_KEY is not set
- */
-function getQdrantApiKey(): string {
-  const apiKey = process.env.QDRANT_API_KEY;
-
-  if (!apiKey) {
-    throw new Error(
-      'QDRANT_API_KEY environment variable is required. Please set it in your .env.local file.'
-    );
-  }
-
-  return apiKey;
-}
-
-/**
- * Get embedding vector dimension from environment variables
- * @returns The vector dimension as a number
- * @throws Error if EMBEDDING_VECTOR_DIMENSION is not set or invalid
- */
-function getEmbeddingVectorDimension(): number {
-  const dimension = process.env.EMBEDDING_VECTOR_DIMENSION;
-
-  if (!dimension) {
-    throw new Error(
-      'EMBEDDING_VECTOR_DIMENSION environment variable is required. Please set it in your .env.local file (e.g., EMBEDDING_VECTOR_DIMENSION=1536).'
-    );
-  }
-
-  const dimensionNumber = parseInt(dimension, 10);
-
-  if (isNaN(dimensionNumber) || dimensionNumber <= 0) {
-    throw new Error(
-      `Invalid EMBEDDING_VECTOR_DIMENSION value. Expected a positive integer. Received: ${dimension}`
-    );
-  }
-
-  return dimensionNumber;
-}
-
-/**
  * Initialize Qdrant client singleton instance
  * Uses globalThis to persist across Next.js hot-reloads in development
  * This ensures only one client instance is created for optimal performance
+ * and efficient connection pooling across serverless functions
  */
 function initializeQdrantClient(): QdrantClient {
   // Check globalThis first (for Next.js hot-reload support)
@@ -133,17 +58,25 @@ function initializeQdrantClient(): QdrantClient {
 
   try {
     const url = getQdrantUrl();
-    const apiKey = getQdrantApiKey();
+    const apiKey = process.env.QDRANT_API_KEY; // Optional, only if authentication is enabled
 
-    const client = new QdrantClient({
+    const clientConfig: { url: string; apiKey?: string } = {
       url,
-      apiKey,
-    });
+    };
+
+    // Add API key if provided (for authenticated Qdrant instances)
+    if (apiKey) {
+      clientConfig.apiKey = apiKey;
+    }
+
+    const client = new QdrantClient(clientConfig);
 
     // Store in globalThis for Next.js hot-reload persistence
     globalThis.__qdrantVectorClient = client;
 
-    console.log(`[Qdrant Vector Client] Initialized client for ${url}`);
+    console.log(
+      `[Qdrant Vector Client] Initialized client for ${url}${apiKey ? ' (with API key)' : ''}`
+    );
 
     return client;
   } catch (error: any) {
@@ -154,196 +87,104 @@ function initializeQdrantClient(): QdrantClient {
 }
 
 /**
- * Returns the singleton QdrantClient instance
- * Initializes the client if it hasn't been initialized yet
- * 
- * @returns The QdrantClient singleton instance
- * @throws Error if client initialization fails or if called on client-side
+ * Exported Qdrant client instance
+ * This is a singleton that is initialized on first import
+ * Uses the standard singleton pattern for optimal performance
+ * Ready for use in Next.js API routes or Server Actions
  * 
  * @example
  * ```ts
- * import { getVectorClient } from '@/lib/vector/qdrant-client';
+ * import { qdrantClient, PANDORA_MEMORY_V1 } from '@/lib/vector/qdrant-client';
  * 
  * // In an API route or Server Action
- * const client = getVectorClient();
- * const collections = await client.getCollections();
+ * const collections = await qdrantClient.getCollections();
+ * 
+ * // Upsert vectors to the primary collection
+ * await qdrantClient.upsert(PANDORA_MEMORY_V1, {
+ *   points: [{ id: '1', vector: [0.1, 0.2, 0.3] }]
+ * });
  * ```
  */
-export function getVectorClient(): QdrantClient {
+export const qdrantClient: QdrantClient = (() => {
   // Prevent client-side usage
   if (typeof window !== 'undefined') {
     throw new Error(
-      'Qdrant client can only be used on the server side. This function must be called from API routes or Server Actions.'
+      'Qdrant client can only be used on the server side. This must be imported in API routes or Server Actions.'
     );
   }
 
   return initializeQdrantClient();
-}
+})();
 
 /**
- * Ensures a Qdrant collection exists, creating it if it doesn't
- * Uses the EMBEDDING_VECTOR_DIMENSION from environment variables for vector size
- * Collections are created with COSINE distance metric and HNSW indexing
+ * Ensures the PANDORA_MEMORY_V1 collection exists, creating it if it doesn't
+ * This function checks if the collection exists and creates it with the specified
+ * configuration optimized for Cosine similarity searches with 1536-dimensional vectors
  * 
- * @param collectionName The name of the collection to ensure exists
+ * Collection Configuration:
+ * - Vector dimension: 1536 (standard for modern embeddings like OpenAI's text-embedding-ada-002)
+ * - Distance metric: Cosine (optimized for similarity searches)
+ * - HNSW indexing: Enabled for efficient approximate nearest neighbor search
+ * 
  * @returns Promise<void> Resolves when the collection is guaranteed to exist
- * @throws Error if collection creation fails or if required environment variables are missing
+ * @throws Error if collection creation fails or if connection errors occur during initialization
  * 
  * @example
  * ```ts
- * import { ensureCollection } from '@/lib/vector/qdrant-client';
+ * import { ensureCollectionExists } from '@/lib/vector/qdrant-client';
  * 
- * // Ensure a collection exists (uses EMBEDDING_VECTOR_DIMENSION from env)
- * await ensureCollection('my_collection');
+ * // Ensure the memory collection exists before operations
+ * await ensureCollectionExists();
  * ```
  */
-export async function ensureCollection(collectionName: string): Promise<void> {
+export async function ensureCollectionExists(): Promise<void> {
   try {
-    const client = getVectorClient();
-    const vectorDimension = getEmbeddingVectorDimension();
-
     // Check if collection exists
-    const existsResult = await client.collectionExists(collectionName);
+    const existsResult = await qdrantClient.collectionExists(PANDORA_MEMORY_V1);
 
     if (existsResult.exists) {
-      console.log(`[Qdrant Vector Client] Collection '${collectionName}' already exists`);
+      console.log(`[Qdrant Vector Client] Collection '${PANDORA_MEMORY_V1}' already exists`);
       return;
     }
 
     // Collection doesn't exist, create it
     console.log(
-      `[Qdrant Vector Client] Creating collection '${collectionName}' with vector dimension ${vectorDimension}...`
+      `[Qdrant Vector Client] Creating collection '${PANDORA_MEMORY_V1}' with vector dimension 1536 (Cosine similarity)...`
     );
 
-    await client.createCollection(collectionName, {
+    await qdrantClient.createCollection(PANDORA_MEMORY_V1, {
       vectors: {
-        size: vectorDimension,
-        distance: 'Cosine', // COSINE distance metric as specified
+        size: 1536, // Standard dimension for modern embeddings
+        distance: 'Cosine', // Cosine similarity for optimal semantic search
       },
       // Enable HNSW indexing for efficient similarity search
       hnsw_config: {
-        m: 16, // Number of edges per node (default: 16)
-        ef_construct: 100, // Number of neighbours to consider during index building
-        full_scan_threshold: 10000, // Full-scan threshold in KB
-        max_indexing_threads: 0, // Auto-select threads (0 = automatic)
+        m: 16, // Number of edges per node (default: 16, good balance of accuracy and space)
+        ef_construct: 100, // Number of neighbours to consider during index building (default: 100)
+        full_scan_threshold: 10000, // Full-scan threshold in KB (default: 10000)
+        max_indexing_threads: 0, // Auto-select threads (0 = automatic, typically 8-16 threads)
       },
     });
 
-    console.log(`[Qdrant Vector Client] Collection '${collectionName}' created successfully`);
+    console.log(`[Qdrant Vector Client] Collection '${PANDORA_MEMORY_V1}' created successfully`);
   } catch (error: any) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error(
-      `[Qdrant Vector Client] Failed to ensure collection '${collectionName}': ${errorMessage}`
+      `[Qdrant Vector Client] Failed to ensure collection '${PANDORA_MEMORY_V1}': ${errorMessage}`
     );
-    throw new Error(`Failed to ensure collection '${collectionName}': ${errorMessage}`);
-  }
-}
-
-/**
- * Upserts vectors into a Qdrant collection
- * Wrapper around qdrantClient.upsert for consistent error handling
- * 
- * @param collectionName The name of the collection to upsert into
- * @param points Array of PointStruct points to upsert
- * @returns Promise<void> Resolves when the upsert operation completes
- * @throws Error if the upsert operation fails
- * 
- * @example
- * ```ts
- * import { upsertVectors } from '@/lib/vector/qdrant-client';
- * 
- * await upsertVectors('my_collection', [
- *   {
- *     id: 'point-1',
- *     vector: [0.1, 0.2, 0.3],
- *     payload: { text: 'Sample text' }
- *   }
- * ]);
- * ```
- */
-export async function upsertVectors(
-  collectionName: string,
-  points: PointStruct[]
-): Promise<void> {
-  try {
-    const client = getVectorClient();
-
-    await client.upsert(collectionName, {
-      wait: true, // Wait for the operation to complete
-      points,
-    });
-
-    console.log(
-      `[Qdrant Vector Client] Successfully upserted ${points.length} point(s) into collection '${collectionName}'`
-    );
-  } catch (error: any) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error(
-      `[Qdrant Vector Client] Failed to upsert vectors into '${collectionName}': ${errorMessage}`
-    );
-    throw new Error(
-      `Failed to upsert vectors into collection '${collectionName}': ${errorMessage}`
-    );
-  }
-}
-
-/**
- * Searches for similar vectors in a Qdrant collection
- * Wrapper around qdrantClient.search for consistent error handling
- * 
- * @param collectionName The name of the collection to search in
- * @param vector The query vector to search with
- * @param limit Maximum number of results to return
- * @param filters Optional filter conditions to apply to the search
- * @returns Promise<ScoredPoint[]> Array of scored points matching the query
- * @throws Error if the search operation fails
- * 
- * @example
- * ```ts
- * import { searchVectors } from '@/lib/vector/qdrant-client';
- * 
- * const results = await searchVectors(
- *   'my_collection',
- *   [0.1, 0.2, 0.3],
- *   10,
- *   {
- *     must: [
- *       { key: 'userId', match: { value: 'user-123' } }
- *     ]
- *   }
- * );
- * ```
- */
-export async function searchVectors(
-  collectionName: string,
-  vector: number[],
-  limit: number,
-  filters?: Filter
-): Promise<ScoredPoint[]> {
-  try {
-    const client = getVectorClient();
-
-    const searchResult = await client.search(collectionName, {
-      vector,
-      limit,
-      filter: filters as any, // Type assertion for filter structure
-      with_payload: true, // Include payload in results
-      with_vector: false, // Don't return vectors to save bandwidth
-    });
-
-    console.log(
-      `[Qdrant Vector Client] Search in '${collectionName}' returned ${searchResult.length} result(s)`
-    );
-
-    // Type assertion to match Qdrant's actual return type
-    return searchResult as ScoredPoint[];
-  } catch (error: any) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error(
-      `[Qdrant Vector Client] Failed to search vectors in '${collectionName}': ${errorMessage}`
-    );
-    throw new Error(
-      `Failed to search vectors in collection '${collectionName}': ${errorMessage}`
-    );
+    
+    // Provide more context for connection errors
+    if (
+      errorMessage.includes('ECONNREFUSED') ||
+      errorMessage.includes('ENOTFOUND') ||
+      errorMessage.includes('fetch failed') ||
+      errorMessage.includes('network')
+    ) {
+      throw new Error(
+        `Failed to connect to Qdrant at ${process.env.QDRANT_URL || 'QDRANT_URL'}. Please verify the service is running and the URL is correct.`
+      );
+    }
+    
+    throw new Error(`Failed to ensure collection '${PANDORA_MEMORY_V1}': ${errorMessage}`);
   }
 }

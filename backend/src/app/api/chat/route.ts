@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateStream, type ChatMessage } from '@/lib/llm/llm-client';
+import { streamChatCompletion, type ChatMessage } from '@/lib/llm/llm-client';
 import { handleOptions, corsHeaders } from '@/lib/cors';
 
 /**
@@ -85,10 +85,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 4. Call generateStream to get the streaming response from LLM
-    const llmResponse = await generateStream(prompt, history || []);
+    // 4. Build messages array from history and current prompt
+    const messages: ChatMessage[] = [
+      ...(history || []),
+      { role: 'user', content: prompt },
+    ];
 
-    // 5. Verify the response has a readable body
+    // 5. Call streamChatCompletion to get the streaming response from LLM
+    const llmResponse = await streamChatCompletion(messages);
+
+    // 6. Verify the response has a readable body
     if (!llmResponse.body) {
       console.error('[Chat API] LLM response does not have a readable stream body');
       return NextResponse.json(
@@ -97,7 +103,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 6. Proxy the raw response body with SSE headers
+    // 7. Proxy the raw response body with SSE headers
     return new Response(llmResponse.body, {
       status: 200,
       headers: {
@@ -112,7 +118,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error: any) {
-    // 7. Error handling - return 500 status for LLM API connection failures
+    // 8. Error handling - return 500 status for LLM API connection failures
     console.error('[Chat API] Error processing chat request:', error);
 
     // Provide user-friendly error messages

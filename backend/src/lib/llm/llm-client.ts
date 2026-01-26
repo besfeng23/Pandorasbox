@@ -13,7 +13,7 @@ export type ChatMessage = {
 
 /**
  * Get LLM API base URL from environment variables
- * @returns The LLM API base URL (without /v1/chat/completions)
+ * @returns The LLM API base URL
  * @throws Error if LLM_API_URL is not set
  */
 function getLLMApiUrl(): string {
@@ -39,106 +39,89 @@ function getLLMApiUrl(): string {
 }
 
 /**
- * Get chat model name from environment variables
- * @returns The chat model name
- * @throws Error if CHAT_MODEL_NAME is not set
- */
-function getChatModelName(): string {
-  const chatModelName = process.env.CHAT_MODEL_NAME;
-
-  if (!chatModelName) {
-    throw new Error(
-      'CHAT_MODEL_NAME environment variable is required. Please set it in your .env.local file (e.g., CHAT_MODEL_NAME=mistralai/Mistral-7B-Instruct-v0.3).'
-    );
-  }
-
-  return chatModelName;
-}
-
-/**
- * Get embedding model name from environment variables
- * @returns The embedding model name
- * @throws Error if EMBEDDING_MODEL_NAME is not set
- */
-function getEmbeddingModelName(): string {
-  const embeddingModelName = process.env.EMBEDDING_MODEL_NAME;
-
-  if (!embeddingModelName) {
-    throw new Error(
-      'EMBEDDING_MODEL_NAME environment variable is required. Please set it in your .env.local file (e.g., EMBEDDING_MODEL_NAME=bge-small-en-v1.5).'
-    );
-  }
-
-  return embeddingModelName;
-}
-
-/**
- * Generate streaming chat completion from the LLM API
+ * Stream chat completion from the LLM API
  * Sends a POST request to the chat completions endpoint with streaming enabled
- * Returns the raw ReadableStream from the response body for efficient streaming
+ * Returns the raw Response object directly, allowing the caller to handle stream piping
  * 
  * @param messages Array of chat messages with role and content
- * @returns Promise<ReadableStream<Uint8Array>> The raw response body stream
- * @throws Error if environment variables are missing, if the request fails, or if the response is not streamable
+ * @returns Promise<Response> The raw Response object from the fetch request
+ * @throws Error if LLM_API_URL is not configured, if the request fails, or if connection errors occur
  * 
  * @example
  * ```ts
- * import { generateChatStream } from '@/lib/llm/llm-client';
+ * import { streamChatCompletion } from '@/lib/llm/llm-client';
  * 
- * const stream = await generateChatStream([
+ * // In a Next.js API route
+ * const response = await streamChatCompletion([
  *   { role: 'system', content: 'You are a helpful assistant.' },
  *   { role: 'user', content: 'Hello, how are you?' }
  * ]);
  * 
- * // Pipe the stream to the client
- * return new Response(stream, {
- *   headers: {
- *     'Content-Type': 'text/event-stream',
- *     'Cache-Control': 'no-cache',
- *     'Connection': 'keep-alive',
- *   },
- * });
+ * // Return the response directly, allowing Next.js to handle streaming
+ * return response;
  * ```
  */
-export async function generateChatStream(
+export async function streamChatCompletion(
   messages: ChatMessage[]
-): Promise<ReadableStream<Uint8Array>> {
+): Promise<Response> {
+  // Ensure this is only called server-side
+  if (typeof window !== 'undefined') {
+    throw new Error(
+      'streamChatCompletion can only be used on the server side. This must be called from API routes or Server Actions.'
+    );
+  }
+
   try {
     const apiUrl = getLLMApiUrl();
-    const modelName = getChatModelName();
     const endpoint = `${apiUrl}/v1/chat/completions`;
 
-    // Prepare request body for streaming chat API
+    // Prepare request headers
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+
+    // Add Authorization header if API key is provided
+    if (process.env.LLM_API_KEY) {
+      headers['Authorization'] = `Bearer ${process.env.LLM_API_KEY}`;
+    }
+
+    // Prepare request body with streaming enabled
     const requestBody = {
       messages,
       stream: true,
-      model: modelName,
+      model: process.env.LLM_MODEL || 'llama-3', // Default model
+      temperature: parseFloat(process.env.LLM_TEMPERATURE || '0.7'),
+      max_tokens: parseInt(process.env.LLM_MAX_TOKENS || '2048', 10),
     };
 
-    // Make the fetch request
+    // Make the fetch request with streaming enabled
     const response = await fetch(endpoint, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify(requestBody),
     });
 
     // Check if the request was successful
     if (!response.ok) {
-      const errorText = await response.text().catch(() => 'Unknown error');
+      let errorBody: string;
+      try {
+        errorBody = await response.text();
+      } catch {
+        errorBody = 'Unable to read error response body';
+      }
       throw new Error(
-        `LLM chat API request failed: ${response.status} ${response.statusText}. ${errorText}`
+        `LLM API chat completion request failed: ${response.status} ${response.statusText}. ${errorBody}`
       );
     }
 
     // Verify that the response has a readable stream body
     if (!response.body) {
-      throw new Error('LLM chat API response does not have a readable stream body');
+      throw new Error('LLM API response does not have a readable stream body');
     }
 
-    // Return the raw ReadableStream for efficient streaming
-    return response.body;
+    // Return the raw Response object directly
+    // The caller (Next.js API route) can handle the stream piping
+    return response;
   } catch (error: any) {
     // Provide helpful error messages for common issues
     if (error instanceof Error) {
@@ -146,70 +129,87 @@ export async function generateChatStream(
       if (
         error.message.includes('fetch failed') ||
         error.message.includes('ECONNREFUSED') ||
-        error.message.includes('ENOTFOUND')
+        error.message.includes('ENOTFOUND') ||
+        error.message.includes('ECONNRESET')
       ) {
+        const apiUrl = process.env.LLM_API_URL || 'LLM_API_URL';
         throw new Error(
-          `Failed to connect to LLM API at ${process.env.LLM_API_URL || 'LLM_API_URL'}. Please verify the service is running and the URL is correct.`
+          `Failed to connect to LLM API at ${apiUrl}. Please verify the service is running and the URL is correct.`
         );
       }
       throw error;
     }
 
     // Handle unknown errors
-    throw new Error(`LLM chat API request failed: ${error?.message || 'Unknown error'}`);
+    throw new Error(`LLM API chat completion request failed: ${error?.message || 'Unknown error'}`);
   }
 }
 
 /**
- * Generate embeddings for text or array of texts
+ * Generate embeddings for an array of texts
  * Sends a POST request to the embeddings endpoint and parses the response
- * Returns an array of embedding vectors (number[][])
+ * Returns an array of embedding vectors (number[][]) with 1536 dimensions
  * 
- * @param text Single text string or array of text strings to generate embeddings for
+ * @param texts Array of text strings to generate embeddings for
  * @returns Promise<number[][]> Array of embedding vectors, one per input text
- * @throws Error if environment variables are missing, if the request fails, or if the response structure is unexpected
+ * @throws Error if LLM_API_URL is not configured, if the request fails, or if the response structure is unexpected
  * 
  * @example
  * ```ts
- * import { generateEmbedding } from '@/lib/llm/llm-client';
+ * import { getEmbeddings } from '@/lib/llm/llm-client';
  * 
- * // Single text
- * const embedding = await generateEmbedding('Hello, world!');
- * // Returns: [[0.1, 0.2, 0.3, ...]]
- * 
- * // Multiple texts
- * const embeddings = await generateEmbedding(['Text 1', 'Text 2']);
+ * // Generate embeddings for multiple texts
+ * const embeddings = await getEmbeddings(['Text 1', 'Text 2']);
  * // Returns: [[0.1, 0.2, ...], [0.3, 0.4, ...]]
+ * // Each embedding is a 1536-dimensional vector
  * ```
  */
-export async function generateEmbedding(
-  text: string | string[]
-): Promise<number[][]> {
+export async function getEmbeddings(texts: string[]): Promise<number[][]> {
+  // Ensure this is only called server-side
+  if (typeof window !== 'undefined') {
+    throw new Error(
+      'getEmbeddings can only be used on the server side. This must be called from API routes or Server Actions.'
+    );
+  }
+
   try {
     const apiUrl = getLLMApiUrl();
-    const modelName = getEmbeddingModelName();
     const endpoint = `${apiUrl}/v1/embeddings`;
 
+    // Prepare request headers
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+
+    // Add Authorization header if API key is provided
+    if (process.env.LLM_API_KEY) {
+      headers['Authorization'] = `Bearer ${process.env.LLM_API_KEY}`;
+    }
+
     // Prepare request body
+    // Use model name for 1536-dimensional embeddings (e.g., text-embedding-ada-002)
     const requestBody = {
-      input: text,
-      model: modelName,
+      input: texts,
+      model: process.env.EMBEDDING_MODEL || 'text-embedding-ada-002', // Default model for 1536 dimensions
     };
 
     // Make the fetch request
     const response = await fetch(endpoint, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify(requestBody),
     });
 
     // Check if the request was successful
     if (!response.ok) {
-      const errorText = await response.text().catch(() => 'Unknown error');
+      let errorBody: string;
+      try {
+        errorBody = await response.text();
+      } catch {
+        errorBody = 'Unable to read error response body';
+      }
       throw new Error(
-        `LLM embeddings API request failed: ${response.status} ${response.statusText}. ${errorText}`
+        `LLM API embeddings request failed: ${response.status} ${response.statusText}. ${errorBody}`
       );
     }
 
@@ -235,11 +235,20 @@ export async function generateEmbedding(
     });
 
     // Validate that we got the expected number of embeddings
-    const inputArray = Array.isArray(text) ? text : [text];
-    if (embeddings.length !== inputArray.length) {
+    if (embeddings.length !== texts.length) {
       throw new Error(
-        `Embeddings count mismatch. Expected ${inputArray.length} embeddings, received ${embeddings.length}`
+        `Embeddings count mismatch. Expected ${texts.length} embeddings, received ${embeddings.length}`
       );
+    }
+
+    // Validate embedding dimensions (should be 1536 for text-embedding-ada-002)
+    const expectedDimension = 1536;
+    for (let i = 0; i < embeddings.length; i++) {
+      if (embeddings[i].length !== expectedDimension) {
+        throw new Error(
+          `Embedding dimension mismatch at index ${i}. Expected ${expectedDimension} dimensions, received ${embeddings[i].length}`
+        );
+      }
     }
 
     return embeddings;
@@ -250,16 +259,18 @@ export async function generateEmbedding(
       if (
         error.message.includes('fetch failed') ||
         error.message.includes('ECONNREFUSED') ||
-        error.message.includes('ENOTFOUND')
+        error.message.includes('ENOTFOUND') ||
+        error.message.includes('ECONNRESET')
       ) {
+        const apiUrl = process.env.LLM_API_URL || 'LLM_API_URL';
         throw new Error(
-          `Failed to connect to LLM API at ${process.env.LLM_API_URL || 'LLM_API_URL'}. Please verify the service is running and the URL is correct.`
+          `Failed to connect to LLM API at ${apiUrl}. Please verify the service is running and the URL is correct.`
         );
       }
       throw error;
     }
 
     // Handle unknown errors
-    throw new Error(`LLM embeddings API request failed: ${error?.message || 'Unknown error'}`);
+    throw new Error(`LLM API embeddings request failed: ${error?.message || 'Unknown error'}`);
   }
 }

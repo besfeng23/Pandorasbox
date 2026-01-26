@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/lib/firebase/firebase-client';
-import { createSession } from '@/app/auth/actions';
+import { getFirebaseAuth } from '@/lib/firebase/client';
+import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,6 +16,15 @@ export default function SignUpPage() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (!loading && user) {
+      router.push('/');
+    }
+  }, [user, loading, router]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -22,16 +32,12 @@ export default function SignUpPage() {
     setError(null);
 
     try {
+      const auth = getFirebaseAuth();
       // Create user with Firebase Client SDK (automatically logs in)
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      await createUserWithEmailAndPassword(auth, email, password);
       
-      // Get the ID token
-      const idToken = await userCredential.user.getIdToken();
-      
-      // Pass token to Server Action to create session
-      await createSession(idToken);
-      
-      // Note: createSession will redirect, so we won't reach here
+      // Redirect to root path on successful account creation
+      router.push('/');
     } catch (error: any) {
       console.error('Signup error:', error);
       
@@ -65,6 +71,15 @@ export default function SignUpPage() {
       setIsLoading(false);
     }
   };
+
+  // Show loading state while checking auth status
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">

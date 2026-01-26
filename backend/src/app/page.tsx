@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppLayout } from '@/components/dashboard/app-layout';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/hooks/use-auth';
+import { LogoutButton } from '@/components/auth/logout-button';
 import { useFirestore } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -108,11 +109,16 @@ export default function DashboardPage() {
               </div>
           ) : (
               <div className="w-full max-w-4xl mx-auto space-y-8">
-                  <div className="space-y-2">
-                      <h1 className="font-headline text-4xl font-bold tracking-tight">Welcome back, {user.displayName || 'Explorer'}!</h1>
-                      <p className="text-lg text-muted-foreground">
-                          Here's what you've been working on.
-                      </p>
+                  <div className="flex items-start justify-between">
+                      <div className="space-y-2">
+                          <h1 className="font-headline text-4xl font-bold tracking-tight">Welcome back, {user.displayName || 'Explorer'}!</h1>
+                          <p className="text-lg text-muted-foreground">
+                              Here's what you've been working on.
+                          </p>
+                      </div>
+                      <div className="w-32">
+                          <LogoutButton />
+                      </div>
                   </div>
                   <Card>
                       <CardHeader>
