@@ -1,6 +1,6 @@
 'use client';
 
-import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
+import { initializeApp, getApps, getApp as getFirebaseAppFromSDK, type FirebaseApp } from 'firebase/app';
 import { getAuth as getFirebaseAuth, type Auth } from 'firebase/auth';
 import { firebaseConfig, validateFirebaseConfig } from './firebase-config';
 

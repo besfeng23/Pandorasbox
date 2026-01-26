@@ -150,7 +150,7 @@ export async function testQdrantConnection(): Promise<void> {
       console.log('[Qdrant Test] No collections found. This is normal for a fresh Qdrant instance.');
     } else {
       collections.collections.forEach((collection) => {
-        console.log(`[Qdrant Test]   - ${collection.name} (points: ${collection.points_count || 0})`);
+        console.log(`[Qdrant Test]   - ${collection.name}`);
       });
     }
   } catch (error: any) {

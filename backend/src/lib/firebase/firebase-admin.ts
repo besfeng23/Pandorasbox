@@ -1,5 +1,3 @@
-'use server';
-
 import 'server-only';
 import admin from 'firebase-admin';
 
@@ -18,7 +16,7 @@ function initializeAdminApp(): void {
 
   // Check if app already exists (e.g., from another import)
   if (admin.apps.length > 0) {
-    adminApp = admin.apps[0];
+    adminApp = admin.apps[0]!;
     adminAuth = adminApp.auth();
     adminFirestore = adminApp.firestore();
     return;
@@ -92,7 +90,7 @@ export function getAdminApp(): admin.app.App {
     throw new Error('Firebase Admin App not initialized. Please check your configuration.');
   }
 
-  return adminApp;
+  return adminApp!; // Non-null assertion: we've checked above
 }
 
 /**
@@ -109,7 +107,7 @@ export function getAuthAdmin(): admin.auth.Auth {
     throw new Error('Firebase Admin Auth not initialized. Please check your configuration.');
   }
 
-  return adminAuth;
+  return adminAuth!; // Non-null assertion: we've checked above
 }
 
 /**
@@ -126,6 +124,6 @@ export function getFirestoreAdmin(): admin.firestore.Firestore {
     throw new Error('Firebase Admin Firestore not initialized. Please check your configuration.');
   }
 
-  return adminFirestore;
+  return adminFirestore!; // Non-null assertion: we've checked above
 }
 

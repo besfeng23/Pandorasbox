@@ -254,7 +254,7 @@ export function ChatWindow({ threadId, agentId = 'universe' }: ChatWindowProps) 
     <div className="flex h-full flex-col">
       {/* Message List */}
       <div className="flex-1 overflow-y-auto">
-        <MessageList messages={messages} user={user} />
+        <MessageList messages={messages} />
         <div ref={messagesEndRef} />
       </div>
 

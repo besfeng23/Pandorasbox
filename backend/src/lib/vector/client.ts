@@ -3,7 +3,22 @@
 import 'server-only';
 import { getQdrantClient } from '@/lib/qdrant/qdrant-client';
 import type { QdrantClient } from '@qdrant/js-client-rest';
-import type { PointStruct, ScoredPoint } from '@qdrant/js-client-rest';
+// PointStruct type definition
+type PointStruct = {
+  id: string | number;
+  vector: number[];
+  payload?: Record<string, any>;
+};
+
+type ScoredPoint = {
+  id: string | number;
+  version?: number;
+  score: number;
+  payload?: Record<string, unknown> | { [key: string]: unknown } | null;
+  vector?: number[] | Record<string, unknown> | number[][] | null;
+  shard_key?: string | number | null;
+  order_value?: number | null;
+};
 
 /**
  * Memory collection configuration constants
@@ -163,7 +178,7 @@ export async function searchMemory(
       `[Vector Client] Search returned ${searchResult.length} result(s) for user ${userId}`
     );
 
-    return searchResult;
+    return searchResult as ScoredPoint[];
   } catch (error: any) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error(`[Vector Client] Failed to search memory: ${errorMessage}`);

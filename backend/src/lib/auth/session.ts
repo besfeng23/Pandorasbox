@@ -72,9 +72,7 @@ export async function verifySessionCookie(): Promise<DecodedIdToken | null> {
     const auth = getAuthAdmin();
     
     // Verify the session cookie with revocation check
-    const decodedToken = await auth.verifySessionCookie(sessionCookie.value, {
-      checkRevoked: true,
-    });
+    const decodedToken = await auth.verifySessionCookie(sessionCookie.value, true);
 
     return decodedToken;
   } catch (error: any) {
