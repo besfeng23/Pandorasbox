@@ -1,5 +1,7 @@
 'use client';
 
+'use client';
+
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -20,9 +22,8 @@ import { useToast } from '@/hooks/use-toast';
 import { ErrorBoundary } from '@/components/error-boundary';
 
 export default function DashboardPage() {
-  const { user, isLoading: userLoading } = useAuth();
+  const { user, loading: userLoading } = useAuth();
   const router = useRouter();
-  const db = useFirestore();
   const { toast } = useToast();
 
   const [recentThreads, setRecentThreads] = useState<Thread[]>([]);

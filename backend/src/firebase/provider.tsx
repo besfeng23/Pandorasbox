@@ -32,9 +32,9 @@ export function FirebaseProvider({
   auth,
 }: {
   children: ReactNode;
-  firebaseApp: FirebaseApp;
-  firestore: Firestore;
-  auth: Auth;
+  firebaseApp: FirebaseApp | null;
+  firestore: Firestore | null;
+  auth: Auth | null;
 }) {
   return (
     <FirebaseContext.Provider
@@ -76,9 +76,14 @@ export function useFirebaseApp() {
 /**
  * Returns the Firestore instance.
  * @throws Will throw an error if the hook is not used within a FirebaseProvider.
+ * During build time, returns null instead of throwing to allow static generation.
  */
 export function useFirestore() {
   const { firestore } = useFirebase();
+  // During build time (static generation), return null instead of throwing
+  if (!firestore && typeof window === 'undefined' && process.env.NEXT_PHASE === 'phase-production-build') {
+    return null;
+  }
   if (!firestore) {
     throw new Error('Firestore not available. Context exists but firestore is null.');
   }
@@ -88,9 +93,14 @@ export function useFirestore() {
 /**
  * Returns the Auth instance.
  * @throws Will throw an error if the hook is not used within a FirebaseProvider.
+ * During build time, returns null instead of throwing to allow static generation.
  */
 export function useAuth() {
   const { auth } = useFirebase();
+  // During build time (static generation), return null instead of throwing
+  if (!auth && typeof window === 'undefined' && process.env.NEXT_PHASE === 'phase-production-build') {
+    return null;
+  }
   if (!auth) {
     throw new Error('Auth not available. Context exists but auth is null.');
   }
