@@ -197,38 +197,18 @@ const copyToLocation = (targetBaseDir, locationName) => {
 };
 
 // Copy to backend location (required)
+// NOTE: We only copy to backend location to avoid permission issues with root directory
+// The Firebase App Hosting adapter should find the file at backend/.next/standalone/.next/routes-manifest.json
 const backendSuccess = copyToLocation(backendDir, 'Backend');
 
-// Only copy to workspace root if it's safe (optional)
-// CRITICAL: Never attempt to copy to root directory - it will cause permission errors
-let workspaceSuccess = false;
-const normalizedWorkspaceRoot = path.resolve(workspaceRoot);
+// Skip workspace root copy entirely - it's optional and causes permission errors when workspace root is /
+// The backend location is sufficient for the adapter to find the routes-manifest.json
+console.log(`[Post-build] ℹ️  Skipping workspace root copy - backend location is sufficient for Firebase App Hosting adapter`);
 
-// Explicit check: if workspace root is root filesystem, skip it entirely
-if (normalizedWorkspaceRoot === '/' || normalizedWorkspaceRoot === path.sep || normalizedWorkspaceRoot.length <= 1) {
-  console.warn(`[Post-build] ⚠️  Skipping workspace root copy - path resolves to root filesystem (${normalizedWorkspaceRoot})`);
-  console.warn(`[Post-build] This is safe - the adapter will use the backend location instead.`);
-  workspaceSuccess = false; // Explicitly set to false
-} else {
-  // Additional safety: check if the target path would be at root level
-  const potentialTargetPath = path.resolve(workspaceRoot, '.next', 'standalone', '.next');
-  if (potentialTargetPath.startsWith('/.next') || potentialTargetPath === '/.next' || potentialTargetPath.length <= 6) {
-    console.warn(`[Post-build] ⚠️  Skipping workspace root copy - target path would be unsafe (${potentialTargetPath})`);
-    workspaceSuccess = false;
-  } else {
-    workspaceSuccess = copyToLocation(workspaceRoot, 'Workspace root');
-  }
-}
-
-// Only require backend location to succeed (workspace root is optional)
+// Only require backend location to succeed
 if (!backendSuccess) {
   console.error(`[Post-build] ❌ Failed to copy routes-manifest.json to backend location`);
   process.exit(1);
-}
-
-if (!workspaceSuccess) {
-  console.warn(`[Post-build] ⚠️  Warning: Skipped workspace root copy (unsafe path), but backend copy succeeded.`);
-  console.warn(`[Post-build] This is okay - the adapter should use the backend location.`);
 }
 
 console.log(`[Post-build] ✅ Post-build fix completed!`);
