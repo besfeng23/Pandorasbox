@@ -144,6 +144,10 @@ export async function getMessages(threadId: string, userId: string): Promise<Mes
 
 export async function createThread(agent: 'builder' | 'universe', userId: string) {
     try {
+        if (!userId) {
+            throw new Error('User ID is required to create a thread');
+        }
+        
         const db = getFirestoreAdmin();
         
         // 1. Get current user - Assuming userId is already passed from the frontend
@@ -166,7 +170,20 @@ export async function createThread(agent: 'builder' | 'universe', userId: string
         console.error("CRITICAL ERROR in createThread:", error);
         console.error("Error stack:", error.stack);
         console.error("Error code:", error.code);
-        throw new Error(`Failed to create thread: ${error.message}`);
+        console.error("Error message:", error.message);
+        
+        // Provide more specific error messages
+        if (error.message?.includes('Firebase Admin app not initialized')) {
+            throw new Error('Firebase Admin is not initialized. Please check your Firebase configuration.');
+        }
+        if (error.code === 'permission-denied' || error.message?.includes('permission')) {
+            throw new Error('Permission denied. Please check your Firestore security rules.');
+        }
+        if (error.code === 'unavailable' || error.message?.includes('unavailable')) {
+            throw new Error('Firestore is currently unavailable. Please try again later.');
+        }
+        
+        throw new Error(`Failed to create thread: ${error.message || 'Unknown error'}`);
     }
 }
 

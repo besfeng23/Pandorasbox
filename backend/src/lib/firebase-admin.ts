@@ -62,32 +62,44 @@ function initializeAdmin() {
     console.warn('[Firebase Admin] Failed to initialize Firebase Admin from FIREBASE_SERVICE_ACCOUNT_KEY:', error.message);
   }
 
-  // Fallback to FIREBASE_CONFIG or FIREBASE_PROJECT_ID
-  if (process.env.NODE_ENV === 'production' || process.env.FIREBASE_CONFIG) {
+  // Fallback to FIREBASE_CONFIG or FIREBASE_PROJECT_ID with ADC
+  // In Cloud Run, we should always try ADC if service account key is not available
+  if (!admin.apps.length) {
     try {
       let projectId = process.env.FIREBASE_PROJECT_ID;
       
       // Parse FIREBASE_CONFIG if projectId is missing
       if (!projectId && process.env.FIREBASE_CONFIG) {
-        const config = JSON.parse(process.env.FIREBASE_CONFIG);
-        projectId = config.projectId;
+        try {
+          const config = JSON.parse(process.env.FIREBASE_CONFIG);
+          projectId = config.projectId;
+        } catch (parseError) {
+          console.warn('[Firebase Admin] Failed to parse FIREBASE_CONFIG:', parseError);
+        }
+      }
+
+      // Also try NEXT_PUBLIC_FIREBASE_PROJECT_ID as a fallback
+      if (!projectId) {
+        projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
       }
 
       if (projectId) {
-        console.log(`[Firebase Admin] Initializing Firebase Admin with ADC for project: ${projectId}`);
+        console.log(`[Firebase Admin] Attempting to initialize Firebase Admin with ADC for project: ${projectId}`);
         admin.initializeApp({
           credential: admin.credential.applicationDefault(),
           projectId: projectId
         });
         console.log('[Firebase Admin] Successfully initialized with Application Default Credentials.');
         return;
+      } else {
+        console.warn('[Firebase Admin] No project ID found. Checked FIREBASE_PROJECT_ID, FIREBASE_CONFIG, and NEXT_PUBLIC_FIREBASE_PROJECT_ID');
       }
     } catch (error: any) {
       // During build, this might fail but that's okay - it will work at runtime
       if (error.message?.includes('Could not load the default credentials')) {
-        console.warn('[Firebase Admin] Application Default Credentials not available during build. Will use at runtime or fallback.');
+        console.warn('[Firebase Admin] Application Default Credentials not available. Will try other methods.');
       } else {
-        console.error('[Firebase Admin] Failed to initialize with ADC:', error);
+        console.warn('[Firebase Admin] Failed to initialize with ADC:', error.message || error);
       }
     }
   }
@@ -118,7 +130,23 @@ function initializeAdmin() {
   // Final fallback: Use Application Default Credentials
   if (!admin.apps.length) {
     try {
-      const projectId = process.env.FIREBASE_PROJECT_ID;
+      let projectId = process.env.FIREBASE_PROJECT_ID;
+      
+      // Try FIREBASE_CONFIG
+      if (!projectId && process.env.FIREBASE_CONFIG) {
+        try {
+          const config = JSON.parse(process.env.FIREBASE_CONFIG);
+          projectId = config.projectId;
+        } catch (parseError) {
+          console.warn('[Firebase Admin] Failed to parse FIREBASE_CONFIG in fallback:', parseError);
+        }
+      }
+      
+      // Try NEXT_PUBLIC_FIREBASE_PROJECT_ID
+      if (!projectId) {
+        projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+      }
+      
       if (!projectId) {
         throw new Error('FIREBASE_PROJECT_ID environment variable is not set. Cannot initialize Firebase Admin (fallback).');
       }
