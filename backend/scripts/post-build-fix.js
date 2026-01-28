@@ -168,22 +168,18 @@ if (workspaceRoot && workspaceRoot !== backendDir) {
 
   if (fs.existsSync(sourceStandaloneDir)) {
     // STEP 1: Fix critical modules in the SOURCE standalone directory first
-    // This ensures local runs (and start script) work correctly
     console.log('[Post-build] Fixing modules in source standalone directory...');
     const criticalModules = ['next', 'react', 'react-dom', 'sharp'];
     const sourceNodeModules = path.join(backendDir, 'node_modules'); // Original modules
     const rootNodeModules = path.join(workspaceRoot, 'node_modules');
     const standaloneNodeModules = path.join(sourceStandaloneDir, 'node_modules');
 
-    // Ensure node_modules exists in standalone
     if (!fs.existsSync(standaloneNodeModules)) {
       fs.mkdirSync(standaloneNodeModules, { recursive: true });
     }
 
     criticalModules.forEach(mod => {
       const standaloneModPath = path.join(standaloneNodeModules, mod);
-
-      // Try to find the source module
       let srcPath = path.join(sourceNodeModules, mod);
       if (!fs.existsSync(srcPath)) {
         srcPath = path.join(rootNodeModules, mod);
@@ -191,7 +187,6 @@ if (workspaceRoot && workspaceRoot !== backendDir) {
 
       if (fs.existsSync(srcPath)) {
         try {
-          // Force copy dereferenced to ensure real files replace any symlinks
           fs.cpSync(srcPath, standaloneModPath, { recursive: true, dereference: true, force: true });
           console.log(`[Post-build] ✅ Fixed '${mod}' in source standalone`);
         } catch (e) {
@@ -202,8 +197,28 @@ if (workspaceRoot && workspaceRoot !== backendDir) {
       }
     });
 
+    // STEP 1.5: Populate source standalone with static assets (needed for local start script)
+    const sourceStaticDir = path.join(nextDir, 'static');
+    const standaloneStaticDir = path.join(sourceStandaloneDir, '.next', 'static');
+    if (fs.existsSync(sourceStaticDir)) {
+      try {
+        fs.mkdirSync(path.dirname(standaloneStaticDir), { recursive: true });
+        fs.cpSync(sourceStaticDir, standaloneStaticDir, { recursive: true, force: true });
+        console.log('[Post-build] ✅ Populated source standalone with static assets');
+      } catch (e) { console.error(e); }
+    }
+
+    const sourcePublicDir = path.join(backendDir, 'public');
+    const standalonePublicDir = path.join(sourceStandaloneDir, 'public');
+    if (fs.existsSync(sourcePublicDir)) {
+      try {
+        fs.cpSync(sourcePublicDir, standalonePublicDir, { recursive: true, force: true });
+        console.log('[Post-build] ✅ Populated source standalone with public assets');
+      } catch (e) { console.error(e); }
+    }
+
+
     // STEP 2: Copy the fixed standalone directory to workspace root
-    // This satisfies the Adapter's potential requirements
     console.log(`[Post-build] Copying standalone directory to workspace root: ${targetStandaloneDir}`);
     try {
       fs.cpSync(sourceStandaloneDir, targetStandaloneDir, {
@@ -214,7 +229,6 @@ if (workspaceRoot && workspaceRoot !== backendDir) {
       });
       console.log(`[Post-build] ✅ Copied fixed standalone directory to workspace root`);
 
-      // Verify server.js in target to be sure
       if (fs.existsSync(path.join(targetStandaloneDir, 'server.js'))) {
         console.log(`[Post-build] ✅ Verified server.js in workspace root copy`);
       }
@@ -225,7 +239,7 @@ if (workspaceRoot && workspaceRoot !== backendDir) {
     console.warn(`[Post-build] ⚠️  Standalone directory not found at ${sourceStandaloneDir}`);
   }
 
-  // Also copy the static folder to workspace root
+  // Also copy the static folder to workspace root (for adapter backup)
   const sourceStaticDir = path.join(nextDir, 'static');
   const targetStaticDir = path.join(workspaceRoot, '.next', 'static');
 
