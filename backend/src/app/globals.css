@@ -111,15 +111,38 @@
 
   /* Design System: Glassmorphism utilities */
   /* Design System: Glassmorphism utilities - Apple Style */
+  /* Design System: Glassmorphism utilities - Apple Style */
   .glass-surface {
-    @apply backdrop-blur-2xl bg-white/60 saturate-150 border border-white/20 dark:bg-black/30 dark:border-white/10;
+    @apply backdrop-blur-2xl bg-white/70 saturate-150 border border-white/20 dark:bg-zinc-900/60 dark:border-white/10 shadow-sm supports-[backdrop-filter]:bg-white/60 supports-[backdrop-filter]:dark:bg-zinc-900/60;
   }
 
   .glass-surface-strong {
-    @apply backdrop-blur-2xl bg-white/80 saturate-150 border border-white/40 dark:bg-black/60 dark:border-white/10;
+    @apply backdrop-blur-2xl bg-white/90 saturate-150 border border-white/40 dark:bg-zinc-900/80 dark:border-white/10 supports-[backdrop-filter]:bg-white/80 supports-[backdrop-filter]:dark:bg-zinc-900/80;
   }
 
-  /* Scrollbar - Hidden by default, sleek on hover if needed */
+  .glass-panel {
+    @apply bg-gradient-to-br from-white/90 to-white/50 dark:from-zinc-900/90 dark:to-zinc-900/50 backdrop-blur-xl border border-white/20 dark:border-white/5 shadow-glass rounded-2xl;
+  }
+
+  /* Scrollbar - Premium thin style */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: theme('colors.muted.foreground' / 0.3);
+    border-radius: 10px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: theme('colors.muted.foreground' / 0.5);
+  }
+
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
@@ -129,13 +152,13 @@
     scrollbar-width: none;
   }
 
-  /* Focus Rings */
+  /* Focus Rings - Apple Style */
   .focus-ring-accent {
-    @apply focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2 focus-visible:ring-4 focus-visible:ring-accent/30;
+    @apply focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20 transition-shadow duration-200;
   }
 
   .focus-ring-primary {
-    @apply focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2 focus-visible:ring-4 focus-visible:ring-primary/30;
+    @apply focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20 transition-shadow duration-200;
   }
 
   /* Design System: Side padding */

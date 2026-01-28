@@ -406,13 +406,13 @@ export function AppLayout({ children, threadId }: { children: React.ReactNode; t
   const { isOpen } = useArtifactStore();
 
   return (
-    <div className="flex min-h-screen w-full bg-background overflow-hidden">
+    <div className="flex min-h-screen w-full bg-background overflow-hidden selection:bg-primary/20 selection:text-primary">
       <CommandMenu />
-      <Sidebar>
+      <Sidebar className="border-r-0 glass-surface-strong">
         <SidebarContentInternal threadId={threadId} />
       </Sidebar>
 
-      <SidebarInset className="flex flex-row overflow-hidden p-0">
+      <SidebarInset className="flex flex-row overflow-hidden p-0 bg-gradient-to-br from-background to-muted/50 dark:to-muted/10">
         <div className={cn(
           "flex flex-col flex-1 min-w-0 transition-all duration-300 ease-in-out",
           isOpen ? "hidden md:flex" : "flex"

@@ -48,6 +48,19 @@ function layoutGraph(nodes: GraphViewNode[], edges: GraphViewEdge[]) {
       label: node.label,
     },
     type: 'default',
+    style: {
+      background: 'rgba(255, 255, 255, 0.7)',
+      backdropFilter: 'blur(10px)',
+      border: '1px solid rgba(0, 0, 0, 0.1)',
+      borderRadius: '12px',
+      padding: '10px',
+      width: nodeWidth,
+      fontSize: '14px',
+      fontWeight: '500',
+      textAlign: 'center',
+      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+      color: 'inherit',
+    },
   }));
 
   const flowEdges: Edge[] = edges.map(edge => ({
@@ -57,8 +70,14 @@ function layoutGraph(nodes: GraphViewNode[], edges: GraphViewEdge[]) {
     label: edge.relation,
     animated: true,
     style: {
-      strokeWidth: Math.max(1, (edge.weight ?? 0.5) * 2),
-      stroke: '#22d3ee',
+      strokeWidth: 1.5,
+      stroke: '#94a3b8', // slate-400
+      opacity: 0.8,
+    },
+    labelStyle: {
+      fill: '#64748b', // slate-500
+      fontWeight: 500,
+      fontSize: 12,
     },
   }));
 
