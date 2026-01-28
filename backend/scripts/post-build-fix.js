@@ -1,10 +1,7 @@
 #!/usr/bin/env node
 /**
  * Post-build script to fix Firebase App Hosting adapter path issues
- * The adapter looks for manifest files at .next/standalone/.next/
- * but Next.js places them at .next/
- * 
- * This script copies all required manifest files to where the adapter expects them.
+ * Also prepares the 'deploy' directory for reliable container startup.
  */
 
 const fs = require('fs');
@@ -205,17 +202,14 @@ if (workspaceRoot && workspaceRoot !== backendDir) {
         try {
           // Force copy dereferenced to ensure real files replace any symlinks
           fs.cpSync(srcPath, standaloneModPath, { recursive: true, dereference: true, force: true });
-          console.log(`[Post-build] ✅ Fixed '${mod}' in source standalone`);
+          // console.log(`[Post-build] ✅ Fixed '${mod}' in source standalone`);
         } catch (e) {
-          // Don't warn loudly for every devDependency or missing optional, just log info
-          // console.log(`[Post-build] Info: Could not fix '${mod}' (might be dev dependency or optional): ${e.message}`);
+          // Ignore errors mostly
         }
-      } else {
-        // console.log(`[Post-build] Info: Source for '${mod}' not found.`);
       }
     });
 
-    // STEP 1.5: Populate source standalone with static assets (needed for local start script)
+    // STEP 1.5: Populate source standalone with static assets
     const sourceStaticDir = path.join(nextDir, 'static');
     const standaloneStaticDir = path.join(sourceStandaloneDir, '.next', 'static');
     if (fs.existsSync(sourceStaticDir)) {
@@ -235,9 +229,17 @@ if (workspaceRoot && workspaceRoot !== backendDir) {
       } catch (e) { console.error(e); }
     }
 
+    // STEP 1.6: Copy to backend/deploy (The runtime location) which is NOT ignored
+    const deployDir = path.join(backendDir, 'deploy');
+    console.log(`[Post-build] Copying standalone to deployment directory: ${deployDir}`);
+    if (fs.existsSync(deployDir)) {
+      fs.rmSync(deployDir, { recursive: true, force: true });
+    }
+    fs.mkdirSync(deployDir, { recursive: true });
+    fs.cpSync(sourceStandaloneDir, deployDir, { recursive: true, dereference: true, force: true });
+    console.log(`[Post-build] ✅ Copied standalone to ${deployDir}`);
 
-    // STEP 2: Copy the fixed standalone directory to workspace root
-    console.log(`[Post-build] Copying standalone directory to workspace root: ${targetStandaloneDir}`);
+    // STEP 2: Copy the fixed standalone directory to workspace root (for Adapter detection)
     try {
       fs.cpSync(sourceStandaloneDir, targetStandaloneDir, {
         recursive: true,
@@ -246,15 +248,11 @@ if (workspaceRoot && workspaceRoot !== backendDir) {
         force: true
       });
       console.log(`[Post-build] ✅ Copied fixed standalone directory to workspace root`);
-
-      if (fs.existsSync(path.join(targetStandaloneDir, 'server.js'))) {
-        console.log(`[Post-build] ✅ Verified server.js in workspace root copy`);
-      }
     } catch (error) {
-      console.warn(`[Post-build] ⚠️ Could not copy standalone directory: ${error.message}`);
+      console.warn(`[Post-build] ⚠️ Could not copy standalone to workspace root: ${error.message}`);
     }
   } else {
-    console.warn(`[Post-build] ⚠️  Standalone directory not found at ${sourceStandaloneDir}`);
+    console.warn(`[Post-build] ⚠️  Standalone directory not found so skipping deployment prep`);
   }
 
   // Also copy the static folder to workspace root (for adapter backup)
@@ -262,15 +260,11 @@ if (workspaceRoot && workspaceRoot !== backendDir) {
   const targetStaticDir = path.join(workspaceRoot, '.next', 'static');
 
   if (fs.existsSync(sourceStaticDir)) {
-    console.log(`[Post-build] Copying static folder to workspace root: ${targetStaticDir}`);
     try {
       fs.cpSync(sourceStaticDir, targetStaticDir, { recursive: true, force: true });
-      console.log(`[Post-build] ✅ Copied static folder to workspace root`);
     } catch (error) {
       console.warn(`[Post-build] ⚠️  Could not copy static folder: ${error.message}`);
     }
-  } else {
-    console.warn(`[Post-build] ⚠️  Static folder not found at ${sourceStaticDir}`);
   }
 }
 
