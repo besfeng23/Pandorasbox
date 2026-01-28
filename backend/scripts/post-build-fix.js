@@ -1,32 +1,43 @@
 #!/usr/bin/env node
 /**
  * Post-build script to fix Firebase App Hosting adapter path issues
- * The adapter looks for routes-manifest.json at .next/standalone/.next/routes-manifest.json
- * but Next.js places it at .next/routes-manifest.json
+ * The adapter looks for manifest files at .next/standalone/.next/
+ * but Next.js places them at .next/
  * 
- * This script copies the routes-manifest.json to where the adapter expects it.
+ * This script copies all required manifest files to where the adapter expects them.
  */
 
 const fs = require('fs');
 const path = require('path');
 
-// Get the backend directory - use __dirname to get the script's directory, then go up one level
-// This is more reliable than process.cwd() in containerized environments
+// List of manifest files needed by the Firebase App Hosting adapter
+const MANIFEST_FILES = [
+  'routes-manifest.json',
+  'build-manifest.json',
+  'prerender-manifest.json',
+  'app-build-manifest.json',
+  'react-loadable-manifest.json',
+];
+
+// Server-side manifest files
+const SERVER_MANIFEST_FILES = [
+  'server/middleware-manifest.json',
+  'server/middleware-build-manifest.js',
+  'server/app/page_client-reference-manifest.js',
+];
+
 const scriptDir = __dirname;
 const currentWorkingDir = process.cwd();
 
-// Try to find .next directory - it should be in the same directory as package.json
-// Check multiple possible locations
+// Try to find .next directory
 let backendDir = null;
 let nextDir = null;
-let routesManifestPath = null;
 
 // Strategy 1: If script is in backend/scripts/, backend is one level up
 if (scriptDir.includes('/backend/scripts') || scriptDir.includes('\\backend\\scripts')) {
   backendDir = path.resolve(scriptDir, '..');
   nextDir = path.join(backendDir, '.next');
-  routesManifestPath = path.join(nextDir, 'routes-manifest.json');
-  if (fs.existsSync(routesManifestPath)) {
+  if (fs.existsSync(nextDir)) {
     console.log('[Post-build] Found .next directory using script location strategy');
   } else {
     backendDir = null;
@@ -34,183 +45,128 @@ if (scriptDir.includes('/backend/scripts') || scriptDir.includes('\\backend\\scr
 }
 
 // Strategy 2: Check if .next exists in current working directory
-if (!backendDir || !fs.existsSync(routesManifestPath)) {
+if (!backendDir) {
   const cwdNextDir = path.join(currentWorkingDir, '.next');
-  const cwdRoutesManifest = path.join(cwdNextDir, 'routes-manifest.json');
-  if (fs.existsSync(cwdRoutesManifest)) {
+  if (fs.existsSync(cwdNextDir)) {
     backendDir = currentWorkingDir;
     nextDir = cwdNextDir;
-    routesManifestPath = cwdRoutesManifest;
     console.log('[Post-build] Found .next directory using current working directory strategy');
   }
 }
 
-// Strategy 3: Check if .next exists one level up from script (if script is in scripts/)
-if (!backendDir || !fs.existsSync(routesManifestPath)) {
-  const parentDir = path.resolve(scriptDir, '..');
-  const parentNextDir = path.join(parentDir, '.next');
-  const parentRoutesManifest = path.join(parentNextDir, 'routes-manifest.json');
-  if (fs.existsSync(parentRoutesManifest)) {
-    backendDir = parentDir;
-    nextDir = parentNextDir;
-    routesManifestPath = parentRoutesManifest;
-    console.log('[Post-build] Found .next directory using parent directory strategy');
-  }
-}
-
-// Fallback: Use script directory's parent
+// Strategy 3: Use script directory's parent
 if (!backendDir) {
   backendDir = path.resolve(scriptDir, '..');
   nextDir = path.join(backendDir, '.next');
-  routesManifestPath = path.join(nextDir, 'routes-manifest.json');
   console.log('[Post-build] Using fallback: script directory parent');
 }
 
-// Get workspace root (one level up from backend) - but be careful if it's root
 const workspaceRoot = path.resolve(backendDir, '..');
 
-console.log('[Post-build] Fixing routes-manifest.json location for Firebase App Hosting...');
+console.log('[Post-build] Fixing manifest files for Firebase App Hosting...');
 console.log(`[Post-build] Script dir: ${scriptDir}`);
 console.log(`[Post-build] Current working dir: ${currentWorkingDir}`);
 console.log(`[Post-build] Backend dir: ${backendDir}`);
 console.log(`[Post-build] Workspace root: ${workspaceRoot}`);
-console.log(`[Post-build] Source: ${routesManifestPath}`);
+console.log(`[Post-build] Next dir: ${nextDir}`);
 
-// Validate that backendDir is not root (safety check)
-if (backendDir === '/' || backendDir === path.sep) {
-  console.error(`[Post-build] ❌ ERROR: Backend directory resolved to root (${backendDir}). This is unsafe.`);
-  console.error(`[Post-build] Using script directory instead.`);
-  // Fallback: use script directory as backend directory
-  const fallbackBackendDir = path.resolve(scriptDir, '..');
-  if (fallbackBackendDir === '/' || fallbackBackendDir === path.sep) {
-    console.error(`[Post-build] ❌ ERROR: Fallback also resolved to root. Aborting.`);
-    process.exit(1);
-  }
-  // Recalculate paths with fallback
-  const fallbackNextDir = path.join(fallbackBackendDir, '.next');
-  const fallbackRoutesManifestPath = path.join(fallbackNextDir, 'routes-manifest.json');
-
-  // Check if source exists
-  if (!fs.existsSync(fallbackRoutesManifestPath)) {
-    console.warn(`[Post-build] ⚠️  Warning: routes-manifest.json not found at ${fallbackRoutesManifestPath}`);
-    console.warn(`[Post-build] This is normal during build phase, but should exist after Next.js build completes.`);
-    process.exit(0);
-  }
-
-  // Only copy to backend location (skip workspace root to avoid permission issues)
-  const standaloneDir = path.join(fallbackBackendDir, '.next', 'standalone');
-  const targetDir = path.join(standaloneDir, '.next');
-  const targetManifestPath = path.join(targetDir, 'routes-manifest.json');
-
-  console.log(`[Post-build] Target: ${targetManifestPath}`);
-
-  // Create target directory if it doesn't exist
-  if (!fs.existsSync(targetDir)) {
-    console.log(`[Post-build] Creating directory: ${targetDir}`);
-    try {
-      fs.mkdirSync(targetDir, { recursive: true });
-    } catch (error) {
-      console.error(`[Post-build] ❌ Failed to create directory: ${error.message}`);
-      process.exit(1);
-    }
-  }
-
-  // Copy the file
-  try {
-    fs.copyFileSync(fallbackRoutesManifestPath, targetManifestPath);
-    console.log(`[Post-build] ✅ Successfully copied routes-manifest.json`);
-
-    // Verify the copy was successful
-    if (fs.existsSync(targetManifestPath)) {
-      console.log(`[Post-build] ✅ Verification: file exists at target location`);
-      process.exit(0);
-    } else {
-      console.error(`[Post-build] ❌ Verification failed: file does not exist at target location`);
-      process.exit(1);
-    }
-  } catch (error) {
-    console.error(`[Post-build] ❌ Failed to copy: ${error.message}`);
-    process.exit(1);
-  }
-}
-
-// Check if source exists
-if (!fs.existsSync(routesManifestPath)) {
-  console.warn(`[Post-build] ⚠️  Warning: routes-manifest.json not found at ${routesManifestPath}`);
-  console.warn(`[Post-build] This is normal during build phase, but should exist after Next.js build completes.`);
+// Check if .next directory exists
+if (!fs.existsSync(nextDir)) {
+  console.warn(`[Post-build] ⚠️  Warning: .next directory not found at ${nextDir}`);
+  console.warn(`[Post-build] This is normal during build phase.`);
   process.exit(0);
 }
 
-// The adapter looks for routes-manifest.json in TWO locations:
-// 1. /workspace/backend/.next/standalone/.next/routes-manifest.json (backend standalone)
-// 2. /workspace/.next/standalone/.next/routes-manifest.json (workspace root - what adapter actually uses)
-
-const copyToLocation = (targetBaseDir, locationName) => {
-  // Safety check: don't allow root directory or paths that resolve to root
-  const normalizedBaseDir = path.resolve(targetBaseDir);
-  if (normalizedBaseDir === '/' || normalizedBaseDir === path.sep || normalizedBaseDir.length <= 1) {
-    console.warn(`[Post-build] ⚠️  Skipping ${locationName} - target directory is root or unsafe (${normalizedBaseDir})`);
-    return false;
-  }
-
-  const standaloneDir = path.join(targetBaseDir, '.next', 'standalone');
-  const targetDir = path.join(standaloneDir, '.next');
-  const targetManifestPath = path.join(targetDir, 'routes-manifest.json');
-
-  // Additional safety check: ensure target path is not at root
-  const normalizedTargetDir = path.resolve(targetDir);
-  if (normalizedTargetDir.startsWith('/.next') || normalizedTargetDir === '/.next' || normalizedTargetDir.length <= 6) {
-    console.warn(`[Post-build] ⚠️  Skipping ${locationName} - target path is unsafe (${normalizedTargetDir})`);
-    return false;
-  }
-
-  console.log(`[Post-build] ${locationName} target: ${targetManifestPath}`);
-
-  // Create target directory if it doesn't exist
-  if (!fs.existsSync(targetDir)) {
-    console.log(`[Post-build] Creating directory: ${targetDir}`);
-    try {
-      fs.mkdirSync(targetDir, { recursive: true });
-    } catch (error) {
-      console.error(`[Post-build] ❌ Failed to create directory for ${locationName}: ${error.message}`);
-      return false;
-    }
-  }
-
-  // Copy the file
+// Copy a single file to target location
+const copyFile = (sourceFile, targetFile) => {
   try {
-    fs.copyFileSync(routesManifestPath, targetManifestPath);
-    console.log(`[Post-build] ✅ Successfully copied to ${locationName}`);
-
-    // Verify the copy was successful
-    if (fs.existsSync(targetManifestPath)) {
-      console.log(`[Post-build] ✅ Verification: ${locationName} file exists`);
-      return true;
-    } else {
-      console.error(`[Post-build] ❌ Verification failed: ${locationName} file does not exist`);
-      return false;
+    // Create target directory if it doesn't exist
+    const targetDir = path.dirname(targetFile);
+    if (!fs.existsSync(targetDir)) {
+      fs.mkdirSync(targetDir, { recursive: true });
     }
+
+    fs.copyFileSync(sourceFile, targetFile);
+    console.log(`[Post-build] ✅ Copied ${path.basename(sourceFile)}`);
+    return true;
   } catch (error) {
-    console.error(`[Post-build] ❌ Failed to copy to ${locationName}: ${error.message}`);
+    console.warn(`[Post-build] ⚠️  Could not copy ${path.basename(sourceFile)}: ${error.message}`);
     return false;
   }
 };
 
-// Copy to backend location (required)
-// NOTE: We only copy to backend location to avoid permission issues with root directory
-// The Firebase App Hosting adapter should find the file at backend/.next/standalone/.next/routes-manifest.json
-const backendSuccess = copyToLocation(backendDir, 'Backend');
+// Copy manifests to a target location
+const copyManifestsToLocation = (targetBaseDir, locationName) => {
+  const normalizedBaseDir = path.resolve(targetBaseDir);
+  if (normalizedBaseDir === '/' || normalizedBaseDir === path.sep || normalizedBaseDir.length <= 1) {
+    console.warn(`[Post-build] ⚠️  Skipping ${locationName} - target directory is root or unsafe`);
+    return false;
+  }
 
-// Copy to workspace root (optional but often needed by adapter)
+  const targetStandaloneNextDir = path.join(targetBaseDir, '.next', 'standalone', '.next');
+  console.log(`[Post-build] Copying manifests to ${locationName}: ${targetStandaloneNextDir}`);
+
+  let successCount = 0;
+
+  // Copy root manifest files
+  for (const file of MANIFEST_FILES) {
+    const sourceFile = path.join(nextDir, file);
+    const targetFile = path.join(targetStandaloneNextDir, file);
+
+    if (fs.existsSync(sourceFile)) {
+      if (copyFile(sourceFile, targetFile)) {
+        successCount++;
+      }
+    }
+  }
+
+  // Copy server manifest files
+  for (const file of SERVER_MANIFEST_FILES) {
+    const sourceFile = path.join(nextDir, file);
+    const targetFile = path.join(targetStandaloneNextDir, file);
+
+    if (fs.existsSync(sourceFile)) {
+      if (copyFile(sourceFile, targetFile)) {
+        successCount++;
+      }
+    }
+  }
+
+  // Copy entire server directory if it exists (for middleware and other server files)
+  const serverDir = path.join(nextDir, 'server');
+  const targetServerDir = path.join(targetStandaloneNextDir, 'server');
+  if (fs.existsSync(serverDir)) {
+    try {
+      if (!fs.existsSync(targetServerDir)) {
+        fs.mkdirSync(targetServerDir, { recursive: true });
+      }
+      // Copy middleware-manifest.json specifically
+      const middlewareManifest = path.join(serverDir, 'middleware-manifest.json');
+      if (fs.existsSync(middlewareManifest)) {
+        copyFile(middlewareManifest, path.join(targetServerDir, 'middleware-manifest.json'));
+      }
+    } catch (error) {
+      console.warn(`[Post-build] ⚠️  Could not copy server directory: ${error.message}`);
+    }
+  }
+
+  console.log(`[Post-build] ${locationName}: Copied ${successCount} manifest files`);
+  return successCount > 0;
+};
+
+// Copy to backend location
+const backendSuccess = copyManifestsToLocation(backendDir, 'Backend');
+
+// Copy to workspace root (required by the adapter)
+let workspaceSuccess = false;
 if (workspaceRoot && workspaceRoot !== backendDir) {
-  copyToLocation(workspaceRoot, 'Workspace Root');
+  workspaceSuccess = copyManifestsToLocation(workspaceRoot, 'Workspace Root');
 }
 
-// Only require backend location to succeed
-if (!backendSuccess) {
-  console.error(`[Post-build] ❌ Failed to copy routes-manifest.json to backend location`);
+// Log result
+if (backendSuccess || workspaceSuccess) {
+  console.log(`[Post-build] ✅ Post-build fix completed!`);
+} else {
+  console.error(`[Post-build] ❌ Failed to copy manifest files`);
   process.exit(1);
 }
-
-console.log(`[Post-build] ✅ Post-build fix completed!`);
-
