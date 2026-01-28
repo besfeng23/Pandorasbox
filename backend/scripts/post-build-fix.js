@@ -225,22 +225,46 @@ if (workspaceRoot && workspaceRoot !== backendDir) {
     }
 
     // STEP 1.5: Populate source standalone with static assets
+    // In monorepo, the actual Next.js server is at standalone/backend/server.js
+    // So static files need to be at standalone/backend/.next/static/
     const sourceStaticDir = path.join(nextDir, 'static');
+
+    // Copy to root standalone/.next/static (for root-level server context)
     const standaloneStaticDir = path.join(sourceStandaloneDir, '.next', 'static');
     if (fs.existsSync(sourceStaticDir)) {
       try {
         fs.mkdirSync(path.dirname(standaloneStaticDir), { recursive: true });
         fs.cpSync(sourceStaticDir, standaloneStaticDir, { recursive: true, force: true });
-        console.log('[Post-build] ✅ Populated source standalone with static assets');
+        console.log('[Post-build] ✅ Populated standalone/.next/static');
       } catch (e) { console.error(e); }
     }
 
+    // Copy to standalone/backend/.next/static (for monorepo server context)
+    const backendStaticDir = path.join(sourceStandaloneDir, 'backend', '.next', 'static');
+    if (fs.existsSync(sourceStaticDir)) {
+      try {
+        fs.mkdirSync(path.dirname(backendStaticDir), { recursive: true });
+        fs.cpSync(sourceStaticDir, backendStaticDir, { recursive: true, force: true });
+        console.log('[Post-build] ✅ Populated standalone/backend/.next/static');
+      } catch (e) { console.error(e); }
+    }
+
+    // Copy public folder to root standalone
     const sourcePublicDir = path.join(backendDir, 'public');
     const standalonePublicDir = path.join(sourceStandaloneDir, 'public');
     if (fs.existsSync(sourcePublicDir)) {
       try {
         fs.cpSync(sourcePublicDir, standalonePublicDir, { recursive: true, force: true });
-        console.log('[Post-build] ✅ Populated source standalone with public assets');
+        console.log('[Post-build] ✅ Populated standalone with public assets');
+      } catch (e) { console.error(e); }
+    }
+
+    // Also copy public to backend subdirectory for monorepo context
+    const backendPublicDir = path.join(sourceStandaloneDir, 'backend', 'public');
+    if (fs.existsSync(sourcePublicDir)) {
+      try {
+        fs.cpSync(sourcePublicDir, backendPublicDir, { recursive: true, force: true });
+        console.log('[Post-build] ✅ Populated standalone/backend with public assets');
       } catch (e) { console.error(e); }
     }
 
