@@ -109,3 +109,9 @@ env:
     secret: tavily-api-key
     availability:
       - RUNTIME
+      
+  # Server Configuration (Fix for Cloud Run)
+  - variable: HOSTNAME
+    value: "0.0.0.0"
+    availability:
+      - RUNTIME
