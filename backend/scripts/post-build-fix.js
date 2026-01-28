@@ -178,6 +178,21 @@ if (workspaceRoot && workspaceRoot !== backendDir) {
         force: true
       });
       console.log(`[Post-build] ✅ Copied standalone directory to workspace root`);
+
+      // Verify if next module exists in target
+      const targetNextModule = path.join(targetStandaloneDir, 'node_modules', 'next');
+      if (fs.existsSync(targetNextModule)) {
+        console.log(`[Post-build] ✅ Verified: 'next' module exists in standalone node_modules`);
+      } else {
+        console.warn(`[Post-build] ⚠️  Warning: 'next' module NOT found in standalone node_modules at ${targetNextModule}`);
+        // Try to list contents of node_modules to debug
+        const targetNodeModules = path.join(targetStandaloneDir, 'node_modules');
+        if (fs.existsSync(targetNodeModules)) {
+          console.log('[Post-build] Contents of standalone node_modules:', fs.readdirSync(targetNodeModules).slice(0, 10));
+        } else {
+          console.warn('[Post-build] node_modules directory does not exist in standalone output');
+        }
+      }
     } catch (error) {
       console.warn(`[Post-build] ⚠️  Could not copy standalone directory: ${error.message}`);
 

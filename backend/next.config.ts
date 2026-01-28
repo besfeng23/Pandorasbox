@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
   // Fix workspace root detection for Firebase App Hosting
   // When building in a monorepo, set this to the backend directory
   // This prevents Next.js from inferring the wrong workspace root
-  outputFileTracingRoot: path.resolve(__dirname),
+  outputFileTracingRoot: path.resolve(__dirname, '..'),
 
   // Enable standalone output for Cloud Run (required for Firebase App Hosting)
   // Enable standalone output for Cloud Run (required for Firebase App Hosting)
