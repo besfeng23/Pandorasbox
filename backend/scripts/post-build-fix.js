@@ -191,23 +191,28 @@ if (workspaceRoot && workspaceRoot !== backendDir) {
       fs.mkdirSync(standaloneNodeModules, { recursive: true });
     }
 
-    // BRUTE FORCE: Copy ALL node_modules to ensure nothing is missing (resolves require-hook failures)
-    console.log('[Post-build] Copying ALL node_modules to standalone (Brute Force)...');
+    // FRESH INSTALL: Run npm install in standalone to ensure valid node_modules
+    console.log('[Post-build] Running npm install in standalone directory...');
+    const execSync = require('child_process').execSync;
+    try {
+      const pkgJson = path.join(sourceStandaloneDir, 'package.json');
+      if (!fs.existsSync(pkgJson)) {
+        console.log('[Post-build] package.json missing in standalone, copying from backend...');
+        const srcPkg = path.join(backendDir, 'package.json');
+        if (fs.existsSync(srcPkg)) {
+          fs.copyFileSync(srcPkg, pkgJson);
+        }
+      }
 
-    // 1. Copy root modules (dereference to handle pnpm)
-    if (fs.existsSync(rootNodeModules)) {
-      try {
-        fs.cpSync(rootNodeModules, standaloneNodeModules, { recursive: true, dereference: true, force: false });
-        console.log('[Post-build] ✅ Copied root node_modules');
-      } catch (e) { console.warn(`[Post-build] ⚠️ Root modules copy warning: ${e.message}`); }
-    }
-
-    // 2. Copy backend modules (ensure they override root if specific versions needed)
-    if (fs.existsSync(sourceNodeModules) && path.resolve(sourceNodeModules) !== path.resolve(rootNodeModules)) {
-      try {
-        fs.cpSync(sourceNodeModules, standaloneNodeModules, { recursive: true, dereference: true, force: true });
-        console.log('[Post-build] ✅ Copied backend node_modules');
-      } catch (e) { console.warn(`[Post-build] ⚠️ Backend modules copy warning: ${e.message}`); }
+      // Run install using npm to flatten dependencies
+      execSync('npm install --omit=dev --no-package-lock --no-audit', {
+        cwd: sourceStandaloneDir,
+        stdio: 'inherit',
+        env: { ...process.env, NODE_ENV: 'production' }
+      });
+      console.log('[Post-build] ✅ npm install completed in standalone');
+    } catch (e) {
+      console.error(`[Post-build] ❌ npm install failed: ${e.message}`);
     }
 
     // STEP 1.5: Populate source standalone with static assets
