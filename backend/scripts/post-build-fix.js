@@ -169,41 +169,31 @@ if (workspaceRoot && workspaceRoot !== backendDir) {
   if (fs.existsSync(sourceStandaloneDir)) {
     console.log(`[Post-build] Copying standalone directory to workspace root: ${targetStandaloneDir}`);
     try {
-      // Recursive directory copy function that handles symlinks
-      const copyDirRecursive = (src, dest) => {
-        if (!fs.existsSync(dest)) {
-          fs.mkdirSync(dest, { recursive: true });
-        }
-        const entries = fs.readdirSync(src, { withFileTypes: true });
-        for (const entry of entries) {
-          const srcPath = path.join(src, entry.name);
-          const destPath = path.join(dest, entry.name);
-
-          try {
-            // Check if it's a symlink
-            const stats = fs.lstatSync(srcPath);
-            if (stats.isSymbolicLink()) {
-              // Skip symlinks to avoid permission issues
-              console.log(`[Post-build] Skipping symlink: ${entry.name}`);
-              continue;
-            }
-
-            if (entry.isDirectory()) {
-              copyDirRecursive(srcPath, destPath);
-            } else {
-              fs.copyFileSync(srcPath, destPath);
-            }
-          } catch (err) {
-            // Log but continue on permission errors
-            console.warn(`[Post-build] ⚠️  Skipping ${entry.name}: ${err.message}`);
-          }
-        }
-      };
-
-      copyDirRecursive(sourceStandaloneDir, targetStandaloneDir);
+      // Use fs.cpSync for robust recursive copying (Node 16.7+)
+      // This handles symlinks and permissions much better than manual recursion
+      fs.cpSync(sourceStandaloneDir, targetStandaloneDir, {
+        recursive: true,
+        dereference: true, // Follow symlinks to ensure files are actually present
+        errorOnExist: false,
+        force: true
+      });
       console.log(`[Post-build] ✅ Copied standalone directory to workspace root`);
     } catch (error) {
       console.warn(`[Post-build] ⚠️  Could not copy standalone directory: ${error.message}`);
+
+      // Fallback to manual copy if cpSync fails for some reason
+      if (error.code === 'ERR_FS_CP_SYMLINK_TO_SUBDIRECTORY') {
+        console.log('[Post-build] Retrying with symlinks ignored...');
+        try {
+          fs.cpSync(sourceStandaloneDir, targetStandaloneDir, {
+            recursive: true,
+            dereference: false,
+            filter: (src) => !fs.lstatSync(src).isSymbolicLink()
+          });
+        } catch (e) {
+          console.error(`[Post-build] ❌ Fallback also failed: ${e.message}`);
+        }
+      }
     }
   } else {
     console.warn(`[Post-build] ⚠️  Standalone directory not found at ${sourceStandaloneDir}`);
@@ -216,24 +206,7 @@ if (workspaceRoot && workspaceRoot !== backendDir) {
   if (fs.existsSync(sourceStaticDir)) {
     console.log(`[Post-build] Copying static folder to workspace root: ${targetStaticDir}`);
     try {
-      // Recursive directory copy function
-      const copyDirRecursive = (src, dest) => {
-        if (!fs.existsSync(dest)) {
-          fs.mkdirSync(dest, { recursive: true });
-        }
-        const entries = fs.readdirSync(src, { withFileTypes: true });
-        for (const entry of entries) {
-          const srcPath = path.join(src, entry.name);
-          const destPath = path.join(dest, entry.name);
-          if (entry.isDirectory()) {
-            copyDirRecursive(srcPath, destPath);
-          } else {
-            fs.copyFileSync(srcPath, destPath);
-          }
-        }
-      };
-
-      copyDirRecursive(sourceStaticDir, targetStaticDir);
+      fs.cpSync(sourceStaticDir, targetStaticDir, { recursive: true, force: true });
       console.log(`[Post-build] ✅ Copied static folder to workspace root`);
     } catch (error) {
       console.warn(`[Post-build] ⚠️  Could not copy static folder: ${error.message}`);
