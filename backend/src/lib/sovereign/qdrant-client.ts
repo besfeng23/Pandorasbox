@@ -33,14 +33,14 @@ export async function searchPoints(collection: string, vector: number[], limit: 
     });
 
     if (!response.ok) {
-        // If collection doesn't exist, we might return empty or throw
-        if (response.status === 404) return [];
-        throw new Error(`Qdrant search failed: ${response.statusText}. Memory System Offline - Check Container.`);
+      // If collection doesn't exist, we might return empty or throw
+      if (response.status === 404) return [];
+      throw new Error(`Qdrant search failed: ${response.statusText}. Memory System Offline - Check Container.`);
     }
 
     const data = await response.json();
     const endTime = Date.now();
-    
+
     logEvent('MEMORY_SEARCH', {
       duration: endTime - startTime,
       collection,
@@ -67,7 +67,7 @@ export async function upsertPoint(collection: string, point: { id: string | numb
     // Ensure collection exists (basic check, in prod we might want to separate this)
     // For now we assume collection management happens elsewhere or we just try to upsert
     // Qdrant HTTP API: PUT /collections/{collection_name}/points
-    
+
     const response = await fetch(`${QDRANT_URL}/collections/${collection}/points?wait=true`, {
       method: 'PUT',
       headers: {
@@ -79,12 +79,12 @@ export async function upsertPoint(collection: string, point: { id: string | numb
     });
 
     if (!response.ok) {
-        throw new Error(`Qdrant upsert failed: ${response.statusText}. Memory System Offline - Check Container.`);
+      throw new Error(`Qdrant upsert failed: ${response.statusText}. Memory System Offline - Check Container.`);
     }
 
     const result = await response.json();
     const endTime = Date.now();
-    
+
     logEvent('INGESTION', {
       duration: endTime - startTime,
       collection,
@@ -120,12 +120,12 @@ export async function deletePoint(collection: string, id: string | number) {
     });
 
     if (!response.ok) {
-        throw new Error(`Qdrant delete failed: ${response.statusText}. Memory System Offline - Check Container.`);
+      throw new Error(`Qdrant delete failed: ${response.statusText}. Memory System Offline - Check Container.`);
     }
 
     const result = await response.json();
     const endTime = Date.now();
-    
+
     logEvent('MEMORY_DELETE', {
       duration: endTime - startTime,
       collection,
@@ -147,3 +147,36 @@ export async function deletePoint(collection: string, id: string | number) {
   }
 }
 
+export async function scrollPoints(collection: string, limit: number = 100, filter?: any): Promise<QdrantSearchResult[]> {
+  const startTime = Date.now();
+  try {
+    const body: any = {
+      limit,
+      with_payload: true,
+      with_vector: false,
+    };
+
+    if (filter) {
+      body.filter = filter;
+    }
+
+    const response = await fetch(`${QDRANT_URL}/collections/${collection}/points/scroll`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) return [];
+      throw new Error(`Qdrant scroll failed: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.result?.points || [];
+  } catch (error: any) {
+    console.error('Qdrant scroll error:', error);
+    return [];
+  }
+}

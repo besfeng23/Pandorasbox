@@ -1,11 +1,12 @@
 'use client';
 
-import { type ChatMessage } from '@/lib/llm/llm-client';
+import { type ChatMessage } from './ChatWindow';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { User, Bot } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { ArtifactViewer } from './artifact-viewer';
 
 interface MessageListProps {
   messages: ChatMessage[];
@@ -67,10 +68,24 @@ export function MessageList({ messages }: MessageListProps) {
                   {message.content}
                 </p>
               ) : (
-                <div className="prose prose-sm md:prose-base dark:prose-invert max-w-none leading-relaxed prose-p:my-1 prose-pre:my-2 prose-code:text-primary">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {message.content || '...'}
-                  </ReactMarkdown>
+                <div className="flex flex-col gap-4">
+                  <div className="prose prose-sm md:prose-base dark:prose-invert max-w-none leading-relaxed prose-p:my-1 prose-pre:my-2 prose-code:text-primary">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {message.content || '...'}
+                    </ReactMarkdown>
+                  </div>
+
+                  {message.toolResults && message.toolResults.map((result: any, idx: number) => {
+                    if (result.toolName === 'generate_artifact' && result.result?.success) {
+                      return (
+                        <ArtifactViewer
+                          key={idx}
+                          artifactId={result.result.artifactId}
+                        />
+                      );
+                    }
+                    return null;
+                  })}
                 </div>
               )}
             </div>

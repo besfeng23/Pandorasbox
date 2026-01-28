@@ -9,6 +9,7 @@ import ReactFlow, {
   ReactFlowProvider,
   Node,
   Edge,
+  NodeMouseHandler,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 // @ts-ignore - dagre types might not be available
@@ -33,6 +34,7 @@ interface GraphViewProps {
   nodes: GraphViewNode[];
   edges: GraphViewEdge[];
   className?: string;
+  onNodeClick?: (node: GraphViewNode) => void;
 }
 
 const nodeWidth = 200;
@@ -92,7 +94,7 @@ function layoutGraph(nodes: GraphViewNode[], edges: GraphViewEdge[]) {
   return { nodes: layoutedNodes, edges: flowEdges };
 }
 
-function GraphViewInner({ nodes, edges, className }: GraphViewProps) {
+function GraphViewInner({ nodes, edges, className, onNodeClick }: GraphViewProps) {
   const graphKey = useMemo(() => `${nodes.length}-${edges.length}`, [nodes.length, edges.length]);
   const { nodes: layoutedNodes, edges: layoutedEdges } = useMemo(
     () => layoutGraph(nodes, edges),
@@ -108,12 +110,13 @@ function GraphViewInner({ nodes, edges, className }: GraphViewProps) {
   }
 
   return (
-    <div className={cn('h-full w-full rounded-xl border border-border/60 bg-background/80', className)}>
+    <div className={cn('h-full w-full rounded-xl border border-border/60 bg-background/80 overflow-hidden', className)}>
       <ReactFlow
         nodes={layoutedNodes}
         edges={layoutedEdges}
+        onNodeClick={(_event, node) => onNodeClick?.({ id: node.id, label: node.data.label })}
         fitView
-        nodesDraggable={false}
+        nodesDraggable={true}
         nodesConnectable={false}
       >
         <Background gap={24} size={1} color="rgba(148, 163, 184, 0.15)" />

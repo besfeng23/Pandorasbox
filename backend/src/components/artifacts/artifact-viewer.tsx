@@ -26,6 +26,7 @@ export function ArtifactViewer({ artifactId }: ArtifactViewerProps) {
   const [artifact, setArtifact] = useState<Artifact | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasCopied, setHasCopied] = useState(false);
+  const [activeTab, setActiveTab] = useState<'code' | 'preview'>('code');
   const firestore = useFirestore();
   const setActiveArtifact = useArtifactStore(state => state.setActiveArtifact);
 
@@ -115,6 +116,26 @@ export function ArtifactViewer({ artifactId }: ArtifactViewerProps) {
           </Button>
         </div>
       </header>
+      {(artifact.type === 'html' || artifact.type === 'svg') && (
+        <div className="bg-background border-b border-border flex p-1">
+          <Button
+            variant={activeTab === 'code' ? 'secondary' : 'ghost'}
+            size="sm"
+            className="flex-1 h-8 rounded-sm"
+            onClick={() => setActiveTab('code')}
+          >
+            Code
+          </Button>
+          <Button
+            variant={activeTab === 'preview' ? 'secondary' : 'ghost'}
+            size="sm"
+            className="flex-1 h-8 rounded-sm"
+            onClick={() => setActiveTab('preview')}
+          >
+            Preview
+          </Button>
+        </div>
+      )}
       {(artifact.createdAt || artifact.userId) && (
         <Collapsible open={metadataOpen} onOpenChange={setMetadataOpen} className="border-b border-border">
           <CollapsibleTrigger asChild>
@@ -140,15 +161,35 @@ export function ArtifactViewer({ artifactId }: ArtifactViewerProps) {
         </Collapsible>
       )}
       <ScrollArea className="flex-1 overscroll-contain">
-        <div className="p-3 sm:p-4 bg-background">
-          {artifact.type === 'code' ? (
-            <SyntaxHighlighter language="javascript" style={vscDarkPlus} customStyle={{ background: 'transparent', margin: 0, padding: 0 }} codeTagProps={{ style: { fontFamily: "var(--font-code)" } }}>
-              {artifact.content}
-            </SyntaxHighlighter>
-          ) : (
+        <div className="p-3 sm:p-4 bg-background h-full">
+          {activeTab === 'preview' && (artifact.type === 'html' || artifact.type === 'svg') ? (
+            <div className="h-full w-full bg-white rounded-md overflow-hidden border shadow-inner min-h-[400px]">
+              {artifact.type === 'html' ? (
+                <iframe
+                  srcDoc={artifact.content}
+                  title={artifact.title}
+                  className="w-full h-full border-0"
+                />
+              ) : (
+                <div
+                  className="w-full h-full flex items-center justify-center p-4"
+                  dangerouslySetInnerHTML={{ __html: artifact.content }}
+                />
+              )}
+            </div>
+          ) : artifact.type === 'markdown' ? (
             <article className="prose prose-sm prose-zinc dark:prose-invert max-w-none">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{artifact.content}</ReactMarkdown>
             </article>
+          ) : (
+            <SyntaxHighlighter
+              language={artifact.language || 'javascript'}
+              style={vscDarkPlus}
+              customStyle={{ background: 'transparent', margin: 0, padding: 0 }}
+              codeTagProps={{ style: { fontFamily: "var(--font-code)" } }}
+            >
+              {artifact.content}
+            </SyntaxHighlighter>
           )}
         </div>
       </ScrollArea>

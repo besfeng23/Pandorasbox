@@ -4,7 +4,7 @@ import React, { useState, useEffect, useTransition } from 'react';
 import { Command } from 'cmdk';
 import { searchMemoryAction } from '@/app/actions';
 import { useUser } from '@/firebase';
-import { Database, Loader2, Home, Settings, GitGraph, Building2, Library, Boxes } from 'lucide-react';
+import { Database, Loader2, Home, Settings, Bot, Activity, Boxes } from 'lucide-react';
 import { SearchResult } from '@/lib/types';
 import { useDebounce } from '@/hooks/use-debounce';
 import { formatDistanceToNow } from 'date-fns';
@@ -21,11 +21,10 @@ export function CommandMenu() {
 
   const navigationItems = [
     { id: 'home', label: 'Chat', icon: Home, path: '/' },
-    { id: 'workspaces', label: 'Workspaces', icon: Building2, path: '/workspaces' },
-    { id: 'knowledge', label: 'Knowledge', icon: Library, path: '/knowledge' },
-    { id: 'memories', label: 'Memories', icon: Database, path: '/memories' },
-    { id: 'artifacts', label: 'Artifacts', icon: Boxes, path: '/artifacts' },
-    { id: 'graph', label: 'Graph', icon: GitGraph, path: '/graph' },
+    { id: 'memories', label: 'Memory Vault', icon: Database, path: '/memory' },
+    { id: 'connectors', label: 'Data Connectors', icon: Boxes, path: '/connectors' },
+    { id: 'agents', label: 'Agents', icon: Bot, path: '/agents' },
+    { id: 'health', label: 'System Health', icon: Activity, path: '/health' },
     { id: 'settings', label: 'Settings', icon: Settings, path: '/settings' },
   ];
 
@@ -62,15 +61,15 @@ export function CommandMenu() {
     setOpen(false); // Close the dialog on selection
   };
 
-  const filteredNavItems = navigationItems.filter(item => 
-    item.label.toLowerCase().includes(query.toLowerCase()) || 
+  const filteredNavItems = navigationItems.filter(item =>
+    item.label.toLowerCase().includes(query.toLowerCase()) ||
     item.path.toLowerCase().includes(query.toLowerCase())
   );
 
   return (
-    <Command.Dialog 
-      open={open} 
-      onOpenChange={setOpen} 
+    <Command.Dialog
+      open={open}
+      onOpenChange={setOpen}
       label="Command Menu"
       className="glass-panel-strong border border-primary/30"
     >
@@ -82,7 +81,7 @@ export function CommandMenu() {
       />
       <Command.List>
         {isSearching && query && <div className="p-4 flex justify-center"><Loader2 className="animate-spin text-primary" /></div>}
-        
+
         {!query && (
           <Command.Group heading="Navigation">
             {navigationItems.map(item => {
@@ -142,13 +141,13 @@ export function CommandMenu() {
                   <div className="flex-1 truncate">
                     <span>{item.text}</span>
                     {item.timestamp && (
-                       <p className="text-xs text-muted-foreground mt-1">
-                          {formatDistanceToNow(new Date(item.timestamp), { addSuffix: true })}
-                       </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {formatDistanceToNow(new Date(item.timestamp), { addSuffix: true })}
+                      </p>
                     )}
                   </div>
                   <span className="text-xs text-muted-foreground ml-2">
-                      {item.score.toFixed(2)}
+                    {item.score.toFixed(2)}
                   </span>
                 </Command.Item>
               ))

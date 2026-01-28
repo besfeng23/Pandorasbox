@@ -11,6 +11,8 @@ export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   id?: string;
+  attachments?: { url: string; type: string }[];
+  toolResults?: any[];
 }
 
 interface ChatWindowProps {
@@ -118,13 +120,39 @@ export function ChatWindow({ threadId, agentId = 'universe' }: ChatWindowProps) 
               }
             } else if (type === '2') {
               // StreamData - tool calls and metadata
-              // We can ignore these for now or handle them later
               try {
                 const data = JSON.parse(content);
-                // Handle tool calls if needed in the future
-                // For now, we just log them for debugging
-                if (process.env.NODE_ENV === 'development') {
-                  console.log('StreamData:', data);
+
+                // Detection for Artifacts
+                if (Array.isArray(data)) {
+                  for (const item of data) {
+                    if (item.toolCall && item.toolCall.toolName === 'generate_artifact') {
+                      console.log('Artifact generation detected...', item.toolCall.args);
+                    }
+                    if (item.toolResult && item.toolResult.toolName === 'generate_artifact') {
+                      const { artifactId, success } = item.toolResult.result;
+                      if (success && artifactId) {
+                        console.log('Artifact generated successfully:', artifactId);
+
+                        // Update the message state with tool results
+                        setMessages((prev) => {
+                          const updated = [...prev];
+                          const lastIndex = updated.length - 1;
+                          if (lastIndex >= 0 && updated[lastIndex].role === 'assistant') {
+                            const currentToolResults = updated[lastIndex].toolResults || [];
+                            updated[lastIndex] = {
+                              ...updated[lastIndex],
+                              toolResults: [...currentToolResults, item.toolResult]
+                            };
+                          }
+                          return updated;
+                        });
+
+                        // Optionally auto-open the panel
+                        // useArtifactStore.getState().setActiveArtifactById(artifactId); // If we have such a method
+                      }
+                    }
+                  }
                 }
               } catch {
                 // Ignore malformed data
@@ -155,8 +183,8 @@ export function ChatWindow({ threadId, agentId = 'universe' }: ChatWindowProps) 
   /**
    * Handle message submission
    */
-  const handleSubmit = async (content: string) => {
-    if (!user || !content.trim() || isStreaming) {
+  const handleSubmit = async (content: string, attachments?: { url: string; type: string }[]) => {
+    if (!user || (!content.trim() && (!attachments || attachments.length === 0)) || isStreaming) {
       return;
     }
 
@@ -165,6 +193,7 @@ export function ChatWindow({ threadId, agentId = 'universe' }: ChatWindowProps) 
       role: 'user',
       content: content.trim(),
       id: `user-${Date.now()}`,
+      attachments: attachments,
     };
 
     setMessages((prev) => [...prev, userMessage]);
@@ -201,6 +230,7 @@ export function ChatWindow({ threadId, agentId = 'universe' }: ChatWindowProps) 
           agentId,
           threadId,
           history,
+          attachments, // Send attachments to API
         }),
         signal: abortController.signal,
       });

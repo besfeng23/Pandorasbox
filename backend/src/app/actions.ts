@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import type { Memory, SearchResult, Thread, Message, UserConnector } from '@/lib/types';
 import { getFirestoreAdmin } from '@/lib/firebase-admin';
-import { searchPoints, upsertPoint, deletePoint } from '@/lib/sovereign/qdrant-client';
+import { searchPoints, upsertPoint, deletePoint, scrollPoints, type QdrantSearchResult } from '@/lib/sovereign/qdrant-client';
 import { embedText } from '@/lib/ai/embedding';
 import { v4 as uuidv4 } from 'uuid';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
@@ -13,56 +13,56 @@ import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 // This comment is added to force a new build.
 
 export async function searchMemoryAction(query: string, userId: string, agentId: string): Promise<SearchResult[]> {
-  if (!query.trim()) return [];
-  
-  try {
-    const vector = await embedText(query);
-    
-    // Filter by userId and agentId to ensure privacy and context
-    const filter = {
-      must: [
-        { key: 'userId', match: { value: userId } },
-        { key: 'agentId', match: { value: agentId } }
-      ]
-    };
+    if (!query.trim()) return [];
 
-    const results = await searchPoints('memories', vector, 10, filter);
-    
-    return results.map(r => ({
-      id: r.id.toString(),
-      text: r.payload?.content || '',
-      score: r.score,
-      timestamp: r.payload?.createdAt || new Date().toISOString()
-    }));
-  } catch (error) {
-    console.error('Search Memory Error:', error);
-    return [];
-  }
+    try {
+        const vector = await embedText(query);
+
+        // Filter by userId and agentId to ensure privacy and context
+        const filter = {
+            must: [
+                { key: 'userId', match: { value: userId } },
+                { key: 'agentId', match: { value: agentId } }
+            ]
+        };
+
+        const results = await searchPoints('memories', vector, 10, filter);
+
+        return results.map(r => ({
+            id: r.id.toString(),
+            text: r.payload?.content || '',
+            score: r.score,
+            timestamp: r.payload?.createdAt || new Date().toISOString()
+        }));
+    } catch (error) {
+        console.error('Search Memory Error:', error);
+        return [];
+    }
 }
 
 export async function createMemoryFromSettings(content: string, userId: string, agentId: string) {
-  try {
-    const vector = await embedText(content);
-    const id = uuidv4();
-    
-    await upsertPoint('memories', {
-      id,
-      vector,
-      payload: {
-        content,
-        userId,
-        agentId,
-        createdAt: new Date().toISOString(),
-        source: 'manual'
-      }
-    });
-    
-    revalidatePath('/memory');
-    return { success: true };
-  } catch (error: any) {
-    console.error('Create Memory Error:', error);
-    return { success: false, message: error.message };
-  }
+    try {
+        const vector = await embedText(content);
+        const id = uuidv4();
+
+        await upsertPoint('memories', {
+            id,
+            vector,
+            payload: {
+                content,
+                userId,
+                agentId,
+                createdAt: new Date().toISOString(),
+                source: 'manual'
+            }
+        });
+
+        revalidatePath('/memory');
+        return { success: true };
+    } catch (error: any) {
+        console.error('Create Memory Error:', error);
+        return { success: false, message: error.message };
+    }
 }
 
 export async function deleteMemoryFromMemories(id: string, userId: string, agentId: string) {
@@ -91,14 +91,14 @@ export async function getUserThreads(userId: string, agent?: string): Promise<Th
             console.error('[getUserThreads] Invalid userId:', userId);
             return [];
         }
-        
+
         const db = getFirestoreAdmin();
         let query = db.collection(`users/${userId}/threads`).orderBy('updatedAt', 'desc');
-        
+
         if (agent) {
             query = query.where('agent', '==', agent);
         }
-        
+
         const snapshot = await query.limit(20).get();
         return snapshot.docs.map(doc => ({
             id: doc.id,
@@ -140,7 +140,7 @@ export async function getMessages(threadId: string, userId: string): Promise<Mes
             .where('threadId', '==', threadId)
             .orderBy('createdAt', 'asc')
             .get();
-            
+
         return snapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
@@ -157,14 +157,14 @@ export async function createThread(agent: 'builder' | 'universe', userId: string
             console.error('[createThread] Invalid userId:', userId);
             throw new Error('User ID is required to create a thread');
         }
-        
+
         console.log('[createThread] Attempting to get Firestore Admin...');
         const db = getFirestoreAdmin();
         console.log('[createThread] Firestore Admin obtained successfully');
-        
+
         // 1. Get current user - Assuming userId is already passed from the frontend
         // For actual auth, replace with Firebase Admin SDK's auth().verifyIdToken(...) or similar
-        const actualUserId = userId; 
+        const actualUserId = userId;
 
         // 2. Create the thread WITHOUT AI generation first (Safe Mode)
         console.log('[createThread] Creating thread for user:', actualUserId, 'agent:', agent);
@@ -186,7 +186,7 @@ export async function createThread(agent: 'builder' | 'universe', userId: string
         console.error("[createThread] Error code:", error?.code);
         console.error("[createThread] Error message:", error?.message);
         console.error("[createThread] Error name:", error?.name);
-        
+
         // Provide more specific error messages
         if (error?.message?.includes('Firebase Admin app not initialized')) {
             const errorMsg = 'Firebase Admin is not initialized. Please check your Firebase configuration.';
@@ -203,7 +203,7 @@ export async function createThread(agent: 'builder' | 'universe', userId: string
             console.error('[createThread]', errorMsg);
             throw new Error(errorMsg);
         }
-        
+
         const errorMsg = `Failed to create thread: ${error?.message || 'Unknown error'}`;
         console.error('[createThread]', errorMsg);
         throw new Error(errorMsg);
@@ -310,9 +310,9 @@ export async function getUserConnectors(userId: string): Promise<UserConnector[]
 
 export async function renameThread(threadId: string, newName: string, userId: string) {
     const db = getFirestoreAdmin();
-    await db.doc(`users/${userId}/threads/${threadId}`).update({ 
+    await db.doc(`users/${userId}/threads/${threadId}`).update({
         name: newName,
-        updatedAt: FieldValue.serverTimestamp() 
+        updatedAt: FieldValue.serverTimestamp()
     });
     revalidatePath('/');
     revalidatePath(`/chat/${threadId}`);
@@ -322,7 +322,7 @@ export async function connectDataSource(userId: string, connectorId: string, met
     try {
         const db = getFirestoreAdmin();
         const connectorRef = db.doc(`users/${userId}/connectors/${connectorId}`);
-        
+
         await connectorRef.set({
             id: connectorId,
             userId,
@@ -340,11 +340,11 @@ export async function connectDataSource(userId: string, connectorId: string, met
                     const html = await response.text();
                     const cheerio = await import('cheerio');
                     const $ = cheerio.load(html);
-                    
+
                     // Basic cleanup
                     $('script, style, nav, footer, header').remove();
                     const text = $('body').text().replace(/\s+/g, ' ').trim();
-                    
+
                     if (text) {
                         const { processAndStore } = await import('@/lib/knowledge/ingestor');
                         // Index for both main agents
@@ -357,7 +357,7 @@ export async function connectDataSource(userId: string, connectorId: string, met
                 // We still consider the connector "connected" but log the error
             }
         }
-        
+
         revalidatePath('/connectors');
         return { success: true };
     } catch (error: any) {
@@ -376,4 +376,89 @@ export async function disconnectDataSource(userId: string, connectorId: string) 
         console.error('Disconnect Data Source Error:', error);
         throw error;
     }
+}
+export async function getKnowledgeGraph(userId: string, agentId: string) {
+    try {
+        const filter = {
+            must: [
+                { key: 'userId', match: { value: userId } },
+                { key: 'agentId', match: { value: agentId } }
+            ]
+        };
+
+        const points = await scrollPoints('memories', 30, filter);
+
+        const nodes = points.map((p: QdrantSearchResult) => ({
+            id: String(p.id),
+            label: (p.payload?.content || '').substring(0, 30) + '...',
+            type: p.payload?.type || 'memory'
+        }));
+
+        const edges: any[] = [];
+        // Create some edges based on proximity in the list (simple heuristic for now)
+        for (let i = 0; i < nodes.length - 1; i++) {
+            if (i % 3 === 0) {
+                edges.push({
+                    id: `edge-${i}`,
+                    sourceId: nodes[i].id,
+                    targetId: nodes[i + 1].id,
+                    relation: 'related',
+                    weight: 0.5
+                });
+            }
+        }
+
+        return { nodes, edges };
+    } catch (error) {
+        console.error('Get Knowledge Graph Error:', error);
+        return { nodes: [], edges: [] };
+    }
+}
+
+export async function getSystemHealth() {
+    const health: any = {
+        qdrant: { status: 'offline', latency: 0 },
+        inference: { status: 'offline', latency: 0 },
+        firebase: { status: 'offline' },
+        timestamp: new Date().toISOString(),
+    };
+
+    // 1. Check Qdrant
+    try {
+        const start = Date.now();
+        const { QDRANT_URL } = await import('@/lib/sovereign/config');
+        const response = await fetch(`${QDRANT_URL}/health`, { signal: AbortSignal.timeout(2000) });
+        if (response.ok) {
+            health.qdrant.status = 'online';
+            health.qdrant.latency = Date.now() - start;
+        }
+    } catch (e) {
+        console.error('Health Check: Qdrant unreachable');
+    }
+
+    // 2. Check Inference
+    try {
+        const start = Date.now();
+        const { INFERENCE_URL } = await import('@/lib/sovereign/config');
+        // Using a simple GET to the base URL (might need to adjust depending on vLLM/Ollama)
+        const response = await fetch(INFERENCE_URL.replace('/v1', '/'), { signal: AbortSignal.timeout(2000) });
+        if (response.ok || response.status === 404) { // 404 might just mean the base path is empty but server is up
+            health.inference.status = 'online';
+            health.inference.latency = Date.now() - start;
+        }
+    } catch (e) {
+        console.error('Health Check: Inference unreachable');
+    }
+
+    // 3. Check Firebase
+    try {
+        const db = getFirestoreAdmin();
+        if (db) {
+            health.firebase.status = 'online';
+        }
+    } catch (e) {
+        console.error('Health Check: Firebase Admin Failed');
+    }
+
+    return health;
 }
