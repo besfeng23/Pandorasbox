@@ -169,7 +169,23 @@ if (workspaceRoot && workspaceRoot !== backendDir) {
   if (fs.existsSync(sourceStandaloneDir)) {
     // STEP 1: Fix critical modules in the SOURCE standalone directory first
     console.log('[Post-build] Fixing modules in source standalone directory...');
-    const criticalModules = ['next', 'react', 'react-dom', 'sharp'];
+
+    // Read dependencies from package.json to identify what needs to be fixed
+    let projectDependencies = [];
+    try {
+      const packageJsonPath = path.join(backendDir, 'package.json');
+      if (fs.existsSync(packageJsonPath)) {
+        const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+        projectDependencies = Object.keys(packageJson.dependencies || {});
+        console.log(`[Post-build] Found ${projectDependencies.length} dependencies in package.json to verify/fix.`);
+      }
+    } catch (e) {
+      console.warn(`[Post-build] ⚠️ Failed to read package.json dependencies: ${e.message}`);
+    }
+
+    // Default Critical + All Project Dependencies
+    const modulesToFix = [...new Set(['next', 'react', 'react-dom', 'sharp', ...projectDependencies])];
+
     const sourceNodeModules = path.join(backendDir, 'node_modules'); // Original modules
     const rootNodeModules = path.join(workspaceRoot, 'node_modules');
     const standaloneNodeModules = path.join(sourceStandaloneDir, 'node_modules');
@@ -178,7 +194,7 @@ if (workspaceRoot && workspaceRoot !== backendDir) {
       fs.mkdirSync(standaloneNodeModules, { recursive: true });
     }
 
-    criticalModules.forEach(mod => {
+    modulesToFix.forEach(mod => {
       const standaloneModPath = path.join(standaloneNodeModules, mod);
       let srcPath = path.join(sourceNodeModules, mod);
       if (!fs.existsSync(srcPath)) {
@@ -187,13 +203,15 @@ if (workspaceRoot && workspaceRoot !== backendDir) {
 
       if (fs.existsSync(srcPath)) {
         try {
+          // Force copy dereferenced to ensure real files replace any symlinks
           fs.cpSync(srcPath, standaloneModPath, { recursive: true, dereference: true, force: true });
           console.log(`[Post-build] ✅ Fixed '${mod}' in source standalone`);
         } catch (e) {
-          console.warn(`[Post-build] ⚠️ Failed to fix '${mod}': ${e.message}`);
+          // Don't warn loudly for every devDependency or missing optional, just log info
+          // console.log(`[Post-build] Info: Could not fix '${mod}' (might be dev dependency or optional): ${e.message}`);
         }
       } else {
-        console.warn(`[Post-build] ⚠️ Could not find source for '${mod}'`);
+        // console.log(`[Post-build] Info: Source for '${mod}' not found.`);
       }
     });
 
