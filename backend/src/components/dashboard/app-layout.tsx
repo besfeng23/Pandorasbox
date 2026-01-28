@@ -65,6 +65,10 @@ import {
   Bot,
   Sparkles,
   Activity,
+  Book,
+  Share2,
+  Building,
+  Shield,
 } from 'lucide-react';
 import { PandoraBoxIcon } from '@/components/icons';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -172,6 +176,30 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
             </Link>
           </SidebarMenuItem>
           <SidebarMenuItem>
+            <Link href="/knowledge" className="w-full" onClick={handleNavClick}>
+              <SidebarMenuButton isActive={pathname.startsWith('/knowledge')} className="w-full justify-start">
+                <Book />
+                <span>Knowledge Base</span>
+              </SidebarMenuButton>
+            </Link>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <Link href="/graph" className="w-full" onClick={handleNavClick}>
+              <SidebarMenuButton isActive={pathname.startsWith('/graph')} className="w-full justify-start">
+                <Share2 />
+                <span>Knowledge Graph</span>
+              </SidebarMenuButton>
+            </Link>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <Link href="/artifacts" className="w-full" onClick={handleNavClick}>
+              <SidebarMenuButton isActive={pathname.startsWith('/artifacts')} className="w-full justify-start">
+                <Sparkles />
+                <span>Artifacts</span>
+              </SidebarMenuButton>
+            </Link>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
             <Link href="/connectors" className="w-full" onClick={handleNavClick}>
               <SidebarMenuButton isActive={pathname.startsWith('/connectors')} className="w-full justify-start">
                 <Plug />
@@ -192,6 +220,25 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
               <SidebarMenuButton isActive={pathname.startsWith('/health')} className="w-full justify-start">
                 <Activity />
                 <span>System Health</span>
+              </SidebarMenuButton>
+            </Link>
+          </SidebarMenuItem>
+
+          <SidebarSeparator className="my-2" />
+
+          <SidebarMenuItem>
+            <Link href="/workspaces" className="w-full" onClick={handleNavClick}>
+              <SidebarMenuButton isActive={pathname.startsWith('/workspaces')} className="w-full justify-start">
+                <Building />
+                <span>Workspaces</span>
+              </SidebarMenuButton>
+            </Link>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <Link href="/admin" className="w-full" onClick={handleNavClick}>
+              <SidebarMenuButton isActive={pathname.startsWith('/admin')} className="w-full justify-start">
+                <Shield />
+                <span>Admin Cockpit</span>
               </SidebarMenuButton>
             </Link>
           </SidebarMenuItem>
