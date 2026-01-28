@@ -191,23 +191,24 @@ if (workspaceRoot && workspaceRoot !== backendDir) {
       fs.mkdirSync(standaloneNodeModules, { recursive: true });
     }
 
-    modulesToFix.forEach(mod => {
-      const standaloneModPath = path.join(standaloneNodeModules, mod);
-      let srcPath = path.join(sourceNodeModules, mod);
-      if (!fs.existsSync(srcPath)) {
-        srcPath = path.join(rootNodeModules, mod);
-      }
+    // BRUTE FORCE: Copy ALL node_modules to ensure nothing is missing (resolves require-hook failures)
+    console.log('[Post-build] Copying ALL node_modules to standalone (Brute Force)...');
 
-      if (fs.existsSync(srcPath)) {
-        try {
-          // Force copy dereferenced to ensure real files replace any symlinks
-          fs.cpSync(srcPath, standaloneModPath, { recursive: true, dereference: true, force: true });
-          // console.log(`[Post-build] ✅ Fixed '${mod}' in source standalone`);
-        } catch (e) {
-          // Ignore errors mostly
-        }
-      }
-    });
+    // 1. Copy root modules (dereference to handle pnpm)
+    if (fs.existsSync(rootNodeModules)) {
+      try {
+        fs.cpSync(rootNodeModules, standaloneNodeModules, { recursive: true, dereference: true, force: false });
+        console.log('[Post-build] ✅ Copied root node_modules');
+      } catch (e) { console.warn(`[Post-build] ⚠️ Root modules copy warning: ${e.message}`); }
+    }
+
+    // 2. Copy backend modules (ensure they override root if specific versions needed)
+    if (fs.existsSync(sourceNodeModules) && path.resolve(sourceNodeModules) !== path.resolve(rootNodeModules)) {
+      try {
+        fs.cpSync(sourceNodeModules, standaloneNodeModules, { recursive: true, dereference: true, force: true });
+        console.log('[Post-build] ✅ Copied backend node_modules');
+      } catch (e) { console.warn(`[Post-build] ⚠️ Backend modules copy warning: ${e.message}`); }
+    }
 
     // STEP 1.5: Populate source standalone with static assets
     const sourceStaticDir = path.join(nextDir, 'static');
