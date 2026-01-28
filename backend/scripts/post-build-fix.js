@@ -187,13 +187,21 @@ if (workspaceRoot && workspaceRoot !== backendDir) {
     const rootNodeModules = path.join(workspaceRoot, 'node_modules');
     const standaloneNodeModules = path.join(sourceStandaloneDir, 'node_modules');
 
-    if (!fs.existsSync(standaloneNodeModules)) {
-      fs.mkdirSync(standaloneNodeModules, { recursive: true });
+    // FRESH INSTALL: Clear and reinstall node_modules in standalone
+    console.log('[Post-build] Preparing standalone for fresh npm install...');
+    const execSync = require('child_process').execSync;
+
+    // Clear existing node_modules (likely has pnpm structure that breaks npm)
+    if (fs.existsSync(standaloneNodeModules)) {
+      console.log('[Post-build] Clearing existing node_modules (pnpm structure causes npm conflicts)...');
+      try {
+        fs.rmSync(standaloneNodeModules, { recursive: true, force: true });
+        console.log('[Post-build] ✅ Cleared node_modules');
+      } catch (e) {
+        console.warn(`[Post-build] ⚠️ Could not clear node_modules: ${e.message}`);
+      }
     }
 
-    // FRESH INSTALL: Run npm install in standalone to ensure valid node_modules
-    console.log('[Post-build] Running npm install in standalone directory...');
-    const execSync = require('child_process').execSync;
     try {
       const pkgJson = path.join(sourceStandaloneDir, 'package.json');
       if (!fs.existsSync(pkgJson)) {
@@ -204,8 +212,9 @@ if (workspaceRoot && workspaceRoot !== backendDir) {
         }
       }
 
-      // Run install using npm to flatten dependencies
-      execSync('npm install --omit=dev --no-package-lock --no-audit', {
+      // Run install using npm to create a flat, compatible node_modules
+      console.log('[Post-build] Running npm install in standalone directory...');
+      execSync('npm install --omit=dev --no-package-lock --no-audit --legacy-peer-deps', {
         cwd: sourceStandaloneDir,
         stdio: 'inherit',
         env: { ...process.env, NODE_ENV: 'production' }
