@@ -162,6 +162,53 @@ let workspaceSuccess = false;
 if (workspaceRoot && workspaceRoot !== backendDir) {
   workspaceSuccess = copyManifestsToLocation(workspaceRoot, 'Workspace Root');
 
+  // Copy the standalone directory to workspace root
+  const sourceStandaloneDir = path.join(nextDir, 'standalone');
+  const targetStandaloneDir = path.join(workspaceRoot, '.next', 'standalone');
+
+  if (fs.existsSync(sourceStandaloneDir)) {
+    console.log(`[Post-build] Copying standalone directory to workspace root: ${targetStandaloneDir}`);
+    try {
+      // Recursive directory copy function that handles symlinks
+      const copyDirRecursive = (src, dest) => {
+        if (!fs.existsSync(dest)) {
+          fs.mkdirSync(dest, { recursive: true });
+        }
+        const entries = fs.readdirSync(src, { withFileTypes: true });
+        for (const entry of entries) {
+          const srcPath = path.join(src, entry.name);
+          const destPath = path.join(dest, entry.name);
+
+          try {
+            // Check if it's a symlink
+            const stats = fs.lstatSync(srcPath);
+            if (stats.isSymbolicLink()) {
+              // Skip symlinks to avoid permission issues
+              console.log(`[Post-build] Skipping symlink: ${entry.name}`);
+              continue;
+            }
+
+            if (entry.isDirectory()) {
+              copyDirRecursive(srcPath, destPath);
+            } else {
+              fs.copyFileSync(srcPath, destPath);
+            }
+          } catch (err) {
+            // Log but continue on permission errors
+            console.warn(`[Post-build] ⚠️  Skipping ${entry.name}: ${err.message}`);
+          }
+        }
+      };
+
+      copyDirRecursive(sourceStandaloneDir, targetStandaloneDir);
+      console.log(`[Post-build] ✅ Copied standalone directory to workspace root`);
+    } catch (error) {
+      console.warn(`[Post-build] ⚠️  Could not copy standalone directory: ${error.message}`);
+    }
+  } else {
+    console.warn(`[Post-build] ⚠️  Standalone directory not found at ${sourceStandaloneDir}`);
+  }
+
   // Also copy the static folder to workspace root
   const sourceStaticDir = path.join(nextDir, 'static');
   const targetStaticDir = path.join(workspaceRoot, '.next', 'static');
