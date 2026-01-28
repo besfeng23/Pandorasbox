@@ -1,7 +1,7 @@
 'use server';
 
 import { cookies } from 'next/headers';
-import { adminAuth } from '@/lib/firebase/firebase-admin';
+import { getAdminApp } from '@/lib/firebase/firebase-admin';
 import type { DecodedIdToken } from 'firebase-admin/auth';
 
 /**
@@ -27,7 +27,7 @@ export async function signInAction(idToken: string): Promise<void> {
     }
 
     // Create session cookie with 5-day expiration (in milliseconds)
-    const sessionCookie = await adminAuth.createSessionCookie(idToken, {
+    const sessionCookie = await getAdminApp().auth().createSessionCookie(idToken, {
       expiresIn: 60 * 60 * 24 * 5 * 1000, // 5 days
     });
 
@@ -101,7 +101,7 @@ export async function getAuthenticatedUser(): Promise<DecodedIdToken | null> {
 
     // Verify and decrypt the session cookie
     // The second parameter (true) enables revocation check
-    const decodedToken = await adminAuth.verifySessionCookie(sessionCookie, true);
+    const decodedToken = await getAdminApp().auth().verifySessionCookie(sessionCookie, true);
 
     return decodedToken;
   } catch (error: any) {

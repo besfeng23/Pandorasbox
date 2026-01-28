@@ -1,7 +1,7 @@
 'use client';
 
 import { ThemeProvider } from '@/components/theme-provider';
-import { AuthProvider } from '@/context/auth-provider';
+import { AuthProvider } from '@/context/AuthContext';
 import { FirebaseClientProvider } from '@/firebase';
 import type { ReactNode } from 'react';
 import { Toaster } from '@/components/ui/toaster';

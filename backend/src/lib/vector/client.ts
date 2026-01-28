@@ -1,7 +1,7 @@
 'use server';
 
 import 'server-only';
-import { getQdrantClient } from '@/lib/qdrant/qdrant-client';
+import { qdrantClient } from '@/lib/vector/qdrant-client';
 import type { QdrantClient } from '@qdrant/js-client-rest';
 // PointStruct type definition
 type PointStruct = {
@@ -35,7 +35,7 @@ let initializationPromise: Promise<void> | null = null;
  * @returns The QdrantClient instance
  */
 function getClient(): QdrantClient {
-  return getQdrantClient();
+  return qdrantClient;
 }
 
 /**

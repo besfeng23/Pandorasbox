@@ -16,7 +16,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { user, loading } = useAuth();
+  const { user, isLoading: loading } = useAuth();
   const router = useRouter();
 
   // Redirect if already logged in
@@ -35,12 +35,12 @@ export default function LoginPage() {
       const auth = getFirebaseAuth();
       // Sign in with Firebase Client SDK
       await signInWithEmailAndPassword(auth, email, password);
-      
+
       // Redirect to root path on successful login
       router.push('/');
     } catch (error: any) {
       console.error('Login error:', error);
-      
+
       // Map Firebase Auth errors to user-friendly messages
       let errorMessage = 'An error occurred during login.';
       if (error.code) {
@@ -69,7 +69,7 @@ export default function LoginPage() {
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
+
       setError(errorMessage);
       setIsLoading(false);
     }

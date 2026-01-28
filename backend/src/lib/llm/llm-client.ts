@@ -274,3 +274,84 @@ export async function getEmbeddings(texts: string[]): Promise<number[][]> {
     throw new Error(`LLM API embeddings request failed: ${error?.message || 'Unknown error'}`);
   }
 }
+
+/**
+ * Call LLM API for a non-streaming completion
+ * Useful for one-off tasks like information extraction or summarization
+ * 
+ * @param messages Array of chat messages
+ * @param options Optional configuration including response format
+ * @returns Promise<string> The LLM's response content
+ */
+export async function callLLM(
+  messages: ChatMessage[],
+  options?: {
+    temperature?: number;
+    max_tokens?: number;
+    response_format?: { type: 'text' | 'json_object' };
+  }
+): Promise<string> {
+  // Ensure this is only called server-side
+  if (typeof window !== 'undefined') {
+    throw new Error('callLLM can only be used on the server side.');
+  }
+
+  try {
+    const apiUrl = getLLMApiUrl();
+    const endpoint = `${apiUrl}/v1/chat/completions`;
+
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+
+    if (process.env.LLM_API_KEY) {
+      headers['Authorization'] = `Bearer ${process.env.LLM_API_KEY}`;
+    }
+
+    const requestBody = {
+      messages,
+      stream: false, // Explicitly disable streaming
+      model: process.env.LLM_MODEL || 'llama-3',
+      temperature: options?.temperature ?? parseFloat(process.env.LLM_TEMPERATURE || '0.7'),
+      max_tokens: options?.max_tokens ?? parseInt(process.env.LLM_MAX_TOKENS || '2048', 10),
+      ...(options?.response_format && { response_format: options.response_format }),
+    };
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(requestBody),
+    });
+
+    if (!response.ok) {
+      let errorBody;
+      try {
+        errorBody = await response.text();
+      } catch {
+        errorBody = 'Unable to read error response body';
+      }
+      throw new Error(`LLM API request failed: ${response.status} ${response.statusText}. ${errorBody}`);
+    }
+
+    const result = await response.json();
+    return result.choices?.[0]?.message?.content || '';
+  } catch (error: any) {
+    console.error('[LLM Client] callLLM failed:', error);
+    throw new Error(`LLM call failed: ${error.message}`);
+  }
+}
+
+/**
+ * Generate embedding for a single text string
+ * Convenience wrapper around getEmbeddings
+ * 
+ * @param text The text to generate an embedding for
+ * @returns Promise<number[]> The embedding vector
+ */
+export async function getEmbedding(text: string): Promise<number[]> {
+  const embeddings = await getEmbeddings([text]);
+  if (!embeddings || embeddings.length === 0) {
+    throw new Error('Failed to generate embedding');
+  }
+  return embeddings[0];
+}

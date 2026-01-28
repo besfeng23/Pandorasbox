@@ -6,10 +6,19 @@ const nextConfig: NextConfig = {
   // When building in a monorepo, set this to the backend directory
   // This prevents Next.js from inferring the wrong workspace root
   outputFileTracingRoot: path.resolve(__dirname),
-  
+
+  // Enable standalone output for Cloud Run (required for Firebase App Hosting)
   // Enable standalone output for Cloud Run (required for Firebase App Hosting)
   output: 'standalone',
-  
+
+  serverExternalPackages: [
+    'genkit',
+    '@genkit-ai/google-genai',
+    '@genkit-ai/next',
+    '@opentelemetry/instrumentation',
+    '@opentelemetry/sdk-node'
+  ],
+
   async headers() {
     return [
       {
@@ -48,7 +57,7 @@ const nextConfig: NextConfig = {
     ]
   },
   reactStrictMode: true,
-  
+
   typescript: {
     ignoreBuildErrors: false,
   },
@@ -67,7 +76,7 @@ const nextConfig: NextConfig = {
       { hostname: 'picsum.photos' },
     ],
   },
-  
+
   experimental: {
   },
 

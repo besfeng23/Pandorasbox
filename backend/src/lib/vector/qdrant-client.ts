@@ -172,7 +172,7 @@ export async function ensureCollectionExists(): Promise<void> {
     console.error(
       `[Qdrant Vector Client] Failed to ensure collection '${PANDORA_MEMORY_V1}': ${errorMessage}`
     );
-    
+
     // Provide more context for connection errors
     if (
       errorMessage.includes('ECONNREFUSED') ||
@@ -184,7 +184,24 @@ export async function ensureCollectionExists(): Promise<void> {
         `Failed to connect to Qdrant at ${process.env.QDRANT_URL || 'QDRANT_URL'}. Please verify the service is running and the URL is correct.`
       );
     }
-    
+
     throw new Error(`Failed to ensure collection '${PANDORA_MEMORY_V1}': ${errorMessage}`);
   }
 }
+
+/**
+ * Upsert points into the Qdrant collection
+ * @param collectionName Name of the collection
+ * @param points Array of points to upsert
+ */
+export async function upsertVectors(collectionName: string, points: any[]) {
+  // Ensure collection exists before upserting
+  await ensureCollectionExists();
+
+  await qdrantClient.upsert(collectionName, {
+    wait: true,
+    points,
+  });
+}
+
+export { PANDORA_MEMORY_V1 as MEMORY_COLLECTION_NAME };

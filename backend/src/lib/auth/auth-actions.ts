@@ -3,7 +3,7 @@
 import 'server-only';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
-import { getAuthAdmin } from '@/lib/firebase/firebase-admin';
+import { getAdminApp } from '@/lib/firebase/firebase-admin';
 
 const SESSION_COOKIE_NAME = 'session';
 const SESSION_EXPIRY_MS = 60 * 60 * 24 * 5 * 1000; // 5 days
@@ -20,7 +20,7 @@ export async function signIn(idToken: string): Promise<void> {
       throw new Error('Invalid ID token provided');
     }
 
-    const auth = getAuthAdmin();
+    const auth = getAdminApp().auth();
 
     // Verify the ID token first
     const decodedToken = await auth.verifyIdToken(idToken);
@@ -61,7 +61,7 @@ export async function signUp(idToken: string): Promise<void> {
       throw new Error('Invalid ID token provided');
     }
 
-    const auth = getAuthAdmin();
+    const auth = getAdminApp().auth();
 
     // Verify the ID token first
     const decodedToken = await auth.verifyIdToken(idToken);

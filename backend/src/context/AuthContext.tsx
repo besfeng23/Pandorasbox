@@ -16,7 +16,7 @@ import {
   type User,
   type Auth,
 } from 'firebase/auth';
-import { getAuth } from '@/lib/firebase/firebase-client';
+import { auth as authInstance } from '@/lib/firebase/firebase-client';
 
 /**
  * Authentication Context Type
@@ -34,7 +34,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 /**
  * AuthProvider component that manages Firebase authentication state globally
@@ -48,7 +48,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Initialize Firebase Auth on mount
   useEffect(() => {
     try {
-      const authInstance = getAuth();
       setAuth(authInstance);
     } catch (error) {
       console.error('[AuthProvider] Failed to initialize Firebase Auth:', error);

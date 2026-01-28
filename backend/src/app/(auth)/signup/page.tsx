@@ -16,7 +16,7 @@ export default function SignUpPage() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { user, loading } = useAuth();
+  const { user, isLoading: loading } = useAuth();
   const router = useRouter();
 
   // Redirect if already logged in
@@ -35,12 +35,12 @@ export default function SignUpPage() {
       const auth = getFirebaseAuth();
       // Create user with Firebase Client SDK (automatically logs in)
       await createUserWithEmailAndPassword(auth, email, password);
-      
+
       // Redirect to root path on successful account creation
       router.push('/');
     } catch (error: any) {
       console.error('Signup error:', error);
-      
+
       // Map Firebase Auth errors to user-friendly messages
       let errorMessage = 'An error occurred during registration.';
       if (error.code) {
@@ -66,7 +66,7 @@ export default function SignUpPage() {
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
+
       setError(errorMessage);
       setIsLoading(false);
     }
