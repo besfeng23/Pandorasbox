@@ -32,6 +32,11 @@
 - ✅ **Agents** - `/agents` page
 - ✅ **Connectors** - `/connectors` page
 - ✅ **Home** - `/` (Dashboard)
+- ✅ **Knowledge Base** - `/knowledge` (upload UI)
+- ✅ **Artifacts** - `/artifacts` (viewer)
+- ✅ **Graph** - `/graph` (visualization)
+- ✅ **Workspaces** - `/workspaces` (dashboard)
+- ✅ **Admin Cockpit** - `/admin` (dashboard)
 
 ### UI Components
 - ✅ **Chat Components** - ChatPanel, ChatInput, Message components
@@ -55,34 +60,26 @@
 ## ❌ MISSING (From Masterplan)
 
 ### Frontend Pages (Planned but Missing)
-- ❌ **Knowledge Base** - `/knowledge` (upload dropzone, file list, processing status)
-- ❌ **Artifacts** - `/artifacts` (list/grid view, split editor/preview)
-- ❌ **Graph** - `/graph` (pan/zoom canvas, node details, filters)
 - ❌ **PandoraUI Dashboard** - `/pandora-ui` (phase grid, telemetry, cube centerpiece)
-- ❌ **Workspaces** - `/workspaces`, `/workspaces/[id]/*` (multi-tenant)
 - ❌ **Notifications** - `/notifications`
 - ❌ **Integrations** - `/integrations`
-- ❌ **Admin Cockpit** - `/admin/*` (orgs, users, support, moderation, billing, feature flags, prompts, models, ops, logs, audit, data)
 
 ### UI Components (Missing)
-- ❌ **App Shell** - `(pandora-ui)/layout.tsx` with Sidebar/Topbar/InspectorDrawer
-- ❌ **ThreadSidebar** - Left navigation (280px/72px collapsed)
+- ❌ **App Shell** - `(pandora-ui)/layout.tsx` (Partially replaced by Dashboard Layout)
+- ❌ **ThreadSidebar** - (Implemented in Dashboard Layout)
 - ❌ **InspectorDrawer** - Right panel (360px)
 - ❌ **FloatingComposer** - Chat input component
 - ❌ **FollowUpChips** - Suggested prompts
 - ❌ **AssistantEvidenceBlock** - Collapsible evidence display
 - ❌ **MessageList/MessageCard** - Message stream components
-- ❌ **GlobalCommandMenu** - Cmd+K command palette
+- ✅ **GlobalCommandMenu** - Cmd+K command palette (Implemented)
 - ❌ **GlassPanel/GlassCard** - Glassmorphism components
 - ❌ **DataTable/CardList** - Data views (desktop/mobile)
 
 ### Features (Missing)
-- ❌ **Multi-tenant Workspaces** - Workspace management, members, billing, security
-- ❌ **Admin Panel** - Platform administration
-- ❌ **Artifact Viewer** - Split view editor/preview
-- ❌ **Knowledge Upload UI** - Dropzone with progress tracking
+- ❌ **Multi-tenant Logic** - Workspaces UI exists, backend logic needed
+- ❌ **Admin Logic** - Cockpit UI exists, real data connection needed
 - ❌ **Memory Dashboard** - Tabs (Recent, Validated, Profile, Rules), edit/delete
-- ❌ **Graph Visualization** - Interactive canvas with controls
 - ❌ **Phase Dashboard** - 14-phase grid, telemetry tiles
 - ❌ **Mobile Navigation** - Bottom tab bar, responsive drawers
 
