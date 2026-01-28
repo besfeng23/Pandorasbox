@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Bot, BrainCircuit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export interface ChatMessage {
@@ -85,7 +85,7 @@ export function ChatWindow({ threadId, agentId = 'universe' }: ChatWindowProps) 
               // Text content - Vercel AI SDK format
               // Content is typically a JSON-encoded string
               let textContent = '';
-              
+
               try {
                 // Try to parse as JSON first (most common case)
                 const parsed = JSON.parse(content);
@@ -220,7 +220,7 @@ export function ChatWindow({ threadId, agentId = 'universe' }: ChatWindowProps) 
       }
 
       console.error('Chat error:', error);
-      
+
       // Remove assistant message placeholder on error
       setMessages((prev) => {
         const updated = [...prev];
@@ -251,20 +251,42 @@ export function ChatWindow({ threadId, agentId = 'universe' }: ChatWindowProps) 
   }
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col bg-background/30 backdrop-blur-md overflow-hidden border-x border-border/50">
+      {/* Header Info - Optional but adds premium feel */}
+      <div className="flex items-center justify-between px-6 py-4 border-b border-border/40 bg-background/40 backdrop-blur-sm z-10">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-xl bg-primary/10">
+            {agentId === 'builder' ? <Bot className="h-5 w-5 text-primary" /> : <BrainCircuit className="h-5 w-5 text-primary" />}
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold capitalize">{agentId} Agent</h2>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Pandora AI</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+          <span className="text-[10px] font-medium text-muted-foreground uppercase">Online</span>
+        </div>
+      </div>
+
       {/* Message List */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto no-scrollbar scroll-smooth">
         <MessageList messages={messages} />
         <div ref={messagesEndRef} />
       </div>
 
       {/* Chat Input */}
-      <div className="border-t border-border bg-background p-4">
-        <ChatInput
-          onSubmit={handleSubmit}
-          disabled={isStreaming}
-          isLoading={isStreaming}
-        />
+      <div className="px-6 py-8 bg-gradient-to-t from-background via-background/95 to-transparent z-10">
+        <div className="max-w-4xl mx-auto">
+          <ChatInput
+            onSubmit={handleSubmit}
+            disabled={isStreaming}
+            isLoading={isStreaming}
+          />
+          <p className="text-[10px] text-center text-muted-foreground/50 mt-4 uppercase tracking-tighter">
+            Pandora can make mistakes. Verify important information.
+          </p>
+        </div>
       </div>
     </div>
   );

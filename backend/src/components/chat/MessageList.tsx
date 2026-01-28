@@ -18,12 +18,14 @@ interface MessageListProps {
 export function MessageList({ messages }: MessageListProps) {
   if (messages.length === 0) {
     return (
-      <div className="flex h-full items-center justify-center">
+      <div className="flex h-full items-center justify-center animate-in-fade">
         <div className="text-center">
-          <Bot className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-          <p className="text-lg font-medium text-foreground">Start a conversation</p>
-          <p className="text-sm text-muted-foreground mt-2">
-            Send a message to begin chatting with Pandora
+          <Bot className="mx-auto h-12 w-12 text-primary/40 mb-4 animate-pulse-subtle" />
+          <p className="text-xl font-semibold bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text text-transparent">
+            Welcome to Pandora
+          </p>
+          <p className="text-sm text-muted-foreground mt-2 max-w-[250px] mx-auto">
+            Your advanced AI companion for creativity and exploration.
           </p>
         </div>
       </div>
@@ -31,7 +33,7 @@ export function MessageList({ messages }: MessageListProps) {
   }
 
   return (
-    <div className="flex flex-col gap-4 p-4">
+    <div className="flex flex-col gap-6 p-6">
       {messages.map((message, index) => {
         const isUser = message.role === 'user';
 
@@ -39,46 +41,39 @@ export function MessageList({ messages }: MessageListProps) {
           <div
             key={index}
             className={cn(
-              'flex items-start gap-3',
-              isUser ? 'justify-end' : 'justify-start'
+              'flex items-start gap-4 animate-in-slide',
+              isUser ? 'flex-row-reverse' : 'flex-row'
             )}
+            style={{ animationDelay: `${index * 0.05}s` }}
           >
-            {!isUser && (
-              <Avatar className="h-8 w-8 shrink-0">
-                <AvatarFallback className="bg-primary/10">
-                  <Bot className="h-5 w-5 text-primary" />
-                </AvatarFallback>
-              </Avatar>
-            )}
+            <Avatar className="h-9 w-9 shrink-0 border border-border shadow-sm">
+              <AvatarFallback className={cn(
+                isUser ? "bg-primary text-primary-foreground" : "bg-card text-foreground"
+              )}>
+                {isUser ? <User className="h-5 w-5" /> : <Bot className="h-5 w-5 text-primary" />}
+              </AvatarFallback>
+            </Avatar>
 
             <div
               className={cn(
-                'max-w-[80%] rounded-lg px-4 py-3',
+                'max-w-[85%] rounded-[20px] px-5 py-3 text-sm md:text-base selection:bg-primary/20',
                 isUser
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-card border border-border text-foreground'
+                  ? 'chat-bubble-user rounded-tr-none'
+                  : 'chat-bubble-assistant rounded-tl-none'
               )}
             >
               {isUser ? (
-                <p className="text-sm whitespace-pre-wrap break-words">
+                <p className="whitespace-pre-wrap break-words leading-relaxed">
                   {message.content}
                 </p>
               ) : (
-                <div className="prose prose-sm dark:prose-invert max-w-none">
+                <div className="prose prose-sm md:prose-base dark:prose-invert max-w-none leading-relaxed prose-p:my-1 prose-pre:my-2 prose-code:text-primary">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>
                     {message.content || '...'}
                   </ReactMarkdown>
                 </div>
               )}
             </div>
-
-            {isUser && (
-              <Avatar className="h-8 w-8 shrink-0">
-                <AvatarFallback className="bg-primary/10">
-                  <User className="h-5 w-5 text-primary" />
-                </AvatarFallback>
-              </Avatar>
-            )}
           </div>
         );
       })}

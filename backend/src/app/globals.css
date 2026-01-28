@@ -154,14 +154,59 @@
     /* 12-16px */
   }
 
-  /* Design System: Vertical rhythm */
-  .section-spacing {
-    @apply space-y-6;
-    /* 24-32px */
+  /* Premium Chat UI Utilities */
+  .chat-bubble-user {
+    @apply bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg shadow-primary/20 transition-all duration-300;
   }
 
-  .element-spacing {
-    @apply space-y-3;
-    /* 12-16px */
+  .chat-bubble-assistant {
+    @apply glass-surface shadow-sm transition-all duration-300;
+  }
+
+  .animate-in-slide {
+    animation: slide-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .animate-in-fade {
+    animation: fade-in 0.4s ease-out forwards;
+  }
+
+  @keyframes slide-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  /* Pulse animation for loading states */
+  .animate-pulse-subtle {
+    animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  @keyframes pulse-subtle {
+
+    0%,
+    100% {
+      opacity: 1;
+    }
+
+    50% {
+      opacity: 0.7;
+    }
   }
 }
