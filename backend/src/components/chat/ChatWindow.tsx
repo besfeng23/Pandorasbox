@@ -8,7 +8,7 @@ import { Loader2, Bot, BrainCircuit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export interface ChatMessage {
-  role: 'user' | 'assistant';
+  role: 'user' | 'assistant' | 'system';
   content: string;
   id?: string;
   attachments?: { url: string; type: string }[];
