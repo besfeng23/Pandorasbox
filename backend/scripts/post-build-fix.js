@@ -89,21 +89,21 @@ if (backendDir === '/' || backendDir === path.sep) {
   // Recalculate paths with fallback
   const fallbackNextDir = path.join(fallbackBackendDir, '.next');
   const fallbackRoutesManifestPath = path.join(fallbackNextDir, 'routes-manifest.json');
-  
+
   // Check if source exists
   if (!fs.existsSync(fallbackRoutesManifestPath)) {
     console.warn(`[Post-build] ⚠️  Warning: routes-manifest.json not found at ${fallbackRoutesManifestPath}`);
     console.warn(`[Post-build] This is normal during build phase, but should exist after Next.js build completes.`);
     process.exit(0);
   }
-  
+
   // Only copy to backend location (skip workspace root to avoid permission issues)
   const standaloneDir = path.join(fallbackBackendDir, '.next', 'standalone');
   const targetDir = path.join(standaloneDir, '.next');
   const targetManifestPath = path.join(targetDir, 'routes-manifest.json');
-  
+
   console.log(`[Post-build] Target: ${targetManifestPath}`);
-  
+
   // Create target directory if it doesn't exist
   if (!fs.existsSync(targetDir)) {
     console.log(`[Post-build] Creating directory: ${targetDir}`);
@@ -114,12 +114,12 @@ if (backendDir === '/' || backendDir === path.sep) {
       process.exit(1);
     }
   }
-  
+
   // Copy the file
   try {
     fs.copyFileSync(fallbackRoutesManifestPath, targetManifestPath);
     console.log(`[Post-build] ✅ Successfully copied routes-manifest.json`);
-    
+
     // Verify the copy was successful
     if (fs.existsSync(targetManifestPath)) {
       console.log(`[Post-build] ✅ Verification: file exists at target location`);
@@ -152,20 +152,20 @@ const copyToLocation = (targetBaseDir, locationName) => {
     console.warn(`[Post-build] ⚠️  Skipping ${locationName} - target directory is root or unsafe (${normalizedBaseDir})`);
     return false;
   }
-  
+
   const standaloneDir = path.join(targetBaseDir, '.next', 'standalone');
   const targetDir = path.join(standaloneDir, '.next');
   const targetManifestPath = path.join(targetDir, 'routes-manifest.json');
-  
+
   // Additional safety check: ensure target path is not at root
   const normalizedTargetDir = path.resolve(targetDir);
   if (normalizedTargetDir.startsWith('/.next') || normalizedTargetDir === '/.next' || normalizedTargetDir.length <= 6) {
     console.warn(`[Post-build] ⚠️  Skipping ${locationName} - target path is unsafe (${normalizedTargetDir})`);
     return false;
   }
-  
+
   console.log(`[Post-build] ${locationName} target: ${targetManifestPath}`);
-  
+
   // Create target directory if it doesn't exist
   if (!fs.existsSync(targetDir)) {
     console.log(`[Post-build] Creating directory: ${targetDir}`);
@@ -176,12 +176,12 @@ const copyToLocation = (targetBaseDir, locationName) => {
       return false;
     }
   }
-  
+
   // Copy the file
   try {
     fs.copyFileSync(routesManifestPath, targetManifestPath);
     console.log(`[Post-build] ✅ Successfully copied to ${locationName}`);
-    
+
     // Verify the copy was successful
     if (fs.existsSync(targetManifestPath)) {
       console.log(`[Post-build] ✅ Verification: ${locationName} file exists`);
@@ -201,9 +201,10 @@ const copyToLocation = (targetBaseDir, locationName) => {
 // The Firebase App Hosting adapter should find the file at backend/.next/standalone/.next/routes-manifest.json
 const backendSuccess = copyToLocation(backendDir, 'Backend');
 
-// Skip workspace root copy entirely - it's optional and causes permission errors when workspace root is /
-// The backend location is sufficient for the adapter to find the routes-manifest.json
-console.log(`[Post-build] ℹ️  Skipping workspace root copy - backend location is sufficient for Firebase App Hosting adapter`);
+// Copy to workspace root (optional but often needed by adapter)
+if (workspaceRoot && workspaceRoot !== backendDir) {
+  copyToLocation(workspaceRoot, 'Workspace Root');
+}
 
 // Only require backend location to succeed
 if (!backendSuccess) {
