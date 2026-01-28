@@ -161,6 +161,39 @@ const backendSuccess = copyManifestsToLocation(backendDir, 'Backend');
 let workspaceSuccess = false;
 if (workspaceRoot && workspaceRoot !== backendDir) {
   workspaceSuccess = copyManifestsToLocation(workspaceRoot, 'Workspace Root');
+
+  // Also copy the static folder to workspace root
+  const sourceStaticDir = path.join(nextDir, 'static');
+  const targetStaticDir = path.join(workspaceRoot, '.next', 'static');
+
+  if (fs.existsSync(sourceStaticDir)) {
+    console.log(`[Post-build] Copying static folder to workspace root: ${targetStaticDir}`);
+    try {
+      // Recursive directory copy function
+      const copyDirRecursive = (src, dest) => {
+        if (!fs.existsSync(dest)) {
+          fs.mkdirSync(dest, { recursive: true });
+        }
+        const entries = fs.readdirSync(src, { withFileTypes: true });
+        for (const entry of entries) {
+          const srcPath = path.join(src, entry.name);
+          const destPath = path.join(dest, entry.name);
+          if (entry.isDirectory()) {
+            copyDirRecursive(srcPath, destPath);
+          } else {
+            fs.copyFileSync(srcPath, destPath);
+          }
+        }
+      };
+
+      copyDirRecursive(sourceStaticDir, targetStaticDir);
+      console.log(`[Post-build] ✅ Copied static folder to workspace root`);
+    } catch (error) {
+      console.warn(`[Post-build] ⚠️  Could not copy static folder: ${error.message}`);
+    }
+  } else {
+    console.warn(`[Post-build] ⚠️  Static folder not found at ${sourceStaticDir}`);
+  }
 }
 
 // Log result
