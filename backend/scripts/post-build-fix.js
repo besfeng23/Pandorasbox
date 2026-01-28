@@ -229,6 +229,16 @@ if (workspaceRoot && workspaceRoot !== backendDir) {
       } catch (e) { console.error(e); }
     }
 
+    // STEP 1.5.1: Ensure server.js exists at root of source standalone (Proxy)
+    const sourceRootServerJs = path.join(sourceStandaloneDir, 'server.js');
+    const sourceBackendServerJs = path.join(sourceStandaloneDir, 'backend', 'server.js');
+
+    if (!fs.existsSync(sourceRootServerJs) && fs.existsSync(sourceBackendServerJs)) {
+      console.log('[Post-build] Creating proxy server.js for source standalone...');
+      fs.writeFileSync(sourceRootServerJs, "require('./backend/server.js');");
+      console.log('[Post-build] ✅ Created source proxy server.js');
+    }
+
     // STEP 1.6: Copy to backend/deploy (The runtime location) which is NOT ignored
     const deployDir = path.join(backendDir, 'deploy');
     console.log(`[Post-build] Copying standalone to deployment directory: ${deployDir}`);
@@ -248,6 +258,16 @@ if (workspaceRoot && workspaceRoot !== backendDir) {
         force: true
       });
       console.log(`[Post-build] ✅ Copied fixed standalone directory to workspace root`);
+
+      // STEP 3: Ensure server.js exists at root of standalone (Proxy for Monorepo structure)
+      const rootServerJs = path.join(targetStandaloneDir, 'server.js');
+      const backendServerJs = path.join(targetStandaloneDir, 'backend', 'server.js');
+
+      if (!fs.existsSync(rootServerJs) && fs.existsSync(backendServerJs)) {
+        console.log('[Post-build] Creating proxy server.js for monorepo structure...');
+        fs.writeFileSync(rootServerJs, "require('./backend/server.js');");
+        console.log('[Post-build] ✅ Created proxy server.js');
+      }
     } catch (error) {
       console.warn(`[Post-build] ⚠️ Could not copy standalone to workspace root: ${error.message}`);
     }
