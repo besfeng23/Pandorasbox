@@ -179,20 +179,40 @@ if (workspaceRoot && workspaceRoot !== backendDir) {
       });
       console.log(`[Post-build] ✅ Copied standalone directory to workspace root`);
 
-      // Verify if next module exists in target
-      const targetNextModule = path.join(targetStandaloneDir, 'node_modules', 'next');
-      if (fs.existsSync(targetNextModule)) {
-        console.log(`[Post-build] ✅ Verified: 'next' module exists in standalone node_modules`);
-      } else {
-        console.warn(`[Post-build] ⚠️  Warning: 'next' module NOT found in standalone node_modules at ${targetNextModule}`);
-        // Try to list contents of node_modules to debug
-        const targetNodeModules = path.join(targetStandaloneDir, 'node_modules');
-        if (fs.existsSync(targetNodeModules)) {
-          console.log('[Post-build] Contents of standalone node_modules:', fs.readdirSync(targetNodeModules).slice(0, 10));
-        } else {
-          console.warn('[Post-build] node_modules directory does not exist in standalone output');
-        }
+      // Verify and fix missing modules in standalone
+      const criticalModules = ['next', 'react', 'react-dom', 'sharp'];
+      const sourceNodeModules = path.join(backendDir, 'node_modules');
+      const targetNodeModules = path.join(targetStandaloneDir, 'node_modules');
+
+      // Ensure target node_modules exists
+      if (!fs.existsSync(targetNodeModules)) {
+        fs.mkdirSync(targetNodeModules, { recursive: true });
       }
+
+      criticalModules.forEach(mod => {
+        const targetModPath = path.join(targetNodeModules, mod);
+        if (!fs.existsSync(targetModPath)) {
+          console.warn(`[Post-build] ⚠️  Module '${mod}' missing in standalone. Attempting to copy from source...`);
+          const sourceModPath = path.join(sourceNodeModules, mod);
+
+          if (fs.existsSync(sourceModPath)) {
+            try {
+              fs.cpSync(sourceModPath, targetModPath, {
+                recursive: true,
+                dereference: true, // IMPORTANT: Follow symlinks to copy actual files
+                force: true
+              });
+              console.log(`[Post-build] ✅ Copied '${mod}' to standalone node_modules`);
+            } catch (err) {
+              console.error(`[Post-build] ❌ Failed to copy '${mod}':`, err);
+            }
+          } else {
+            console.error(`[Post-build] ❌ Source module '${mod}' not found at ${sourceModPath}`);
+          }
+        } else {
+          console.log(`[Post-build] ✅ Verified '${mod}' exists in standalone`);
+        }
+      });
     } catch (error) {
       console.warn(`[Post-build] ⚠️  Could not copy standalone directory: ${error.message}`);
 
