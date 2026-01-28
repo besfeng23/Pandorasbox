@@ -68,9 +68,9 @@ export function KeyboardShortcuts({ open, onOpenChange }: KeyboardShortcutsProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="glass-panel-strong border-glow-cyan max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="glass-panel-strong border-primary/20 max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader className="border-b border-white/10 pb-4">
-          <DialogTitle className="flex items-center gap-2 text-xl neon-text-cyan">
+          <DialogTitle className="flex items-center gap-2 text-xl text-primary">
             <Keyboard className="h-5 w-5" strokeWidth={2} />
             Keyboard Shortcuts
           </DialogTitle>

@@ -58,7 +58,7 @@ export function DataConnectors({ userId, agentId }: DataConnectorsProps) {
         }
 
         const data = await response.json();
-        
+
         toast({
           title: 'Success!',
           description: `Successfully indexed ${data.chunks} chunks from ${url}`,
@@ -83,7 +83,7 @@ export function DataConnectors({ userId, agentId }: DataConnectorsProps) {
           <DialogTrigger asChild>
             <div className="group relative glass-panel border border-cyan-400/20 rounded-xl p-6 cursor-pointer hover:bg-white/5 transition-all">
               <Globe className="h-8 w-8 text-cyan-400 mb-4 group-hover:scale-110 transition-transform" />
-              <h3 className="font-semibold text-lg mb-1 neon-text-cyan">Public Website</h3>
+              <h3 className="font-semibold text-lg mb-1 text-primary">Public Website</h3>
               <p className="text-sm text-white/60">Ingest content from any public URL.</p>
             </div>
           </DialogTrigger>
@@ -115,13 +115,13 @@ export function DataConnectors({ userId, agentId }: DataConnectorsProps) {
         {/* File Upload (Reusing Component) */}
         <div className="group relative glass-panel border border-cyan-400/20 rounded-xl p-6">
           <FileText className="h-8 w-8 text-cyan-400 mb-4" />
-          <h3 className="font-semibold text-lg mb-4 neon-text-cyan">File Upload</h3>
+          <h3 className="font-semibold text-lg mb-4 text-primary">File Upload</h3>
           <KnowledgeUpload userId={userId} agentId={agentId} />
         </div>
       </div>
 
       <div className="pt-6 border-t border-cyan-400/20">
-        <h3 className="text-sm font-semibold mb-4 neon-text-cyan flex items-center gap-2">
+        <h3 className="text-sm font-semibold mb-4 text-primary flex items-center gap-2">
           <Zap className="h-4 w-4" /> Active Capabilities (MCP)
         </h3>
         <div className="grid grid-cols-1 gap-3">

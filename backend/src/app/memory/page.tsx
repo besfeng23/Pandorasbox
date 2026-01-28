@@ -40,10 +40,10 @@ export default function MemoryPage() {
       const data = await fetchMemories(user.uid, agentId, search);
       // Map SearchResult to local Memory interface if needed, or just use it
       setMemories(data.map(m => ({
-          id: m.id,
-          text: m.text,
-          timestamp: m.timestamp,
-          score: m.score
+        id: m.id,
+        text: m.text,
+        timestamp: m.timestamp,
+        score: m.score
       })));
     } catch (error) {
       console.error('Failed to load memories:', error);
@@ -59,7 +59,7 @@ export default function MemoryPage() {
 
   useEffect(() => {
     if (user) {
-        loadMemories();
+      loadMemories();
     }
   }, [user, agentId, search]); // Removed search from deps if we want debounce, but ok for now
 
@@ -83,32 +83,32 @@ export default function MemoryPage() {
   };
 
   if (userLoading) {
-      return (
-        <div className="flex h-screen w-full items-center justify-center bg-background">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      );
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
   }
 
   return (
     <AppLayout>
       <div className="container mx-auto p-6 max-w-4xl">
         <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-3">
-                <Database className="h-8 w-8 text-cyan-400" />
-                <h1 className="text-3xl font-bold neon-text-cyan">Memory Dashboard</h1>
-            </div>
-            <div className="flex gap-2">
-                 <Button variant="outline" onClick={loadMemories} disabled={loading}>
-                    Refresh
-                 </Button>
-            </div>
+          <div className="flex items-center gap-3">
+            <Database className="h-8 w-8 text-cyan-400" />
+            <h1 className="text-3xl font-bold text-primary">Memory Dashboard</h1>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={loadMemories} disabled={loading}>
+              Refresh
+            </Button>
+          </div>
         </div>
 
         <div className="relative mb-6">
           <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-          <Input 
-            placeholder="Search memories..." 
+          <Input
+            placeholder="Search memories..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9 bg-black/20 border-cyan-500/30"
@@ -131,7 +131,7 @@ export default function MemoryPage() {
                   <CardHeader className="pb-2">
                     <div className="flex justify-between items-start">
                       <CardTitle className="text-sm font-medium text-cyan-300">
-                        Memory ID: {mem.id.substring(0,8)}...
+                        Memory ID: {mem.id.substring(0, 8)}...
                       </CardTitle>
                       <Button
                         variant="ghost"
@@ -147,7 +147,7 @@ export default function MemoryPage() {
                     <p className="text-sm text-gray-300 whitespace-pre-wrap">{mem.text}</p>
                     <div className="mt-2 text-xs text-gray-500">
                       {mem.timestamp ? format(new Date(mem.timestamp), 'PPP p') : 'Unknown Date'}
-                       <span className="ml-2 text-cyan-500">Score: {mem.score.toFixed(2)}</span>
+                      <span className="ml-2 text-cyan-500">Score: {mem.score.toFixed(2)}</span>
                     </div>
                   </CardContent>
                 </Card>

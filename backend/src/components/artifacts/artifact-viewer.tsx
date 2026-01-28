@@ -30,6 +30,7 @@ export function ArtifactViewer({ artifactId }: ArtifactViewerProps) {
   const setActiveArtifact = useArtifactStore(state => state.setActiveArtifact);
 
   useEffect(() => {
+    if (!firestore) return;
     setIsLoading(true);
     const unsub = onSnapshot(doc(firestore, 'artifacts', artifactId), (doc) => {
       if (doc.exists()) {
@@ -140,15 +141,15 @@ export function ArtifactViewer({ artifactId }: ArtifactViewerProps) {
       )}
       <ScrollArea className="flex-1 overscroll-contain">
         <div className="p-3 sm:p-4 bg-background">
-            {artifact.type === 'code' ? (
-                <SyntaxHighlighter language="javascript" style={vscDarkPlus} customStyle={{ background: 'transparent', margin: 0, padding: 0 }} codeTagProps={{style: {fontFamily: "var(--font-code)"}}}>
-                    {artifact.content}
-                </SyntaxHighlighter>
-            ) : (
-                <article className="prose prose-sm prose-zinc dark:prose-invert max-w-none">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{artifact.content}</ReactMarkdown>
-                </article>
-            )}
+          {artifact.type === 'code' ? (
+            <SyntaxHighlighter language="javascript" style={vscDarkPlus} customStyle={{ background: 'transparent', margin: 0, padding: 0 }} codeTagProps={{ style: { fontFamily: "var(--font-code)" } }}>
+              {artifact.content}
+            </SyntaxHighlighter>
+          ) : (
+            <article className="prose prose-sm prose-zinc dark:prose-invert max-w-none">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{artifact.content}</ReactMarkdown>
+            </article>
+          )}
         </div>
       </ScrollArea>
     </div>

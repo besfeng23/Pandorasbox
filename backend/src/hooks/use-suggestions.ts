@@ -13,7 +13,7 @@ export function useSuggestions(userId: string) {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!userId) {
+    if (!userId || !firestore) {
       return;
     }
 
@@ -56,7 +56,7 @@ export function useSuggestions(userId: string) {
   }, [userId, firestore]);
 
   const dismissSuggestion = useCallback(async (suggestionIndex: number) => {
-    if (!userId || !suggestions[suggestionIndex]) return;
+    if (!userId || !firestore || !suggestions[suggestionIndex]) return;
     const suggestionId = `${suggestionIndex}-${suggestions[suggestionIndex].substring(0, 20)}`;
     const newDismissed = new Set(dismissedIds);
     newDismissed.add(suggestionId);
@@ -72,7 +72,7 @@ export function useSuggestions(userId: string) {
   }, [userId, firestore, suggestions, dismissedIds]);
 
   const pinSuggestion = useCallback(async (suggestionIndex: number) => {
-    if (!userId || !suggestions[suggestionIndex]) return;
+    if (!userId || !firestore || !suggestions[suggestionIndex]) return;
     const suggestionId = `${suggestionIndex}-${suggestions[suggestionIndex].substring(0, 20)}`;
     const newPinned = new Set(pinnedIds);
     if (newPinned.has(suggestionId)) {

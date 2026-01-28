@@ -31,7 +31,7 @@ export function ReindexMemoriesButton({ userId, agentId = 'universe' }: ReindexM
     startTransition(async () => {
       const result = await reindexMemories(userId, agentId);
       setIsOpen(false);
-      
+
       if (result.success) {
         toast({
           title: 'Memories re-indexed successfully',
@@ -48,10 +48,10 @@ export function ReindexMemoriesButton({ userId, agentId = 'universe' }: ReindexM
   };
 
   return (
-    <div className="glass-panel-strong border-glow-cyan rounded-xl p-6 shadow-xl">
+    <div className="glass-panel-strong border-primary/20 rounded-xl p-6 shadow-xl">
       <div className="flex items-center justify-between">
         <div className="flex-1">
-          <h3 className="text-lg font-semibold mb-2 neon-text-cyan">Re-index Memories</h3>
+          <h3 className="text-lg font-semibold mb-2 text-primary">Re-index Memories</h3>
           <p className="text-sm text-white/70">
             Generate embeddings for memories that are missing them. This is needed for vector search to work.
             Memories that already have embeddings will be skipped.
@@ -79,7 +79,7 @@ export function ReindexMemoriesButton({ userId, agentId = 'universe' }: ReindexM
           </AlertDialogTrigger>
           <AlertDialogContent className="glass-panel-strong border border-cyan-400/30">
             <AlertDialogHeader>
-              <AlertDialogTitle className="neon-text-cyan">Re-index Memories</AlertDialogTitle>
+              <AlertDialogTitle className="text-primary">Re-index Memories</AlertDialogTitle>
               <AlertDialogDescription className="text-white/70">
                 This will generate embeddings for all memories that are missing them. This process may take a few minutes
                 depending on how many memories need to be re-indexed. Memories that already have embeddings will be skipped.

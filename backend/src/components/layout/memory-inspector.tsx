@@ -85,7 +85,7 @@ export function MemoryInspector({ userId, agentId }: MemoryInspectorProps) {
   // Apply date filters locally (or we could extend fetchMemories to handle it)
   useEffect(() => {
     let filtered = [...memories];
-    
+
     // Apply date filter
     if (dateFilter === 'last7days') {
       const sevenDaysAgo = new Date();
@@ -102,7 +102,7 @@ export function MemoryInspector({ userId, agentId }: MemoryInspectorProps) {
         return memDate >= thirtyDaysAgo;
       });
     }
-    
+
     setFilteredMemories(filtered);
   }, [memories, dateFilter]);
 
@@ -163,203 +163,203 @@ export function MemoryInspector({ userId, agentId }: MemoryInspectorProps) {
 
   return (
     <div className="flex flex-col h-full">
-        <div className="p-4 border-b border-cyan-400/20 space-y-3">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h3 className="text-sm font-semibold mb-1 neon-text-cyan">
-                        Memory Inspector
-                    </h3>
-                    <p className="text-xs text-white/60">
-                        Live view of Pandora's long-term memory via Qdrant.
-                    </p>
-                </div>
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setCreateDialogOpen(true)}
-                    className="bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/30 text-cyan-400"
-                >
-                    <Plus className="h-4 w-4 mr-1" />
-                    Create
-                </Button>
-            </div>
-            
-            {/* Search bar */}
-            <div className="relative">
-                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
-                <Input
-                    placeholder="Semantic search..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-8 bg-black/40 border-white/10 text-white placeholder:text-white/40"
-                />
-            </div>
-            
-            {/* Date filter */}
-            <Select value={dateFilter} onValueChange={setDateFilter}>
-                <SelectTrigger className="bg-black/40 border-white/10 text-white">
-                    <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-gray-900 border-white/10">
-                    <SelectItem value="all">All time</SelectItem>
-                    <SelectItem value="last7days">Last 7 days</SelectItem>
-                    <SelectItem value="last30days">Last 30 days</SelectItem>
-                </SelectContent>
-            </Select>
+      <div className="p-4 border-b border-cyan-400/20 space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-semibold mb-1 text-primary">
+              Memory Inspector
+            </h3>
+            <p className="text-xs text-white/60">
+              Live view of Pandora's long-term memory via Qdrant.
+            </p>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setCreateDialogOpen(true)}
+            className="bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/30 text-cyan-400"
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Create
+          </Button>
         </div>
-        <ScrollArea className="flex-1">
-            {isLoading ? (
-            <div className="flex flex-col gap-3 p-4">
-                {[1, 2, 3].map(i => (
-                    <div key={i} className="space-y-2">
-                        <Skeleton className="h-4 w-3/4 bg-white/5" />
-                        <Skeleton className="h-4 w-1/2 bg-white/5" />
-                        <Skeleton className="h-3 w-1/4 bg-white/5" />
-                    </div>
-                ))}
+
+        {/* Search bar */}
+        <div className="relative">
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
+          <Input
+            placeholder="Semantic search..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-8 bg-black/40 border-white/10 text-white placeholder:text-white/40"
+          />
+        </div>
+
+        {/* Date filter */}
+        <Select value={dateFilter} onValueChange={setDateFilter}>
+          <SelectTrigger className="bg-black/40 border-white/10 text-white">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="bg-gray-900 border-white/10">
+            <SelectItem value="all">All time</SelectItem>
+            <SelectItem value="last7days">Last 7 days</SelectItem>
+            <SelectItem value="last30days">Last 30 days</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <ScrollArea className="flex-1">
+        {isLoading ? (
+          <div className="flex flex-col gap-3 p-4">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="space-y-2">
+                <Skeleton className="h-4 w-3/4 bg-white/5" />
+                <Skeleton className="h-4 w-1/2 bg-white/5" />
+                <Skeleton className="h-3 w-1/4 bg-white/5" />
+              </div>
+            ))}
+          </div>
+        ) : displayMemories.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-center p-6">
+            <div className="glass-panel rounded-lg border border-cyan-400/20 p-6 max-w-sm">
+              <BrainCircuit className="h-12 w-12 mx-auto mb-4 text-cyan-400/60 animate-pulse-slow" strokeWidth={1.5} />
+              <p className="font-semibold text-sm text-primary mb-2">No memories stored</p>
+              <p className="text-xs text-white/60 leading-relaxed">
+                No semantic matches found in Qdrant. Start chatting to build long-term memory.
+              </p>
             </div>
-            ) : displayMemories.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-center p-6">
-                <div className="glass-panel rounded-lg border border-cyan-400/20 p-6 max-w-sm">
-                    <BrainCircuit className="h-12 w-12 mx-auto mb-4 text-cyan-400/60 animate-pulse-slow" strokeWidth={1.5} />
-                    <p className="font-semibold text-sm neon-text-cyan mb-2">No memories stored</p>
-                    <p className="text-xs text-white/60 leading-relaxed">
-                        No semantic matches found in Qdrant. Start chatting to build long-term memory.
-                    </p>
-                </div>
-            </div>
-            ) : (
-            <div className="flex flex-col gap-2 p-4">
-                {displayMemories.map(memory => (
-                <div 
-                    key={memory.id} 
-                    className="glass-panel rounded-lg border border-purple-400/20 p-3 hover:border-purple-400/30 hover:shadow-neon-purple-sm transition-all group gradient-border"
-                >
-                    {editingId === memory.id ? (
-                        <div className="space-y-2">
-                            <Textarea
-                                value={editText}
-                                onChange={(e) => setEditText(e.target.value)}
-                                className="min-h-[100px] bg-black/40 border-white/10 text-white"
-                            />
-                            <div className="flex gap-2 justify-end">
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleUpdate(memory.id)}
-                                    disabled={isPending}
-                                >
-                                    <Save className="h-4 w-4 mr-1" />
-                                    Save
-                                </Button>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => {
-                                        setEditingId(null);
-                                        setEditText('');
-                                    }}
-                                    disabled={isPending}
-                                >
-                                    <X className="h-4 w-4 mr-1" />
-                                    Cancel
-                                </Button>
-                            </div>
-                        </div>
-                    ) : (
-                        <>
-                            <p className="mb-2 leading-relaxed text-sm text-white/90">{memory.content}</p>
-                            <div className="flex items-center justify-between">
-                                <p className="text-white/40 text-[10px]">
-                                    {memory.createdAt ? formatDistanceToNow(toDate(memory.createdAt), { addSuffix: true }) : 'just now'}
-                                </p>
-                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-6 w-6 text-white/60 hover:text-white"
-                                        onClick={() => startEditing(memory)}
-                                    >
-                                        <Edit className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-6 w-6 text-red-400/60 hover:text-red-400"
-                                        onClick={() => setDeleteDialogOpen(memory.id)}
-                                    >
-                                        <Trash2 className="h-3 w-3" />
-                                    </Button>
-                                </div>
-                            </div>
-                        </>
-                    )}
-                </div>
-                ))}
-            </div>
-            )}
-        </ScrollArea>
-        
-        {/* Create memory dialog */}
-        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-            <DialogContent className="glass-panel-strong border border-cyan-400/20">
-                <DialogHeader>
-                    <DialogTitle>Create Memory</DialogTitle>
-                    <DialogDescription>
-                        Add a new memory to Pandora's long-term memory. This will help the AI remember important information.
-                    </DialogDescription>
-                </DialogHeader>
-                <div className="py-4">
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2 p-4">
+            {displayMemories.map(memory => (
+              <div
+                key={memory.id}
+                className="glass-panel rounded-lg border border-primary/20 p-3 hover:border-primary/30 hover:shadow-sm transition-all group gradient-border"
+              >
+                {editingId === memory.id ? (
+                  <div className="space-y-2">
                     <Textarea
-                        value={newMemoryText}
-                        onChange={(e) => setNewMemoryText(e.target.value)}
-                        placeholder="Enter memory content..."
-                        className="min-h-[120px] bg-black/40 border-white/10 text-white placeholder:text-white/40"
+                      value={editText}
+                      onChange={(e) => setEditText(e.target.value)}
+                      className="min-h-[100px] bg-black/40 border-white/10 text-white"
                     />
-                </div>
-                <DialogFooter>
-                    <Button
+                    <div className="flex gap-2 justify-end">
+                      <Button
                         variant="ghost"
+                        size="sm"
+                        onClick={() => handleUpdate(memory.id)}
+                        disabled={isPending}
+                      >
+                        <Save className="h-4 w-4 mr-1" />
+                        Save
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => {
-                            setCreateDialogOpen(false);
-                            setNewMemoryText('');
+                          setEditingId(null);
+                          setEditText('');
                         }}
                         disabled={isPending}
-                    >
+                      >
+                        <X className="h-4 w-4 mr-1" />
                         Cancel
-                    </Button>
-                    <Button
-                        onClick={handleCreate}
-                        disabled={isPending || !newMemoryText.trim()}
-                        className="bg-cyan-600 hover:bg-cyan-700"
-                    >
-                        {isPending ? 'Creating...' : 'Create Memory'}
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <p className="mb-2 leading-relaxed text-sm text-white/90">{memory.content}</p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-white/40 text-[10px]">
+                        {memory.createdAt ? formatDistanceToNow(toDate(memory.createdAt), { addSuffix: true }) : 'just now'}
+                      </p>
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-white/60 hover:text-white"
+                          onClick={() => startEditing(memory)}
+                        >
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-red-400/60 hover:text-red-400"
+                          onClick={() => setDeleteDialogOpen(memory.id)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </ScrollArea>
 
-        {/* Delete confirmation dialog */}
-        <AlertDialog open={!!deleteDialogOpen} onOpenChange={(open) => !open && setDeleteDialogOpen(null)}>
-            <AlertDialogContent className="glass-panel-strong border border-red-400/20">
-                <AlertDialogHeader>
-                    <AlertDialogTitle>Delete Memory</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        Are you sure you want to delete this memory? This action cannot be undone.
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                        onClick={() => deleteDialogOpen && handleDelete(deleteDialogOpen)}
-                        disabled={isPending}
-                        className="bg-red-600 hover:bg-red-700"
-                    >
-                        Delete
-                    </AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
+      {/* Create memory dialog */}
+      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+        <DialogContent className="glass-panel-strong border border-cyan-400/20">
+          <DialogHeader>
+            <DialogTitle>Create Memory</DialogTitle>
+            <DialogDescription>
+              Add a new memory to Pandora's long-term memory. This will help the AI remember important information.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Textarea
+              value={newMemoryText}
+              onChange={(e) => setNewMemoryText(e.target.value)}
+              placeholder="Enter memory content..."
+              className="min-h-[120px] bg-black/40 border-white/10 text-white placeholder:text-white/40"
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setCreateDialogOpen(false);
+                setNewMemoryText('');
+              }}
+              disabled={isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCreate}
+              disabled={isPending || !newMemoryText.trim()}
+              className="bg-cyan-600 hover:bg-cyan-700"
+            >
+              {isPending ? 'Creating...' : 'Create Memory'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={!!deleteDialogOpen} onOpenChange={(open) => !open && setDeleteDialogOpen(null)}>
+        <AlertDialogContent className="glass-panel-strong border border-red-400/20">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Memory</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this memory? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteDialogOpen && handleDelete(deleteDialogOpen)}
+              disabled={isPending}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

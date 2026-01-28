@@ -38,19 +38,19 @@ export function ClearMemoryButton({ variant = 'destructive', agentId = 'universe
     startTransition(async () => {
       // Use user.uid and agentId, not token
       const result = await clearMemory(user.uid, agentId);
-      
+
       setIsOpen(false);
-      
+
       if (result.success) {
-        toast({ 
-          title: 'Cleared', 
-          description: result.message || 'All your data has been permanently deleted.' 
+        toast({
+          title: 'Cleared',
+          description: result.message || 'All your data has been permanently deleted.'
         });
       } else {
-        toast({ 
-          variant: 'destructive', 
-          title: 'Failed', 
-          description: result.message || 'Failed to clear data.' 
+        toast({
+          variant: 'destructive',
+          title: 'Failed',
+          description: result.message || 'Failed to clear data.'
         });
       }
     });
@@ -62,7 +62,7 @@ export function ClearMemoryButton({ variant = 'destructive', agentId = 'universe
         <Button
           variant={variant}
           disabled={!user}
-          className="neon-glow-purple"
+          className="shadow-sm"
           aria-label="Clear all data"
           data-testid="settings-clear-open"
         >
@@ -96,7 +96,7 @@ export function ClearMemoryButton({ variant = 'destructive', agentId = 'universe
           >
             Cancel
           </AlertDialogCancel>
-          <AlertDialogAction 
+          <AlertDialogAction
             onClick={handleClearAll}
             disabled={isPending}
             className="bg-destructive hover:bg-destructive/90"

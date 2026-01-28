@@ -54,6 +54,9 @@ export function EmailForm() {
     setIsLoading(true);
     setError(null);
     try {
+      if (!auth) {
+        throw new Error('Authentication is not initialized');
+      }
       if (isSignUp) {
         await createUserWithEmailAndPassword(auth, data.email, data.password);
       } else {
@@ -71,6 +74,15 @@ export function EmailForm() {
     const email = form.getValues('email');
     if (!email) {
       form.trigger('email');
+      return;
+    }
+
+    if (!auth) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Authentication is not initialized',
+      });
       return;
     }
 
@@ -94,10 +106,10 @@ export function EmailForm() {
   return (
     <div className="space-y-4">
       {error && (
-        <Alert className="glass-panel border border-red-400/30 bg-red-400/10">
-          <AlertCircle className="h-4 w-4 text-red-400" />
-          <AlertTitle className="text-red-400">Authentication Error</AlertTitle>
-          <AlertDescription className="text-white/80">{error}</AlertDescription>
+        <Alert variant="destructive" className="glass-panel">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Authentication Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
       <Form {...form}>
@@ -107,12 +119,12 @@ export function EmailForm() {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-white/90">Email</FormLabel>
+                <FormLabel className="text-foreground">Email</FormLabel>
                 <FormControl>
                   <Input
                     type="email"
                     placeholder="name@example.com"
-                    className="input-glass text-white placeholder:text-white/40"
+                    className="text-foreground placeholder:text-muted-foreground"
                     {...field}
                   />
                 </FormControl>
@@ -122,18 +134,18 @@ export function EmailForm() {
           />
           {!isSignUp && (
             <div className="flex justify-end -mb-2">
-                <Button
-                    type="button"
-                    variant="link"
-                    className="p-0 h-auto text-xs"
-                    onClick={handlePasswordReset}
-                    disabled={isResetting}
-                >
-                    {isResetting ? (
-                        <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                    ) : null}
-                    Forgot password?
-                </Button>
+              <Button
+                type="button"
+                variant="link"
+                className="p-0 h-auto text-xs"
+                onClick={handlePasswordReset}
+                disabled={isResetting}
+              >
+                {isResetting ? (
+                  <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                ) : null}
+                Forgot password?
+              </Button>
             </div>
           )}
           <FormField
@@ -141,25 +153,25 @@ export function EmailForm() {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-white/90">Password</FormLabel>
+                <FormLabel className="text-foreground">Password</FormLabel>
                 <FormControl>
-                  <Input 
-                    type="password" 
-                    placeholder="••••••••" 
-                    className="input-glass text-white placeholder:text-white/40"
-                    {...field} 
+                  <Input
+                    type="password"
+                    placeholder="••••••••"
+                    className="text-foreground placeholder:text-muted-foreground"
+                    {...field}
                   />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-          <Button type="submit" className="w-full bg-gradient-to-r from-cyan-400 to-purple-500 text-white hover:from-cyan-300 hover:to-purple-400 border-0 shadow-neon-cyan-sm relative" disabled={isLoading || isResetting}>
+          <Button type="submit" className="w-full bg-primary text-primary-foreground hover:bg-primary/90 border-0 shadow-sm relative" disabled={isLoading || isResetting}>
             {isLoading && (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 <span className="absolute inset-0 flex items-center justify-center glass-panel rounded-md">
-                  <Loader2 className="h-4 w-4 animate-spin text-cyan-400" />
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
                 </span>
               </>
             )}
@@ -172,14 +184,14 @@ export function EmailForm() {
           <span className="w-full border-t" />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-void px-2 text-white/40">
+          <span className="bg-background px-2 text-muted-foreground">
             Or
           </span>
         </div>
       </div>
       <Button
         variant="outline"
-        className="w-full glass-panel border-glow-purple hover:bg-neon-purple/10 text-white/90"
+        className="w-full glass-panel border-primary/20 hover:bg-primary/5 text-foreground/90"
         onClick={() => {
           setIsSignUp(!isSignUp);
           setError(null);

@@ -41,9 +41,9 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="glass-panel-strong border-glow-cyan max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="glass-panel-strong border-primary/20 max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader className="border-b border-white/10 pb-4">
-          <DialogTitle className="flex items-center gap-2 text-xl neon-text-cyan">
+          <DialogTitle className="flex items-center gap-2 text-xl text-primary">
             <Settings2 className="h-5 w-5" strokeWidth={2} />
             System Configuration
           </DialogTitle>
@@ -57,13 +57,13 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
           {/* Model Configuration Section */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <Zap className="h-4 w-4 text-neon-cyan" strokeWidth={2} />
+              <Zap className="h-4 w-4 text-primary" strokeWidth={2} />
               <h3 className="text-sm font-semibold text-white/90">Model Temperature</h3>
             </div>
             <div className="space-y-3 pl-6">
               <div className="flex items-center justify-between">
                 <Label className="text-white/80">Creativity Level</Label>
-                <span className="text-xs text-neon-cyan font-mono">
+                <span className="text-xs text-primary font-mono">
                   {temperature[0].toFixed(1)}
                 </span>
               </div>
@@ -87,7 +87,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
           {/* Data Retention Section */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <Database className="h-4 w-4 text-neon-cyan" strokeWidth={2} />
+              <Database className="h-4 w-4 text-primary" strokeWidth={2} />
               <h3 className="text-sm font-semibold text-white/90">Data Retention</h3>
             </div>
             <div className="flex items-center justify-between pl-6">
@@ -103,7 +103,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
                 id="data-retention"
                 checked={dataRetention}
                 onCheckedChange={setDataRetention}
-                className="data-[state=checked]:bg-neon-cyan"
+                className="data-[state=checked]:bg-primary"
               />
             </div>
           </div>
@@ -114,26 +114,26 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               {darkMode ? (
-                <Moon className="h-4 w-4 text-neon-cyan" strokeWidth={2} />
+                <Moon className="h-4 w-4 text-primary" strokeWidth={2} />
               ) : (
-                <Sun className="h-4 w-4 text-neon-cyan" strokeWidth={2} />
+                <Sun className="h-4 w-4 text-primary" strokeWidth={2} />
               )}
               <h3 className="text-sm font-semibold text-white/90">Appearance</h3>
             </div>
             <div className="flex items-center justify-between pl-6">
               <div className="space-y-1">
                 <Label htmlFor="dark-mode" className="text-white/80 cursor-pointer">
-                  {darkMode ? 'Digital Void Theme' : 'Light Theme'}
+                  {darkMode ? 'Dark Theme' : 'Light Theme'}
                 </Label>
                 <p className="text-xs text-white/50">
-                  {darkMode ? 'Dark mode with cyberpunk aesthetics' : 'Clean light mode interface'}
+                  {darkMode ? 'Dark mode interface' : 'Clean light mode interface'}
                 </p>
               </div>
               <Switch
                 id="dark-mode"
                 checked={darkMode}
                 onCheckedChange={toggleTheme}
-                className="data-[state=checked]:bg-neon-cyan"
+                className="data-[state=checked]:bg-primary"
               />
             </div>
           </div>
@@ -143,7 +143,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
           {/* Security Section */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <Shield className="h-4 w-4 text-neon-cyan" strokeWidth={2} />
+              <Shield className="h-4 w-4 text-primary" strokeWidth={2} />
               <h3 className="text-sm font-semibold text-white/90">Security</h3>
             </div>
             <div className="pl-6 space-y-3">
@@ -152,7 +152,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
                   <Label className="text-white/80">Data Encryption</Label>
                   <p className="text-xs text-white/50">All data is encrypted at rest</p>
                 </div>
-                <Check className="h-4 w-4 text-neon-cyan" />
+                <Check className="h-4 w-4 text-primary" />
               </div>
             </div>
           </div>
@@ -168,7 +168,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
           </Button>
           <Button
             onClick={() => onOpenChange(false)}
-            className="bg-gradient-to-r from-neon-cyan to-neon-purple text-white hover:opacity-90 border-0 shadow-neon-cyan-sm"
+            className="bg-primary text-primary-foreground hover:opacity-90 border-0 shadow-sm"
           >
             Save Changes
           </Button>

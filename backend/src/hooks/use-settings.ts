@@ -6,13 +6,13 @@ import { doc, onSnapshot } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import type { AppSettings } from '@/lib/types';
 
-  const defaultSettings: AppSettings = {
-    theme: 'system',
-    active_model: 'mistralai/Mistral-7B-Instruct-v0.3',
-    reply_style: 'detailed',
-    system_prompt_override: '',
-    personal_api_key: '',
-  };
+const defaultSettings: AppSettings = {
+  theme: 'system',
+  active_model: 'mistralai/Mistral-7B-Instruct-v0.3',
+  reply_style: 'detailed',
+  system_prompt_override: '',
+  personal_api_key: '',
+};
 
 export function useSettings(userId?: string) {
   const [settings, setSettings] = useState<AppSettings>(defaultSettings);
@@ -20,10 +20,10 @@ export function useSettings(userId?: string) {
   const firestore = useFirestore();
 
   useEffect(() => {
-    if (!userId) {
-        setIsLoading(false);
-        setSettings(defaultSettings);
-        return;
+    if (!userId || !firestore) {
+      setIsLoading(false);
+      setSettings(defaultSettings);
+      return;
     }
     const settingsDocRef = doc(firestore, 'settings', userId);
 

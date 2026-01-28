@@ -18,7 +18,7 @@ export function useChatHistory(userId: string | null, threadId: string | null, a
   const queryRef = useRef<any>(null);
 
   useEffect(() => {
-    if (!userId || !threadId) {
+    if (!userId || !threadId || !firestore) {
       setMessages([]);
       setThread(null);
       setIsLoading(false);
@@ -30,14 +30,14 @@ export function useChatHistory(userId: string | null, threadId: string | null, a
     queryRef.current = null;
     setIsLoading(true);
     setError(null);
-    
+
     // Clear messages immediately when switching threads to prevent stale data
     setMessages([]);
 
     // Listener for thread data (including summary)
     const threadDocRef = doc(firestore, `users/${userId}/agents/${agentId}/threads`, threadId);
     const unsubscribeThread = onSnapshot(
-      threadDocRef, 
+      threadDocRef,
       (doc) => {
         if (doc.exists()) {
           const data = doc.data();
@@ -63,10 +63,10 @@ export function useChatHistory(userId: string | null, threadId: string | null, a
 
     const historyCollectionRef = collection(firestore, `users/${userId}/agents/${agentId}/history`);
     const newQuery = query(
-        historyCollectionRef, 
-        where('userId', '==', userId),
-        where('threadId', '==', threadId),
-        orderBy('createdAt', 'asc')
+      historyCollectionRef,
+      where('userId', '==', userId),
+      where('threadId', '==', threadId),
+      orderBy('createdAt', 'asc')
     );
 
     queryRef.current = newQuery;
@@ -76,7 +76,7 @@ export function useChatHistory(userId: string | null, threadId: string | null, a
       (snapshot) => {
         const history = snapshot.docs.map((doc) => {
           const data = doc.data();
-          
+
           return {
             id: doc.id,
             ...data,
@@ -87,11 +87,11 @@ export function useChatHistory(userId: string | null, threadId: string | null, a
         });
 
         history.forEach(message => {
-            if (pendingMessages.has(message.id)) {
-                calculateLatency(message.id);
-            }
+          if (pendingMessages.has(message.id)) {
+            calculateLatency(message.id);
+          }
         });
-        
+
         setMessages(history);
         setIsLoading(false);
         setError(null);
@@ -99,7 +99,7 @@ export function useChatHistory(userId: string | null, threadId: string | null, a
       },
       (err) => {
         console.error('[useChatHistory] Error fetching chat history (onSnapshot error):', err);
-        
+
         // Check for missing index error
         if (err.code === 'failed-precondition' || err.message?.includes('index')) {
           setError('Firestore index missing. Please create the required composite index for the history collection.');
@@ -107,17 +107,17 @@ export function useChatHistory(userId: string | null, threadId: string | null, a
         } else {
           setError('Could not load chat history. Please check your connection and Firebase setup.');
         }
-        
+
         setIsLoading(false);
         setConnectionStatus('offline');
       }
     );
 
     return () => {
-        console.log(`[useChatHistory] Cleaning up listeners for thread ${threadId}`);
-        unsubscribeThread();
-        unsubscribeMessages();
-        // Don't reset queryRef here as it might be needed for comparison
+      console.log(`[useChatHistory] Cleaning up listeners for thread ${threadId}`);
+      unsubscribeThread();
+      unsubscribeMessages();
+      // Don't reset queryRef here as it might be needed for comparison
     }
   }, [userId, threadId, agentId, firestore, setConnectionStatus, pendingMessages, calculateLatency]);
 

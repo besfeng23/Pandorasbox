@@ -10,8 +10,8 @@ import { Loader2 } from 'lucide-react';
 
 interface FirebaseInstances {
   firebaseApp: FirebaseApp;
-  firestore: Firestore;
-  auth: Auth;
+  firestore: Firestore | null;
+  auth: Auth | null;
 }
 
 // This provider is intended to be used in the root layout of the app.

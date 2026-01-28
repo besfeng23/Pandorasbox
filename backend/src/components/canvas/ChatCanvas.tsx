@@ -32,8 +32,8 @@ const nodeWidth = 400;
 const nodeHeight = 200;
 
 // Stable edge style references
-const USER_EDGE_STYLE = { stroke: '#a855f7', strokeWidth: 2 };
-const ASSISTANT_EDGE_STYLE = { stroke: '#06b6d4', strokeWidth: 2 };
+const USER_EDGE_STYLE = { stroke: '#007AFF', strokeWidth: 2 };
+const ASSISTANT_EDGE_STYLE = { stroke: '#8E8E93', strokeWidth: 2 };
 
 // Convert linear messages array to ReactFlow nodes and edges with dagre layout
 function convertMessagesToFlow(messages: Message[]): { nodes: Node[]; edges: Edge[] } {
@@ -44,11 +44,11 @@ function convertMessagesToFlow(messages: Message[]): { nodes: Node[]; edges: Edg
   // Create nodes and edges from messages
   const nodes: Node[] = [];
   const edges: Edge[] = [];
-  
+
   messages.forEach((message, index) => {
     const nodeId = message.id;
     const nodeType = message.role === 'user' ? 'user' : 'assistant';
-    
+
     nodes.push({
       id: nodeId,
       type: nodeType,
@@ -73,7 +73,7 @@ function convertMessagesToFlow(messages: Message[]): { nodes: Node[]; edges: Edg
   // Use dagre to layout nodes in a tree (vertical flow)
   const g = new dagre.graphlib.Graph();
   g.setDefaultEdgeLabel(() => ({}));
-  g.setGraph({ 
+  g.setGraph({
     rankdir: 'TB', // Top to Bottom
     nodesep: 50,
     ranksep: 100,
@@ -105,12 +105,12 @@ function convertMessagesToFlow(messages: Message[]): { nodes: Node[]; edges: Edg
   return { nodes: layoutedNodes, edges };
 }
 
-function ChatCanvasInner({ 
-  messages, 
-  thread, 
-  userId, 
-  onMessageSubmit, 
-  isSending 
+function ChatCanvasInner({
+  messages,
+  thread,
+  userId,
+  onMessageSubmit,
+  isSending
 }: ChatCanvasProps) {
   // Memoize nodes/edges conversion - use message IDs as dependency for stability
   const messagesKey = useMemo(() => messages.map(m => m.id).join(','), [messages]);
@@ -130,12 +130,12 @@ function ChatCanvasInner({
       if (fitViewTimeoutRef.current) {
         clearTimeout(fitViewTimeoutRef.current);
       }
-      
+
       // Small delay to ensure nodes are rendered
       fitViewTimeoutRef.current = setTimeout(() => {
         const latestNode = nodes[nodes.length - 1];
         if (latestNode) {
-          fitView({ 
+          fitView({
             nodes: [{ id: latestNode.id }],
             padding: 0.2,
             duration: 800,
@@ -171,32 +171,24 @@ function ChatCanvasInner({
 
   // Memoize MiniMap nodeColor function
   const getNodeColor = useCallback((node: Node) => {
-    return node.type === 'user' ? '#7C3AED' : '#00E5FF';
+    return node.type === 'user' ? '#007AFF' : '#8E8E93';
   }, []);
 
   return (
-    <div className="relative w-full h-full bg-void">
-      {/* Digital Void background pattern */}
-      <div 
-        className="absolute inset-0 opacity-30"
-        style={{
-          backgroundImage: 'radial-gradient(circle, rgba(0, 229, 255, 0.1) 1px, transparent 1px)',
-          backgroundSize: '20px 20px',
-        }}
-      />
-      
+    <div className="relative w-full h-full bg-background">
+
       {/* Thread summary panel */}
       {hasSummary && (
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="absolute top-4 left-4 right-4 z-10 max-w-md p-4 rounded-xl glass-panel-strong border-glow-cyan"
+          className="absolute top-4 left-4 right-4 z-10 max-w-md p-4 rounded-xl glass-panel-strong border-primary/20"
         >
           <div className="flex items-center gap-2 mb-2">
-            <FileText className="h-5 w-5 neon-text-cyan" strokeWidth={1.5} />
-            <h3 className="font-semibold text-base neon-text-cyan">Conversation Summary</h3>
+            <FileText className="h-5 w-5 text-primary" strokeWidth={1.5} />
+            <h3 className="font-semibold text-base text-primary">Conversation Summary</h3>
           </div>
-          <p className="text-sm text-white/80 italic">
+          <p className="text-sm text-muted-foreground italic">
             {thread?.summary}
           </p>
         </motion.div>
@@ -220,41 +212,39 @@ function ChatCanvasInner({
         onlyRenderVisibleElements={true}
         proOptions={{ hideAttribution: true }}
       >
-        <Background 
-          color="rgba(147, 197, 253, 0.05)" 
+        <Background
+          color="rgba(147, 197, 253, 0.05)"
           gap={20}
           size={1}
         />
-        <Controls 
-          className="glass-panel-strong border-glow-cyan rounded-lg"
+        <Controls
+          className="glass-panel-strong border-primary/20 rounded-lg"
           showInteractive={false}
         />
-        <MiniMap 
-          className="glass-panel-strong border-glow-cyan rounded-lg"
+        <MiniMap
+          className="glass-panel-strong border-primary/20 rounded-lg"
           nodeColor={getNodeColor}
           maskColor="rgba(2, 4, 10, 0.8)"
         />
-        
+
         {/* Empty state */}
         {nodes.length === 0 && !hasSummary && (
           <Panel position="top-center" className="mt-20">
-            <div className="text-center text-white/60 glass-panel-strong border-glow-cyan p-6 rounded-xl">
-              <p className="text-lg">No messages yet.</p>
-              <p className="text-sm mt-2 text-white/50">Start a conversation below.</p>
+            <div className="text-center text-muted-foreground glass-panel-strong border-primary/20 p-6 rounded-xl">
+              <p className="text-lg font-medium text-foreground">No messages yet.</p>
+              <p className="text-sm mt-2 text-muted-foreground">Start a conversation below.</p>
             </div>
           </Panel>
         )}
       </ReactFlow>
 
-      {/* Floating Command Bar (Omni-Bar) - Digital Void Style */}
+      {/* Floating Command Bar (Omni-Bar) */}
       <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-20 w-full max-w-2xl px-4">
-        <div className="glass-panel-strong border-glow-cyan rounded-2xl shadow-neon-cyan p-4">
-          <ChatInput 
-            userId={userId} 
-            onMessageSubmit={onMessageSubmit} 
-            isSending={isSending} 
-          />
-        </div>
+        <ChatInput
+          userId={userId}
+          onMessageSubmit={onMessageSubmit}
+          isSending={isSending}
+        />
       </div>
     </div>
   );

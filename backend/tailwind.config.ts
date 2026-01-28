@@ -1,4 +1,4 @@
-import type {Config} from 'tailwindcss';
+import type { Config } from 'tailwindcss';
 
 export default {
   darkMode: ['class'],
@@ -10,75 +10,28 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        // Design System: Inter primary, SF Pro fallback, system stack
+        // Design System: Inter primary, SF Pro fallback
         sans: [
           'Inter',
-          'system-ui',
+          'SF Pro Text',
           '-apple-system',
           'BlinkMacSystemFont',
-          '"Segoe UI"',
-          'Roboto',
-          'Helvetica',
-          'Arial',
-          'sans-serif',
-        ],
-        body: [
-          'Inter',
           'system-ui',
-          '-apple-system',
-          'BlinkMacSystemFont',
-          '"Segoe UI"',
-          'Roboto',
-          'Helvetica',
-          'Arial',
           'sans-serif',
         ],
-        headline: [
-          'Inter',
-          'system-ui',
-          '-apple-system',
-          'BlinkMacSystemFont',
-          '"Segoe UI"',
-          'Roboto',
-          'Helvetica',
-          'Arial',
-          'sans-serif',
-        ],
-        // Design System: JetBrains Mono primary, SF Mono fallback stack
+        // Design System: SF Mono / JetBrains Mono
         mono: [
-          '"JetBrains Mono"',
+          'SF Mono',
+          'JetBrains Mono',
           'ui-monospace',
-          '"SF Mono"',
-          'Menlo',
-          'Monaco',
-          'Consolas',
-          '"Liberation Mono"',
-          '"Courier New"',
-          'monospace',
-        ],
-        code: [
-          '"JetBrains Mono"',
-          'ui-monospace',
-          '"SF Mono"',
-          'Menlo',
-          'Monaco',
-          'Consolas',
-          '"Liberation Mono"',
-          '"Courier New"',
           'monospace',
         ],
       },
       colors: {
-        // Digital Void Theme
-        // Elite palette (dark-first)
-        void: '#0B0C0F',
+        // Materials
         glass: 'rgba(255, 255, 255, 0.04)',
-        'brand-cyan': '#00E5FF',
-        'brand-violet': '#7C3AED',
-        'void-blue': '#0C1026',
-        'void-dark': '#07080C',
-        
-        // Existing shadcn colors (kept for compatibility)
+
+        // System Colors
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
         card: {
@@ -119,21 +72,19 @@ export default {
           '4': 'hsl(var(--chart-4))',
           '5': 'hsl(var(--chart-5))',
         },
-        surface: 'hsl(var(--card))'
       },
       borderRadius: {
-        // Design System: 12px default, 16px prominent, 20-24px hero
-        DEFAULT: '12px', // Default card radius
+        DEFAULT: '12px',
         lg: '16px', // Prominent cards/modals
         xl: '20px', // Hero surfaces
-        '2xl': '24px', // Hero surfaces (alternative)
-        md: '10px', // Buttons (Apple-ish)
+        '2xl': '24px', // Hero surfaces
+        md: '10px', // Buttons
         sm: '8px',
         full: '9999px',
       },
       spacing: {
-        // Design System: 8pt system with 4pt micro spacing
-        '0.5': '4px', // Micro spacing (icon-label gaps, tight padding)
+        // 8pt Grid System
+        '0.5': '4px',
         '1': '8px',
         '2': '16px',
         '3': '24px',
@@ -141,110 +92,13 @@ export default {
         '5': '40px',
         '6': '48px',
       },
-      backgroundImage: {
-        'void-gradient': 'linear-gradient(135deg, #02040A 0%, #0A0E27 50%, #02040A 100%)',
-        'void-radial': 'radial-gradient(ellipse at center, #0A0E27 0%, #02040A 100%)',
-        'neon-glow-cyan': 'linear-gradient(135deg, rgba(0, 229, 255, 0.1) 0%, rgba(0, 229, 255, 0) 100%)',
-        'neon-glow-purple': 'linear-gradient(135deg, rgba(98, 0, 234, 0.1) 0%, rgba(98, 0, 234, 0) 100%)',
-      },
       boxShadow: {
-        // Design System: Light card shadow
         'card-light': '0 1px 2px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.08)',
-        // Design System: Dark card shadow
         'card-dark': '0 1px 2px rgba(0,0,0,0.50), 0 8px 24px rgba(0,0,0,0.35)',
-        // Legacy neon shadows (keep for compatibility)
-        'neon-cyan': '0 0 16px rgba(0, 229, 255, 0.15), 0 0 32px rgba(0, 229, 255, 0.06)',
-        'neon-purple': '0 0 16px rgba(98, 0, 234, 0.15), 0 0 32px rgba(98, 0, 234, 0.06)',
-        'neon-cyan-sm': '0 0 8px rgba(0, 229, 255, 0.1)',
-        'neon-purple-sm': '0 0 8px rgba(98, 0, 234, 0.1)',
         'glass': '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
       },
-      keyframes: {
-        'accordion-down': {
-          from: {
-            height: '0',
-          },
-          to: {
-            height: 'var(--radix-accordion-content-height)',
-          },
-        },
-        'accordion-up': {
-          from: {
-            height: 'var(--radix-accordion-content-height)',
-          },
-          to: {
-            height: '0',
-          },
-        },
-        'pulse-slow': {
-          '0%, 100%': {
-            opacity: '1',
-          },
-          '50%': {
-            opacity: '0.6',
-          },
-        },
-        'slide-up': {
-          from: {
-            opacity: '0',
-            transform: 'translateY(10px)',
-          },
-          to: {
-            opacity: '1',
-            transform: 'translateY(0)',
-          },
-        },
-        'fade-in': {
-          from: {
-            opacity: '0',
-          },
-          to: {
-            opacity: '1',
-          },
-        },
-        'glow-cyan': {
-          '0%, 100%': {
-            boxShadow: '0 0 20px rgba(0, 229, 255, 0.3), 0 0 40px rgba(0, 229, 255, 0.1)',
-          },
-          '50%': {
-            boxShadow: '0 0 30px rgba(0, 229, 255, 0.5), 0 0 60px rgba(0, 229, 255, 0.2)',
-          },
-        },
-        'glow-purple': {
-          '0%, 100%': {
-            boxShadow: '0 0 20px rgba(98, 0, 234, 0.3), 0 0 40px rgba(98, 0, 234, 0.1)',
-          },
-          '50%': {
-            boxShadow: '0 0 30px rgba(98, 0, 234, 0.5), 0 0 60px rgba(98, 0, 234, 0.2)',
-          },
-        },
-      },
-      animation: {
-        // Design System: Standard easing cubic-bezier(0.2, 0.0, 0.0, 1.0)
-        'accordion-down': 'accordion-down 0.2s cubic-bezier(0.2, 0.0, 0.0, 1.0)',
-        'accordion-up': 'accordion-up 0.2s cubic-bezier(0.2, 0.0, 0.0, 1.0)',
-        // Design System: Small transitions 120-180ms
-        'fade-in': 'fade-in 0.15s cubic-bezier(0.2, 0.0, 0.0, 1.0)',
-        // Design System: Panel transitions 240-320ms
-        'slide-up': 'slide-up 0.28s cubic-bezier(0.2, 0.0, 0.0, 1.0)',
-        // Legacy animations (keep for compatibility)
-        'pulse-slow': 'pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-        'glow-cyan': 'glow-cyan 2s ease-in-out infinite',
-        'glow-purple': 'glow-purple 2s ease-in-out infinite',
-      },
-      transitionTimingFunction: {
-        // Design System: Standard easing
-        'standard': 'cubic-bezier(0.2, 0.0, 0.0, 1.0)',
-      },
-      transitionDuration: {
-        // Design System timing
-        'tap': '100ms', // Tap/press feedback: 80-120ms
-        'small': '150ms', // Small transitions: 120-180ms
-        'panel': '280ms', // Panel/dialog: 240-320ms
-        'page': '350ms', // Page-level: 280-420ms
-      },
       fontSize: {
-        // Design System: Type Scale (size / line-height, weight)
+        // Type Scale (size / line-height, weight)
         'large-title': ['34px', { lineHeight: '41px', fontWeight: '600' }],
         'title-1': ['28px', { lineHeight: '34px', fontWeight: '600' }],
         'title-2': ['22px', { lineHeight: '28px', fontWeight: '600' }],
@@ -256,23 +110,57 @@ export default {
         'footnote': ['13px', { lineHeight: '18px', fontWeight: '400' }],
         'caption': ['12px', { lineHeight: '16px', fontWeight: '400' }],
       },
-      maxWidth: {
-        // Design System: Max content width
-        'content-dense': '1200px', // 1120-1200px for dense desktop views
-        'content-reading': '960px', // 960px for reading-focused
+      transitionDuration: {
+        'tap': '100ms',
+        'small': '150ms',
+        'panel': '280ms',
+        'page': '350ms',
+      },
+      transitionTimingFunction: {
+        'standard': 'cubic-bezier(0.2, 0.0, 0.0, 1.0)',
+      },
+      keyframes: {
+        'accordion-down': {
+          from: { height: '0' },
+          to: { height: 'var(--radix-accordion-content-height)' },
+        },
+        'accordion-up': {
+          from: { height: 'var(--radix-accordion-content-height)' },
+          to: { height: '0' },
+        },
+        'modal-enter': {
+          from: { opacity: '0', transform: 'translateY(12px) scale(0.98)' },
+          to: { opacity: '1', transform: 'translateY(0) scale(1)' },
+        },
+        'fade-in': {
+          from: { opacity: '0' },
+          to: { opacity: '1' },
+        },
+        'slide-up': {
+          from: { opacity: '0', transform: 'translateY(10px)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
+        },
+      },
+      animation: {
+        'accordion-down': 'accordion-down 0.2s cubic-bezier(0.2, 0.0, 0.0, 1.0)',
+        'accordion-up': 'accordion-up 0.2s cubic-bezier(0.2, 0.0, 0.0, 1.0)',
+        'modal-enter': 'modal-enter 0.28s cubic-bezier(0.2, 0.0, 0.0, 1.0)',
+        'fade-in': 'fade-in 0.15s cubic-bezier(0.2, 0.0, 0.0, 1.0)',
+        'slide-up': 'slide-up 0.28s cubic-bezier(0.2, 0.0, 0.0, 1.0)',
       },
     },
   },
   plugins: [
-    require('tailwindcss-animate'), 
+    require('tailwindcss-animate'),
     require('@tailwindcss/typography'),
-    // Custom plugin for button press animation
-    function({ addUtilities }: any) {
+    // Custom plugin for interactions
+    function ({ addUtilities }: any) {
       addUtilities({
         '.press-animation': {
-          transition: 'transform 100ms cubic-bezier(0.2, 0.0, 0.0, 1.0)',
+          transition: 'transform 100ms cubic-bezier(0.2, 0.0, 0.0, 1.0), opacity 100ms cubic-bezier(0.2, 0.0, 0.0, 1.0)',
           '&:active': {
             transform: 'scale(0.98)',
+            opacity: '0.9',
           },
         },
         '.card-hover': {
@@ -288,6 +176,9 @@ export default {
             outlineOffset: '2px',
             boxShadow: '0 0 0 4px hsl(var(--ring) / 0.3)',
           },
+        },
+        '.glass-surface': {
+          '@apply backdrop-blur-xl bg-white/80 border border-white/20': {},
         },
       });
     },

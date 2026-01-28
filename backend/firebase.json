@@ -10,9 +10,6 @@
       "region": "us-central1"
     }
   },
-  // Functions configuration removed - using App Hosting with Next.js API routes instead
-  // All scheduled tasks are now in src/app/api/cron/
-  // "functions": [],
   "firestore": {
     "database": "(default)",
     "location": "asia-southeast1",
@@ -28,7 +25,8 @@
       "firebase-debug.log",
       "firebase-debug.*.log",
       "functions"
-    ]
+    ],
+    "alwaysDeployFromSource": true
   },
   "storage": {
     "rules": "storage.rules"
