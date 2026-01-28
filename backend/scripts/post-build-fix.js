@@ -167,87 +167,59 @@ if (workspaceRoot && workspaceRoot !== backendDir) {
   const targetStandaloneDir = path.join(workspaceRoot, '.next', 'standalone');
 
   if (fs.existsSync(sourceStandaloneDir)) {
+    // STEP 1: Fix critical modules in the SOURCE standalone directory first
+    // This ensures local runs (and start script) work correctly
+    console.log('[Post-build] Fixing modules in source standalone directory...');
+    const criticalModules = ['next', 'react', 'react-dom', 'sharp'];
+    const sourceNodeModules = path.join(backendDir, 'node_modules'); // Original modules
+    const rootNodeModules = path.join(workspaceRoot, 'node_modules');
+    const standaloneNodeModules = path.join(sourceStandaloneDir, 'node_modules');
+
+    // Ensure node_modules exists in standalone
+    if (!fs.existsSync(standaloneNodeModules)) {
+      fs.mkdirSync(standaloneNodeModules, { recursive: true });
+    }
+
+    criticalModules.forEach(mod => {
+      const standaloneModPath = path.join(standaloneNodeModules, mod);
+
+      // Try to find the source module
+      let srcPath = path.join(sourceNodeModules, mod);
+      if (!fs.existsSync(srcPath)) {
+        srcPath = path.join(rootNodeModules, mod);
+      }
+
+      if (fs.existsSync(srcPath)) {
+        try {
+          // Force copy dereferenced to ensure real files replace any symlinks
+          fs.cpSync(srcPath, standaloneModPath, { recursive: true, dereference: true, force: true });
+          console.log(`[Post-build] ✅ Fixed '${mod}' in source standalone`);
+        } catch (e) {
+          console.warn(`[Post-build] ⚠️ Failed to fix '${mod}': ${e.message}`);
+        }
+      } else {
+        console.warn(`[Post-build] ⚠️ Could not find source for '${mod}'`);
+      }
+    });
+
+    // STEP 2: Copy the fixed standalone directory to workspace root
+    // This satisfies the Adapter's potential requirements
     console.log(`[Post-build] Copying standalone directory to workspace root: ${targetStandaloneDir}`);
     try {
-      // Use fs.cpSync for robust recursive copying (Node 16.7+)
-      // This handles symlinks and permissions much better than manual recursion
       fs.cpSync(sourceStandaloneDir, targetStandaloneDir, {
         recursive: true,
-        dereference: true, // Follow symlinks to ensure files are actually present
+        dereference: true,
         errorOnExist: false,
         force: true
       });
-      console.log(`[Post-build] ✅ Copied standalone directory to workspace root`);
+      console.log(`[Post-build] ✅ Copied fixed standalone directory to workspace root`);
 
-      // Verify and fix missing modules in standalone
-      const criticalModules = ['next', 'react', 'react-dom', 'sharp'];
-      const sourceNodeModules = path.join(backendDir, 'node_modules');
-      const rootNodeModules = path.join(workspaceRoot, 'node_modules');
-      const targetNodeModules = path.join(targetStandaloneDir, 'node_modules');
-
-      // Ensure target node_modules exists
-      if (!fs.existsSync(targetNodeModules)) {
-        fs.mkdirSync(targetNodeModules, { recursive: true });
-      }
-
-      criticalModules.forEach(mod => {
-        const targetModPath = path.join(targetNodeModules, mod);
-        if (!fs.existsSync(targetModPath)) {
-          console.warn(`[Post-build] ⚠️  Module '${mod}' missing in standalone. Checking sources...`);
-
-          let sourceModPath = path.join(sourceNodeModules, mod);
-          if (!fs.existsSync(sourceModPath)) {
-            // Try root
-            sourceModPath = path.join(rootNodeModules, mod);
-          }
-
-          if (fs.existsSync(sourceModPath)) {
-            try {
-              fs.cpSync(sourceModPath, targetModPath, {
-                recursive: true,
-                dereference: true,
-                force: true
-              });
-              console.log(`[Post-build] ✅ Copied '${mod}' to standalone node_modules`);
-            } catch (err) {
-              console.error(`[Post-build] ❌ Failed to copy '${mod}':`, err);
-            }
-          } else {
-            console.error(`[Post-build] ❌ Module '${mod}' not found in backend or root node_modules`);
-          }
-        } else {
-          console.log(`[Post-build] ✅ Verified '${mod}' exists in standalone`);
-        }
-      });
-
-      // Verify server.js
-      const serverJsPath = path.join(targetStandaloneDir, 'server.js');
-      if (fs.existsSync(serverJsPath)) {
-        console.log(`[Post-build] ✅ Verified 'server.js' exists at ${serverJsPath}`);
-      } else {
-        console.error(`[Post-build] ❌ 'server.js' NOT found at ${serverJsPath}`);
-        // List directory
-        try {
-          const files = fs.readdirSync(targetStandaloneDir);
-          console.log('[Post-build] Standalone directory contents:', files);
-        } catch (e) { }
+      // Verify server.js in target to be sure
+      if (fs.existsSync(path.join(targetStandaloneDir, 'server.js'))) {
+        console.log(`[Post-build] ✅ Verified server.js in workspace root copy`);
       }
     } catch (error) {
-      console.warn(`[Post-build] ⚠️  Could not copy standalone directory: ${error.message}`);
-
-      // Fallback to manual copy if cpSync fails for some reason
-      if (error.code === 'ERR_FS_CP_SYMLINK_TO_SUBDIRECTORY') {
-        console.log('[Post-build] Retrying with symlinks ignored...');
-        try {
-          fs.cpSync(sourceStandaloneDir, targetStandaloneDir, {
-            recursive: true,
-            dereference: false,
-            filter: (src) => !fs.lstatSync(src).isSymbolicLink()
-          });
-        } catch (e) {
-          console.error(`[Post-build] ❌ Fallback also failed: ${e.message}`);
-        }
-      }
+      console.warn(`[Post-build] ⚠️ Could not copy standalone directory: ${error.message}`);
     }
   } else {
     console.warn(`[Post-build] ⚠️  Standalone directory not found at ${sourceStandaloneDir}`);
