@@ -246,117 +246,131 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
         </DropdownMenu>
       </SidebarHeader>
 
-      <SidebarContent className="p-2">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <Link href="/memory" className="w-full" onClick={handleNavClick}>
-              <SidebarMenuButton isActive={pathname.startsWith('/memory')} className="w-full justify-start">
-                <BrainCircuit />
-                <span>Memory</span>
-              </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <Link href="/knowledge" className="w-full" onClick={handleNavClick}>
-              <SidebarMenuButton isActive={pathname.startsWith('/knowledge')} className="w-full justify-start">
-                <Book />
-                <span>Knowledge Base</span>
-              </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <Link href="/graph" className="w-full" onClick={handleNavClick}>
-              <SidebarMenuButton isActive={pathname.startsWith('/graph')} className="w-full justify-start">
-                <Share2 />
-                <span>Knowledge Graph</span>
-              </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <Link href="/artifacts" className="w-full" onClick={handleNavClick}>
-              <SidebarMenuButton isActive={pathname.startsWith('/artifacts')} className="w-full justify-start">
-                <Sparkles />
-                <span>Artifacts</span>
-              </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <Link href="/connectors" className="w-full" onClick={handleNavClick}>
-              <SidebarMenuButton isActive={pathname.startsWith('/connectors')} className="w-full justify-start">
-                <Plug />
-                <span>Data Connectors</span>
-              </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <Link href="/agents" className="w-full" onClick={handleNavClick}>
-              <SidebarMenuButton isActive={pathname.startsWith('/agents')} className="w-full justify-start">
-                <Bot />
-                <span>Agents</span>
-              </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <Link href="/health" className="w-full" onClick={handleNavClick}>
-              <SidebarMenuButton isActive={pathname.startsWith('/health')} className="w-full justify-start">
-                <Activity />
-                <span>System Health</span>
-              </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <Link href="/notifications" className="w-full" onClick={handleNavClick}>
-              <SidebarMenuButton isActive={pathname.startsWith('/notifications')} className="w-full justify-start">
-                <Bell />
-                <span>Notifications</span>
-              </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <Link href="/integrations" className="w-full" onClick={handleNavClick}>
-              <SidebarMenuButton isActive={pathname.startsWith('/integrations')} className="w-full justify-start">
-                <Plug />
-                <span>Integrations</span>
-              </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
+      <SidebarContent className="p-2 gap-4">
+        <SidebarGroup>
+          <div className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+            Core
+          </div>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <Link href="/" className="w-full" onClick={handleNavClick}>
+                <SidebarMenuButton isActive={pathname === '/'} className="w-full justify-start">
+                  <Bot />
+                  <span>Home</span>
+                </SidebarMenuButton>
+              </Link>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <Button
+                variant="outline"
+                className="w-full justify-start border-dashed hover:border-primary/50 hover:bg-primary/5 group"
+                onClick={handleCreateThread}
+              >
+                <PlusCircle className="mr-2 h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
+                <span className="text-xs">New Session</span>
+              </Button>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
 
-          <SidebarSeparator className="my-2" />
+        <SidebarGroup>
+          <div className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+            Intelligence
+          </div>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <Link href="/memory" className="w-full" onClick={handleNavClick}>
+                <SidebarMenuButton isActive={pathname.startsWith('/memory')} className="w-full justify-start">
+                  <BrainCircuit />
+                  <span>Neural Memory</span>
+                </SidebarMenuButton>
+              </Link>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <Link href="/knowledge" className="w-full" onClick={handleNavClick}>
+                <SidebarMenuButton isActive={pathname.startsWith('/knowledge')} className="w-full justify-start">
+                  <Book />
+                  <span>Knowledge Base</span>
+                </SidebarMenuButton>
+              </Link>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <Link href="/graph" className="w-full" onClick={handleNavClick}>
+                <SidebarMenuButton isActive={pathname.startsWith('/graph')} className="w-full justify-start">
+                  <Share2 />
+                  <span>Context Graph</span>
+                </SidebarMenuButton>
+              </Link>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
 
-          <SidebarMenuItem>
-            <Link href="/workspaces" className="w-full" onClick={handleNavClick}>
-              <SidebarMenuButton isActive={pathname.startsWith('/workspaces')} className="w-full justify-start">
-                <Building />
-                <span>Workspaces</span>
-              </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <Link href="/admin" className="w-full" onClick={handleNavClick}>
-              <SidebarMenuButton isActive={pathname.startsWith('/admin')} className="w-full justify-start">
-                <Shield />
-                <span>Admin Cockpit</span>
-              </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        <SidebarGroup>
+          <div className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+            Tools
+          </div>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <Link href="/artifacts" className="w-full" onClick={handleNavClick}>
+                <SidebarMenuButton isActive={pathname.startsWith('/artifacts')} className="w-full justify-start">
+                  <Sparkles />
+                  <span>Artifacts</span>
+                </SidebarMenuButton>
+              </Link>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <Link href="/connectors" className="w-full" onClick={handleNavClick}>
+                <SidebarMenuButton isActive={pathname.startsWith('/connectors')} className="w-full justify-start">
+                  <Plug />
+                  <span>Connectors</span>
+                </SidebarMenuButton>
+              </Link>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <Link href="/agents" className="w-full" onClick={handleNavClick}>
+                <SidebarMenuButton isActive={pathname.startsWith('/agents')} className="w-full justify-start">
+                  <User />
+                  <span>Agent Fleet</span>
+                </SidebarMenuButton>
+              </Link>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
 
-        <SidebarSeparator className="my-2" />
+        <SidebarGroup>
+          <div className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+            System
+          </div>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <Link href="/health" className="w-full" onClick={handleNavClick}>
+                <SidebarMenuButton isActive={pathname.startsWith('/health')} className="w-full justify-start">
+                  <Activity />
+                  <span>Health Stats</span>
+                </SidebarMenuButton>
+              </Link>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <Link href="/admin" className="w-full" onClick={handleNavClick}>
+                <SidebarMenuButton isActive={pathname.startsWith('/admin')} className="w-full justify-start">
+                  <Shield />
+                  <span>Admin Panel</span>
+                </SidebarMenuButton>
+              </Link>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
 
-        <Tabs value={agent} onValueChange={(value) => setAgent(value as 'builder' | 'universe')} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="builder">Builder</TabsTrigger>
-            <TabsTrigger value="universe">Universe</TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <SidebarSeparator className="mx-2" />
 
-        <Button
-          variant="outline"
-          className="mt-4 w-full"
-          onClick={handleCreateThread}
-        >
-          <PlusCircle className="mr-2 h-4 w-4" /> New Thread
-        </Button>
+        <div className="px-4 py-2">
+          <Tabs value={agent} onValueChange={(value) => setAgent(value as 'builder' | 'universe')} className="w-full">
+            <TabsList className="grid w-full grid-cols-2 p-1 bg-muted/50 rounded-lg">
+              <TabsTrigger value="builder" className="text-[10px] py-1">Builder</TabsTrigger>
+              <TabsTrigger value="universe" className="text-[10px] py-1">Universe</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
 
         <SidebarGroup className="mt-4 p-0">
           {loadingThreads ? (

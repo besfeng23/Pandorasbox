@@ -1,18 +1,19 @@
-
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { AppLayout } from '@/components/dashboard/app-layout';
 import { cn } from '@/lib/utils';
-import { User, Lock, Bell, CreditCard, BrainCircuit } from 'lucide-react';
-
+import { User, Lock, Bell, CreditCard, BrainCircuit, Book, Plug } from 'lucide-react';
 const navItems = [
-    { name: 'Profile', href: '/settings/profile', icon: User },
-    { name: 'AI', href: '/settings/ai', icon: BrainCircuit },
-    { name: 'Billing', href: '/settings/billing', icon: CreditCard },
-    // { name: 'Security', href: '/settings/security', icon: Lock },
-    // { name: 'Notifications', href: '/settings/notifications', icon: Bell },
+    { name: 'Profile', href: '/settings/profile', icon: User, category: 'Account' },
+    { name: 'AI Intelligence', href: '/settings/ai', icon: BrainCircuit, category: 'Account' },
+    { name: 'Knowledge', href: '/knowledge', icon: Book, category: 'Data' },
+    { name: 'Connectors', href: '/connectors', icon: Plug, category: 'Data' },
+    { name: 'Billing', href: '/settings/billing', icon: CreditCard, category: 'System' },
+    { name: 'Security', href: '/settings/security', icon: Lock, category: 'System' },
 ];
+
+const categories = ['Account', 'Data', 'System'];
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
@@ -28,20 +29,31 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
                     </div>
                 </div>
                 <div className="flex flex-col space-y-8 lg:flex-row lg:space-x-12 lg:space-y-0">
-                    <aside className="lg:w-1/5">
-                        <nav className="flex space-x-2 overflow-x-auto pb-2 lg:flex-col lg:space-x-0 lg:space-y-1 lg:overflow-x-visible lg:pb-0">
-                            {navItems.map((item) => (
-                                <Link
-                                    key={item.name}
-                                    href={item.href}
-                                    className={cn(
-                                        'inline-flex items-center whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground',
-                                        pathname === item.href ? 'bg-accent' : 'transparent'
-                                    )}
-                                >
-                                    <item.icon className="mr-2 h-4 w-4" />
-                                    {item.name}
-                                </Link>
+                    <aside className="lg:w-1/4">
+                        <nav className="flex space-x-2 overflow-x-auto pb-2 lg:flex-col lg:space-x-0 lg:space-y-4 lg:overflow-x-visible lg:pb-0">
+                            {categories.map(category => (
+                                <div key={category} className="space-y-1">
+                                    <p className="hidden lg:block px-3 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                                        {category}
+                                    </p>
+                                    <div className="flex lg:flex-col gap-1">
+                                        {navItems.filter(item => item.category === category).map((item) => (
+                                            <Link
+                                                key={item.name}
+                                                href={item.href}
+                                                className={cn(
+                                                    'inline-flex items-center whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200',
+                                                    pathname === item.href
+                                                        ? 'bg-primary/10 text-primary shadow-sm'
+                                                        : 'hover:bg-accent hover:text-accent-foreground text-muted-foreground'
+                                                )}
+                                            >
+                                                <item.icon className="mr-2 h-4 w-4" />
+                                                {item.name}
+                                            </Link>
+                                        ))}
+                                    </div>
+                                </div>
                             ))}
                         </nav>
                     </aside>

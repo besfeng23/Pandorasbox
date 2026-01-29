@@ -20,6 +20,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { ErrorBoundary } from '@/components/error-boundary';
+import { motion } from 'framer-motion';
+import { cn } from '@/lib/utils';
+import { PandoraBoxIcon } from '@/components/icons';
 
 export default function DashboardPage() {
     const { user, isLoading: userLoading } = useAuth();
@@ -93,81 +96,118 @@ export default function DashboardPage() {
     return (
         <AppLayout>
             <ErrorBoundary>
-                <div className="flex-1 space-y-8 p-4 md:p-8">
-                    {isLoadingThreads ? (
-                        <div className="w-full max-w-4xl mx-auto space-y-8">
-                            <Skeleton className="h-12 w-2/3" />
-                            <Skeleton className="h-8 w-1/2" />
-                            <Card>
-                                <CardHeader>
-                                    <Skeleton className="h-8 w-48" />
-                                    <Skeleton className="h-5 w-64 mt-2" />
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <div className="flex items-center gap-4 p-2"><Skeleton className="h-8 w-8 rounded-full" /><Skeleton className="h-6 flex-1" /></div>
-                                    <div className="flex items-center gap-4 p-2"><Skeleton className="h-8 w-8 rounded-full" /><Skeleton className="h-6 flex-1" /></div>
-                                    <div className="flex items-center gap-4 p-2"><Skeleton className="h-8 w-8 rounded-full" /><Skeleton className="h-6 flex-1" /></div>
+                <div className="flex-1 overflow-y-auto">
+                    <div className="max-w-6xl mx-auto p-6 md:p-12 space-y-12 animate-in-fade">
+                        {/* Hero Section */}
+                        <header className="text-center space-y-4 py-8">
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ duration: 0.5 }}
+                                className="inline-flex items-center justify-center p-3 rounded-full bg-primary/10 mb-4"
+                            >
+                                <PandoraBoxIcon className="h-12 w-12 text-primary" />
+                            </motion.div>
+                            <h1 className="font-headline text-5xl md:text-6xl font-bold tracking-tight bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
+                                Welcome, {user.displayName || 'Explorer'}
+                            </h1>
+                            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+                                Your multi-modal intelligence hub is ready. What shall we evolve today?
+                            </p>
+                        </header>
+
+                        {/* Quick Actions Grid */}
+                        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <Card className="glass-panel group hover:shadow-primary/5 transition-all duration-300 cursor-pointer overflow-hidden border-white/10" onClick={() => handleCreateThread('builder')}>
+                                <CardContent className="p-6 space-y-4">
+                                    <div className="h-12 w-12 rounded-2xl bg-primary/20 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                                        <Bot className="h-6 w-6" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <h3 className="font-semibold text-lg">Build Something New</h3>
+                                        <p className="text-sm text-muted-foreground line-clamp-2">Start a fresh Builder session for code, logic, and creation.</p>
+                                    </div>
                                 </CardContent>
                             </Card>
-                        </div>
-                    ) : recentThreads.length === 0 ? (
-                        <div className="flex flex-1 items-center justify-center">
-                            <WelcomeScreen />
-                        </div>
-                    ) : (
-                        <div className="w-full max-w-4xl mx-auto space-y-8">
-                            <div className="flex items-start justify-between">
-                                <div className="space-y-2">
-                                    <h1 className="font-headline text-4xl font-bold tracking-tight">Welcome back, {user.displayName || 'Explorer'}!</h1>
-                                    <p className="text-lg text-muted-foreground">
-                                        Here's what you've been working on.
-                                    </p>
+
+                            <Card className="glass-panel group hover:shadow-primary/5 transition-all duration-300 cursor-pointer overflow-hidden border-white/10" onClick={() => handleCreateThread('universe')}>
+                                <CardContent className="p-6 space-y-4">
+                                    <div className="h-12 w-12 rounded-2xl bg-purple-500/20 flex items-center justify-center text-purple-500 group-hover:scale-110 transition-transform">
+                                        <BrainCircuit className="h-6 w-6" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <h3 className="font-semibold text-lg">Explore the Universe</h3>
+                                        <p className="text-sm text-muted-foreground line-clamp-2">Ask complex questions and dive into global knowledge.</p>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <Card className="glass-panel p-6 flex flex-col justify-between border-white/10 bg-muted/5">
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">Pulse Check</h3>
+                                        <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-muted-foreground">Inference</span>
+                                            <span className="font-medium text-green-500">Active</span>
+                                        </div>
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-muted-foreground">Neural Memory</span>
+                                            <span className="font-medium">6.2 GB</span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="w-32">
-                                    <LogoutButton />
-                                </div>
+                                <Button variant="link" className="p-0 h-auto justify-start text-xs text-primary group" onClick={() => router.push('/health')}>
+                                    Full Diagnostics <ArrowRight className="ml-1 h-3 w-3 group-hover:translate-x-1 transition-transform" />
+                                </Button>
+                            </Card>
+                        </section>
+
+                        {/* Recent Activity */}
+                        <section className="space-y-6">
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-2xl font-bold tracking-tight px-1">Recent Sessions</h2>
+                                <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => router.push('/chat')}>View All</Button>
                             </div>
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-2">
-                                        <History className="h-6 w-6" />
-                                        Recent Threads
-                                    </CardTitle>
-                                    <CardDescription>
-                                        Jump back into one of your recent conversations.
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <ul className="space-y-2">
-                                        {recentThreads.map(thread => (
-                                            <li key={thread.id}>
-                                                <Link href={`/chat/${thread.id}`} className="block rounded-lg border p-4 transition-colors hover:bg-accent">
-                                                    <div className="flex items-center justify-between">
-                                                        <div className="flex items-center gap-3">
-                                                            {thread.agent === 'builder' ? <Bot className="h-5 w-5 text-muted-foreground" /> : <BrainCircuit className="h-5 w-5 text-muted-foreground" />}
-                                                            <span className="font-medium">{thread.name}</span>
+
+                            {isLoadingThreads ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <Skeleton className="h-24 w-full rounded-2xl" />
+                                    <Skeleton className="h-24 w-full rounded-2xl" />
+                                </div>
+                            ) : recentThreads.length === 0 ? (
+                                <div className="text-center py-12 border-2 border-dashed rounded-3xl border-muted/20">
+                                    <p className="text-muted-foreground">No recent sessions found. Start building to see them here.</p>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {recentThreads.slice(0, 4).map(thread => (
+                                        <Link key={thread.id} href={`/chat/${thread.id}`} className="group">
+                                            <Card className="bg-card hover:bg-accent/50 transition-all duration-300 border shadow-none hover:shadow-md rounded-2xl overflow-hidden">
+                                                <CardContent className="p-5 flex items-center justify-between">
+                                                    <div className="flex items-center gap-4 overflow-hidden">
+                                                        <div className={cn(
+                                                            "h-10 w-10 rounded-xl flex items-center justify-center shrink-0",
+                                                            thread.agent === 'builder' ? "bg-primary/10 text-primary" : "bg-purple-500/10 text-purple-500"
+                                                        )}>
+                                                            {thread.agent === 'builder' ? <Bot className="h-5 w-5" /> : <BrainCircuit className="h-5 w-5" />}
                                                         </div>
-                                                        <div className="flex items-center gap-4">
-                                                            <span className="text-sm text-muted-foreground">{formatTimestamp(thread.updatedAt)}</span>
-                                                            <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                                                        <div className="space-y-0.5 truncate">
+                                                            <h4 className="font-medium truncate">{thread.name}</h4>
+                                                            <p className="text-xs text-muted-foreground">{formatTimestamp(thread.updatedAt)}</p>
                                                         </div>
                                                     </div>
-                                                </Link>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </CardContent>
-                            </Card>
-                            <div className="flex items-center gap-4">
-                                <Button onClick={() => handleCreateThread('builder')}>
-                                    <Bot className="mr-2 h-4 w-4" /> New Builder Thread
-                                </Button>
-                                <Button variant="secondary" onClick={() => handleCreateThread('universe')}>
-                                    <BrainCircuit className="mr-2 h-4 w-4" /> New Universe Thread
-                                </Button>
-                            </div>
-                        </div>
-                    )}
+                                                    <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                                                </CardContent>
+                                            </Card>
+                                        </Link>
+                                    ))}
+                                </div>
+                            )}
+                        </section>
+                    </div>
                 </div>
             </ErrorBoundary>
         </AppLayout>
