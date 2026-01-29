@@ -94,6 +94,11 @@ env:
     value: all-MiniLM-L6-v2
     availability:
       - RUNTIME
+      
+  - variable: EMBEDDINGS_BASE_URL
+    value: https://pandora-embeddings-service-536979070288.us-central1.run.app
+    availability:
+      - RUNTIME
   
   # Firebase Admin Credentials (using ADMIN_ prefix to avoid reserved FIREBASE_ prefix)
   - variable: ADMIN_CLIENT_EMAIL
