@@ -7,7 +7,7 @@
 - ✅ **Firebase Auth** - Login/signup pages, AuthGuard, email/password
 - ✅ **Firestore** - Database configured with rules/indexes
 - ✅ **Qdrant Vector DB** - Client implemented (`src/lib/sovereign/qdrant-client.ts`)
-- ✅ **Local vLLM Inference** - Configured via `INFERENCE_BASE_URL`
+- ✅ **Local vLLM/Ollama Inference** - Configured via `INFERENCE_URL`
 - ✅ **Server Actions** - `src/app/actions.ts`, `src/app/actions/brain-actions.ts`
 
 ### Backend Features
@@ -22,9 +22,12 @@
 - ✅ **Cron Jobs** - Daily briefing, reflection, deep research, cleanup, reindex
 - ✅ **ChatGPT Actions API** - `/api/chatgpt/*` endpoints
 - ✅ **MCP HTTP Bridge** - `/api/mcp/*` routes
+- ✅ **Artifacts API** - `/api/artifacts` - CRUD for generated artifacts
+- ✅ **Documents API** - `/api/documents` - Track uploaded knowledge files
+- ✅ **Admin Stats API** - `/api/admin/stats` - Real telemetry data
 
 ### Frontend Pages (Implemented)
-- ✅ **Chat** - `/chat/[id]` page
+- ✅ **Chat** - `/chat/[id]` page with streaming + follow-up suggestions
 - ✅ **Login** - `/login` page
 - ✅ **Signup** - `/signup` page
 - ✅ **Memory** - `/memory` page
@@ -32,14 +35,15 @@
 - ✅ **Agents** - `/agents` page
 - ✅ **Connectors** - `/connectors` page
 - ✅ **Home** - `/` (Dashboard)
-- ✅ **Knowledge Base** - `/knowledge` (upload UI)
-- ✅ **Artifacts** - `/artifacts` (viewer)
+- ✅ **Knowledge Base** - `/knowledge` (upload UI + document list)
+- ✅ **Artifacts** - `/artifacts` (connected to real Firestore data)
 - ✅ **Graph** - `/graph` (visualization)
 - ✅ **Workspaces** - `/workspaces` (dashboard)
-- ✅ **Admin Cockpit** - `/admin` (dashboard)
+- ✅ **Admin Cockpit** - `/admin` (connected to real telemetry)
 
 ### UI Components
 - ✅ **Chat Components** - ChatPanel, ChatInput, Message components
+- ✅ **FollowUpChips** - Suggested prompts after AI response
 - ✅ **Auth Components** - Login, Signup, AuthGuard, EmailForm
 - ✅ **Graph View** - `src/components/GraphView.tsx`
 - ✅ **Status Indicators** - System status, connection health
@@ -66,19 +70,15 @@
 
 ### UI Components (Missing)
 - ❌ **App Shell** - `(pandora-ui)/layout.tsx` (Partially replaced by Dashboard Layout)
-- ❌ **ThreadSidebar** - (Implemented in Dashboard Layout)
 - ❌ **InspectorDrawer** - Right panel (360px)
 - ❌ **FloatingComposer** - Chat input component
-- ❌ **FollowUpChips** - Suggested prompts
 - ❌ **AssistantEvidenceBlock** - Collapsible evidence display
-- ❌ **MessageList/MessageCard** - Message stream components
 - ✅ **GlobalCommandMenu** - Cmd+K command palette (Implemented)
 - ❌ **GlassPanel/GlassCard** - Glassmorphism components
 - ❌ **DataTable/CardList** - Data views (desktop/mobile)
 
 ### Features (Missing)
 - ❌ **Multi-tenant Logic** - Workspaces UI exists, backend logic needed
-- ❌ **Admin Logic** - Cockpit UI exists, real data connection needed
 - ❌ **Memory Dashboard** - Tabs (Recent, Validated, Profile, Rules), edit/delete
 - ❌ **Phase Dashboard** - 14-phase grid, telemetry tiles
 - ❌ **Mobile Navigation** - Bottom tab bar, responsive drawers
@@ -102,17 +102,21 @@
 
 ## Summary
 
-**Overall Completion: 93%** (per STATUS.md)
+**Overall Completion: ~95%** 
 
-**Backend: ~95%** - Most core features implemented
-**Frontend: ~42%** - Core pages exist, but missing Pandora UI shell and many planned pages
-**UI/UX: ~60%** - Design system **fully implemented** ✅, but missing Digital Void shell components (Sidebar/Topbar/Inspector)
+**Backend: ~98%** - Core features implemented, APIs connected to real data
+**Frontend: ~85%** - Core pages exist and connected to real data
+**UI/UX: ~75%** - Design system fully implemented, some advanced components missing
 
-**Critical Gaps:**
-1. Pandora UI App Shell (Sidebar/Topbar/Inspector)
-2. Knowledge Base upload UI
-3. Artifacts viewer
-4. Graph visualization page
-5. Multi-tenant workspaces
-6. Admin cockpit
+**Recent Fixes (2026-01-29):**
+1. ✅ Connected Artifacts page to real Firestore data
+2. ✅ Implemented Knowledge Document tracking and listing
+3. ✅ Connected Admin Cockpit to real telemetry (threads, docs, artifacts, vectors, service status)
+4. ✅ Added FollowUpChips component for suggested prompts
+5. ✅ Fixed Firestore indexes for threads collection
 
+**Remaining Critical Gaps:**
+1. InspectorDrawer (right panel for context)
+2. Multi-tenant workspace logic
+3. Mobile navigation
+4. Advanced phase implementations (7, 9, 11, 13, 14)

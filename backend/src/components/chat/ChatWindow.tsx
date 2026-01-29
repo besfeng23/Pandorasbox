@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
+import { FollowUpChips, generateFollowUpSuggestions } from './follow-up-chips';
 import { Loader2, Bot, BrainCircuit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -29,8 +30,10 @@ export function ChatWindow({ threadId, agentId = 'universe' }: ChatWindowProps) 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [followUpSuggestions, setFollowUpSuggestions] = useState<string[]>([]);
   const abortControllerRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -198,6 +201,7 @@ export function ChatWindow({ threadId, agentId = 'universe' }: ChatWindowProps) 
 
     setMessages((prev) => [...prev, userMessage]);
     setIsStreaming(true);
+    setFollowUpSuggestions([]); // Clear previous suggestions
 
     // Cancel any existing request
     if (abortControllerRef.current) {
@@ -242,6 +246,10 @@ export function ChatWindow({ threadId, agentId = 'universe' }: ChatWindowProps) 
 
       // Process the streaming response
       await processStream(response);
+
+      // Generate follow-up suggestions after successful response
+      const suggestions = generateFollowUpSuggestions(content, agentId);
+      setFollowUpSuggestions(suggestions);
     } catch (error: any) {
       if (error.name === 'AbortError') {
         // User cancelled - remove the assistant message placeholder
@@ -308,6 +316,13 @@ export function ChatWindow({ threadId, agentId = 'universe' }: ChatWindowProps) 
       {/* Chat Input */}
       <div className="px-6 py-8 bg-gradient-to-t from-background via-background/95 to-transparent z-10">
         <div className="max-w-4xl mx-auto">
+          {/* Follow-up Suggestions */}
+          <FollowUpChips
+            suggestions={followUpSuggestions}
+            onSelect={(suggestion) => handleSubmit(suggestion)}
+            isLoading={isStreaming}
+            className="mb-4"
+          />
           <ChatInput
             onSubmit={handleSubmit}
             disabled={isStreaming}
