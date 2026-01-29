@@ -120,8 +120,18 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
       try {
         const token = await user.getIdToken();
         const response = await fetch('/api/workspaces', {
-          headers: { 'Authorization': `Bearer ${token}` }
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
         });
+
+        if (!response.ok) {
+          console.warn(`[AppLayout] Workspaces fetch failed: ${response.status}`);
+          return;
+        }
+
         const data = await response.json();
         if (data.workspaces) setWorkspaces(data.workspaces);
       } catch (e) {
