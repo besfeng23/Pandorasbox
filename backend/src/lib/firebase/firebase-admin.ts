@@ -22,61 +22,71 @@ declare global {
  * of the service account key. This is parsed to initialize the application credentials.
  */
 function initializeAdminApp(): admin.app.App {
-  // Check globalThis first (for Next.js hot-reload support)
   if (globalThis.__firebaseAdminApp) {
     return globalThis.__firebaseAdminApp;
   }
 
-  // Check if app already exists (e.g., from another import)
   if (admin.apps.length > 0) {
     const existingApp = admin.apps[0]!;
     globalThis.__firebaseAdminApp = existingApp;
     return existingApp;
   }
 
-  let credential: admin.credential.Credential;
-  let projectId: string;
-
-  // Use FIREBASE_SERVICE_ACCOUNT (raw JSON string)
-  const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT;
-  
-  if (!serviceAccount) {
-    throw new Error(
-      'FIREBASE_SERVICE_ACCOUNT environment variable is required. Please set it to the raw JSON string of your Firebase service account key.'
-    );
-  }
+  // 1. Try FIREBASE_SERVICE_ACCOUNT_KEY (Standard for this project)
+  // 2. Try FIREBASE_SERVICE_ACCOUNT (Legacy support)
+  const serviceAccountEnv = process.env.FIREBASE_SERVICE_ACCOUNT_KEY || process.env.FIREBASE_SERVICE_ACCOUNT;
+  const projectId = process.env.FIREBASE_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
 
   try {
-    const serviceAccountJson = JSON.parse(serviceAccount);
-    credential = admin.credential.cert(serviceAccountJson);
-    projectId = serviceAccountJson.project_id;
-    
-    if (!projectId) {
-      throw new Error('Service account JSON is missing project_id field');
+    let credential: admin.credential.Credential | undefined;
+
+    // A. Parse Service Account if available
+    if (serviceAccountEnv && serviceAccountEnv.trim()) {
+      try {
+        if (serviceAccountEnv.trim().startsWith('{')) {
+          const json = JSON.parse(serviceAccountEnv);
+          credential = admin.credential.cert(json);
+        } else {
+          // Path based (local dev)
+          const path = require('path');
+          const fs = require('fs');
+          const fullPath = path.isAbsolute(serviceAccountEnv)
+            ? serviceAccountEnv
+            : path.join(process.cwd(), serviceAccountEnv);
+          if (fs.existsSync(fullPath)) {
+            credential = admin.credential.cert(fullPath);
+          }
+        }
+      } catch (parseError) {
+        console.warn('[Firebase Admin] Failed to parse service account key:', parseError);
+      }
     }
-  } catch (error: any) {
-    throw new Error(
-      `Failed to parse FIREBASE_SERVICE_ACCOUNT: ${error.message}. Please ensure it is valid JSON.`
-    );
-  }
 
-  try {
-    // Initialize Firebase Admin SDK
+    // B. Fallback to ADC (Application Default Credentials) - Preferred for Cloud Run
+    if (!credential) {
+      console.log('[Firebase Admin] Service account key not found/valid. Using Application Default Credentials (ADC).');
+      credential = admin.credential.applicationDefault();
+    }
+
+    // Initialize
     const app = admin.initializeApp({
       credential,
-      projectId,
+      projectId: projectId || undefined
     });
 
-    // Store in globalThis for Next.js hot-reload persistence
     globalThis.__firebaseAdminApp = app;
+    console.log(`[Firebase Admin] Successfully initialized (Project: ${projectId || 'ADC-Inferred'})`);
 
-    console.log(`[Firebase Admin] Successfully initialized for project: ${projectId}`);
-    
     return app;
+
   } catch (error: any) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('[Firebase Admin] Initialization failed:', errorMessage);
-    throw new Error(`Failed to initialize Firebase Admin SDK: ${errorMessage}`);
+    console.error('[Firebase Admin] Critical Initialization Failure:', error);
+
+    // Last resort: Mock app for build time or extreme failure specific naming prevents conflict
+    // But middleware might fail if we return a mock. 
+    // Better to rethrow if we truly can't start, BUT middleware crashing is bad.
+    // However, if we can't verify cookies, we SHOULD probably error or deny access.
+    throw new Error(`Failed to initialize Firebase Admin SDK: ${error.message}`);
   }
 }
 
