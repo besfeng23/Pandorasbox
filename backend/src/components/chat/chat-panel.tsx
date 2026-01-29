@@ -56,30 +56,30 @@ export function ChatPanel({ threadId }: { threadId: string }) {
     }
 
     const fetchData = async () => {
-        setIsLoading(true);
-        try {
-            const [threadData, messagesData] = await Promise.all([
-                getThread(threadId, user.uid),
-                getMessages(threadId, user.uid)
-            ]);
+      setIsLoading(true);
+      try {
+        const [threadData, messagesData] = await Promise.all([
+          getThread(threadId, user.uid),
+          getMessages(threadId, user.uid)
+        ]);
 
-            if (threadData) {
-                setThread(threadData);
-                setMessages(messagesData);
-            } else {
-                setThread(null);
-                setMessages([]);
-            }
-        } catch (error) {
-            console.error('Error fetching chat data:', error);
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: 'Could not load chat conversation.',
-            });
-        } finally {
-            setIsLoading(false);
+        if (threadData) {
+          setThread(threadData);
+          setMessages(messagesData);
+        } else {
+          setThread(null);
+          setMessages([]);
         }
+      } catch (error) {
+        console.error('Error fetching chat data:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Could not load chat conversation.',
+        });
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     fetchData();
@@ -87,12 +87,12 @@ export function ChatPanel({ threadId }: { threadId: string }) {
 
   const handleStop = () => {
     if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-        abortControllerRef.current = null;
-        setIsSending(false);
-        setIsRegenerating(false);
-        setStreamingMessage(null);
-        toast({ title: 'Generation stopped' });
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+      setIsSending(false);
+      setIsRegenerating(false);
+      setStreamingMessage(null);
+      toast({ title: 'Generation stopped' });
     }
   };
 
@@ -106,91 +106,91 @@ export function ChatPanel({ threadId }: { threadId: string }) {
     let buffer = '';
 
     setStreamingMessage({
-        id: 'assistant-streaming',
-        role: 'assistant',
-        content: '',
-        createdAt: new Date() as any,
-        history: [],
+      id: 'assistant-streaming',
+      role: 'assistant',
+      content: '',
+      createdAt: new Date() as any,
+      history: [],
     });
-    
+
     setThinkingLogs([]);
 
     while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        
-        const chunk = decoder.decode(value, { stream: true });
-        buffer += chunk;
-        
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || ''; // Keep the last partial line in the buffer
+      const { done, value } = await reader.read();
+      if (done) break;
 
-        for (const line of lines) {
-            if (!line.trim()) continue;
-            
-            const colonIndex = line.indexOf(':');
-            if (colonIndex === -1) continue;
-            
-            const type = line.substring(0, colonIndex);
-            const content = line.substring(colonIndex + 1);
-            
-            try {
-                const data = JSON.parse(content);
-                
-                if (type === '0') { // Text
-                    setStreamingMessage(prev => ({ 
-                        ...prev!, 
-                        content: prev!.content + data 
-                    }));
-                } else if (type === '2') { // Data from StreamData
-                    if (Array.isArray(data)) {
-                        for (const item of data) {
-                            if (item.type === 'tool_start') {
-                                setIsToolActive(true);
-                                setToolStartTime(new Date());
-                                setThinkingLogs(prev => [...prev, item.display || `Executing ${item.toolName}...`]);
-                            } else if (item.type === 'tool_end') {
-                                // We keep the log but maybe update status?
-                                // For now just clear tool active state after a short delay or when next tool starts
-                                if (item.status === 'error') {
-                                    setThinkingLogs(prev => [...prev, `Error: ${item.error || 'Unknown error'}`]);
-                                }
-                                // We don't necessarily want to hide the logs immediately
-                            }
-                        }
-                    }
+      const chunk = decoder.decode(value, { stream: true });
+      buffer += chunk;
+
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || ''; // Keep the last partial line in the buffer
+
+      for (const line of lines) {
+        if (!line.trim()) continue;
+
+        const colonIndex = line.indexOf(':');
+        if (colonIndex === -1) continue;
+
+        const type = line.substring(0, colonIndex);
+        const content = line.substring(colonIndex + 1);
+
+        try {
+          const data = JSON.parse(content);
+
+          if (type === '0') { // Text
+            setStreamingMessage(prev => ({
+              ...prev!,
+              content: prev!.content + data
+            }));
+          } else if (type === '2') { // Data from StreamData
+            if (Array.isArray(data)) {
+              for (const item of data) {
+                if (item.type === 'tool_start') {
+                  setIsToolActive(true);
+                  setToolStartTime(new Date());
+                  setThinkingLogs(prev => [...prev, item.display || `Executing ${item.toolName}...`]);
+                } else if (item.type === 'tool_end') {
+                  // We keep the log but maybe update status?
+                  // For now just clear tool active state after a short delay or when next tool starts
+                  if (item.status === 'error') {
+                    setThinkingLogs(prev => [...prev, `Error: ${item.error || 'Unknown error'}`]);
+                  }
+                  // We don't necessarily want to hide the logs immediately
                 }
-            } catch (e) {
-                // Not JSON or partial chunk, ignore for now
-                console.warn('Failed to parse line:', line, e);
+              }
             }
+          }
+        } catch (e) {
+          // Not JSON or partial chunk, ignore for now
+          console.warn('Failed to parse line:', line, e);
         }
+      }
     }
 
     // Final buffer check
     if (buffer.trim()) {
-        const colonIndex = buffer.indexOf(':');
-        if (colonIndex !== -1) {
-            const type = buffer.substring(0, colonIndex);
-            const content = buffer.substring(colonIndex + 1);
-            try {
-                const data = JSON.parse(content);
-                if (type === '0') {
-                    setStreamingMessage(prev => ({ ...prev!, content: prev!.content + data }));
-                }
-            } catch (e) {}
-        }
+      const colonIndex = buffer.indexOf(':');
+      if (colonIndex !== -1) {
+        const type = buffer.substring(0, colonIndex);
+        const content = buffer.substring(colonIndex + 1);
+        try {
+          const data = JSON.parse(content);
+          if (type === '0') {
+            setStreamingMessage(prev => ({ ...prev!, content: prev!.content + data }));
+          }
+        } catch (e) { }
+      }
     }
 
     // After stream ends, wait a bit then hide tool indicator if it's still there
     setTimeout(() => {
-        setIsToolActive(false);
+      setIsToolActive(false);
     }, 1000);
 
     setStreamingMessage(null);
     if (user) {
-        const updatedMessages = await getMessages(threadId, user.uid);
-        setMessages(updatedMessages);
+      const updatedMessages = await getMessages(threadId, user.uid);
+      setMessages(updatedMessages);
     }
   };
 
@@ -207,28 +207,26 @@ export function ChatPanel({ threadId }: { threadId: string }) {
         threadId: thread.id,
         agentId,
       };
-      
+
       if (abortControllerRef.current) {
-          abortControllerRef.current.abort();
+        abortControllerRef.current.abort();
       }
       const abortController = new AbortController();
       abortControllerRef.current = abortController;
 
-      // Use window.location.origin for relative API calls if NEXT_PUBLIC_API_URL is not explicitly set
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
 
-      const response = await fetch(`${API_URL}/api/chat`, {
-          method: 'POST',
-          headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify(messagePayload),
-          signal: abortController.signal
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(messagePayload),
+        signal: abortController.signal
       });
 
       if (!response.ok) {
-          throw new Error((await response.text()) || 'Failed to send message.');
+        throw new Error((await response.text()) || 'Failed to send message.');
       }
 
       if (response.body) {
@@ -240,8 +238,8 @@ export function ChatPanel({ threadId }: { threadId: string }) {
         toast({
           variant: 'destructive',
           title: isOffline ? 'AI is Asleep' : 'Error',
-          description: isOffline 
-            ? 'The Sovereign Brain is currently unreachable. Check your container status.' 
+          description: isOffline
+            ? 'The Sovereign Brain is currently unreachable. Check your container status.'
             : (error.message || 'Failed to send message.'),
         });
       }
@@ -255,48 +253,46 @@ export function ChatPanel({ threadId }: { threadId: string }) {
 
     setIsRegenerating(true);
     try {
-        const lastUserMessage = [...messages].filter(m => m.role === 'user').pop();
-        const lastAssistantMessage = [...messages].filter(m => m.role === 'assistant').pop();
+      const lastUserMessage = [...messages].filter(m => m.role === 'user').pop();
+      const lastAssistantMessage = [...messages].filter(m => m.role === 'assistant').pop();
 
-        if (!lastUserMessage) throw new Error('No user message to regenerate from.');
-        
-        if (lastAssistantMessage) {
-            await deleteMessage(threadId, lastAssistantMessage.id, user.uid);
-            setMessages(prev => prev.filter(m => m.id !== lastAssistantMessage.id));
-        }
+      if (!lastUserMessage) throw new Error('No user message to regenerate from.');
 
-        const token = await user.getIdToken();
-        
-        // Use window.location.origin for relative API calls if NEXT_PUBLIC_API_URL is not explicitly set
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
+      if (lastAssistantMessage) {
+        await deleteMessage(threadId, lastAssistantMessage.id, user.uid);
+        setMessages(prev => prev.filter(m => m.id !== lastAssistantMessage.id));
+      }
 
-        const response = await fetch(`${API_URL}/api/chat`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-                message: lastUserMessage.content,
-                threadId: thread.id,
-                agentId: thread.agent,
-            })
-        });
+      const token = await user.getIdToken();
 
-        if (!response.ok) throw new Error('Failed to regenerate response.');
-        if (response.body) await handleStream(response);
+
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          message: lastUserMessage.content,
+          threadId: thread.id,
+          agentId: thread.agent,
+        })
+      });
+
+      if (!response.ok) throw new Error('Failed to regenerate response.');
+      if (response.body) await handleStream(response);
 
     } catch (error: any) {
-        const isOffline = error.message?.includes('fetch') || error.message?.includes('Network');
-        toast({
-            variant: 'destructive',
-            title: isOffline ? 'AI is Asleep' : 'Error Regenerating',
-            description: isOffline 
-                ? 'The Sovereign Brain is currently unreachable. Check your container status.' 
-                : (error.message || 'Could not regenerate response.'),
-        });
+      const isOffline = error.message?.includes('fetch') || error.message?.includes('Network');
+      toast({
+        variant: 'destructive',
+        title: isOffline ? 'AI is Asleep' : 'Error Regenerating',
+        description: isOffline
+          ? 'The Sovereign Brain is currently unreachable. Check your container status.'
+          : (error.message || 'Could not regenerate response.'),
+      });
     } finally {
-        setIsRegenerating(false);
+      setIsRegenerating(false);
     }
   };
 
@@ -304,34 +300,32 @@ export function ChatPanel({ threadId }: { threadId: string }) {
     if (!user || !thread || isExtracting || messages.length === 0) return;
     setIsExtracting(true);
     try {
-        const conversationText = messages.map(m => `${m.role}: ${m.content}`).join('\n\n');
-        const token = await user.getIdToken();
+      const conversationText = messages.map(m => `${m.role}: ${m.content}`).join('\n\n');
+      const token = await user.getIdToken();
 
-        // Use window.location.origin for relative API calls if NEXT_PUBLIC_API_URL is not explicitly set
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
 
-        const response = await fetch(`${API_URL}/api/memory`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ conversation: conversationText, threadId: thread.id })
-        });
-        if (!response.ok) throw new Error('Failed to extract memories.');
-        const result = await response.json();
-        toast({
-            title: result.count > 0 ? 'Memories Learned' : 'No new memories',
-            description: result.count > 0 ? `${result.count} new memories were saved.` : 'Agent did not find new information.',
-        });
+      const response = await fetch('/api/memory', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ conversation: conversationText, threadId: thread.id })
+      });
+      if (!response.ok) throw new Error('Failed to extract memories.');
+      const result = await response.json();
+      toast({
+        title: result.count > 0 ? 'Memories Learned' : 'No new memories',
+        description: result.count > 0 ? `${result.count} new memories were saved.` : 'Agent did not find new information.',
+      });
     } catch (error: any) {
-        toast({
-            variant: 'destructive',
-            title: 'Memory Extraction Failed',
-            description: error.message || 'Could not extract memories.',
-        });
+      toast({
+        variant: 'destructive',
+        title: 'Memory Extraction Failed',
+        description: error.message || 'Could not extract memories.',
+      });
     } finally {
-        setIsExtracting(false);
+      setIsExtracting(false);
     }
   }
 
@@ -359,36 +353,36 @@ export function ChatPanel({ threadId }: { threadId: string }) {
           <WelcomeScreen onThreadCreated={(id) => threadId === id ? null : window.location.href = `/chat/${id}`} />
         </div>
         <div className="border-t bg-card p-4">
-            <Form {...form}>
+          <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="flex items-start gap-4">
-                <FormField
+              <FormField
                 control={form.control}
                 name="content"
                 render={({ field }) => (
-                    <FormItem className="flex-1">
+                  <FormItem className="flex-1">
                     <FormControl>
-                        <Textarea
+                      <Textarea
                         placeholder="Type your first message..."
                         className="resize-none"
                         rows={1}
                         onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey && !isSending && !isRegenerating && !isToolActive) {
+                          if (e.key === 'Enter' && !e.shiftKey && !isSending && !isRegenerating && !isToolActive) {
                             e.preventDefault();
                             form.handleSubmit(onSubmit)();
-                            }
+                          }
                         }}
                         {...field}
                         disabled={!thread || isSending || isRegenerating || isToolActive}
-                        />
+                      />
                     </FormControl>
-                    </FormItem>
+                  </FormItem>
                 )}
-                />
-                <Button type="submit" size="icon" disabled={!thread || isSending || isRegenerating || isToolActive}>
-                    {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                </Button>
+              />
+              <Button type="submit" size="icon" disabled={!thread || isSending || isRegenerating || isToolActive}>
+                {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              </Button>
             </form>
-            </Form>
+          </Form>
         </div>
       </div>
     );
@@ -401,8 +395,8 @@ export function ChatPanel({ threadId }: { threadId: string }) {
       <header className="border-b bg-card p-4 flex justify-between items-center">
         <h2 className="font-headline text-lg font-semibold">{thread.name}</h2>
         <Button onClick={handleExtractMemories} disabled={isExtracting || messages.length === 0} variant="outline" size="sm">
-            {isExtracting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BrainCircuit className="mr-2 h-4 w-4" />}
-            Learn from Conversation
+          {isExtracting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BrainCircuit className="mr-2 h-4 w-4" />}
+          Learn from Conversation
         </Button>
       </header>
       <div className="flex-1 overflow-y-auto p-4 md:p-6">
@@ -427,21 +421,21 @@ export function ChatPanel({ threadId }: { threadId: string }) {
             ))}
           </AnimatePresence>
           {streamingMessage && (
-               <motion.div
-                  key={streamingMessage.id}
-                  layout
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-              >
-                  <Message
-                      message={streamingMessage}
-                      isLastAssistantMessage={true}
-                      onRegenerate={handleRegenerate}
-                      isRegenerating={isRegenerating}
-                  />
-              </motion.div>
+            <motion.div
+              key={streamingMessage.id}
+              layout
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Message
+                message={streamingMessage}
+                isLastAssistantMessage={true}
+                onRegenerate={handleRegenerate}
+                isRegenerating={isRegenerating}
+              />
+            </motion.div>
           )}
           {isToolActive && (
             <motion.div
@@ -486,7 +480,7 @@ export function ChatPanel({ threadId }: { threadId: string }) {
             />
             {isSending || isRegenerating || isToolActive ? (
               <Button variant="outline" size="icon" disabled>
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin" />
               </Button>
             ) : (
               <Button type="submit" size="icon">
@@ -497,9 +491,9 @@ export function ChatPanel({ threadId }: { threadId: string }) {
         </Form>
         {(isSending || isRegenerating) && (
           <div className="mt-2 flex justify-center">
-              <Button variant="destructive" size="sm" onClick={handleStop} className="h-7 text-xs">
-                  <Square className="mr-2 h-3 w-3" /> Stop generating
-              </Button>
+            <Button variant="destructive" size="sm" onClick={handleStop} className="h-7 text-xs">
+              <Square className="mr-2 h-3 w-3" /> Stop generating
+            </Button>
           </div>
         )}
       </div>

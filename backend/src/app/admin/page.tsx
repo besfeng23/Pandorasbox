@@ -109,6 +109,8 @@ export default function AdminPage() {
                             <TabsTrigger value="overview">Overview</TabsTrigger>
                             <TabsTrigger value="services">Services</TabsTrigger>
                             <TabsTrigger value="activity">Activity</TabsTrigger>
+                            <TabsTrigger value="users">Users</TabsTrigger>
+                            <TabsTrigger value="logs">Logs</TabsTrigger>
                         </TabsList>
 
                         <TabsContent value="overview" className="space-y-4">
@@ -165,7 +167,7 @@ export default function AdminPage() {
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-2">
                                                 <Server className="h-4 w-4" />
-                                                <span>Inference (Ollama)</span>
+                                                <span>Inference (vLLM)</span>
                                             </div>
                                             {stats?.services.inference === 'online' ? (
                                                 <div className="flex items-center gap-1 text-green-500">
@@ -222,6 +224,14 @@ export default function AdminPage() {
                                     </CardContent>
                                 </Card>
                             </div>
+                        </TabsContent>
+
+                        <TabsContent value="users">
+                            <UsersTab />
+                        </TabsContent>
+
+                        <TabsContent value="logs">
+                            <LogsTab />
                         </TabsContent>
 
                         <TabsContent value="services">
@@ -289,5 +299,106 @@ export default function AdminPage() {
                 )}
             </div>
         </AppLayout>
+    );
+}
+
+function UsersTab() {
+    const { user } = useUser();
+    const [users, setUsers] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        if (!user) return;
+        async function fetchUsers() {
+            try {
+                const token = await user?.getIdToken();
+                const res = await fetch('/api/admin/users', {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                const data = await res.json();
+                setUsers(data.users || []);
+            } catch (e) {
+                console.error(e);
+            } finally {
+                setLoading(false);
+            }
+        }
+        fetchUsers();
+    }, [user]);
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>User Management</CardTitle>
+                <CardDescription>Manage authorized users.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : (
+                    <div className="space-y-4">
+                        {users.map(u => (
+                            <div key={u.uid} className="flex items-center justify-between p-4 border rounded-lg">
+                                <div>
+                                    <p className="font-medium">{u.email || u.displayName || 'Unknown User'}</p>
+                                    <p className="text-xs text-muted-foreground">{u.uid}</p>
+                                </div>
+                                <div className="text-sm text-right">
+                                    <p>{u.role || 'User'}</p>
+                                    <p className="text-xs text-muted-foreground">Joined: {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'N/A'}</p>
+                                </div>
+                            </div>
+                        ))}
+                        {users.length === 0 && <p className="text-muted-foreground">No users found.</p>}
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    );
+}
+
+function LogsTab() {
+    const { user } = useUser();
+    const [logs, setLogs] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        if (!user) return;
+        async function fetchLogs() {
+            try {
+                const token = await user?.getIdToken();
+                const res = await fetch('/api/admin/logs', {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                const data = await res.json();
+                setLogs(data.logs || []);
+            } catch (e) {
+                console.error(e);
+            } finally {
+                setLoading(false);
+            }
+        }
+        fetchLogs();
+    }, [user]);
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>System Logs</CardTitle>
+                <CardDescription>Recent system events and alerts.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : (
+                    <div className="space-y-2 font-mono text-xs max-h-[400px] overflow-y-auto">
+                        {logs.map((log) => (
+                            <div key={log.id} className="grid grid-cols-12 gap-2 p-2 border-b last:border-0 hover:bg-muted/50">
+                                <div className="col-span-3 text-muted-foreground">{new Date(log.timestamp).toLocaleTimeString()}</div>
+                                <div className="col-span-2 font-semibold" style={{ color: log.level === 'warn' ? 'orange' : log.level === 'error' ? 'red' : 'inherit' }}>{log.level.toUpperCase()}</div>
+                                <div className="col-span-7">{log.service}: {log.message}</div>
+                            </div>
+                        ))}
+                        {logs.length === 0 && <p className="text-muted-foreground">No logs found.</p>}
+                    </div>
+                )}
+            </CardContent>
+        </Card>
     );
 }

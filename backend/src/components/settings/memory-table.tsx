@@ -49,28 +49,28 @@ export function MemoryTable({ userId, agentId = 'universe' }: MemoryTableProps) 
   const handleDelete = (id: string) => {
     startTransition(async () => {
       const result = await deleteMemoryFromMemories(id, userId, agentId);
-      if (result.success) {
+      if (result?.success) {
         setDeleteDialogOpen(null);
         toast({ title: 'Memory deleted' });
       } else {
-        toast({ variant: 'destructive', title: 'Error', description: result.message });
+        toast({ variant: 'destructive', title: 'Error', description: (result as any)?.message || 'Failed to delete' });
       }
     });
   };
 
   const handleUpdate = (id: string) => {
     if (!editText.trim()) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Memory content cannot be empty.' });
-        return;
+      toast({ variant: 'destructive', title: 'Error', description: 'Memory content cannot be empty.' });
+      return;
     }
     startTransition(async () => {
       const result = await updateMemoryInMemories(id, editText, userId, agentId);
-      if (result.success) {
+      if (result?.success) {
         toast({ title: 'Memory updated' });
         setEditingId(null);
         setEditText('');
       } else {
-        toast({ variant: 'destructive', title: 'Error', description: result.message });
+        toast({ variant: 'destructive', title: 'Error', description: (result as any)?.message || 'Failed to update' });
       }
     });
   };
@@ -84,14 +84,14 @@ export function MemoryTable({ userId, agentId = 'universe' }: MemoryTableProps) 
     setEditingId(null);
     setEditText('');
   };
-  
+
   const formatTimestamp = (timestamp: any) => {
     if (!timestamp) return 'N/A';
     try {
-        const date = toDate(timestamp);
-        return formatDistanceToNow(date, { addSuffix: true });
+      const date = toDate(timestamp);
+      return formatDistanceToNow(date, { addSuffix: true });
     } catch (e) {
-        return 'N/A';
+      return 'N/A';
     }
   }
 
@@ -194,8 +194,8 @@ const styles = `
 `;
 
 if (typeof window !== 'undefined') {
-    const styleSheet = document.createElement("style");
-    styleSheet.type = "text/css";
-    styleSheet.innerText = styles;
-    document.head.appendChild(styleSheet);
+  const styleSheet = document.createElement("style");
+  styleSheet.type = "text/css";
+  styleSheet.innerText = styles;
+  document.head.appendChild(styleSheet);
 }

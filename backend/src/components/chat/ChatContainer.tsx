@@ -50,9 +50,8 @@ export function ChatContainer({ initialConversationId = null }: ChatContainerPro
       setIsLoadingMessages(true);
       try {
         const token = await user.getIdToken();
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || window.location.origin;
 
-        const response = await fetch(`${API_URL}/api/conversations/${convId}`, {
+        const response = await fetch(`/api/conversations/${convId}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -257,13 +256,10 @@ export function ChatContainer({ initialConversationId = null }: ChatContainerPro
       try {
         // Get auth token
         const token = await user.getIdToken();
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || window.location.origin;
-
-        // Determine if this is a new conversation
         const isNewConversation = conversationId === null;
 
         // Call streaming API with custom payload format
-        const response = await fetch(`${API_URL}/api/chat`, {
+        const response = await fetch('/api/chat', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

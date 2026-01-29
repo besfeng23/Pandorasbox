@@ -224,8 +224,6 @@ export function ChatWindow({ threadId, agentId = 'universe' }: ChatWindowProps) 
     try {
       // Get auth token
       const token = await user.getIdToken();
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || window.location.origin;
-
       // Build conversation history for the API
       const history = messages.map((msg) => ({
         role: msg.role,
@@ -233,7 +231,7 @@ export function ChatWindow({ threadId, agentId = 'universe' }: ChatWindowProps) 
       }));
 
       // Call streaming API
-      const response = await fetch(`${API_URL}/api/chat`, {
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

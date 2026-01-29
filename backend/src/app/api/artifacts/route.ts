@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthAdmin, getFirestoreAdmin } from '@/lib/firebase-admin';
+import { FieldValue } from 'firebase-admin/firestore';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,6 +55,55 @@ export async function GET(req: NextRequest) {
             { error: error.message || 'Internal Server Error' },
             { status: 500 }
         );
+    }
+}
+
+// POST /api/artifacts - Create a new artifact
+export async function POST(req: NextRequest) {
+    try {
+        const authHeader = req.headers.get('Authorization');
+        if (!authHeader?.startsWith('Bearer ')) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+        const token = authHeader.split('Bearer ')[1];
+        const auth = getAuthAdmin();
+        const decodedToken = await auth.verifyIdToken(token);
+        const userId = decodedToken.uid;
+
+        const body = await req.json();
+        const { title, type, content, language, threadId } = body;
+
+        if (!title || !content) {
+            return NextResponse.json({ error: 'Title and content are required' }, { status: 400 });
+        }
+
+        const db = getFirestoreAdmin();
+        const artifactRef = db.collection('artifacts').doc();
+
+        const artifactData = {
+            userId,
+            title,
+            type: type || 'code',
+            content,
+            language: language || 'plaintext',
+            threadId: threadId || null,
+            createdAt: FieldValue.serverTimestamp(),
+            updatedAt: FieldValue.serverTimestamp(),
+        };
+
+        await artifactRef.set(artifactData);
+
+        return NextResponse.json({
+            id: artifactRef.id,
+            ...artifactData,
+            // Return ISO string for client immediately
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        });
+
+    } catch (error: any) {
+        console.error('Create Artifact Error:', error);
+        return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
 

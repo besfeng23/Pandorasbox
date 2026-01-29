@@ -18,6 +18,47 @@ const openai = createOpenAI({
 
 export const maxDuration = 60; // Allow 60 seconds for generation
 
+// Helper: Phase 14 - Distributed Subnetworks Router
+function detectSubnetwork(message: string): string {
+  const lower = message.toLowerCase();
+
+  if (/(code|function|react|typescript|bug|error|api|component|hook|database|query|deploy)/.test(lower)) {
+    return 'SUB_NETWORK::CODER_LANE';
+  }
+  if (/(story|poem|essay|draft|write a|creative|narrative|scene)/.test(lower)) {
+    return 'SUB_NETWORK::WRITER_LANE';
+  }
+  if (/(analyze|compare|difference|why|reason|evaluate|pros and cons|impact)/.test(lower)) {
+    return 'SUB_NETWORK::ANALYST_LANE';
+  }
+  if (/(reflect|think|ponder|what does this mean|implication)/.test(lower)) {
+    return 'SUB_NETWORK::PHILOSOPHER_LANE';
+  }
+
+  return 'SUB_NETWORK::GENERAL_ROUTER';
+}
+
+// Helper: Phase 13 - Unified Cognition (Structured Context)
+function enhanceWithCognition(results: any[]): string {
+  if (results.length === 0) return '';
+
+  // Simple classification of memories
+  const facts = results.filter(r => r.payload?.type === 'fact' || r.score > 0.85);
+  const interactions = results.filter(r => !r.payload?.type && r.score <= 0.85);
+
+  let contextBlock = "\n\n### 🧠 UNIFIED COGNITION STREAM (Phase 13)";
+
+  if (facts.length > 0) {
+    contextBlock += "\n**Established Facts:**\n" + facts.map(r => `• ${r.payload?.content}`).join('\n');
+  }
+
+  if (interactions.length > 0) {
+    contextBlock += "\n**Relevant Echoes:**\n" + interactions.map(r => `• ${r.payload?.content}`).join('\n');
+  }
+
+  return contextBlock;
+}
+
 export async function POST(req: NextRequest) {
   try {
     // 1. Authenticate User
@@ -41,7 +82,7 @@ export async function POST(req: NextRequest) {
 
     // 2. Parse Body
     const body = await req.json();
-    const { message, agentId = 'universe', threadId, history = [], attachments = [], workspaceId } = body; // Map 'message' to current user prompt
+    const { message, agentId = 'universe', threadId, history = [], attachments = [], workspaceId } = body;
 
     if (!message) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
@@ -58,19 +99,13 @@ export async function POST(req: NextRequest) {
       content: message,
       threadId,
       workspaceId: workspaceId || null,
-      createdAt: FieldValue.serverTimestamp(), // Use server timestamp
+      createdAt: FieldValue.serverTimestamp(),
     };
 
-    // Non-blocking save (or await if critical)
-    // We await it to ensure order
     await userMessageRef.set(userMessageData);
 
     // 4. Prepare Context for LLM
-    // Convert frontend history to Vercel AI CoreMessages
-    // Note: frontend sends { role, content }, match CoreMessage type
     const initialMessages = await convertToModelMessages(history);
-
-    // Construct the current user message with multi-modal content if attachments exist
     const userContent: any[] = [{ type: 'text', text: message }];
 
     if (attachments && attachments.length > 0) {
@@ -78,7 +113,7 @@ export async function POST(req: NextRequest) {
         if (att.type.startsWith('image/')) {
           userContent.push({
             type: 'image',
-            image: att.base64 || att.url, // Vercel AI SDK handles base64 data URLs or standard URLs
+            image: att.base64 || att.url,
           });
         }
       });
@@ -86,10 +121,10 @@ export async function POST(req: NextRequest) {
 
     const messages = [...initialMessages, { role: 'user', content: userContent } as const];
 
-    // 4.5 RAG: Search for relevant context
+    // 4.5 RAG: Search for relevant context (Phase 13 Implementation)
     let context = '';
     try {
-      if (message.length > 10) {
+      if (message.length > 5) { // Lower threshold for search
         const queryVector = await embedText(message);
         const filter: any = {
           must: [
@@ -98,28 +133,24 @@ export async function POST(req: NextRequest) {
           ]
         };
 
-        // Apply workspace isolation if workspaceId is present
         if (workspaceId) {
           filter.must.push({ key: 'workspaceId', match: { value: workspaceId } });
-        } else {
-          // If no workspaceId, search in user's personal/global space
-          // Note: you might want to explicit about this filter
         }
 
         const searchResults = await searchPoints('memories', queryVector, 5, filter);
-
-        if (searchResults.length > 0) {
-          context = "\n\nRelevant Context from your memory:\n" +
-            searchResults.map(r => `- ${r.payload?.content}`).join('\n');
-        }
+        context = enhanceWithCognition(searchResults);
       }
     } catch (ragError) {
       console.error('RAG Search failed:', ragError);
     }
 
+    // 4.8 Phase 14: Subnetwork Routing
+    const subnetwork = detectSubnetwork(message);
+    const routingInfo = `\n\n### 📡 ACTIVE SUBNETWORK: ${subnetwork}\n(Route user query through this specialized cognitive lane)`;
+
+
     // 5. Stream from LLM
     const result = await streamText({
-      // Use Gemini 1.5 Flash if images are present for high-quality vision, otherwise stay sovereign
       model: attachments.length > 0
         ? openai(process.env.VISION_MODEL || 'google/gemini-1.5-flash-latest')
         : openai(process.env.INFERENCE_MODEL || process.env.LLM_MODEL || 'llama-3'),
@@ -134,7 +165,6 @@ export async function POST(req: NextRequest) {
             content: z.string().describe('The full content of the artifact'),
           }),
           execute: async ({ title, type, content, language }: { title: string, type: 'code' | 'markdown' | 'html' | 'svg' | 'react', content: string, language?: string }) => {
-            // This is called server-side when the tool is executed
             try {
               const db = getFirestoreAdmin();
               const artifactRef = db.collection('artifacts').doc();
@@ -168,30 +198,25 @@ ${agentId === 'builder' ? `
   2. Plan architecture using modular patterns.
   3. Provide production-ready, typed code.
   4. Explain design decisions and trade-offs.
-- **Preference**: Prefers Next.js, TypeScript, Tailwind, and Firebase.
-- **Tools**: Use 'generate_artifact' for any code implementation, complex diagrams, or long documentation.
 ` : `
 ### Role: THE UNIVERSE 🌌
-- **Expertise**: Creative synthesis, Philosophical inquiry, Deep Knowledge exploration, and Cross-disciplinary connections.
+- **Expertise**: Creative synthesis, Philosophical inquiry, Deep Knowledge exploration.
 - **Tone**: Wise, expansive, and poetic yet grounded.
 - **Workflow**:
   1. Listen deeply to the user's intent.
-  2. Synthesize information from multiple domains (Science, Art, History, Ethics).
-  3. Offer provocative insights and creative metaphors.
-  4. Maintain a sense of wonder and curiosity.
-- **Preference**: High-density information delivery and elegant articulation.
-- **Tools**: Use 'generate_artifact' for detailed philosophical papers, long creative stories, or complex knowledge maps.
+  2. Synthesize information from multiple domains.
+  3. Offer provocative insights.
 `}
+${routingInfo}
 
 ### Operational Guardrails:
 - **Privacy**: You are private and sovereign. Do not disclose user memories unless relevant.
 - **Integrity**: Cite your sources if relevant context is provided below.
-- **Format**: Use clean Markdown with bold headers and lists for readability.
+- **Format**: Use clean Markdown with bold headers.
 
 User ID: ${userId}${context}`,
       temperature: 0.7,
       onFinish: async ({ text, toolCalls }) => {
-        // 6. Save Assistant Response on Finish
         try {
           const assistantMessageRef = db.collection(`users/${userId}/agents/${agentId}/history`).doc();
           await assistantMessageRef.set({
@@ -202,13 +227,11 @@ User ID: ${userId}${context}`,
             createdAt: FieldValue.serverTimestamp(),
           });
 
-          // 7. Update Thread 'updatedAt'
           await db.doc(`users/${userId}/threads/${threadId}`).update({
             updatedAt: FieldValue.serverTimestamp(),
           });
 
-          // 7.5 Automated Long-term Memory (Consolidated Memory)
-          // Only summarize if the response is significant
+          // Automated Long-term Memory (Consolidated Memory)
           if (text.length > 50) {
             try {
               const summaryPrompt = [
@@ -244,7 +267,6 @@ User ID: ${userId}${context}`,
       },
     });
 
-    // 8. Return Stream Response
     return result.toUIMessageStreamResponse();
 
   } catch (error: any) {

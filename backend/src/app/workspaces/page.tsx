@@ -223,15 +223,22 @@ export default function WorkspacesPage() {
                     )}
 
                     {/* Team Template (Static) */}
-                    <Card className="opacity-60 border-dashed">
+                    {/* Team Template (Actionable) */}
+                    <Card
+                        className="cursor-pointer border-dashed hover:border-primary/50 transition-all hover:bg-muted/50"
+                        onClick={() => setIsCreateOpen(true)}
+                    >
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Team Workspace</CardTitle>
                             <Building className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">Coming Soon</div>
-                            <p className="text-xs text-muted-foreground">
-                                Invite collaborators to share memories and artifacts.
+                            <div className="text-2xl font-bold flex items-center gap-2">
+                                <PlusCircle className="h-6 w-6 text-primary" />
+                                Create New
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">
+                                Create a shared environment for collaboration.
                             </p>
                         </CardContent>
                     </Card>

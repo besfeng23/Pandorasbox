@@ -36,7 +36,8 @@ export async function searchMemoryAction(query: string, userId: string, agentId:
             id: r.id.toString(),
             text: r.payload?.content || '',
             score: r.score,
-            timestamp: r.payload?.createdAt || new Date().toISOString()
+            timestamp: r.payload?.createdAt || new Date().toISOString(),
+            payload: r.payload // Include full payload for frontend filtering
         }));
     } catch (error) {
         console.error('Search Memory Error:', error);
@@ -85,9 +86,59 @@ export async function updateMemoryInMemories(id: string, newText: string, userId
         await createMemoryFromSettings(newText, userId, agentId);
         return { success: true };
     } catch (error: any) {
+    }
+}
+
+export async function promoteMemory(id: string, userId: string, agentId: string) {
+    try {
+        const { getPoint } = await import('@/lib/sovereign/qdrant-client');
+        const point = await getPoint('memories', id);
+
+        if (!point || !point.payload) {
+            return { success: false, message: "Memory not found" };
+        }
+
+        // Verify ownership (optional but good practice)
+        if (point.payload.userId !== userId) {
+            return { success: false, message: "Unauthorized access to memory" };
+        }
+
+        const content = point.payload.content || '';
+        if (!content) {
+            return { success: false, message: "Memory content is empty" };
+        }
+
+        // Promote to 'rule' type
+        return await updateMemoryType(id, 'rule', content, userId, agentId);
+    } catch (error: any) {
         return { success: false, message: error.message };
     }
 }
+
+// Better yet, let's export a generic updateMemoryMetadata if possible, or just accept that the frontend will call updateMemory with new type
+export async function updateMemoryType(id: string, newType: string, content: string, userId: string, agentId: string) {
+    try {
+        const vector = await embedText(content);
+        // Overwrite with new type
+        await upsertPoint('memories', {
+            id,
+            vector,
+            payload: {
+                content,
+                userId,
+                agentId,
+                createdAt: new Date().toISOString(),
+                source: 'manual',
+                type: newType
+            }
+        });
+        revalidatePath('/memory');
+        return { success: true };
+    } catch (e: any) {
+        return { success: false, message: e.message };
+    }
+}
+
 
 export async function getUserThreads(userId: string, agent?: string, workspaceId?: string): Promise<Thread[]> {
     try {

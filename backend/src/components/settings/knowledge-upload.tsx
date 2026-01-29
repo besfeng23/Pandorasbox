@@ -40,9 +40,8 @@ export function KnowledgeUpload({ userId, agentId = 'universe' }: KnowledgeUploa
 
       try {
         const token = await user.getIdToken();
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || window.location.origin;
 
-        const response = await fetch(`${API_URL}/api/ingest/${jobId}`, {
+        const response = await fetch(`/api/ingest/${jobId}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -153,10 +152,9 @@ export function KnowledgeUpload({ userId, agentId = 'universe' }: KnowledgeUploa
 
           // 2. Get auth token
           const token = await user.getIdToken();
-          const API_URL = process.env.NEXT_PUBLIC_API_URL || window.location.origin;
 
           // 3. Call the new Ingestion API
-          const response = await fetch(`${API_URL}/api/ingest`, {
+          const response = await fetch('/api/ingest', {
             method: 'POST',
             headers: {
               Authorization: `Bearer ${token}`,

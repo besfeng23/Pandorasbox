@@ -14,12 +14,9 @@ export function SystemStatus() {
     const [inferenceError, setInferenceError] = useState<string>('');
     const [memoryError, setMemoryError] = useState<string>('');
 
-    // Use window.location.origin for relative API calls if NEXT_PUBLIC_API_URL is not explicitly set
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
-
     const checkHealth = async () => {
         try {
-            const infRes = await fetch(`${API_URL}/api/health/inference`);
+            const infRes = await fetch('/api/health/inference');
             if (infRes.ok) {
                 setInferenceStatus('online');
                 setInferenceError('');
@@ -34,7 +31,7 @@ export function SystemStatus() {
         }
 
         try {
-            const memRes = await fetch(`${API_URL}/api/health/memory`);
+            const memRes = await fetch('/api/health/memory');
             if (memRes.ok) {
                 setMemoryStatus('online');
                 setMemoryError('');

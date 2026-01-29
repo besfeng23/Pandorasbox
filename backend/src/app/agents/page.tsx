@@ -29,34 +29,31 @@ export default function AgentsPage() {
 
   useEffect(() => {
     if (!user) {
-        setIsLoadingCapabilities(false);
-        setActiveCapabilities([]);
-        return;
+      setIsLoadingCapabilities(false);
+      setActiveCapabilities([]);
+      return;
     }
 
     const getCapabilities = async () => {
-        setIsLoadingCapabilities(true);
-        try {
-            const token = await user.getIdToken();
+      setIsLoadingCapabilities(true);
+      try {
+        const token = await user.getIdToken();
 
-            // Use window.location.origin for relative API calls if NEXT_PUBLIC_API_URL is not explicitly set
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
-
-            const response = await fetch(`${API_URL}/api/agents`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({ message: 'Failed to fetch active capabilities.' }));
-                throw new Error(errorData.message);
-            };
-            const data = await response.json();
-            setActiveCapabilities(data.agents);
-        } catch (error: any) {
-            toast({ variant: 'destructive', title: 'Error fetching capabilities', description: error.message });
-            setActiveCapabilities([]);
-        } finally {
-            setIsLoadingCapabilities(false);
-        }
+        const response = await fetch('/api/agents', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ message: 'Failed to fetch active capabilities.' }));
+          throw new Error(errorData.message);
+        };
+        const data = await response.json();
+        setActiveCapabilities(data.agents);
+      } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Error fetching capabilities', description: error.message });
+        setActiveCapabilities([]);
+      } finally {
+        setIsLoadingCapabilities(false);
+      }
     };
 
     getCapabilities();
@@ -78,38 +75,38 @@ export default function AgentsPage() {
         </div>
 
         <Card>
-            <CardHeader>
-                <CardTitle>Available Tools</CardTitle>
-                <CardDescription>
-                    The following capabilities are available to your AI agents.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                {isLoadingCapabilities ? (
-                    <div className="flex justify-center p-8">
-                        <Loader2 className="h-8 w-8 animate-spin" />
-                    </div>
-                ) : activeCapabilities.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/20 py-16 text-center">
-                        <Bot className="h-12 w-12 text-muted-foreground/50 mb-4" />
-                        <h3 className="text-xl font-semibold tracking-tight">No active capabilities found</h3>
-                        <p className="mt-2 text-muted-foreground">
-                            Ensure your backend services are running and correctly configured.
-                        </p>
-                    </div>
-                ) : (
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                        {activeCapabilities.map((capability) => (
-                            <Card key={capability.name} className="flex flex-col">
-                                <CardHeader>
-                                    <CardTitle className="text-lg">{capability.name}</CardTitle>
-                                    <CardDescription className="flex-grow">{capability.description}</CardDescription>
-                                </CardHeader>
-                            </Card>
-                        ))}
-                    </div>
-                )}
-            </CardContent>
+          <CardHeader>
+            <CardTitle>Available Tools</CardTitle>
+            <CardDescription>
+              The following capabilities are available to your AI agents.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoadingCapabilities ? (
+              <div className="flex justify-center p-8">
+                <Loader2 className="h-8 w-8 animate-spin" />
+              </div>
+            ) : activeCapabilities.length === 0 ? (
+              <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/20 py-16 text-center">
+                <Bot className="h-12 w-12 text-muted-foreground/50 mb-4" />
+                <h3 className="text-xl font-semibold tracking-tight">No active capabilities found</h3>
+                <p className="mt-2 text-muted-foreground">
+                  Ensure your backend services are running and correctly configured.
+                </p>
+              </div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {activeCapabilities.map((capability) => (
+                  <Card key={capability.name} className="flex flex-col">
+                    <CardHeader>
+                      <CardTitle className="text-lg">{capability.name}</CardTitle>
+                      <CardDescription className="flex-grow">{capability.description}</CardDescription>
+                    </CardHeader>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </CardContent>
         </Card>
       </div>
     </AppLayout>

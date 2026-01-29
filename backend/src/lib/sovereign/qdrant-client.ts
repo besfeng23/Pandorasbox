@@ -159,6 +159,38 @@ export async function deletePoint(collection: string, id: string | number) {
   }
 }
 
+export async function getPoint(collection: string, id: string | number): Promise<QdrantSearchResult | null> {
+  try {
+    const response = await fetch(`${QDRANT_URL}/collections/${collection}/points/${id}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) return null;
+      throw new Error(`Qdrant get point failed: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    if (!data.result) return null;
+
+    return {
+      id: data.result.id,
+      score: 1.0, // Not applicable for direct get, but matches interface
+      payload: data.result.payload,
+    };
+  } catch (error: any) {
+    if (error.cause?.code === 'ECONNREFUSED' || error.message.includes('fetch failed')) {
+      console.warn(`[Qdrant] Get point failed (Connection Refused).`);
+      return null;
+    }
+    console.error('Qdrant get point error:', error);
+    return null;
+  }
+}
+
 export async function scrollPoints(collection: string, limit: number = 100, filter?: any): Promise<QdrantSearchResult[]> {
   const startTime = Date.now();
   try {

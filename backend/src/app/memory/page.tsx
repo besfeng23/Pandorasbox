@@ -2,25 +2,37 @@
 
 import { useEffect, useState } from 'react';
 import { useUser } from '@/firebase/auth/use-user';
-import { fetchMemories, deleteMemoryFromMemories, getKnowledgeGraph } from '@/app/actions';
+import { fetchMemories, deleteMemoryFromMemories, getKnowledgeGraph, updateMemoryType } from '@/app/actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Trash2, Search, Database, RefreshCw } from 'lucide-react';
+import { Loader2, Trash2, Search, Database, RefreshCw, Filter, ShieldCheck, UserCircle, FileText, Sparkles, ArrowUpCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { AppLayout } from '@/components/dashboard/app-layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GraphView } from '@/components/GraphView';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
 
 interface Memory {
   id: string;
   text: string;
   timestamp: string;
   score: number;
+  payload?: any;
+  type?: string;
 }
+
+const MEMORY_TYPES = [
+  { id: 'all', label: 'All', icon: Database },
+  { id: 'fact', label: 'Facts', icon: ShieldCheck },
+  { id: 'profile', label: 'Profile', icon: UserCircle },
+  { id: 'rule', label: 'Rules', icon: FileText },
+  { id: 'consolidated_memory', label: 'Core', icon: Sparkles },
+];
 
 export default function MemoryPage() {
   const { user, loading: userLoading } = useUser();
@@ -29,8 +41,10 @@ export default function MemoryPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedNode, setSelectedNode] = useState<any>(null);
-  const { toast } = useToast();
+  const [filterType, setFilterType] = useState<string>('all');
   const [agentId, setAgentId] = useState<'builder' | 'universe'>('builder');
+
+  const { toast } = useToast();
 
   useEffect(() => {
     const storedAgentId = localStorage.getItem('agentId') as 'builder' | 'universe';
@@ -46,7 +60,9 @@ export default function MemoryPage() {
         id: m.id,
         text: m.text,
         timestamp: m.timestamp,
-        score: m.score
+        score: m.score,
+        payload: m.payload,
+        type: m.payload?.type || 'normal'
       })));
 
       const gData = await getKnowledgeGraph(user.uid, agentId);
@@ -69,7 +85,8 @@ export default function MemoryPage() {
     }
   }, [user, agentId, search]);
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
     if (!user) return;
     try {
       const result = await deleteMemoryFromMemories(id, user.uid, agentId);
@@ -88,6 +105,32 @@ export default function MemoryPage() {
     }
   };
 
+  const handlePromoteToRule = async (item: Memory, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (!user) return;
+    try {
+      // Promote to 'rule'
+      const result = await updateMemoryType(item.id, 'rule', item.text, user.uid, agentId);
+      if (result.success) {
+        toast({ title: 'Promoted to Rule', description: 'This memory is now a governing directive.' });
+        loadData();
+      } else {
+        throw new Error(result.message);
+      }
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Promotion Failed', description: error.message });
+    }
+  };
+
+  const filteredMemories = memories.filter(m => {
+    if (filterType === 'all') return true;
+    if (filterType === 'fact') return m.type === 'fact';
+    if (filterType === 'profile') return m.type === 'preference' || m.type === 'core_identity';
+    if (filterType === 'rule') return m.type === 'rule';
+    if (filterType === 'consolidated_memory') return m.type === 'consolidated_memory';
+    return true;
+  });
+
   if (userLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
@@ -101,10 +144,15 @@ export default function MemoryPage() {
       <div className="container mx-auto p-6 max-w-6xl h-full flex flex-col">
         <div className="flex items-center justify-between mb-8 shrink-0">
           <div className="flex items-center gap-3">
-            <Database className="h-8 w-8 text-cyan-400" />
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent underline decoration-cyan-500/20 underline-offset-8">
-              Memory Vault
-            </h1>
+            <div className="p-2 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 rounded-lg border border-cyan-500/30">
+              <Database className="h-6 w-6 text-cyan-400" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-foreground tracking-tight">
+                Neural Vault
+              </h1>
+              <p className="text-xs text-muted-foreground font-mono">LONG-TERM VECTOR STORAGE</p>
+            </div>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={loadData} disabled={loading} className="glass-panel border-white/10 hover:border-cyan-500/50">
@@ -115,13 +163,20 @@ export default function MemoryPage() {
         </div>
 
         <Tabs defaultValue="list" className="flex-1 flex flex-col min-h-0">
-          <div className="flex items-center justify-between mb-4 shrink-0 px-2">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6 shrink-0">
+
+            {/* Main View Tabs */}
             <TabsList className="bg-black/40 border border-white/10 p-1">
-              <TabsTrigger value="list" className="px-6">Archive</TabsTrigger>
-              <TabsTrigger value="graph" className="px-6">Knowledge Graph</TabsTrigger>
+              <TabsTrigger value="list" className="px-6 flex items-center gap-2">
+                <Database className="h-4 w-4" /> Archive
+              </TabsTrigger>
+              <TabsTrigger value="graph" className="px-6 flex items-center gap-2">
+                <RefreshCw className="h-4 w-4" /> Knowledge Graph
+              </TabsTrigger>
             </TabsList>
 
-            <div className="relative w-72">
+            {/* Search */}
+            <div className="relative w-full md:w-72">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Query semantic index..."
@@ -132,9 +187,46 @@ export default function MemoryPage() {
             </div>
           </div>
 
-          <TabsContent value="list" className="flex-1 overflow-y-auto no-scrollbar outline-none">
+          <TabsContent value="list" className="flex-1 flex flex-col min-h-0 outline-none">
+            {/* Filter Chips */}
+            <div className="flex flex-wrap gap-2 mb-4">
+              {MEMORY_TYPES.map(type => {
+                const Icon = type.icon;
+                const isActive = filterType === type.id;
+                const count = type.id === 'all'
+                  ? memories.length
+                  : memories.filter(m => {
+                    if (type.id === 'fact') return m.type === 'fact';
+                    if (type.id === 'profile') return m.type === 'preference' || m.type === 'core_identity';
+                    if (type.id === 'rule') return m.type === 'rule';
+                    if (type.id === 'consolidated_memory') return m.type === 'consolidated_memory';
+                    return false;
+                  }).length;
+
+                return (
+                  <button
+                    key={type.id}
+                    onClick={() => setFilterType(type.id)}
+                    className={cn(
+                      "flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border transition-all",
+                      isActive
+                        ? "bg-cyan-500/20 border-cyan-500 text-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.3)]"
+                        : "bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10 hover:border-white/20"
+                    )}
+                  >
+                    <Icon className="h-3 w-3" />
+                    {type.label}
+                    <Badge variant="secondary" className="ml-1 h-4 min-w-[16px] px-1 text-[9px] bg-black/50 border-white/10">
+                      {count}
+                    </Badge>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* List Content */}
             {loading ? (
-              <div className="flex flex-col items-center justify-center h-64 gap-4">
+              <div className="flex flex-col items-center justify-center h-64 gap-4 flex-1">
                 <div className="relative">
                   <Loader2 className="h-12 w-12 animate-spin text-cyan-400" />
                   <Database className="h-6 w-6 text-cyan-400 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
@@ -142,46 +234,81 @@ export default function MemoryPage() {
                 <p className="text-sm text-cyan-400/60 font-mono animate-pulse">RECONSTRUCTING NEURAL PATHWAYS...</p>
               </div>
             ) : (
-              <div className="grid gap-4 pb-8">
-                {memories.length === 0 ? (
-                  <div className="text-center p-16 text-muted-foreground bg-black/40 rounded-2xl border border-dashed border-white/10">
-                    <Database className="h-12 w-12 mx-auto mb-4 text-white/10" />
-                    <p className="text-lg font-medium text-white/40">The vault is empty.</p>
-                    <p className="text-sm mt-2">Engage with Pandora to begin knowledge synthesis.</p>
+              <div className="overflow-y-auto pr-2 pb-10 flex-1">
+                {filteredMemories.length === 0 ? (
+                  <div className="text-center p-16 text-muted-foreground bg-black/40 rounded-2xl border border-dashed border-white/10 flex flex-col items-center justify-center">
+                    <Filter className="h-12 w-12 mb-4 text-white/10" />
+                    <p className="text-lg font-medium text-white/40">No memories found</p>
+                    <p className="text-sm mt-2 max-w-sm">
+                      {filterType === 'all'
+                        ? "Your neural vault is empty. Start chatting to build memory."
+                        : `No memories found in the '${MEMORY_TYPES.find(t => t.id === filterType)?.label}' category.`}
+                    </p>
                   </div>
                 ) : (
-                  memories.map((mem) => (
-                    <Card key={mem.id} className="glass-panel border-white/5 hover:border-cyan-500/40 transition-all duration-500 group relative overflow-hidden">
-                      <div className="absolute top-0 left-0 w-1 h-full bg-cyan-500/20 group-hover:bg-cyan-500 transition-colors duration-500" />
-                      <CardHeader className="pb-2">
-                        <div className="flex justify-between items-start">
-                          <CardTitle className="text-[10px] font-mono text-cyan-500/50 tracking-tighter">
-                            ID_{mem.id.replace(/-/g, '').substring(0, 16).toUpperCase()}
-                          </CardTitle>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 hover:bg-red-400/10 transition-all duration-300 -translate-y-1 group-hover:translate-y-0"
-                            onClick={() => handleDelete(mem.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-sm text-foreground/90 leading-relaxed font-sans">{mem.text}</p>
-                        <div className="mt-4 flex items-center gap-6 text-[10px] text-muted-foreground uppercase tracking-[0.2em] font-bold">
-                          <span className="flex items-center gap-1.5">
-                            <RefreshCw className="h-3 w-3 text-cyan-500/50" />
-                            {mem.timestamp ? format(new Date(mem.timestamp), 'MMM dd | HH:mm') : 'REALTIME'}
-                          </span>
-                          <span className="text-cyan-500/60 bg-cyan-500/5 px-2 py-0.5 rounded border border-cyan-500/10">
-                            SCORE: {mem.score.toFixed(3)}
-                          </span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {filteredMemories.map((mem) => (
+                      <Card
+                        key={mem.id}
+                        onClick={() => setSelectedNode(mem)}
+                        className={cn(
+                          "glass-panel border-white/5 hover:border-cyan-500/40 transition-all duration-300 group relative overflow-hidden cursor-pointer",
+                          mem.type === 'rule' && "border-yellow-500/30 bg-yellow-500/5",
+                          mem.type === 'core_identity' && "border-purple-500/30 bg-purple-500/5"
+                        )}
+                      >
+                        <div className={cn(
+                          "absolute top-0 left-0 w-1 h-full transition-colors duration-500",
+                          mem.type === 'rule' ? "bg-yellow-500/50" :
+                            mem.type === 'core_identity' ? "bg-purple-500/50" :
+                              "bg-cyan-500/20 group-hover:bg-cyan-500"
+                        )} />
+
+                        <CardHeader className="pb-2 pt-3">
+                          <div className="flex justify-between items-start">
+                            <div className="flex items-center gap-2">
+                              {mem.type === 'rule' && <Badge variant="outline" className="text-[9px] border-yellow-500/50 text-yellow-500 h-5">RULE</Badge>}
+                              {mem.type === 'core_identity' && <Badge variant="outline" className="text-[9px] border-purple-500/50 text-purple-500 h-5">IDENTITY</Badge>}
+                              <span className="text-[9px] font-mono text-muted-foreground/50">
+                                ID_{mem.id.substring(0, 4)}
+                              </span>
+                            </div>
+                            <div className="flex gap-1" onClick={e => e.stopPropagation()}>
+                              {/* Promote Button */}
+                              {mem.type !== 'rule' && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6 opacity-0 group-hover:opacity-100 text-yellow-500 hover:text-yellow-400 hover:bg-yellow-500/10 transition-all duration-300"
+                                  title="Promote to Rule"
+                                  onClick={(e) => handlePromoteToRule(mem, e)}
+                                >
+                                  <ArrowUpCircle className="h-3 w-3" />
+                                </Button>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 hover:bg-red-400/10 transition-all duration-300"
+                                onClick={(e) => handleDelete(mem.id, e)}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-xs text-foreground/80 leading-relaxed font-sans line-clamp-4">
+                            {mem.text}
+                          </p>
+                          <div className="mt-3 flex items-center justify-between text-[9px] text-muted-foreground uppercase tracking-wider">
+                            <span>{mem.timestamp ? format(new Date(mem.timestamp), 'MMM dd') : 'NOW'}</span>
+                            {mem.score > 0 && <span>Relevance: {Math.round(mem.score * 100)}%</span>}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
                 )}
               </div>
             )}
@@ -202,35 +329,55 @@ export default function MemoryPage() {
 
         {/* Node Detail Dialog */}
         <Dialog open={!!selectedNode} onOpenChange={() => setSelectedNode(null)}>
-          <DialogContent className="glass-panel border-cyan-500/40 sm:max-w-2xl bg-black/90 backdrop-blur-2xl">
+          <DialogContent className="glass-panel border-cyan-500/40 sm:max-w-xl bg-black/95 backdrop-blur-2xl">
             <DialogHeader className="border-b border-white/5 pb-4">
-              <DialogTitle className="text-cyan-400 flex items-center gap-3 text-xl font-bold tracking-tight">
-                <div className="p-2 rounded-lg bg-cyan-500/10">
-                  <Database className="h-5 w-5" />
+              <DialogTitle className="text-cyan-400 flex items-center gap-3 text-lg font-bold">
+                <div className="p-1.5 rounded-md bg-cyan-500/10">
+                  <Database className="h-4 w-4" />
                 </div>
-                Extracted Wisdom
+                Memory Detail
               </DialogTitle>
             </DialogHeader>
-            <div className="py-8">
-              <div className="relative">
-                <div className="absolute -left-4 top-0 bottom-0 w-0.5 bg-gradient-to-b from-cyan-500/50 to-transparent" />
-                <p className="text-lg text-foreground/90 leading-relaxed whitespace-pre-wrap font-sans pl-4">
+            <div className="py-6">
+              <div className="mb-4 flex flex-wrap gap-2">
+                {selectedNode?.type === 'rule' && <Badge className="bg-yellow-500/10 text-yellow-500 border-yellow-500/50">System Rule</Badge>}
+                {selectedNode?.type === 'core_identity' && <Badge className="bg-purple-500/10 text-purple-500 border-purple-500/50">Core Identity</Badge>}
+                <Badge variant="outline">{selectedNode?.type || 'Standard Memory'}</Badge>
+              </div>
+              <div className="relative p-4 rounded-lg bg-white/5 border border-white/10">
+                <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap font-sans">
                   {selectedNode?.text}
                 </p>
               </div>
 
               {selectedNode?.timestamp && (
-                <div className="mt-10 flex items-center justify-between border-t border-white/5 pt-6">
-                  <div className="text-xs text-muted-foreground flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-cyan-500 animate-pulse shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
-                    Captured on {format(new Date(selectedNode.timestamp), 'PPP')} at {format(new Date(selectedNode.timestamp), 'p')}
-                  </div>
-                  <div className="text-[10px] font-mono text-cyan-500/40 uppercase tracking-tighter">
-                    Sovereign System v2.0
-                  </div>
+                <div className="mt-6 flex items-center justify-between text-xs text-muted-foreground">
+                  <span>ID: {selectedNode.id}</span>
+                  <span>Created: {format(new Date(selectedNode.timestamp), 'PP pp')}</span>
                 </div>
               )}
             </div>
+            <DialogFooter>
+              {selectedNode?.type !== 'rule' && (
+                <Button variant="outline" size="sm" onClick={() => {
+                  if (selectedNode) {
+                    handlePromoteToRule(selectedNode);
+                    setSelectedNode(null);
+                  }
+                }}>
+                  <ArrowUpCircle className="mr-2 h-4 w-4 text-yellow-500" />
+                  Promote to Rule
+                </Button>
+              )}
+              <Button variant="destructive" size="sm" onClick={() => {
+                if (selectedNode) {
+                  handleDelete(selectedNode.id);
+                  setSelectedNode(null);
+                }
+              }}>
+                Delete Memory
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>

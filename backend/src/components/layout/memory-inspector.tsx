@@ -109,11 +109,11 @@ export function MemoryInspector({ userId, agentId }: MemoryInspectorProps) {
   const handleDelete = (memoryId: string) => {
     startTransition(async () => {
       const result = await deleteMemoryFromMemories(memoryId, userId, agentId);
-      if (result.success) {
+      if (result?.success) {
         toast({ title: 'Memory deleted' });
         loadMemories(searchQuery);
       } else {
-        toast({ variant: 'destructive', title: 'Error', description: result.message });
+        toast({ variant: 'destructive', title: 'Error', description: (result as any)?.message || 'Failed to delete' });
       }
     });
   };
@@ -125,13 +125,13 @@ export function MemoryInspector({ userId, agentId }: MemoryInspectorProps) {
     }
     startTransition(async () => {
       const result = await updateMemoryInMemories(memoryId, editText, userId, agentId);
-      if (result.success) {
+      if (result?.success) {
         setEditingId(null);
         setEditText('');
         toast({ title: 'Memory updated' });
         loadMemories(searchQuery);
       } else {
-        toast({ variant: 'destructive', title: 'Error', description: result.message });
+        toast({ variant: 'destructive', title: 'Error', description: (result as any)?.message || 'Failed to update' });
       }
     });
   };
@@ -148,13 +148,13 @@ export function MemoryInspector({ userId, agentId }: MemoryInspectorProps) {
     }
     startTransition(async () => {
       const result = await createMemoryFromSettings(newMemoryText.trim(), userId, agentId);
-      if (result.success) {
+      if (result?.success) {
         setCreateDialogOpen(false);
         setNewMemoryText('');
         toast({ title: 'Memory created' });
         loadMemories(searchQuery);
       } else {
-        toast({ variant: 'destructive', title: 'Error', description: result.message });
+        toast({ variant: 'destructive', title: 'Error', description: (result as any)?.message || 'Failed to create' });
       }
     });
   };
