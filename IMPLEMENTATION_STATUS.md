@@ -72,9 +72,9 @@
 - ❌ **PandoraUI Dashboard** - `/pandora-ui` (phase grid, telemetry, cube centerpiece)
 
 ### UI Components (Missing)
-- ❌ **App Shell** - `(pandora-ui)/layout.tsx` (Partially replaced by Dashboard Layout)
-- ❌ **FloatingComposer** - Advanced chat input component
-- ❌ **AssistantEvidenceBlock** - Collapsible evidence display
+- [x] **App Shell** - Replaced by modern `Dashboard Layout`
+- ✅ **FloatingComposer** - Advanced chat input component
+- ✅ **AssistantEvidenceBlock** - Collapsible evidence display
 - ✅ **GlobalCommandMenu** - Cmd+K command palette (Implemented)
 - ✅ **InspectorDrawer** - Right panel for context/sources (Implemented)
 - ✅ **GlassPanel/GlassCard** - Glassmorphism components (Implemented)
@@ -83,7 +83,7 @@
 ### Features (Missing)
 - ❌ **Multi-tenant Logic** - Workspaces UI exists, backend logic needed
 - ❌ **Memory Dashboard** - Tabs (Recent, Validated, Profile, Rules), edit/delete
-- ❌ **Phase Dashboard** - 14-phase grid, telemetry tiles
+- ❌ **Phase Dashboard** - 14-phase grid, telemetry
 
 ### Phases (Incomplete)
 - ⚠️ **Phase 3** - Adaptive Context Layer (89% - missing some features)

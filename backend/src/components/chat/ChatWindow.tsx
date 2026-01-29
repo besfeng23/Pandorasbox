@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { MessageList } from './MessageList';
-import { ChatInput } from './ChatInput';
+import { FloatingComposer } from './floating-composer';
 import { FollowUpChips, generateFollowUpSuggestions } from './follow-up-chips';
 import { InspectorDrawer, useInspectorDrawer } from '@/components/dashboard/inspector-drawer';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,13 @@ export interface ChatMessage {
   id?: string;
   attachments?: { url: string; type: string }[];
   toolResults?: any[];
+  sources?: {
+    title: string;
+    url?: string;
+    snippet: string;
+    relevance: number;
+    sourceType: 'file' | 'web' | 'memory';
+  }[];
 }
 
 interface ChatWindowProps {
@@ -338,7 +345,7 @@ export function ChatWindow({ threadId, agentId = 'universe' }: ChatWindowProps) 
             isLoading={isStreaming}
             className="mb-4"
           />
-          <ChatInput
+          <FloatingComposer
             onSubmit={handleSubmit}
             disabled={isStreaming}
             isLoading={isStreaming}

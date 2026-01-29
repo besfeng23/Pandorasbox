@@ -8,6 +8,8 @@ import React, {
   useCallback,
   type ReactNode,
 } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
+import { Loader2 } from 'lucide-react';
 import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
@@ -16,7 +18,7 @@ import {
   type User,
   type Auth,
 } from 'firebase/auth';
-import { auth as authInstance } from '@/lib/firebase/firebase-client';
+import { useFirebase } from '@/firebase';
 
 /**
  * Authentication Context Type
@@ -42,42 +44,39 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
  * Provides signIn, signUp, and signOut functions for email/password authentication
  */
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const { auth } = useFirebase();
   const [user, setUser] = useState<User | null | undefined>(undefined);
-  const [auth, setAuth] = useState<Auth | null>(null);
 
-  // Initialize Firebase Auth on mount
+  // Handle eventual initialization timeout
   useEffect(() => {
-    try {
-      setAuth(authInstance);
-    } catch (error) {
-      console.error('[AuthProvider] Failed to initialize Firebase Auth:', error);
-      setUser(null); // Set to null (unauthenticated) if initialization fails
-    }
-  }, []);
+    const timer = setTimeout(() => {
+      if (user === undefined) {
+        console.warn('[AuthProvider] Auth check timed out. Resetting to null.');
+        setUser(null);
+      }
+    }, 15000); // 15s timeout
+    return () => clearTimeout(timer);
+  }, [user]);
 
   // Set up auth state listener
   useEffect(() => {
     if (!auth) {
-      return; // Wait for auth to be initialized
+      return;
     }
 
-    // Set up the auth state change listener
     const unsubscribe = onAuthStateChanged(
       auth,
       (firebaseUser) => {
-        // firebaseUser is null if unauthenticated, User object if authenticated
+        console.log('[AuthProvider] Auth state changed:', firebaseUser ? 'Authenticated' : 'Unauthenticated');
         setUser(firebaseUser);
       },
       (error) => {
         console.error('[AuthProvider] Auth state change error:', error);
-        setUser(null); // Set to null (unauthenticated) on error
+        setUser(null);
       }
     );
 
-    // Cleanup subscription on unmount
-    return () => {
-      unsubscribe();
-    };
+    return () => unsubscribe();
   }, [auth]);
 
   /**
@@ -207,7 +206,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   if (isLoading) {
     return (
       <AuthContext.Provider value={value}>
-        <div>Loading...</div>
+        <div className="flex h-screen w-full items-center justify-center bg-black">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
       </AuthContext.Provider>
     );
   }

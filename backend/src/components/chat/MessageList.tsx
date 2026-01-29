@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ArtifactViewer } from './artifact-viewer';
+import { AssistantEvidenceBlock } from './assistant-evidence-block';
 
 interface MessageListProps {
   messages: ChatMessage[];
@@ -86,6 +87,11 @@ export function MessageList({ messages }: MessageListProps) {
                     }
                     return null;
                   })}
+
+                  {/* Evidence Block for Assistant Messages */}
+                  {!isUser && message.sources && (
+                    <AssistantEvidenceBlock sources={message.sources} />
+                  )}
                 </div>
               )}
             </div>

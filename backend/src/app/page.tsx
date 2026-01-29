@@ -30,6 +30,12 @@ export default function DashboardPage() {
     const [isLoadingThreads, setIsLoadingThreads] = useState(true);
 
     useEffect(() => {
+        if (!userLoading && !user) {
+            router.push('/login');
+        }
+    }, [user, userLoading, router]);
+
+    useEffect(() => {
         if (!user) {
             setIsLoadingThreads(false);
             return;
