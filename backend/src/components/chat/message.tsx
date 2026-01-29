@@ -3,7 +3,7 @@ import remarkGfm from 'remark-gfm';
 import type { Message as MessageType } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { User, Bot, Cog, RefreshCw, Loader2, Globe } from 'lucide-react';
+import { User, Bot, Cog, RefreshCw, Loader2, Globe, Sparkles } from 'lucide-react';
 import {
   Accordion,
   AccordionContent,
@@ -42,6 +42,7 @@ export function Message({
   isRegenerating?: boolean
 }) {
   const isUser = message.role === 'user';
+  const hasMemoryRecall = !isUser && message.toolUsages?.some(t => t.toolName.includes('memory'));
 
   return (
     <div className="group/message">
@@ -58,9 +59,15 @@ export function Message({
             'max-w-2xl w-full rounded-2xl px-5 py-3.5 transition-all duration-300',
             isUser
               ? 'rounded-tr-none chat-bubble-user'
-              : 'rounded-tl-none chat-bubble-assistant border-white/10 shadow-sm'
+              : 'rounded-tl-none chat-bubble-assistant border-white/10 shadow-sm relative'
           )}
         >
+          {hasMemoryRecall && (
+            <div className="absolute -top-3 left-4 px-2 py-0.5 rounded-full bg-purple-500/20 border border-purple-500/30 backdrop-blur-md flex items-center gap-1.5 shadow-sm">
+              <Sparkles className="h-3 w-3 text-purple-400" />
+              <span className="text-[10px] font-medium text-purple-300 uppercase tracking-widest">Memory Recall</span>
+            </div>
+          )}
           {isUser ? (
             <p className="text-base whitespace-pre-wrap leading-relaxed">{message.content}</p>
           ) : (
