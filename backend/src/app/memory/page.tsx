@@ -236,14 +236,35 @@ export default function MemoryPage() {
             ) : (
               <div className="overflow-y-auto pr-2 pb-10 flex-1">
                 {filteredMemories.length === 0 ? (
-                  <div className="text-center p-16 text-muted-foreground bg-black/40 rounded-2xl border border-dashed border-white/10 flex flex-col items-center justify-center">
-                    <Filter className="h-12 w-12 mb-4 text-white/10" />
-                    <p className="text-lg font-medium text-white/40">No memories found</p>
-                    <p className="text-sm mt-2 max-w-sm">
+                  <div className="text-center p-12 text-muted-foreground bg-white/5 rounded-2xl border border-dashed border-white/10 flex flex-col items-center justify-center max-w-2xl mx-auto mt-8">
+                    <div className="h-16 w-16 bg-cyan-500/10 rounded-full flex items-center justify-center mb-6 ring-1 ring-cyan-500/20">
+                      <Database className="h-8 w-8 text-cyan-400" />
+                    </div>
+                    <h3 className="text-xl font-headline font-bold text-white mb-2">Neural Vault Empty</h3>
+                    <p className="text-muted-foreground max-w-md mb-8 leading-relaxed">
                       {filterType === 'all'
-                        ? "Your neural vault is empty. Start chatting to build memory."
+                        ? "Your Sovereign AI hasn't formed any long-term memories yet. Memories are created automatically as you chat, or you can manually add important facts here."
                         : `No memories found in the '${MEMORY_TYPES.find(t => t.id === filterType)?.label}' category.`}
                     </p>
+
+                    {filterType === 'all' && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-lg text-left">
+                        <div className="p-4 rounded-xl bg-black/40 border border-white/5 hover:border-cyan-500/30 transition-colors">
+                          <div className="flex items-center gap-2 mb-2 text-cyan-400">
+                            <Sparkles className="h-4 w-4" />
+                            <span className="font-bold text-xs uppercase tracking-wider">Automatic</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground">Just chat with the Universe Agent. It will automatically detect and save important context.</p>
+                        </div>
+                        <div className="p-4 rounded-xl bg-black/40 border border-white/5 hover:border-cyan-500/30 transition-colors">
+                          <div className="flex items-center gap-2 mb-2 text-cyan-400">
+                            <FileText className="h-4 w-4" />
+                            <span className="font-bold text-xs uppercase tracking-wider">Manual</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground">Use the input above to manually inject facts, rules, or preferences.</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

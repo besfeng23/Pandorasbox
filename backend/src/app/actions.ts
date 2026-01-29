@@ -491,7 +491,7 @@ export async function getSystemHealth() {
     try {
         const start = Date.now();
         const { QDRANT_URL } = await import('@/lib/sovereign/config');
-        const response = await fetch(`${QDRANT_URL}/health`, { signal: AbortSignal.timeout(2000) });
+        const response = await fetch(`${QDRANT_URL}/collections`, { signal: AbortSignal.timeout(2000) });
         if (response.ok) {
             health.qdrant.status = 'online';
             health.qdrant.latency = Date.now() - start;
