@@ -91,7 +91,7 @@ export function Message({
                             <div key={index} className="text-xs border-t border-border pt-3 first:border-t-0 first:pt-0">
                               <p className="font-semibold text-foreground text-sm mb-2 flex items-center gap-2"><Globe className="h-4 w-4" /> Web Results</p>
                               <div className="mt-1 space-y-2">
-                                {(tool.output as any[]).map((citation: any, idx) => (
+                                {(Array.isArray(tool.output) ? tool.output : []).map((citation: any, idx) => (
                                   <div key={idx} className="p-2 bg-muted/50 rounded-md">
                                     <a href={citation.source} target="_blank" rel="noopener noreferrer" className="text-primary font-medium hover:underline block truncate text-sm">{citation.title}</a>
                                     <p className="text-muted-foreground text-xs mt-1">{citation.source}</p>

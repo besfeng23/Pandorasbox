@@ -32,7 +32,7 @@ export async function searchMemoryAction(query: string, userId: string, agentId:
 
         const results = await searchPoints('memories', vector, 10, filter);
 
-        return results.map(r => ({
+        return (results || []).map(r => ({
             id: r.id.toString(),
             text: r.payload?.content || '',
             score: r.score,
@@ -163,7 +163,7 @@ export async function getUserThreads(userId: string, agent?: string, workspaceId
         }
 
         const snapshot = await query.limit(20).get();
-        return snapshot.docs.map(doc => ({
+        return (snapshot?.docs || []).map(doc => ({
             id: doc.id,
             ...doc.data(),
             createdAt: (doc.data().createdAt as Timestamp),
@@ -204,7 +204,7 @@ export async function getMessages(threadId: string, userId: string): Promise<Mes
             .orderBy('createdAt', 'asc')
             .get();
 
-        return snapshot.docs.map(doc => ({
+        return (snapshot?.docs || []).map(doc => ({
             id: doc.id,
             ...doc.data()
         })) as Message[];
@@ -362,7 +362,7 @@ export async function getUserConnectors(userId: string): Promise<UserConnector[]
     try {
         const db = getFirestoreAdmin();
         const snapshot = await db.collection(`users/${userId}/connectors`).get();
-        return snapshot.docs.map(doc => ({
+        return (snapshot?.docs || []).map(doc => ({
             id: doc.id,
             ...doc.data()
         })) as UserConnector[];

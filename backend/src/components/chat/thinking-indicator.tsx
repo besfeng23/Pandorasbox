@@ -24,14 +24,14 @@ export function ThinkingIndicator({ logs, createdAt }: ThinkingIndicatorProps) {
   // Calculate elapsed time
   useEffect(() => {
     if (!createdAt) return;
-    
+
     const startTime = toDate(createdAt);
     const updateElapsed = () => {
       const now = new Date();
       const elapsed = Math.floor((now.getTime() - startTime.getTime()) / 1000);
       setElapsedSeconds(Math.max(0, elapsed));
     };
-    
+
     updateElapsed();
     const interval = setInterval(updateElapsed, 1000);
     return () => clearInterval(interval);
@@ -99,7 +99,7 @@ export function ThinkingIndicator({ logs, createdAt }: ThinkingIndicatorProps) {
           </CollapsibleTrigger>
           <CollapsibleContent className="mt-1">
             <div className="space-y-1 max-h-40 overflow-y-auto text-xs font-mono bg-white/5 rounded p-2 border border-white/10">
-              {logs.map((log, index) => (
+              {(logs || []).map((log, index) => (
                 <div key={index} className="text-white/70 py-1 border-b border-white/5 last:border-0">
                   <span className="text-white/40 mr-2">[{index + 1}]</span>
                   {log}

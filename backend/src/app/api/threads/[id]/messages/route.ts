@@ -18,24 +18,24 @@ export async function GET(
     }
 
     const firestoreAdmin = getFirestoreAdmin();
-    
-    // Security check: Verify user owns the thread
-    const threadDoc = await firestoreAdmin.collection('threads').doc(threadId).get();
-    if (!threadDoc.exists || threadDoc.data()?.userId !== userId) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403, headers: corsHeaders() });
+
+    // Security check: Verify user owns the thread from the correct sub-collection
+    const threadRef = firestoreAdmin.doc(`users/${userId}/threads/${threadId}`);
+    const threadDoc = await threadRef.get();
+
+    if (!threadDoc.exists) {
+      return NextResponse.json({ error: 'Access denied or thread not found' }, { status: 403, headers: corsHeaders() });
     }
 
-    const snapshot = await firestoreAdmin
-      .collection('threads')
-      .doc(threadId)
+    const snapshot = await threadRef
       .collection('messages')
       .orderBy('createdAt', 'asc')
       .get();
 
-    const messages = snapshot.docs.map(doc => ({
+    const messages = (snapshot?.docs || []).map(doc => ({
       id: doc.id,
       ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate().toISOString(),
+      createdAt: doc.data().createdAt?.toDate()?.toISOString() || new Date().toISOString(),
     }));
 
     return NextResponse.json({ messages }, { headers: corsHeaders() });
