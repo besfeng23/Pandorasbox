@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Book, Upload, FileText, Smartphone, Trash2, Loader2, CheckCircle, Clock, AlertCircle, Info } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from 'sonner';
 
 interface Document {
@@ -62,7 +63,10 @@ export default function KnowledgePage() {
     const handleDeleteDocument = async (documentId: string) => {
         if (!user) return;
 
-        setDeleting(documentId);
+        // Optimistic UI: Remove immediately from list
+        setDocuments(prev => prev.filter(d => d.id !== documentId));
+        toast.info('Deleting document...', { duration: 1000 }); // Short feedback
+
         try {
             const token = await user.getIdToken();
             const response = await fetch(`/api/documents?id=${documentId}`, {
@@ -76,11 +80,12 @@ export default function KnowledgePage() {
                 throw new Error('Failed to delete document');
             }
 
-            setDocuments(prev => prev.filter(d => d.id !== documentId));
-            toast.success('Document deleted');
+            toast.success('Document permanently deleted');
         } catch (error: any) {
             console.error('Error deleting document:', error);
             toast.error('Failed to delete document');
+            // Rollback: Re-fetch documents to restore the item
+            fetchDocuments();
         } finally {
             setDeleting(null);
         }
@@ -204,9 +209,16 @@ export default function KnowledgePage() {
                             </CardHeader>
                             <CardContent>
                                 {loading ? (
-                                    <div className="flex flex-col items-center justify-center p-8">
-                                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mb-4" />
-                                        <p className="text-muted-foreground">Loading documents...</p>
+                                    <div className="space-y-4">
+                                        {[1, 2, 3].map((i) => (
+                                            <div key={i} className="flex items-center space-x-4 p-4 border rounded-lg">
+                                                <Skeleton className="h-10 w-10 rounded-full" />
+                                                <div className="space-y-2 flex-1">
+                                                    <Skeleton className="h-4 w-[200px]" />
+                                                    <Skeleton className="h-4 w-[150px]" />
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
                                 ) : documents.length === 0 ? (
                                     <div className="flex flex-col items-center justify-center p-8 text-center text-muted-foreground">

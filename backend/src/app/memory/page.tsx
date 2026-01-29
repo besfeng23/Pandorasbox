@@ -258,12 +258,16 @@ export default function MemoryPage() {
 
             {/* List Content */}
             {loading ? (
-              <div className="flex flex-col items-center justify-center h-64 gap-4 flex-1">
-                <div className="relative">
-                  <Loader2 className="h-12 w-12 animate-spin text-cyan-400" />
-                  <Database className="h-6 w-6 text-cyan-400 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-                </div>
-                <p className="text-sm text-cyan-400/60 font-mono animate-pulse">RECONSTRUCTING NEURAL PATHWAYS...</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <div key={i} className="space-y-3">
+                    <Skeleton className="h-32 w-full rounded-xl" />
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-4 w-1/2" />
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : (
               <div className="overflow-y-auto pr-2 pb-10 flex-1">
@@ -300,68 +304,70 @@ export default function MemoryPage() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filteredMemories.map((mem) => (
-                      <Card
-                        key={mem.id}
-                        onClick={() => setSelectedNode(mem)}
-                        className={cn(
-                          "glass-panel border-white/5 hover:border-cyan-500/40 transition-all duration-300 group relative overflow-hidden cursor-pointer",
-                          mem.type === 'rule' && "border-yellow-500/30 bg-yellow-500/5",
-                          mem.type === 'core_identity' && "border-purple-500/30 bg-purple-500/5"
-                        )}
-                      >
-                        <div className={cn(
-                          "absolute top-0 left-0 w-1 h-full transition-colors duration-500",
-                          mem.type === 'rule' ? "bg-yellow-500/50" :
-                            mem.type === 'core_identity' ? "bg-purple-500/50" :
-                              "bg-cyan-500/20 group-hover:bg-cyan-500"
-                        )} />
+                    {filteredMemories.map((mem, i) => (
+                      <div key={mem.id} className="animate-in fade-in slide-in-from-bottom-4 fill-mode-forwards" style={{ animationDelay: `${i * 0.05}s` }}>
+                        <Card
+                          key={mem.id}
+                          onClick={() => setSelectedNode(mem)}
+                          className={cn(
+                            "glass-panel border-white/5 hover:border-cyan-500/40 transition-all duration-300 group relative overflow-hidden cursor-pointer",
+                            mem.type === 'rule' && "border-yellow-500/30 bg-yellow-500/5",
+                            mem.type === 'core_identity' && "border-purple-500/30 bg-purple-500/5"
+                          )}
+                        >
+                          <div className={cn(
+                            "absolute top-0 left-0 w-1 h-full transition-colors duration-500",
+                            mem.type === 'rule' ? "bg-yellow-500/50" :
+                              mem.type === 'core_identity' ? "bg-purple-500/50" :
+                                "bg-cyan-500/20 group-hover:bg-cyan-500"
+                          )} />
 
-                        <CardHeader className="pb-2 pt-3">
-                          <div className="flex justify-between items-start">
-                            <div className="flex items-center gap-2">
-                              {mem.type === 'rule' && <Badge variant="outline" className="text-[9px] border-yellow-500/50 text-yellow-500 h-5">RULE</Badge>}
-                              {mem.type === 'core_identity' && <Badge variant="outline" className="text-[9px] border-purple-500/50 text-purple-500 h-5">IDENTITY</Badge>}
-                              <span className="text-[9px] font-mono text-muted-foreground/50">
-                                ID_{mem.id.substring(0, 4)}
-                              </span>
-                            </div>
-                            <div className="flex gap-1" onClick={e => e.stopPropagation()}>
-                              {/* Promote Button */}
-                              {mem.type !== 'rule' && (
+                          <CardHeader className="pb-2 pt-3">
+                            <div className="flex justify-between items-start">
+                              <div className="flex items-center gap-2">
+                                {mem.type === 'rule' && <Badge variant="outline" className="text-[9px] border-yellow-500/50 text-yellow-500 h-5">RULE</Badge>}
+                                {mem.type === 'core_identity' && <Badge variant="outline" className="text-[9px] border-purple-500/50 text-purple-500 h-5">IDENTITY</Badge>}
+                                <span className="text-[9px] font-mono text-muted-foreground/50">
+                                  ID_{mem.id.substring(0, 4)}
+                                </span>
+                              </div>
+                              <div className="flex gap-1" onClick={e => e.stopPropagation()}>
+                                {/* Promote Button */}
+                                {mem.type !== 'rule' && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-10 w-10 opacity-0 group-hover:opacity-100 text-yellow-500 hover:text-yellow-400 hover:bg-yellow-500/10 transition-all duration-300"
+                                    title="Promote to Rule"
+                                    aria-label="Promote to Rule"
+                                    onClick={(e) => handlePromoteToRule(mem, e)}
+                                  >
+                                    <ArrowUpCircle className="h-5 w-5" />
+                                  </Button>
+                                )}
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-10 w-10 opacity-0 group-hover:opacity-100 text-yellow-500 hover:text-yellow-400 hover:bg-yellow-500/10 transition-all duration-300"
-                                  title="Promote to Rule"
-                                  aria-label="Promote to Rule"
-                                  onClick={(e) => handlePromoteToRule(mem, e)}
+                                  className="h-10 w-10 opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 hover:bg-red-400/10 transition-all duration-300"
+                                  onClick={(e) => handleDelete(mem.id, e)}
+                                  aria-label="Delete Memory"
                                 >
-                                  <ArrowUpCircle className="h-5 w-5" />
+                                  <Trash2 className="h-5 w-5" />
                                 </Button>
-                              )}
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-10 w-10 opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 hover:bg-red-400/10 transition-all duration-300"
-                                onClick={(e) => handleDelete(mem.id, e)}
-                                aria-label="Delete Memory"
-                              >
-                                <Trash2 className="h-5 w-5" />
-                              </Button>
+                              </div>
                             </div>
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                          <p className="text-xs text-foreground/80 leading-relaxed font-sans line-clamp-4">
-                            {mem.text}
-                          </p>
-                          <div className="mt-3 flex items-center justify-between text-[9px] text-muted-foreground uppercase tracking-wider">
-                            <span>{mem.timestamp ? format(new Date(mem.timestamp), 'MMM dd') : 'NOW'}</span>
-                            {mem.score > 0 && <span>Relevance: {Math.round(mem.score * 100)}%</span>}
-                          </div>
-                        </CardContent>
-                      </Card>
+                          </CardHeader>
+                          <CardContent>
+                            <p className="text-xs text-foreground/80 leading-relaxed font-sans line-clamp-4">
+                              {mem.text}
+                            </p>
+                            <div className="mt-3 flex items-center justify-between text-[9px] text-muted-foreground uppercase tracking-wider">
+                              <span>{mem.timestamp ? format(new Date(mem.timestamp), 'MMM dd') : 'NOW'}</span>
+                              {mem.score > 0 && <span>Relevance: {Math.round(mem.score * 100)}%</span>}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
                     ))}
                   </div>
                 )}

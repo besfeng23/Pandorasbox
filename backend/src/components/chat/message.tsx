@@ -1,3 +1,4 @@
+import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { Message as MessageType } from '@/lib/types';
@@ -44,6 +45,28 @@ export function Message({
   const isUser = message.role === 'user';
   const hasMemoryRecall = !isUser && message.toolUsages?.some(t => t.toolName.includes('memory'));
 
+  // Typewriter Effect Logic
+  const [displayedContent, setDisplayedContent] = React.useState(isLastAssistantMessage ? '' : message.content);
+
+  React.useEffect(() => {
+    if (!isLastAssistantMessage) {
+      setDisplayedContent(message.content);
+      return;
+    }
+
+    let currentIndex = 0;
+    const interval = setInterval(() => {
+      if (currentIndex < message.content.length) {
+        setDisplayedContent(message.content.slice(0, currentIndex + 1));
+        currentIndex++;
+      } else {
+        clearInterval(interval);
+      }
+    }, 10); // 10ms speed for smooth typing
+
+    return () => clearInterval(interval);
+  }, [message.content, isLastAssistantMessage]);
+
   return (
     <div className="group/message">
       <div className={cn('flex items-start gap-4', isUser ? 'justify-end' : 'justify-start')}>
@@ -73,7 +96,7 @@ export function Message({
           ) : (
             <div className="prose prose-sm dark:prose-invert max-w-none leading-relaxed">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {message.content}
+                {displayedContent}
               </ReactMarkdown>
             </div>
           )}

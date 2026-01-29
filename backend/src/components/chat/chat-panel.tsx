@@ -488,8 +488,11 @@ export function ChatPanel({ threadId }: { threadId: string }) {
               animate={{ opacity: 1 }}
               className="flex items-center gap-2 text-muted-foreground text-sm italic ml-4 md:ml-12"
             >
-              <Loader2 className="h-3 w-3 animate-spin" />
-              Sovereign Brain is thinking...
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-primary animate-bounce delay-0" />
+                <div className="h-2 w-2 rounded-full bg-primary animate-bounce delay-150" />
+                <div className="h-2 w-2 rounded-full bg-primary animate-bounce delay-300" />
+              </div>
             </motion.div>
           )}
           {isToolActive && (
