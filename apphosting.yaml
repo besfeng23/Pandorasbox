@@ -76,7 +76,7 @@ env:
   
   # Sovereign AI Configuration
   - variable: INFERENCE_URL
-    value: http://10.128.0.4:8000/v1
+    value: http://10.128.0.4:11434/v1
     availability:
       - RUNTIME
 
@@ -86,7 +86,7 @@ env:
       - RUNTIME
 
   - variable: QDRANT_URL
-    value: http://10.128.0.7:6333
+    value: http://10.128.0.3:6333
     availability:
       - RUNTIME
 
