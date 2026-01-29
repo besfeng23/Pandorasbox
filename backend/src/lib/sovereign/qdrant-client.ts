@@ -180,3 +180,28 @@ export async function scrollPoints(collection: string, limit: number = 100, filt
     return [];
   }
 }
+
+export async function getCollectionInfo(collection: string): Promise<{ points_count: number; vectors_count: number } | null> {
+  try {
+    const response = await fetch(`${QDRANT_URL}/collections/${collection}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) return null;
+      throw new Error(`Qdrant collection info failed: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return {
+      points_count: data.result?.points_count || 0,
+      vectors_count: data.result?.vectors_count || 0,
+    };
+  } catch (error: any) {
+    console.error('Qdrant collection info error:', error);
+    return null;
+  }
+}
