@@ -93,6 +93,9 @@ export async function POST(req: NextRequest) {
 
     // 3. Save User Message to Firestore
     const db = getFirestoreAdmin();
+    // Use fallback for history if null
+    const safeHistory = Array.isArray(history) ? history : [];
+
     const userMessageRef = db.collection(`users/${userId}/agents/${agentId}/history`).doc();
     const userMessageData = {
       role: 'user',
@@ -105,7 +108,7 @@ export async function POST(req: NextRequest) {
     await userMessageRef.set(userMessageData);
 
     // 4. Prepare Context for LLM
-    const initialMessages = await convertToModelMessages(history);
+    const initialMessages = await convertToModelMessages(safeHistory);
     const userContent: any[] = [{ type: 'text', text: message }];
 
     if (attachments && attachments.length > 0) {
@@ -137,7 +140,7 @@ export async function POST(req: NextRequest) {
           filter.must.push({ key: 'workspaceId', match: { value: workspaceId } });
         }
 
-        const searchResults = await searchPoints('memories', queryVector, 5, filter);
+        const searchResults = await searchPoints('memories', queryVector, 5, filter) || [];
         context = enhanceWithCognition(searchResults);
       }
     } catch (ragError) {
