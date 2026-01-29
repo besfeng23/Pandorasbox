@@ -46,5 +46,25 @@ services:
     networks:
       - pandora-net
 
+  whisper:
+    image: onerahmet/openai-whisper-asr-webservice:latest
+    ports:
+      - "9000:9000"
+    environment:
+      - ASR_MODEL=base
+      - ASR_ENGINE=openai_whisper
+    networks:
+      - pandora-net
+
+  piper:
+    image: rhasspy/wyoming-piper:latest
+    ports:
+      - "10200:10200"
+    command: --voice en_US-lessac-medium
+    volumes:
+      - ./piper_data:/data
+    networks:
+      - pandora-net
+
 volumes:
   vllm-cache:

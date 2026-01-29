@@ -12,7 +12,9 @@ import type { Message as MessageType, Thread } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem } from '@/components/ui/form';
-import { Loader2, Send, Square, Bot, BrainCircuit } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Loader2, Send, Square, Bot, BrainCircuit, Mic, Volume2, VolumeX } from 'lucide-react';
+import { useVoice } from '@/hooks/use-voice';
 import { WelcomeScreen } from './welcome-screen';
 import { Message } from './message';
 import { useToast } from '@/hooks/use-toast';
@@ -39,11 +41,30 @@ export function ChatPanel({ threadId }: { threadId: string }) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { user } = useUser();
-
+  const [autoSpeak, setAutoSpeak] = useState(false);
+  const stopRecordingRef = useRef<(() => void) | null>(null);
+  const { isRecording, startRecording, isSpeaking, speak } = useVoice();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: { content: '' },
   });
+
+  const handleMicClick = async () => {
+    if (isRecording) {
+      if (stopRecordingRef.current) {
+        stopRecordingRef.current();
+        stopRecordingRef.current = null;
+      }
+    } else {
+      const stopFn = await startRecording((text) => {
+        const current = form.getValues('content');
+        form.setValue('content', current ? `${current} ${text}` : text);
+      });
+      if (stopFn) {
+        stopRecordingRef.current = stopFn;
+      }
+    }
+  };
 
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -104,6 +125,8 @@ export function ChatPanel({ threadId }: { threadId: string }) {
     const reader = response.body!.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
+    let lastAssistantText = ''; // Track final text for auto-speak
+
 
     setStreamingMessage({
       id: 'assistant-streaming',
@@ -138,6 +161,7 @@ export function ChatPanel({ threadId }: { threadId: string }) {
           const data = JSON.parse(content);
 
           if (type === '0') { // Text
+            lastAssistantText += data;
             setStreamingMessage(prev => ({
               ...prev!,
               content: prev!.content + data
@@ -188,6 +212,12 @@ export function ChatPanel({ threadId }: { threadId: string }) {
     }, 1000);
 
     setStreamingMessage(null);
+
+    // Auto-speak the final response if enabled
+    if (autoSpeak && lastAssistantText) {
+      speak(lastAssistantText);
+    }
+
     if (user) {
       const updatedMessages = await getMessages(threadId, user.uid);
       setMessages(updatedMessages);
@@ -199,6 +229,8 @@ export function ChatPanel({ threadId }: { threadId: string }) {
     setIsSending(true);
     form.reset();
 
+    const visionEnabled = localStorage.getItem('vision_enabled') === 'true';
+
     try {
       const token = await user.getIdToken();
       const agentId = thread.agent;
@@ -206,6 +238,7 @@ export function ChatPanel({ threadId }: { threadId: string }) {
         message: values.content,
         threadId: thread.id,
         agentId,
+        useVision: visionEnabled,
       };
 
       if (abortControllerRef.current) {
@@ -264,7 +297,7 @@ export function ChatPanel({ threadId }: { threadId: string }) {
       }
 
       const token = await user.getIdToken();
-
+      const visionEnabled = localStorage.getItem('vision_enabled') === 'true';
 
       const response = await fetch('/api/chat', {
         method: 'POST',
@@ -276,6 +309,7 @@ export function ChatPanel({ threadId }: { threadId: string }) {
           message: lastUserMessage.content,
           threadId: thread.id,
           agentId: thread.agent,
+          useVision: visionEnabled,
         })
       });
 
@@ -394,10 +428,21 @@ export function ChatPanel({ threadId }: { threadId: string }) {
     <div className="flex h-full flex-1 flex-col">
       <header className="border-b bg-card p-4 flex justify-between items-center">
         <h2 className="font-headline text-lg font-semibold">{thread.name}</h2>
-        <Button onClick={handleExtractMemories} disabled={isExtracting || messages.length === 0} variant="outline" size="sm">
-          {isExtracting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BrainCircuit className="mr-2 h-4 w-4" />}
-          Learn from Conversation
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setAutoSpeak(!autoSpeak)}
+            className={cn("text-xs gap-2", autoSpeak ? "text-primary" : "text-muted-foreground")}
+          >
+            {autoSpeak ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+            {autoSpeak ? "Auto-Speak ON" : "Auto-Speak OFF"}
+          </Button>
+          <Button onClick={handleExtractMemories} disabled={isExtracting || messages.length === 0} variant="outline" size="sm">
+            {isExtracting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BrainCircuit className="mr-2 h-4 w-4" />}
+            Learn from Conversation
+          </Button>
+        </div>
       </header>
       <div className="flex-1 overflow-y-auto p-4 md:p-6">
         <div className="space-y-6" role="log" aria-live="polite">
@@ -435,6 +480,16 @@ export function ChatPanel({ threadId }: { threadId: string }) {
                 onRegenerate={handleRegenerate}
                 isRegenerating={isRegenerating}
               />
+            </motion.div>
+          )}
+          {isSending && !streamingMessage && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex items-center gap-2 text-muted-foreground text-sm italic ml-12"
+            >
+              <Loader2 className="h-3 w-3 animate-spin" />
+              Sovereign Brain is thinking...
             </motion.div>
           )}
           {isToolActive && (
@@ -483,9 +538,20 @@ export function ChatPanel({ threadId }: { threadId: string }) {
                 <Loader2 className="h-4 w-4 animate-spin" />
               </Button>
             ) : (
-              <Button type="submit" size="icon">
-                <Send className="h-4 w-4" />
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  size="icon"
+                  variant={isRecording ? "destructive" : "secondary"}
+                  onClick={handleMicClick}
+                  disabled={isSending || isRegenerating}
+                >
+                  {isRecording ? <Square className="h-4 w-4 fill-current" /> : <Mic className="h-4 w-4" />}
+                </Button>
+                <Button type="submit" size="icon">
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
             )}
           </form>
         </Form>

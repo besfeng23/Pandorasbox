@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
 
     // 2. Parse Body
     const body = await req.json();
-    const { message, agentId = 'universe', threadId, history = [], attachments = [], workspaceId } = body;
+    const { message, agentId = 'universe', threadId, history = [], attachments = [], workspaceId, useVision = false } = body;
 
     if (!message) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
@@ -147,14 +147,15 @@ export async function POST(req: NextRequest) {
       console.error('RAG Search failed:', ragError);
     }
 
-    // 4.8 Phase 14: Subnetwork Routing
-    const subnetwork = detectSubnetwork(message);
-    const routingInfo = `\n\n### 📡 ACTIVE SUBNETWORK: ${subnetwork}\n(Route user query through this specialized cognitive lane)`;
+    // 4.8 Phase 14: Subnetwork Routing (Semantic)
+    const { routeQuery } = await import('@/lib/ai/router');
+    const routingResult = await routeQuery(message);
+    const routingInfo = `\n\n### 📡 ACTIVE SUBNETWORK: ${routingResult.agentId.toUpperCase()}_LANE\n(Router: ${routingResult.reasoning})`;
 
 
     // 5. Stream from LLM
     const result = await streamText({
-      model: attachments.length > 0
+      model: (attachments.length > 0 || useVision)
         ? openai(process.env.VISION_MODEL || 'google/gemini-1.5-flash-latest')
         : openai(process.env.INFERENCE_MODEL || process.env.LLM_MODEL || 'llama-3'),
       messages,

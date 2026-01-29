@@ -4,13 +4,14 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { AppLayout } from '@/components/dashboard/app-layout';
 import { cn } from '@/lib/utils';
-import { User, Lock, Bell, CreditCard } from 'lucide-react';
+import { User, Lock, Bell, CreditCard, BrainCircuit } from 'lucide-react';
 
 const navItems = [
-  { name: 'Profile', href: '/settings/profile', icon: User },
-  { name: 'Billing', href: '/settings/billing', icon: CreditCard },
-  // { name: 'Security', href: '/settings/security', icon: Lock },
-  // { name: 'Notifications', href: '/settings/notifications', icon: Bell },
+    { name: 'Profile', href: '/settings/profile', icon: User },
+    { name: 'AI', href: '/settings/ai', icon: BrainCircuit },
+    { name: 'Billing', href: '/settings/billing', icon: CreditCard },
+    // { name: 'Security', href: '/settings/security', icon: Lock },
+    // { name: 'Notifications', href: '/settings/notifications', icon: Bell },
 ];
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {
