@@ -72,3 +72,5 @@ PB_temp_extract/
 def/
 defa/
 .firebase/
+backend/.next/
+backend/deploy/
