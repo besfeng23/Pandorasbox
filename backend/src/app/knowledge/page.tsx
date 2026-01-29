@@ -28,35 +28,35 @@ export default function KnowledgePage() {
     const [deleting, setDeleting] = useState<string | null>(null);
 
     // Fetch documents
-    useEffect(() => {
-        async function fetchDocuments() {
-            if (!user) return;
+    const fetchDocuments = React.useCallback(async () => {
+        if (!user) return;
 
-            setLoading(true);
-            try {
-                const token = await user.getIdToken();
-                const response = await fetch('/api/documents', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                    },
-                });
+        setLoading(true);
+        try {
+            const token = await user.getIdToken();
+            const response = await fetch('/api/documents', {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
 
-                if (!response.ok) {
-                    throw new Error('Failed to fetch documents');
-                }
-
-                const data = await response.json();
-                setDocuments(data.documents || []);
-            } catch (error: any) {
-                console.error('Error fetching documents:', error);
-                toast.error('Failed to load documents');
-            } finally {
-                setLoading(false);
+            if (!response.ok) {
+                throw new Error('Failed to fetch documents');
             }
-        }
 
-        fetchDocuments();
+            const data = await response.json();
+            setDocuments(data.documents || []);
+        } catch (error: any) {
+            console.error('Error fetching documents:', error);
+            toast.error('Failed to load documents');
+        } finally {
+            setLoading(false);
+        }
     }, [user]);
+
+    useEffect(() => {
+        fetchDocuments();
+    }, [fetchDocuments]);
 
     const handleDeleteDocument = async (documentId: string) => {
         if (!user) return;
@@ -135,7 +135,7 @@ export default function KnowledgePage() {
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <KnowledgeUpload userId={user.uid} agentId="universe" />
+                                <KnowledgeUpload userId={user.uid} agentId="universe" onUploadComplete={fetchDocuments} />
                             </CardContent>
                         </Card>
 

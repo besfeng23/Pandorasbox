@@ -118,27 +118,35 @@ export default function DashboardPage() {
 
                         {/* Quick Actions Grid */}
                         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 px-2">
-                            <Card className="glass-panel group hover:shadow-primary/5 transition-all duration-300 cursor-pointer overflow-hidden border-white/10" onClick={() => handleCreateThread('builder')}>
-                                <CardContent className="p-6 space-y-4">
-                                    <div className="h-12 w-12 rounded-2xl bg-primary/20 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                            <Card className="glass-panel group hover:shadow-primary/10 hover:border-primary/20 transition-all duration-300 cursor-pointer overflow-hidden border-white/10 relative" onClick={() => handleCreateThread('builder')}>
+                                <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/5 transition-colors duration-300" />
+                                <CardContent className="p-6 space-y-4 relative z-10">
+                                    <div className="h-12 w-12 rounded-2xl bg-primary/20 flex items-center justify-center text-primary group-hover:scale-110 transition-transform shadow-inner border border-primary/20">
                                         <Bot className="h-6 w-6" />
                                     </div>
                                     <div className="space-y-1">
-                                        <h3 className="font-semibold text-lg">Build Something New</h3>
+                                        <h3 className="font-semibold text-lg group-hover:text-primary transition-colors">Build Something New</h3>
                                         <p className="text-sm text-muted-foreground line-clamp-2">Start a fresh Builder session for code, logic, and creation.</p>
                                     </div>
+                                    <Button size="sm" className="w-full mt-2 group-hover:bg-primary group-hover:text-primary-foreground transition-colors" variant="secondary">
+                                        Start Builder <ArrowRight className="ml-2 h-4 w-4" />
+                                    </Button>
                                 </CardContent>
                             </Card>
 
-                            <Card className="glass-panel group hover:shadow-primary/5 transition-all duration-300 cursor-pointer overflow-hidden border-white/10" onClick={() => handleCreateThread('universe')}>
-                                <CardContent className="p-6 space-y-4">
-                                    <div className="h-12 w-12 rounded-2xl bg-purple-500/20 flex items-center justify-center text-purple-500 group-hover:scale-110 transition-transform">
+                            <Card className="glass-panel group hover:shadow-purple-500/10 hover:border-purple-500/20 transition-all duration-300 cursor-pointer overflow-hidden border-white/10 relative" onClick={() => handleCreateThread('universe')}>
+                                <div className="absolute inset-0 bg-purple-500/0 group-hover:bg-purple-500/5 transition-colors duration-300" />
+                                <CardContent className="p-6 space-y-4 relative z-10">
+                                    <div className="h-12 w-12 rounded-2xl bg-purple-500/20 flex items-center justify-center text-purple-500 group-hover:scale-110 transition-transform shadow-inner border border-purple-500/20">
                                         <BrainCircuit className="h-6 w-6" />
                                     </div>
                                     <div className="space-y-1">
-                                        <h3 className="font-semibold text-lg">Explore the Universe</h3>
+                                        <h3 className="font-semibold text-lg group-hover:text-purple-400 transition-colors">Explore the Universe</h3>
                                         <p className="text-sm text-muted-foreground line-clamp-2">Ask complex questions and dive into global knowledge.</p>
                                     </div>
+                                    <Button size="sm" className="w-full mt-2 group-hover:bg-purple-600 group-hover:text-white transition-colors" variant="secondary">
+                                        Start Exploration <ArrowRight className="ml-2 h-4 w-4" />
+                                    </Button>
                                 </CardContent>
                             </Card>
 

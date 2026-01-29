@@ -7,13 +7,32 @@ import { getFirebaseAuth } from '@/lib/firebase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+
+const signUpSchema = z.object({
+  email: z.string().email({ message: 'Please enter a valid email address.' }),
+  password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
+});
+
+type SignUpValues = z.infer<typeof signUpSchema>;
 
 export default function SignUpPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { user, isLoading: loading } = useAuth();
@@ -26,53 +45,44 @@ export default function SignUpPage() {
     }
   }, [user, loading, router]);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const form = useForm<SignUpValues>({
+    resolver: zodResolver(signUpSchema),
+    mode: 'onBlur',
+    defaultValues: {
+      email: '',
+      password: '',
+      confirmPassword: '',
+    },
+  });
+
+  const onSubmit = async (values: SignUpValues) => {
     setIsLoading(true);
     setError(null);
 
     try {
       const auth = getFirebaseAuth();
-      // Create user with Firebase Client SDK (automatically logs in)
-      await createUserWithEmailAndPassword(auth, email, password);
-
-      // Redirect to root path on successful account creation
+      await createUserWithEmailAndPassword(auth, values.email, values.password);
       router.push('/');
     } catch (error: any) {
       console.error('Signup error:', error);
-
-      // Map Firebase Auth errors to user-friendly messages
       let errorMessage = 'An error occurred during registration.';
       if (error.code) {
         switch (error.code) {
-          case 'auth/email-already-in-use':
-            errorMessage = 'An account with this email already exists.';
-            break;
-          case 'auth/invalid-email':
-            errorMessage = 'Invalid email address.';
-            break;
-          case 'auth/operation-not-allowed':
-            errorMessage = 'Email/password accounts are not enabled.';
-            break;
-          case 'auth/weak-password':
-            errorMessage = 'Password is too weak. Please use a stronger password.';
-            break;
-          case 'auth/network-request-failed':
-            errorMessage = 'Network error. Please check your connection.';
-            break;
-          default:
-            errorMessage = error.message || 'Failed to create account. Please try again.';
+          case 'auth/email-already-in-use': errorMessage = 'An account with this email already exists.'; break;
+          case 'auth/invalid-email': errorMessage = 'Invalid email address.'; break;
+          case 'auth/operation-not-allowed': errorMessage = 'Email/password accounts are not enabled.'; break;
+          case 'auth/weak-password': errorMessage = 'Password is too weak.'; break;
+          case 'auth/network-request-failed': errorMessage = 'Network error. Please check your connection.'; break;
+          default: errorMessage = error.message || 'Failed to create account.';
         }
       } else if (error.message) {
         errorMessage = error.message;
       }
-
       setError(errorMessage);
       setIsLoading(false);
     }
   };
 
-  // Show loading state while checking auth status
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -83,51 +93,68 @@ export default function SignUpPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md space-y-8 rounded-lg border border-border bg-card p-8">
+      <div className="w-full max-w-md space-y-8 rounded-lg border border-border bg-card p-8 shadow-xl">
         <div className="text-center">
           <h1 className="text-3xl font-bold tracking-tight">Create an Account</h1>
           <p className="mt-2 text-muted-foreground">Get started with your personal AI companion</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {error && (
-            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-              {error}
-            </div>
-          )}
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6" noValidate>
+            {error && (
+              <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive font-medium border border-destructive/20">
+                {error}
+              </div>
+            )}
 
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="name@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              disabled={isLoading}
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input placeholder="name@example.com" type="email" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              disabled={isLoading}
-              minLength={6}
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Password</FormLabel>
+                  <FormControl>
+                    <Input placeholder="••••••••" type="password" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
 
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Sign Up
-          </Button>
-        </form>
+            <FormField
+              control={form.control}
+              name="confirmPassword"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Confirm Password</FormLabel>
+                  <FormControl>
+                    <Input placeholder="••••••••" type="password" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Sign Up
+            </Button>
+          </form>
+        </Form>
 
         <p className="text-center text-sm text-muted-foreground">
           Already have an account?{' '}

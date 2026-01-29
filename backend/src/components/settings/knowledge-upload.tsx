@@ -15,6 +15,7 @@ import { Github, Youtube, HardDrive, FileSearch } from 'lucide-react';
 interface KnowledgeUploadProps {
   userId: string;
   agentId?: string;
+  onUploadComplete?: () => void;
 }
 
 interface JobStatus {
@@ -27,7 +28,7 @@ interface JobStatus {
   error?: string;
 }
 
-export function KnowledgeUpload({ userId, agentId = 'universe' }: KnowledgeUploadProps) {
+export function KnowledgeUpload({ userId, agentId = 'universe', onUploadComplete }: KnowledgeUploadProps) {
   const [isPending, startTransition] = useTransition();
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
@@ -75,6 +76,7 @@ export function KnowledgeUpload({ userId, agentId = 'universe' }: KnowledgeUploa
             title: 'Success!',
             description: `Successfully indexed ${jobStatus.filename}`,
           });
+          onUploadComplete?.();
           // Reset UI after delay
           setTimeout(() => {
             setUploadProgress(null);

@@ -262,12 +262,12 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
             </SidebarMenuItem>
             <SidebarMenuItem>
               <Button
-                variant="outline"
-                className="w-full justify-start border-dashed hover:border-primary/50 hover:bg-primary/5 group"
+                variant="default"
+                className="w-full justify-start shadow-md hover:shadow-lg transition-all group bg-primary text-primary-foreground hover:bg-primary/90"
                 onClick={handleCreateThread}
               >
-                <PlusCircle className="mr-2 h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
-                <span className="text-xs">New Session</span>
+                <PlusCircle className="mr-2 h-4 w-4 group-hover:scale-110 transition-transform" />
+                <span className="font-semibold">Start New Chat</span>
               </Button>
             </SidebarMenuItem>
           </SidebarMenu>
@@ -519,7 +519,7 @@ export function AppLayout({ children, threadId }: { children: React.ReactNode; t
   return (
     <div className="flex min-h-screen w-full bg-background overflow-hidden selection:bg-primary/20 selection:text-primary">
       <CommandMenu />
-      <Sidebar className="border-r-0 glass-surface-strong">
+      <Sidebar className="border-r-0 glass-surface-strong" collapsible="icon">
         <SidebarContentInternal threadId={threadId} />
       </Sidebar>
 
