@@ -7,6 +7,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useUser, useAuthActions } from '@/firebase';
 import type { Thread } from '@/lib/types';
 import { BottomTabBar } from '@/components/mobile/bottom-tab-bar';
+import { ThreadList } from '@/components/dashboard/thread-list';
 import {
   Sidebar,
   SidebarProvider,
@@ -97,20 +98,6 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
   const [workspaceId, setWorkspaceId] = useState<string | null>(null);
   const [loadingThreads, setLoadingThreads] = useState(true);
   const { toast } = useToast();
-
-  const [renameDialogOpen, setRenameDialogOpen] = useState(false);
-  const [currentThread, setCurrentThread] = useState<Thread | null>(null);
-  const [newThreadName, setNewThreadName] = useState('');
-
-  const handleRenameSubmit = async () => {
-    if (currentThread && user && newThreadName.trim()) {
-      await renameThread(currentThread.id, newThreadName.trim(), user.uid);
-      toast({ title: "Thread renamed" });
-      setRenameDialogOpen(false);
-      const fetchedThreads = await getRecentThreads(user.uid, agent, workspaceId || undefined);
-      setThreads(fetchedThreads);
-    }
-  };
 
   useEffect(() => {
     const stored = localStorage.getItem('activeWorkspaceId');
@@ -376,79 +363,27 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
           </Tabs>
         </div>
 
+
         <SidebarGroup className="mt-4 p-0">
           {loadingThreads ? (
             <div className="flex justify-center p-4">
               <Loader2 className="h-5 w-5 animate-spin" />
             </div>
           ) : (
-            <SidebarMenu>
-              {(threads || []).map((thread) => (
-                <SidebarMenuItem key={thread.id}>
-                  <Link href={`/chat/${thread.id}`} className="w-full" onClick={handleNavClick}>
-                    <SidebarMenuButton isActive={threadId === thread.id} className="w-full justify-start">
-                      <MessageSquare />
-                      <span>{thread.name}</span>
-                    </SidebarMenuButton>
-                  </Link>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <SidebarMenuAction showOnHover>
-                        <MoreHorizontal />
-                      </SidebarMenuAction>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent side="right" align="start">
-                      <DropdownMenuItem onSelect={() => {
-                        setCurrentThread(thread);
-                        setNewThreadName(thread.name);
-                        setRenameDialogOpen(true);
-                      }}>
-                        <Edit className="mr-2 h-4 w-4" />
-                        <span>Rename</span>
-                      </DropdownMenuItem>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <DropdownMenuItem
-                            className="text-destructive focus:bg-destructive/10 focus:text-destructive"
-                            onSelect={(e) => e.preventDefault()}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            <span>Delete</span>
-                          </DropdownMenuItem>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This will permanently delete the thread "{thread.name}" and all its messages. This action cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              className={buttonVariants({ variant: 'destructive' })}
-                              onClick={async () => {
-                                if (user) {
-                                  await deleteThread(thread.id, user.uid);
-                                  toast({ title: `Thread "${thread.name}" deleted.` });
-                                  const fetchedThreads = await getRecentThreads(user.uid, agent);
-                                  setThreads(fetchedThreads);
-                                }
-                              }}
-                            >
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
+            <ThreadList
+              threads={threads}
+              activeThreadId={threadId}
+              onNavigate={handleNavClick}
+              onThreadsChanged={async () => {
+                if (user) {
+                  const t = await getRecentThreads(user.uid, agent, workspaceId || undefined);
+                  setThreads(t);
+                }
+              }}
+            />
           )}
         </SidebarGroup>
-      </SidebarContent>
+      </SidebarContent >
 
       <SidebarFooter>
         <SystemStatus />
@@ -487,32 +422,6 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarFooter>
-
-      <Dialog open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Rename Thread</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={(e) => { e.preventDefault(); handleRenameSubmit(); }}>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="name" className="text-right">Name</Label>
-                <Input
-                  id="name"
-                  value={newThreadName}
-                  onChange={(e) => setNewThreadName(e.target.value)}
-                  className="col-span-3"
-                  autoFocus
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setRenameDialogOpen(false)}>Cancel</Button>
-              <Button type="submit">Save Changes</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }

@@ -177,6 +177,10 @@
     @apply focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20 transition-shadow duration-200;
   }
 
+  .ios-press {
+    @apply transition-transform duration-200 ease-out active:scale-95 touch-manipulation;
+  }
+
   /* Design System: Side padding */
   .side-padding-desktop {
     @apply px-6;
