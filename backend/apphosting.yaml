@@ -6,6 +6,9 @@ runConfig:
   # concurrency: 80
   # cpu: 1
   # memoryMiB: 512
+  vpcAccess:
+    connector: projects/seismic-vista-480710-q5/locations/us-central1/connectors/pandora-vpc-connector
+    egress: PRIVATE_RANGES_ONLY
 
 # Environment variables and secrets.
 env:
