@@ -10,7 +10,7 @@ import { useUser } from '@/firebase';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Github, Youtube, HardDrive, FileSearch } from 'lucide-react';
+import { Github, Youtube, HardDrive, FileSearch, ShieldCheck } from 'lucide-react';
 
 interface KnowledgeUploadProps {
   userId: string;
@@ -307,7 +307,11 @@ export function KnowledgeUpload({ userId, agentId = 'universe', onUploadComplete
                 <p className="mb-2 text-sm text-muted-foreground">
                   <span className="font-semibold">Click to upload</span> or drag and drop
                 </p>
-                <p className="text-xs text-muted-foreground">PDF, TXT, or MD files</p>
+                <p className="text-xs text-muted-foreground mb-4">PDF, TXT, or MD files</p>
+                <div className="flex items-center gap-1.5 px-3 py-1 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full text-[10px] font-medium border border-green-500/20">
+                  <ShieldCheck className="h-3 w-3" />
+                  <span>Encrypted & Private</span>
+                </div>
               </div>
             )}
           </div>

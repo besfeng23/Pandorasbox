@@ -127,7 +127,7 @@ export default function DashboardPage() {
                                 Welcome, {user.displayName || 'Explorer'}
                             </h1>
                             <p className="text-base md:text-xl text-muted-foreground max-w-2xl mx-auto px-4">
-                                Your multi-modal intelligence hub is ready. What shall we evolve today?
+                                Your personal intelligence hub.
                             </p>
                         </header>
 
@@ -140,11 +140,11 @@ export default function DashboardPage() {
                                         <Bot className="h-7 w-7" />
                                     </div>
                                     <div className="space-y-1">
-                                        <h3 className="font-headline font-semibold text-xl group-hover:text-primary transition-colors">Start Chat</h3>
-                                        <p className="text-sm text-muted-foreground line-clamp-2">Begin a new conversation with your AI Assistant.</p>
+                                        <h3 className="font-headline font-semibold text-xl group-hover:text-primary transition-colors">New Session</h3>
+                                        <p className="text-sm text-muted-foreground line-clamp-2">Start a new conversation context.</p>
                                     </div>
                                     <Button size="sm" className="w-full mt-2 group-hover:bg-primary group-hover:text-primary-foreground transition-colors shadow-sm" variant="secondary">
-                                        New Session <ArrowRight className="ml-2 h-4 w-4" />
+                                        Create Session <ArrowRight className="ml-2 h-4 w-4" />
                                     </Button>
                                 </CardContent>
                             </Card>
@@ -156,11 +156,11 @@ export default function DashboardPage() {
                                         <BrainCircuit className="h-7 w-7" />
                                     </div>
                                     <div className="space-y-1">
-                                        <h3 className="font-headline font-semibold text-xl group-hover:text-purple-400 transition-colors">Import Documents</h3>
-                                        <p className="text-sm text-muted-foreground line-clamp-2">Upload files to your Knowledge Library.</p>
+                                        <h3 className="font-headline font-semibold text-xl group-hover:text-purple-400 transition-colors">Add Knowledge</h3>
+                                        <p className="text-sm text-muted-foreground line-clamp-2">Upload documents to the Neural Vault.</p>
                                     </div>
                                     <Button size="sm" className="w-full mt-2 group-hover:bg-purple-600 group-hover:text-white transition-colors shadow-sm" variant="secondary">
-                                        Go to Library <ArrowRight className="ml-2 h-4 w-4" />
+                                        Manage Library <ArrowRight className="ml-2 h-4 w-4" />
                                     </Button>
                                 </CardContent>
                             </Card>

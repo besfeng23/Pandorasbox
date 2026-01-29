@@ -267,7 +267,10 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
                 onClick={handleCreateThread}
               >
                 <PlusCircle className="mr-2 h-4 w-4 group-hover:scale-110 transition-transform" />
-                <span className="font-semibold">Start New Chat</span>
+                <span className="font-semibold flex-1">Start New Chat</span>
+                <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
+                  <span className="text-xs">⌘</span>N
+                </kbd>
               </Button>
             </SidebarMenuItem>
           </SidebarMenu>
@@ -513,34 +516,40 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
   );
 }
 
+import { BottomTabBar } from '@/components/mobile/bottom-tab-bar';
+
+// ... (imports)
+
 export function AppLayout({ children, threadId }: { children: React.ReactNode; threadId?: string }) {
   const { isOpen } = useArtifactStore();
+  // ... (existing logic)
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full bg-background overflow-hidden selection:bg-primary/20 selection:text-primary">
+      <div className="flex min-h-screen w-full bg-background overflow-hidden selection:bg-primary/20 selection:text-primary pb-16 md:pb-0">
         <CommandMenu />
-        <Sidebar className="border-r-0 glass-surface-strong" collapsible="icon">
-          <SidebarContentInternal threadId={threadId} />
-        </Sidebar>
 
-        <SidebarInset className="flex flex-row overflow-hidden p-0 bg-gradient-to-br from-background to-muted/50 dark:to-muted/10">
+        {/* Desktop Sidebar - Hidden on Mobile */}
+        <div className="hidden md:block h-full">
+          <Sidebar className="border-r-0 glass-surface-strong" collapsible="icon">
+            <SidebarContentInternal threadId={threadId} />
+          </Sidebar>
+        </div>
+
+        <SidebarInset className="flex flex-col flex-1 overflow-hidden p-0 bg-gradient-to-br from-background to-muted/50 dark:to-muted/10">
+          {/* Mobile Tab Bar */}
+          <BottomTabBar />
+
           <div className={cn(
-            "flex flex-col flex-1 min-w-0 transition-all duration-300 ease-in-out",
+            "flex flex-col flex-1 min-w-0 transition-all duration-300 ease-in-out h-full overflow-y-auto",
             isOpen ? "hidden md:flex" : "flex"
           )}>
-            {/* Enhanced Mobile Header */}
-            <div className="md:hidden glass-surface sticky top-0 z-30 flex items-center h-14 px-4 border-b border-white/10 safe-area-pt">
-              <SidebarTrigger className="h-10 w-10 p-2 -ml-2 hover:bg-primary/10 transition-colors" />
-              <div className="flex-1 text-center pr-8">
-                <span className="font-headline font-semibold text-foreground tracking-tight">Pandora's Box</span>
-              </div>
-            </div>
+            {/* Note: Mobile Header is now per-page, so we remove the global one here */}
             {children}
           </div>
 
           {isOpen && (
-            <div className="w-full md:w-auto h-full border-l border-border bg-background z-20">
+            <div className="hidden md:block w-full md:w-auto h-full border-l border-border bg-background z-20">
               <ArtifactPanel />
             </div>
           )}

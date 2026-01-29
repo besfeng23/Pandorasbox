@@ -100,6 +100,9 @@ export default function SignUpPage() {
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70">Create Account</h1>
           <p className="text-sm text-muted-foreground">Begin your journey with Sovereign AI</p>
+          <div className="flex items-center justify-center gap-1.5 pt-2">
+            <span className="text-[10px] uppercase tracking-wider text-green-500 font-semibold bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/20">Private & Encrypted</span>
+          </div>
         </div>
 
         <Form {...form}>

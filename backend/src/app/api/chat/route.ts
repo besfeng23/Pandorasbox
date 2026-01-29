@@ -11,8 +11,19 @@ import { completeInference } from '@/lib/sovereign/inference';
 import { v4 as uuidv4 } from 'uuid';
 
 // Configure OpenAI provider with custom URL if set
+// Ensure we handle the /v1 suffix correctly for vLLM/OpenAI-compatible endpoints
+const getBaseUrl = () => {
+  const url = process.env.INFERENCE_URL || process.env.LLM_API_URL;
+  if (!url) return undefined;
+  // If it doesn't end in /v1, append it (unless it's already a full path like .../v1/chat)
+  if (!url.endsWith('/v1') && !url.includes('/chat')) {
+    return `${url}/v1`;
+  }
+  return url;
+};
+
 const openai = createOpenAI({
-  baseURL: process.env.INFERENCE_URL || process.env.LLM_API_URL || undefined,
+  baseURL: getBaseUrl(),
   apiKey: process.env.LLM_API_KEY || 'dummy-key',
 });
 
@@ -59,7 +70,23 @@ function enhanceWithCognition(results: any[]): string {
   return contextBlock;
 }
 
+// Helper: Timeout wrapper for best-effort operations
+const withTimeout = <T>(promise: Promise<T>, ms: number, fallback: T, name: string): Promise<T> => {
+  return Promise.race([
+    promise,
+    new Promise<T>((resolve) =>
+      setTimeout(() => {
+        console.warn(`[Timeout] ${name} timed out after ${ms}ms`);
+        resolve(fallback);
+      }, ms)
+    )
+  ]);
+};
+
 export async function POST(req: NextRequest) {
+  const requestId = uuidv4();
+  const timings: Record<string, number> = { start: Date.now() };
+
   try {
     // 1. Authenticate User
     const authHeader = req.headers.get('Authorization');
@@ -74,9 +101,10 @@ export async function POST(req: NextRequest) {
     try {
       decodedToken = await auth.verifyIdToken(token);
     } catch (e) {
-      console.error('Token verification failed:', e);
+      console.error(`[${requestId}] Token verification failed:`, e);
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
+    timings.auth_ok = Date.now();
 
     const userId = decodedToken.uid;
 
@@ -105,7 +133,11 @@ export async function POST(req: NextRequest) {
       createdAt: FieldValue.serverTimestamp(),
     };
 
+    // Make Firestore write non-blocking for speed, but catch errors
+    // Actually, for consistency we usually wait, but we can race it if needed.
+    // Let's keep it awaited for data integrity but log the time.
     await userMessageRef.set(userMessageData);
+    timings.firestore_write_ok = Date.now();
 
     // 4. Prepare Context for LLM
     const initialMessages = await convertToModelMessages(safeHistory);
@@ -125,35 +157,67 @@ export async function POST(req: NextRequest) {
     const messages = [...initialMessages, { role: 'user', content: userContent } as const];
 
     // 4.5 RAG: Search for relevant context (Phase 13 Implementation)
+    // Wrapped in Best-Effort Timeout (2000ms)
     let context = '';
-    try {
-      if (message.length > 5) { // Lower threshold for search
-        const queryVector = await embedText(message);
-        const filter: any = {
-          must: [
-            { key: 'userId', match: { value: userId } },
-            { key: 'agentId', match: { value: agentId } }
-          ]
+    timings.memory_search_start = Date.now();
+
+    if (message.length > 5) {
+      try {
+        const ragPromise = async () => {
+          const queryVector = await embedText(message);
+          const filter: any = {
+            must: [
+              { key: 'userId', match: { value: userId } },
+              { key: 'agentId', match: { value: agentId } }
+            ]
+          };
+
+          if (workspaceId) {
+            filter.must.push({ key: 'workspaceId', match: { value: workspaceId } });
+          }
+
+          const searchResults = await searchPoints('memories', queryVector, 5, filter) || [];
+          return enhanceWithCognition(searchResults);
         };
 
-        if (workspaceId) {
-          filter.must.push({ key: 'workspaceId', match: { value: workspaceId } });
-        }
-
-        const searchResults = await searchPoints('memories', queryVector, 5, filter) || [];
-        context = enhanceWithCognition(searchResults);
+        context = await withTimeout(ragPromise(), 2000, '', 'RAG Search');
+      } catch (ragError) {
+        console.error(`[${requestId}] RAG Search failed:`, ragError);
       }
-    } catch (ragError) {
-      console.error('RAG Search failed:', ragError);
     }
+    timings.memory_search_end = Date.now();
 
     // 4.8 Phase 14: Subnetwork Routing (Semantic)
-    const { routeQuery } = await import('@/lib/ai/router');
-    const routingResult = await routeQuery(message);
-    const routingInfo = `\n\n### 📡 ACTIVE SUBNETWORK: ${routingResult.agentId.toUpperCase()}_LANE\n(Router: ${routingResult.reasoning})`;
+    // Wrapped in Best-Effort Timeout (1500ms)
+    let routingInfo = '';
+    timings.routing_start = Date.now();
+    try {
+      const { routeQuery } = await import('@/lib/ai/router');
+      const routeResult = await withTimeout(
+        routeQuery(message),
+        1500,
+        { agentId: agentId, confidence: 0, reasoning: 'Timeout Fallback' },
+        'Router'
+      );
+
+      routingInfo = `\n\n### 📡 ACTIVE SUBNETWORK: ${routeResult.agentId.toUpperCase()}_LANE\n(Router: ${routeResult.reasoning})`;
+    } catch (routeError) {
+      console.error(`[${requestId}] Routing failed:`, routeError);
+    }
+    timings.routing_end = Date.now();
 
 
     // 5. Stream from LLM
+    timings.inference_start = Date.now();
+    console.log(`[${requestId}] Starting Inference. Timings:`, JSON.stringify({
+      uid: userId,
+      agent: agentId,
+      auth_ms: timings.auth_ok - timings.start,
+      db_ms: timings.firestore_write_ok - timings.auth_ok,
+      rag_ms: timings.memory_search_end - timings.memory_search_start,
+      route_ms: timings.routing_end - timings.routing_start
+    }));
+
     const result = await streamText({
       model: (attachments.length > 0 || useVision)
         ? openai(process.env.VISION_MODEL || 'google/gemini-1.5-flash-latest')
@@ -231,42 +295,46 @@ User ID: ${userId}${context}`,
             createdAt: FieldValue.serverTimestamp(),
           });
 
-          await db.doc(`users/${userId}/threads/${threadId}`).update({
+          // Use non-blocking update
+          db.doc(`users/${userId}/threads/${threadId}`).update({
             updatedAt: FieldValue.serverTimestamp(),
-          });
+          }).catch(e => console.error('Failed to update thread timestamp:', e));
 
           // Automated Long-term Memory (Consolidated Memory)
           if (text.length > 50) {
-            try {
-              const summaryPrompt = [
-                { role: 'system' as const, content: 'You are a memory consolidation expert. Summarize the following exchange into a single, high-density factual statement for long-term storage.' },
-                { role: 'user' as const, content: `User: ${message}\nAssistant: ${text}` }
-              ];
-              const summary = await completeInference(summaryPrompt);
+            // FIRE AND FORGET - Do not await memory consolidation
+            (async () => {
+              try {
+                const summaryPrompt = [
+                  { role: 'system' as const, content: 'You are a memory consolidation expert. Summarize the following exchange into a single, high-density factual statement for long-term storage.' },
+                  { role: 'user' as const, content: `User: ${message}\nAssistant: ${text}` }
+                ];
+                const summary = await completeInference(summaryPrompt);
 
-              if (summary) {
-                const summaryVector = await embedText(summary);
-                await upsertPoint('memories', {
-                  id: uuidv4(),
-                  vector: summaryVector,
-                  payload: {
-                    content: summary,
-                    userId,
-                    agentId,
-                    workspaceId: workspaceId || null,
-                    type: 'consolidated_memory',
-                    source: 'chat_auto',
-                    createdAt: new Date().toISOString()
-                  }
-                });
-                console.log(`[Thread ${threadId}] Automated memory consolidated.`);
+                if (summary) {
+                  const summaryVector = await embedText(summary);
+                  await upsertPoint('memories', {
+                    id: uuidv4(),
+                    vector: summaryVector,
+                    payload: {
+                      content: summary,
+                      userId,
+                      agentId,
+                      workspaceId: workspaceId || null,
+                      type: 'consolidated_memory',
+                      source: 'chat_auto',
+                      createdAt: new Date().toISOString()
+                    }
+                  });
+                  console.log(`[${requestId}] Automated memory consolidated.`);
+                }
+              } catch (memoryError) {
+                console.error(`[${requestId}] Failed to consolidate memory:`, memoryError);
               }
-            } catch (memoryError) {
-              console.error('Failed to consolidate memory:', memoryError);
-            }
+            })();
           }
         } catch (saveError) {
-          console.error('Failed to save assistant message:', saveError);
+          console.error(`[${requestId}] Failed to save assistant message:`, saveError);
         }
       },
     });
@@ -274,7 +342,7 @@ User ID: ${userId}${context}`,
     return result.toUIMessageStreamResponse();
 
   } catch (error: any) {
-    console.error('Chat API Error:', error);
+    console.error(`[${requestId}] Chat API Fatal Error:`, error);
     return NextResponse.json(
       { error: error.message || 'Internal Server Error' },
       { status: 500 }

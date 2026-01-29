@@ -211,7 +211,7 @@ export function ChatInput({ userId, onMessageSubmit, isSending, onStop }: ChatIn
       <form
         ref={formRef}
         onSubmit={handleSubmit}
-        className="relative flex flex-col gap-2 bg-background/60 backdrop-blur-xl rounded-[20px] border border-black/5 dark:border-white/10 shadow-sm"
+        className="relative flex flex-col gap-2 bg-background/60 backdrop-blur-xl rounded-[20px] border border-black/5 dark:border-white/10 shadow-sm safe-area-pb"
       >
         {imagePreview && (
           <div className="relative w-24 h-24 rounded-md overflow-hidden border">

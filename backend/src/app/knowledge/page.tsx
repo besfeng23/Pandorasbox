@@ -7,7 +7,7 @@ import { useUser } from '@/firebase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Book, Upload, FileText, Smartphone, Trash2, Loader2, CheckCircle, Clock, AlertCircle, Info } from 'lucide-react';
+import { Book, Upload, FileText, Smartphone, Trash2, Loader2, CheckCircle, Clock, AlertCircle, Info, ShieldCheck } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from 'sonner';
@@ -193,6 +193,19 @@ export default function KnowledgePage() {
                                     <div className="text-2xl font-bold">Enabled</div>
                                     <p className="text-xs text-muted-foreground">
                                         You can upload files directly from your mobile device via this dashboard.
+                                    </p>
+                                </CardContent>
+                            </Card>
+
+                            <Card>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">Privacy & Security</CardTitle>
+                                    <ShieldCheck className="h-4 w-4 text-green-500" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold">Encrypted</div>
+                                    <p className="text-xs text-muted-foreground">
+                                        Your data is stored in a private Qdrant collection. It is never shared with third parties.
                                     </p>
                                 </CardContent>
                             </Card>
