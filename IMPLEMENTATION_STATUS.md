@@ -44,6 +44,7 @@
 ### UI Components
 - ✅ **Chat Components** - ChatPanel, ChatInput, Message components
 - ✅ **FollowUpChips** - Suggested prompts after AI response
+- ✅ **InspectorDrawer** - Right panel for context/sources/history
 - ✅ **Auth Components** - Login, Signup, AuthGuard, EmailForm
 - ✅ **Graph View** - `src/components/GraphView.tsx`
 - ✅ **Status Indicators** - System status, connection health
@@ -70,10 +71,10 @@
 
 ### UI Components (Missing)
 - ❌ **App Shell** - `(pandora-ui)/layout.tsx` (Partially replaced by Dashboard Layout)
-- ❌ **InspectorDrawer** - Right panel (360px)
 - ❌ **FloatingComposer** - Chat input component
 - ❌ **AssistantEvidenceBlock** - Collapsible evidence display
 - ✅ **GlobalCommandMenu** - Cmd+K command palette (Implemented)
+- ✅ **InspectorDrawer** - Right panel for context/sources (Implemented)
 - ❌ **GlassPanel/GlassCard** - Glassmorphism components
 - ❌ **DataTable/CardList** - Data views (desktop/mobile)
 
