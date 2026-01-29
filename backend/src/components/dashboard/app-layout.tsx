@@ -69,6 +69,7 @@ import {
   Share2,
   Building,
   Shield,
+  Bell,
 } from 'lucide-react';
 import { PandoraBoxIcon } from '@/components/icons';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -220,6 +221,22 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
               <SidebarMenuButton isActive={pathname.startsWith('/health')} className="w-full justify-start">
                 <Activity />
                 <span>System Health</span>
+              </SidebarMenuButton>
+            </Link>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <Link href="/notifications" className="w-full" onClick={handleNavClick}>
+              <SidebarMenuButton isActive={pathname.startsWith('/notifications')} className="w-full justify-start">
+                <Bell />
+                <span>Notifications</span>
+              </SidebarMenuButton>
+            </Link>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <Link href="/integrations" className="w-full" onClick={handleNavClick}>
+              <SidebarMenuButton isActive={pathname.startsWith('/integrations')} className="w-full justify-start">
+                <Plug />
+                <span>Integrations</span>
               </SidebarMenuButton>
             </Link>
           </SidebarMenuItem>

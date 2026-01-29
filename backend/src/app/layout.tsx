@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { cn } from '@/lib/utils';
 import { Providers } from '@/components/providers';
+import { MobileNavigation } from '@/components/navigation/mobile-nav';
 
 export const metadata: Metadata = {
   title: "Pandora's Box",
@@ -22,9 +23,13 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap"
           rel="stylesheet"
         />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
       </head>
       <body className={cn('font-body antialiased')}>
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <MobileNavigation />
+        </Providers>
       </body>
     </html>
   );
