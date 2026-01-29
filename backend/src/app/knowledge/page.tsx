@@ -1,15 +1,108 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { AppLayout } from '@/components/dashboard/app-layout';
 import { KnowledgeUpload } from '@/components/settings/knowledge-upload';
 import { useUser } from '@/firebase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Book, Upload, FileText, Smartphone } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Book, Upload, FileText, Smartphone, Trash2, Loader2, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
+
+interface Document {
+    id: string;
+    filename: string;
+    fileType: string;
+    fileSize: number;
+    chunkCount: number;
+    status: 'processing' | 'completed' | 'failed';
+    agentId: string;
+    createdAt: string;
+}
 
 export default function KnowledgePage() {
     const { user } = useUser();
+    const [documents, setDocuments] = useState<Document[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [deleting, setDeleting] = useState<string | null>(null);
+
+    // Fetch documents
+    useEffect(() => {
+        async function fetchDocuments() {
+            if (!user) return;
+
+            setLoading(true);
+            try {
+                const token = await user.getIdToken();
+                const response = await fetch('/api/documents', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                    },
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch documents');
+                }
+
+                const data = await response.json();
+                setDocuments(data.documents || []);
+            } catch (error: any) {
+                console.error('Error fetching documents:', error);
+                toast.error('Failed to load documents');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        fetchDocuments();
+    }, [user]);
+
+    const handleDeleteDocument = async (documentId: string) => {
+        if (!user) return;
+
+        setDeleting(documentId);
+        try {
+            const token = await user.getIdToken();
+            const response = await fetch(`/api/documents?id=${documentId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to delete document');
+            }
+
+            setDocuments(prev => prev.filter(d => d.id !== documentId));
+            toast.success('Document deleted');
+        } catch (error: any) {
+            console.error('Error deleting document:', error);
+            toast.error('Failed to delete document');
+        } finally {
+            setDeleting(null);
+        }
+    };
+
+    const formatFileSize = (bytes: number): string => {
+        if (bytes < 1024) return `${bytes} B`;
+        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+        return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    };
+
+    const getStatusIcon = (status: string) => {
+        switch (status) {
+            case 'completed':
+                return <CheckCircle className="h-4 w-4 text-green-500" />;
+            case 'processing':
+                return <Clock className="h-4 w-4 text-yellow-500 animate-pulse" />;
+            case 'failed':
+                return <AlertCircle className="h-4 w-4 text-red-500" />;
+            default:
+                return <FileText className="h-4 w-4 text-muted-foreground" />;
+        }
+    };
 
     if (!user) return null;
 
@@ -28,7 +121,7 @@ export default function KnowledgePage() {
                         </TabsTrigger>
                         <TabsTrigger value="documents" className="flex items-center gap-2">
                             <FileText className="h-4 w-4" />
-                            Documents
+                            Documents ({documents.length})
                         </TabsTrigger>
                     </TabsList>
 
@@ -93,16 +186,61 @@ export default function KnowledgePage() {
                             <CardHeader>
                                 <CardTitle>Indexed Documents</CardTitle>
                                 <CardDescription>
-                                    A list of all documents currently indexed in your knowledge base.
-                                    (Document management coming in Phase 5)
+                                    All documents currently indexed in your knowledge base.
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <div className="flex flex-col items-center justify-center p-8 text-center text-muted-foreground">
-                                    <Book className="h-12 w-12 mb-4 opacity-20" />
-                                    <p>Document list view requires new backend API endpoints.</p>
-                                    <p className="text-sm">Check the "Memory" tab to see individual vector chunks.</p>
-                                </div>
+                                {loading ? (
+                                    <div className="flex flex-col items-center justify-center p-8">
+                                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mb-4" />
+                                        <p className="text-muted-foreground">Loading documents...</p>
+                                    </div>
+                                ) : documents.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center p-8 text-center text-muted-foreground">
+                                        <Book className="h-12 w-12 mb-4 opacity-20" />
+                                        <p>No documents uploaded yet.</p>
+                                        <p className="text-sm">Use the Upload tab to add knowledge to your AI.</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-2">
+                                        {documents.map((doc) => (
+                                            <div
+                                                key={doc.id}
+                                                className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+                                            >
+                                                <div className="flex items-center gap-4">
+                                                    {getStatusIcon(doc.status)}
+                                                    <div>
+                                                        <p className="font-medium">{doc.filename}</p>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            {doc.fileType.toUpperCase()} • {formatFileSize(doc.fileSize)}
+                                                            {doc.chunkCount > 0 && ` • ${doc.chunkCount} chunks`}
+                                                            {doc.status === 'processing' && ' • Processing...'}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xs text-muted-foreground">
+                                                        {new Date(doc.createdAt).toLocaleDateString()}
+                                                    </span>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8"
+                                                        onClick={() => handleDeleteDocument(doc.id)}
+                                                        disabled={deleting === doc.id}
+                                                    >
+                                                        {deleting === doc.id ? (
+                                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                                        ) : (
+                                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                                        )}
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </CardContent>
                         </Card>
                     </TabsContent>

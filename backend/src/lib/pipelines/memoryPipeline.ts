@@ -58,6 +58,18 @@ export async function startMemoryPipeline(
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     });
+
+    // Also track the document itself for the Knowledge Base UI
+    await db.collection(`users/${userId}/documents`).doc(jobId).set({
+      filename,
+      fileType: filename.split('.').pop()?.toLowerCase() || 'unknown',
+      fileSize: content.length,
+      chunkCount: 0, // Will be updated when processing completes
+      status: 'processing',
+      agentId,
+      jobId,
+      createdAt: FieldValue.serverTimestamp(),
+    });
   } catch (error) {
     console.warn(`Failed to persist job ${jobId} to Firestore:`, error);
     // Continue with in-memory tracking
@@ -198,10 +210,32 @@ ${chunk}`;
     }
 
     updateStatus('COMPLETED', chunks.length);
+
+    // Update document status to completed
+    try {
+      const db = getFirestoreAdmin();
+      await db.collection(`users/${userId}/documents`).doc(jobId).update({
+        status: 'completed',
+        chunkCount: chunks.length,
+      });
+    } catch (err) {
+      console.warn(`Failed to update document status for job ${jobId}:`, err);
+    }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown processing error.';
     updateStatus('FAILED', jobRegistry.get(jobId)?.processedChunks || 0, errorMessage);
     console.error(`Memory Pipeline Job Failed (${jobId}):`, error);
+
+    // Update document status to failed
+    try {
+      const db = getFirestoreAdmin();
+      await db.collection(`users/${userId}/documents`).doc(jobId).update({
+        status: 'failed',
+        error: errorMessage,
+      });
+    } catch (err) {
+      console.warn(`Failed to update document status for job ${jobId}:`, err);
+    }
   }
 }
 
