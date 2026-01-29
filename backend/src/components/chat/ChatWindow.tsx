@@ -5,7 +5,9 @@ import { useAuth } from '@/context/AuthContext';
 import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
 import { FollowUpChips, generateFollowUpSuggestions } from './follow-up-chips';
-import { Loader2, Bot, BrainCircuit } from 'lucide-react';
+import { InspectorDrawer, useInspectorDrawer } from '@/components/dashboard/inspector-drawer';
+import { Button } from '@/components/ui/button';
+import { Loader2, Bot, BrainCircuit, PanelRightOpen } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export interface ChatMessage {
@@ -33,6 +35,7 @@ export function ChatWindow({ threadId, agentId = 'universe' }: ChatWindowProps) 
   const [followUpSuggestions, setFollowUpSuggestions] = useState<string[]>([]);
   const abortControllerRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inspector = useInspectorDrawer();
 
 
   // Auto-scroll to bottom when new messages arrive
@@ -301,9 +304,20 @@ export function ChatWindow({ threadId, agentId = 'universe' }: ChatWindowProps) 
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Pandora AI</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-          <span className="text-[10px] font-medium text-muted-foreground uppercase">Online</span>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+            <span className="text-[10px] font-medium text-muted-foreground uppercase">Online</span>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => inspector.open(threadId)}
+            title="Open Inspector"
+          >
+            <PanelRightOpen className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
@@ -333,6 +347,13 @@ export function ChatWindow({ threadId, agentId = 'universe' }: ChatWindowProps) 
           </p>
         </div>
       </div>
+
+      {/* Inspector Drawer */}
+      <InspectorDrawer
+        open={inspector.isOpen}
+        onClose={inspector.close}
+        threadId={threadId}
+      />
     </div>
   );
 }
