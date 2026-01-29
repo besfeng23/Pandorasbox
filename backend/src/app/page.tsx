@@ -15,6 +15,7 @@ import { Loader2, Bot, BrainCircuit, History, ArrowRight } from 'lucide-react';
 import { createThread, getRecentThreads } from '@/app/actions';
 import { Timestamp } from 'firebase/firestore';
 import { WelcomeScreen } from '@/components/chat/welcome-screen';
+import { WelcomeWizard } from '@/components/onboarding/welcome-wizard';
 import type { Thread } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
@@ -63,6 +64,20 @@ export default function DashboardPage() {
 
         fetchThreads();
     }, [user, toast]);
+
+    const [showWizard, setShowWizard] = useState(false);
+
+    useEffect(() => {
+        if (!user) return;
+        const checkWizard = async () => {
+            const { checkOnboardingStatus } = await import('@/app/actions');
+            const completed = await checkOnboardingStatus(user.uid);
+            if (!completed) {
+                setShowWizard(true);
+            }
+        };
+        checkWizard();
+    }, [user]);
 
     const handleCreateThread = async (agent: 'builder' | 'universe') => {
         if (user) {
@@ -118,34 +133,34 @@ export default function DashboardPage() {
 
                         {/* Quick Actions Grid */}
                         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 px-2">
-                            <Card className="glass-panel group hover:shadow-primary/10 hover:border-primary/20 transition-all duration-300 cursor-pointer overflow-hidden border-white/10 relative" onClick={() => handleCreateThread('builder')}>
-                                <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/5 transition-colors duration-300" />
+                            <Card className="glass-surface-strong group hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary/20 hover:border-primary/30 transition-all duration-300 cursor-pointer overflow-hidden border-white/10 dark:border-white/5 relative" onClick={() => handleCreateThread('builder')}>
+                                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-50 group-hover:opacity-100 transition-opacity duration-300" />
                                 <CardContent className="p-6 space-y-4 relative z-10">
-                                    <div className="h-12 w-12 rounded-2xl bg-primary/20 flex items-center justify-center text-primary group-hover:scale-110 transition-transform shadow-inner border border-primary/20">
-                                        <Bot className="h-6 w-6" />
+                                    <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-primary group-hover:scale-110 transition-transform shadow-inner border border-primary/10">
+                                        <Bot className="h-7 w-7" />
                                     </div>
                                     <div className="space-y-1">
-                                        <h3 className="font-semibold text-lg group-hover:text-primary transition-colors">Build Something New</h3>
-                                        <p className="text-sm text-muted-foreground line-clamp-2">Start a fresh Builder session for code, logic, and creation.</p>
+                                        <h3 className="font-headline font-semibold text-xl group-hover:text-primary transition-colors">Start Chat</h3>
+                                        <p className="text-sm text-muted-foreground line-clamp-2">Begin a new conversation with your AI Assistant.</p>
                                     </div>
-                                    <Button size="sm" className="w-full mt-2 group-hover:bg-primary group-hover:text-primary-foreground transition-colors" variant="secondary">
-                                        Start Builder <ArrowRight className="ml-2 h-4 w-4" />
+                                    <Button size="sm" className="w-full mt-2 group-hover:bg-primary group-hover:text-primary-foreground transition-colors shadow-sm" variant="secondary">
+                                        New Session <ArrowRight className="ml-2 h-4 w-4" />
                                     </Button>
                                 </CardContent>
                             </Card>
 
-                            <Card className="glass-panel group hover:shadow-purple-500/10 hover:border-purple-500/20 transition-all duration-300 cursor-pointer overflow-hidden border-white/10 relative" onClick={() => handleCreateThread('universe')}>
-                                <div className="absolute inset-0 bg-purple-500/0 group-hover:bg-purple-500/5 transition-colors duration-300" />
+                            <Card className="glass-surface-strong group hover:-translate-y-1 hover:shadow-2xl hover:shadow-purple-500/20 hover:border-purple-500/30 transition-all duration-300 cursor-pointer overflow-hidden border-white/10 dark:border-white/5 relative" onClick={() => router.push('/knowledge')}>
+                                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent opacity-50 group-hover:opacity-100 transition-opacity duration-300" />
                                 <CardContent className="p-6 space-y-4 relative z-10">
-                                    <div className="h-12 w-12 rounded-2xl bg-purple-500/20 flex items-center justify-center text-purple-500 group-hover:scale-110 transition-transform shadow-inner border border-purple-500/20">
-                                        <BrainCircuit className="h-6 w-6" />
+                                    <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-purple-500/20 to-purple-500/5 flex items-center justify-center text-purple-500 group-hover:scale-110 transition-transform shadow-inner border border-purple-500/10">
+                                        <BrainCircuit className="h-7 w-7" />
                                     </div>
                                     <div className="space-y-1">
-                                        <h3 className="font-semibold text-lg group-hover:text-purple-400 transition-colors">Explore the Universe</h3>
-                                        <p className="text-sm text-muted-foreground line-clamp-2">Ask complex questions and dive into global knowledge.</p>
+                                        <h3 className="font-headline font-semibold text-xl group-hover:text-purple-400 transition-colors">Import Documents</h3>
+                                        <p className="text-sm text-muted-foreground line-clamp-2">Upload files to your Knowledge Library.</p>
                                     </div>
-                                    <Button size="sm" className="w-full mt-2 group-hover:bg-purple-600 group-hover:text-white transition-colors" variant="secondary">
-                                        Start Exploration <ArrowRight className="ml-2 h-4 w-4" />
+                                    <Button size="sm" className="w-full mt-2 group-hover:bg-purple-600 group-hover:text-white transition-colors shadow-sm" variant="secondary">
+                                        Go to Library <ArrowRight className="ml-2 h-4 w-4" />
                                     </Button>
                                 </CardContent>
                             </Card>
@@ -153,7 +168,7 @@ export default function DashboardPage() {
                             <Card className="glass-panel p-6 flex flex-col justify-between border-white/10 bg-muted/5">
                                 <div className="space-y-4">
                                     <div className="flex items-center justify-between">
-                                        <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">Pulse Check</h3>
+                                        <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">Vault Status</h3>
                                         <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
                                     </div>
                                     <div className="space-y-2">
@@ -162,7 +177,7 @@ export default function DashboardPage() {
                                             <span className="font-medium text-green-500">Active</span>
                                         </div>
                                         <div className="flex justify-between text-sm">
-                                            <span className="text-muted-foreground">Neural Memory</span>
+                                            <span className="text-muted-foreground">Memory Vault</span>
                                             <span className="font-medium">6.2 GB</span>
                                         </div>
                                     </div>
@@ -218,6 +233,7 @@ export default function DashboardPage() {
                     </div>
                 </div>
             </ErrorBoundary>
+            {user && <WelcomeWizard userId={user.uid} open={showWizard} onOpenChange={setShowWizard} />}
         </AppLayout>
     );
 }

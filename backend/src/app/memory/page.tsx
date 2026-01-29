@@ -6,7 +6,9 @@ import { fetchMemories, deleteMemoryFromMemories, getKnowledgeGraph, updateMemor
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Trash2, Search, Database, RefreshCw, Filter, ShieldCheck, UserCircle, FileText, Sparkles, ArrowUpCircle } from 'lucide-react';
+import { Loader2, Search, Brain, Trash2, Edit2, Play, Plus, Book, Filter, RefreshCw, Zap, Database, ShieldCheck, UserCircle, FileText, Sparkles, ArrowUpCircle, Info } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { AppLayout } from '@/components/dashboard/app-layout';
@@ -139,6 +141,24 @@ export default function MemoryPage() {
     );
   }
 
+  if (loading) {
+    return (
+      <AppLayout>
+        <div className="flex-1 p-8 space-y-8 max-w-5xl mx-auto w-full">
+          <div className="space-y-4">
+            <Skeleton className="h-12 w-48 rounded-lg" />
+            <Skeleton className="h-4 w-96 rounded-lg" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[1, 2, 3, 4, 5, 6].map(i => (
+              <Skeleton key={i} className="h-48 w-full rounded-xl" />
+            ))}
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout>
       <div className="container mx-auto p-6 max-w-6xl h-full flex flex-col">
@@ -148,14 +168,26 @@ export default function MemoryPage() {
               <Database className="h-6 w-6 text-cyan-400" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-foreground tracking-tight">
-                Neural Vault
-              </h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl font-bold text-foreground tracking-tight">
+                  Memory Vault
+                </h1>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-muted-foreground/50 cursor-help hover:text-cyan-400 transition-colors" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs bg-black/90 border-white/10 text-xs">
+                      <p>Long-term vector storage for facts, rules, and user preferences (previously Neural Vault).</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
               <p className="text-xs text-muted-foreground font-mono">LONG-TERM VECTOR STORAGE</p>
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={loadData} disabled={loading} className="glass-panel border-white/10 hover:border-cyan-500/50">
+            <Button variant="outline" size="sm" onClick={loadData} disabled={loading} className="glass-panel border-white/10 hover:border-cyan-500/50" aria-label="Sync Real-time">
               <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} />
               Sync Real-time
             </Button>
@@ -240,7 +272,7 @@ export default function MemoryPage() {
                     <div className="h-16 w-16 bg-cyan-500/10 rounded-full flex items-center justify-center mb-6 ring-1 ring-cyan-500/20">
                       <Database className="h-8 w-8 text-cyan-400" />
                     </div>
-                    <h3 className="text-xl font-headline font-bold text-white mb-2">Neural Vault Empty</h3>
+                    <h3 className="text-xl font-headline font-bold text-white mb-2">Memory Vault Empty</h3>
                     <p className="text-muted-foreground max-w-md mb-8 leading-relaxed">
                       {filterType === 'all'
                         ? "Your Sovereign AI hasn't formed any long-term memories yet. Memories are created automatically as you chat, or you can manually add important facts here."
@@ -300,20 +332,22 @@ export default function MemoryPage() {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-6 w-6 opacity-0 group-hover:opacity-100 text-yellow-500 hover:text-yellow-400 hover:bg-yellow-500/10 transition-all duration-300"
+                                  className="h-10 w-10 opacity-0 group-hover:opacity-100 text-yellow-500 hover:text-yellow-400 hover:bg-yellow-500/10 transition-all duration-300"
                                   title="Promote to Rule"
+                                  aria-label="Promote to Rule"
                                   onClick={(e) => handlePromoteToRule(mem, e)}
                                 >
-                                  <ArrowUpCircle className="h-3 w-3" />
+                                  <ArrowUpCircle className="h-5 w-5" />
                                 </Button>
                               )}
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-6 w-6 opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 hover:bg-red-400/10 transition-all duration-300"
+                                className="h-10 w-10 opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 hover:bg-red-400/10 transition-all duration-300"
                                 onClick={(e) => handleDelete(mem.id, e)}
+                                aria-label="Delete Memory"
                               >
-                                <Trash2 className="h-3 w-3" />
+                                <Trash2 className="h-5 w-5" />
                               </Button>
                             </div>
                           </div>

@@ -526,3 +526,28 @@ export async function getSystemHealth() {
 
     return health;
 }
+
+export async function completeOnboarding(userId: string) {
+    try {
+        const db = getFirestoreAdmin();
+        await db.doc(`users/${userId}`).set({
+            hasCompletedOnboarding: true,
+            updatedAt: FieldValue.serverTimestamp()
+        }, { merge: true });
+        return { success: true };
+    } catch (error) {
+        console.error('Complete Onboarding Error:', error);
+        return { success: false };
+    }
+}
+
+export async function checkOnboardingStatus(userId: string) {
+    try {
+        const db = getFirestoreAdmin();
+        const doc = await db.doc(`users/${userId}`).get();
+        if (!doc.exists) return false;
+        return doc.data()?.hasCompletedOnboarding || false;
+    } catch (error) {
+        return false;
+    }
+}

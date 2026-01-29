@@ -7,7 +7,8 @@ import { useUser } from '@/firebase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Book, Upload, FileText, Smartphone, Trash2, Loader2, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { Book, Upload, FileText, Smartphone, Trash2, Loader2, CheckCircle, Clock, AlertCircle, Info } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from 'sonner';
 
 interface Document {
@@ -110,7 +111,19 @@ export default function KnowledgePage() {
         <AppLayout>
             <div className="flex-1 space-y-4 p-8 pt-6">
                 <div className="flex items-center justify-between space-y-2">
-                    <h2 className="text-3xl font-bold tracking-tight">Knowledge Base</h2>
+                    <div className="flex items-center gap-2">
+                        <h2 className="text-3xl font-bold tracking-tight">Knowledge Library</h2>
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Info className="h-5 w-5 text-muted-foreground/50 cursor-help hover:text-primary transition-colors" />
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs bg-black/90 border-white/10 text-xs">
+                                    <p>Central repository for all your documents and files. Content is indexed for AI retrieval.</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    </div>
                 </div>
 
                 <Tabs defaultValue="upload" className="space-y-4">

@@ -30,6 +30,14 @@
     --input: 240 5.9% 90%;
     --ring: 211 100% 50%;
     --radius: 0.75rem;
+
+    /* Semantic Colors */
+    --success: 142 76% 36%;  /* Green */
+    --success-foreground: 355 100% 97%;
+    --warning: 38 92% 50%;   /* Amber */
+    --warning-foreground: 48 96% 89%;
+    --info: 221 83% 53%;     /* Blue */
+    --info-foreground: 210 40% 98%;
     /* 12px */
 
     /* Charts (Apple Human Interface Colors) */
@@ -79,6 +87,14 @@
     --border: 240 3.7% 15.9%;
     --input: 240 3.7% 15.9%;
     --ring: 211 100% 50%;
+
+    /* Semantic Colors (Dark) */
+    --success: 142 70% 50%;
+    --success-foreground: 144 100% 97%;
+    --warning: 48 96% 89%;
+    --warning-foreground: 38 92% 50%;
+    --info: 217 91% 60%;
+    --info-foreground: 222 47% 11%;
 
     --chart-1: 211 100% 50%;
     --chart-2: 125 50% 50%;

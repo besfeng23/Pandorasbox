@@ -248,15 +248,15 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
 
       <SidebarContent className="p-2 gap-4">
         <SidebarGroup>
-          <div className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-            Core
+          <div className="px-4 py-2 mb-1">
+            <h4 className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-widest">Conversations</h4>
           </div>
           <SidebarMenu>
             <SidebarMenuItem>
               <Link href="/" className="w-full" onClick={handleNavClick}>
                 <SidebarMenuButton isActive={pathname === '/'} className="w-full justify-start">
                   <Bot />
-                  <span>Home</span>
+                  <span>Chat Assistant</span>
                 </SidebarMenuButton>
               </Link>
             </SidebarMenuItem>
@@ -274,15 +274,15 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
         </SidebarGroup>
 
         <SidebarGroup>
-          <div className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-            Intelligence
+          <div className="px-4 py-2 mb-1 mt-4 border-t border-white/5 pt-4">
+            <h4 className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-widest">Knowledge</h4>
           </div>
           <SidebarMenu>
             <SidebarMenuItem>
               <Link href="/memory" className="w-full" onClick={handleNavClick}>
                 <SidebarMenuButton isActive={pathname.startsWith('/memory')} className="w-full justify-start">
                   <BrainCircuit />
-                  <span>Neural Memory</span>
+                  <span>Memory Vault</span>
                 </SidebarMenuButton>
               </Link>
             </SidebarMenuItem>
@@ -290,7 +290,7 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
               <Link href="/knowledge" className="w-full" onClick={handleNavClick}>
                 <SidebarMenuButton isActive={pathname.startsWith('/knowledge')} className="w-full justify-start">
                   <Book />
-                  <span>Knowledge Base</span>
+                  <span>Knowledge Library</span>
                 </SidebarMenuButton>
               </Link>
             </SidebarMenuItem>
@@ -298,7 +298,7 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
               <Link href="/graph" className="w-full" onClick={handleNavClick}>
                 <SidebarMenuButton isActive={pathname.startsWith('/graph')} className="w-full justify-start">
                   <Share2 />
-                  <span>Context Graph</span>
+                  <span>Knowledge Graph</span>
                 </SidebarMenuButton>
               </Link>
             </SidebarMenuItem>
@@ -306,18 +306,26 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
         </SidebarGroup>
 
         <SidebarGroup>
-          <div className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-            Tools
+          <div className="px-4 py-2 mb-1 mt-4 border-t border-white/5 pt-4">
+            <h4 className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-widest">Assets</h4>
           </div>
           <SidebarMenu>
             <SidebarMenuItem>
               <Link href="/artifacts" className="w-full" onClick={handleNavClick}>
                 <SidebarMenuButton isActive={pathname.startsWith('/artifacts')} className="w-full justify-start">
                   <Sparkles />
-                  <span>Artifacts</span>
+                  <span>Assets</span>
                 </SidebarMenuButton>
               </Link>
             </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <div className="px-4 py-2 mb-1 mt-4 border-t border-white/5 pt-4">
+            <h4 className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-widest">System</h4>
+          </div>
+          <SidebarMenu>
             <SidebarMenuItem>
               <Link href="/connectors" className="w-full" onClick={handleNavClick}>
                 <SidebarMenuButton isActive={pathname.startsWith('/connectors')} className="w-full justify-start">
@@ -334,14 +342,6 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
                 </SidebarMenuButton>
               </Link>
             </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <div className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-            System
-          </div>
-          <SidebarMenu>
             <SidebarMenuItem>
               <Link href="/health" className="w-full" onClick={handleNavClick}>
                 <SidebarMenuButton isActive={pathname.startsWith('/health')} className="w-full justify-start">
@@ -517,33 +517,35 @@ export function AppLayout({ children, threadId }: { children: React.ReactNode; t
   const { isOpen } = useArtifactStore();
 
   return (
-    <div className="flex min-h-screen w-full bg-background overflow-hidden selection:bg-primary/20 selection:text-primary">
-      <CommandMenu />
-      <Sidebar className="border-r-0 glass-surface-strong" collapsible="icon">
-        <SidebarContentInternal threadId={threadId} />
-      </Sidebar>
+    <SidebarProvider>
+      <div className="flex min-h-screen w-full bg-background overflow-hidden selection:bg-primary/20 selection:text-primary">
+        <CommandMenu />
+        <Sidebar className="border-r-0 glass-surface-strong" collapsible="icon">
+          <SidebarContentInternal threadId={threadId} />
+        </Sidebar>
 
-      <SidebarInset className="flex flex-row overflow-hidden p-0 bg-gradient-to-br from-background to-muted/50 dark:to-muted/10">
-        <div className={cn(
-          "flex flex-col flex-1 min-w-0 transition-all duration-300 ease-in-out",
-          isOpen ? "hidden md:flex" : "flex"
-        )}>
-          {/* Enhanced Mobile Header */}
-          <div className="md:hidden glass-surface sticky top-0 z-30 flex items-center h-14 px-4 border-b border-white/10 safe-area-pt">
-            <SidebarTrigger className="h-10 w-10 p-2 -ml-2 hover:bg-primary/10 transition-colors" />
-            <div className="flex-1 text-center pr-8">
-              <span className="font-headline font-semibold text-foreground tracking-tight">Pandora's Box</span>
+        <SidebarInset className="flex flex-row overflow-hidden p-0 bg-gradient-to-br from-background to-muted/50 dark:to-muted/10">
+          <div className={cn(
+            "flex flex-col flex-1 min-w-0 transition-all duration-300 ease-in-out",
+            isOpen ? "hidden md:flex" : "flex"
+          )}>
+            {/* Enhanced Mobile Header */}
+            <div className="md:hidden glass-surface sticky top-0 z-30 flex items-center h-14 px-4 border-b border-white/10 safe-area-pt">
+              <SidebarTrigger className="h-10 w-10 p-2 -ml-2 hover:bg-primary/10 transition-colors" />
+              <div className="flex-1 text-center pr-8">
+                <span className="font-headline font-semibold text-foreground tracking-tight">Pandora's Box</span>
+              </div>
             </div>
+            {children}
           </div>
-          {children}
-        </div>
 
-        {isOpen && (
-          <div className="w-full md:w-auto h-full border-l border-border bg-background z-20">
-            <ArtifactPanel />
-          </div>
-        )}
-      </SidebarInset>
-    </div>
+          {isOpen && (
+            <div className="w-full md:w-auto h-full border-l border-border bg-background z-20">
+              <ArtifactPanel />
+            </div>
+          )}
+        </SidebarInset>
+      </div>
+    </SidebarProvider>
   );
 }

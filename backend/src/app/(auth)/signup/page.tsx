@@ -92,17 +92,20 @@ export default function SignUpPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md space-y-8 rounded-lg border border-border bg-card p-8 shadow-xl">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold tracking-tight">Create an Account</h1>
-          <p className="mt-2 text-muted-foreground">Get started with your personal AI companion</p>
+    <div className="flex min-h-screen items-center justify-center bg-background p-4 relative overflow-hidden">
+      {/* Background Ambient Glow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/20 blur-[100px] rounded-full opacity-50 pointer-events-none" />
+
+      <div className="w-full max-w-md space-y-8 rounded-2xl border border-white/10 bg-card/50 backdrop-blur-xl p-8 shadow-2xl relative z-10 glass-panel">
+        <div className="text-center space-y-2">
+          <h1 className="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70">Create Account</h1>
+          <p className="text-sm text-muted-foreground">Begin your journey with Sovereign AI</p>
         </div>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6" noValidate>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5" noValidate>
             {error && (
-              <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive font-medium border border-destructive/20">
+              <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive font-medium border border-destructive/20 flex items-center animate-in-fade">
                 {error}
               </div>
             )}
@@ -114,9 +117,9 @@ export default function SignUpPage() {
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input placeholder="name@example.com" type="email" {...field} />
+                    <Input placeholder="name@example.com" type="email" {...field} className="bg-background/50 border-white/10 focus-visible:ring-primary/20" />
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage className="text-destructive font-medium" />
                 </FormItem>
               )}
             />
@@ -128,9 +131,9 @@ export default function SignUpPage() {
                 <FormItem>
                   <FormLabel>Password</FormLabel>
                   <FormControl>
-                    <Input placeholder="••••••••" type="password" {...field} />
+                    <Input placeholder="••••••••" type="password" {...field} className="bg-background/50 border-white/10 focus-visible:ring-primary/20" />
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage className="text-destructive font-medium" />
                 </FormItem>
               )}
             />
@@ -142,23 +145,22 @@ export default function SignUpPage() {
                 <FormItem>
                   <FormLabel>Confirm Password</FormLabel>
                   <FormControl>
-                    <Input placeholder="••••••••" type="password" {...field} />
+                    <Input placeholder="••••••••" type="password" {...field} className="bg-background/50 border-white/10 focus-visible:ring-primary/20" />
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage className="text-destructive font-medium" />
                 </FormItem>
               )}
             />
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Sign Up
+            <Button type="submit" className="w-full h-11 text-base shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all duration-300" disabled={isLoading}>
+              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Sign Up"}
             </Button>
           </form>
         </Form>
 
         <p className="text-center text-sm text-muted-foreground">
           Already have an account?{' '}
-          <Link href="/login" className="font-medium text-primary hover:underline">
+          <Link href="/login" className="font-medium text-primary hover:text-primary/80 hover:underline transition-colors">
             Log in
           </Link>
         </p>
