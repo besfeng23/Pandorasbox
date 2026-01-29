@@ -97,27 +97,27 @@ export default function DashboardPage() {
         <AppLayout>
             <ErrorBoundary>
                 <div className="flex-1 overflow-y-auto">
-                    <div className="max-w-6xl mx-auto p-6 md:p-12 space-y-12 animate-in-fade">
+                    <div className="max-w-6xl mx-auto p-4 md:p-12 space-y-8 md:space-y-12 animate-in-fade">
                         {/* Hero Section */}
-                        <header className="text-center space-y-4 py-8">
+                        <header className="text-center space-y-4 py-4 md:py-8">
                             <motion.div
                                 initial={{ opacity: 0, scale: 0.9 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 transition={{ duration: 0.5 }}
-                                className="inline-flex items-center justify-center p-3 rounded-full bg-primary/10 mb-4"
+                                className="inline-flex items-center justify-center p-3 rounded-full bg-primary/10 mb-2 md:mb-4"
                             >
-                                <PandoraBoxIcon className="h-12 w-12 text-primary" />
+                                <PandoraBoxIcon className="h-10 w-10 md:h-12 md:w-12 text-primary" />
                             </motion.div>
-                            <h1 className="font-headline text-5xl md:text-6xl font-bold tracking-tight bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
+                            <h1 className="font-headline text-3xl md:text-6xl font-bold tracking-tight bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent px-2">
                                 Welcome, {user.displayName || 'Explorer'}
                             </h1>
-                            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+                            <p className="text-base md:text-xl text-muted-foreground max-w-2xl mx-auto px-4">
                                 Your multi-modal intelligence hub is ready. What shall we evolve today?
                             </p>
                         </header>
 
                         {/* Quick Actions Grid */}
-                        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 px-2">
                             <Card className="glass-panel group hover:shadow-primary/5 transition-all duration-300 cursor-pointer overflow-hidden border-white/10" onClick={() => handleCreateThread('builder')}>
                                 <CardContent className="p-6 space-y-4">
                                     <div className="h-12 w-12 rounded-2xl bg-primary/20 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">

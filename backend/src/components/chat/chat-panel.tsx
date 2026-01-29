@@ -444,8 +444,8 @@ export function ChatPanel({ threadId }: { threadId: string }) {
           </Button>
         </div>
       </header>
-      <div className="flex-1 overflow-y-auto p-4 md:p-6">
-        <div className="space-y-6" role="log" aria-live="polite">
+      <div className="flex-1 overflow-y-auto p-3 md:p-6">
+        <div className="space-y-4 md:space-y-6" role="log" aria-live="polite">
           <AnimatePresence>
             {messages.map((message) => (
               <motion.div
@@ -486,7 +486,7 @@ export function ChatPanel({ threadId }: { threadId: string }) {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="flex items-center gap-2 text-muted-foreground text-sm italic ml-12"
+              className="flex items-center gap-2 text-muted-foreground text-sm italic ml-4 md:ml-12"
             >
               <Loader2 className="h-3 w-3 animate-spin" />
               Sovereign Brain is thinking...
@@ -499,7 +499,7 @@ export function ChatPanel({ threadId }: { threadId: string }) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
-              className="bg-accent/20 p-3 rounded-lg border border-accent/30 max-w-md"
+              className="bg-accent/20 p-3 rounded-lg border border-accent/30 max-w-full md:max-w-md"
             >
               <ThinkingIndicator logs={thinkingLogs} createdAt={toolStartTime} />
             </motion.div>
@@ -507,7 +507,7 @@ export function ChatPanel({ threadId }: { threadId: string }) {
           <div ref={messagesEndRef} />
         </div>
       </div>
-      <div className="border-t bg-card p-4">
+      <div className="border-t bg-card p-4 safe-area-pb">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex items-start gap-4">
             <FormField
@@ -518,7 +518,7 @@ export function ChatPanel({ threadId }: { threadId: string }) {
                   <FormControl>
                     <Textarea
                       placeholder={isSending || isRegenerating || isToolActive ? "Assistant is thinking..." : "Type your message here..."}
-                      className="resize-none"
+                      className="resize-none min-h-[44px]"
                       rows={1}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey && !isSending && !isRegenerating && !isToolActive) {
@@ -534,7 +534,7 @@ export function ChatPanel({ threadId }: { threadId: string }) {
               )}
             />
             {isSending || isRegenerating || isToolActive ? (
-              <Button variant="outline" size="icon" disabled>
+              <Button variant="outline" size="icon" disabled className="h-[44px] w-[44px]">
                 <Loader2 className="h-4 w-4 animate-spin" />
               </Button>
             ) : (
@@ -545,10 +545,11 @@ export function ChatPanel({ threadId }: { threadId: string }) {
                   variant={isRecording ? "destructive" : "secondary"}
                   onClick={handleMicClick}
                   disabled={isSending || isRegenerating}
+                  className="h-[44px] w-[44px]"
                 >
                   {isRecording ? <Square className="h-4 w-4 fill-current" /> : <Mic className="h-4 w-4" />}
                 </Button>
-                <Button type="submit" size="icon">
+                <Button type="submit" size="icon" className="h-[44px] w-[44px]">
                   <Send className="h-4 w-4" />
                 </Button>
               </div>
@@ -557,7 +558,7 @@ export function ChatPanel({ threadId }: { threadId: string }) {
         </Form>
         {(isSending || isRegenerating) && (
           <div className="mt-2 flex justify-center">
-            <Button variant="destructive" size="sm" onClick={handleStop} className="h-7 text-xs">
+            <Button variant="destructive" size="sm" onClick={handleStop} className="h-8 text-xs">
               <Square className="mr-2 h-3 w-3" /> Stop generating
             </Button>
           </div>

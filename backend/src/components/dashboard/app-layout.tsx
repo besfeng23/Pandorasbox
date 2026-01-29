@@ -528,9 +528,12 @@ export function AppLayout({ children, threadId }: { children: React.ReactNode; t
           "flex flex-col flex-1 min-w-0 transition-all duration-300 ease-in-out",
           isOpen ? "hidden md:flex" : "flex"
         )}>
-          <div className="md:hidden p-2 border-b flex items-center bg-card sticky top-0 z-10">
-            <SidebarTrigger />
-            <span className="font-headline font-semibold mx-auto">Pandora's Box</span>
+          {/* Enhanced Mobile Header */}
+          <div className="md:hidden glass-surface sticky top-0 z-30 flex items-center h-14 px-4 border-b border-white/10 safe-area-pt">
+            <SidebarTrigger className="h-10 w-10 p-2 -ml-2 hover:bg-primary/10 transition-colors" />
+            <div className="flex-1 text-center pr-8">
+              <span className="font-headline font-semibold text-foreground tracking-tight">Pandora's Box</span>
+            </div>
           </div>
           {children}
         </div>

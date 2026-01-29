@@ -173,8 +173,16 @@
   }
 
   .side-padding-mobile {
-    @apply px-3;
-    /* 12-16px */
+    @apply px-4;
+  }
+
+  /* Safe Area for iOS Notch/Home Indicator */
+  .safe-area-pb {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .safe-area-pt {
+    padding-top: env(safe-area-inset-top);
   }
 
   /* Premium Chat UI Utilities */
