@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useUser, useAuthActions } from '@/firebase';
 import type { Thread } from '@/lib/types';
+import { BottomTabBar } from '@/components/mobile/bottom-tab-bar';
 import {
   Sidebar,
   SidebarProvider,
@@ -225,7 +226,7 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
             >
               Personal Vault
             </DropdownMenuItem>
-            {workspaces.map(ws => (
+            {workspaces?.map(ws => (
               <DropdownMenuItem
                 key={ws.id}
                 className={cn("text-xs", workspaceId === ws.id && "bg-primary/10")}
@@ -382,7 +383,7 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
             </div>
           ) : (
             <SidebarMenu>
-              {threads.map((thread) => (
+              {(threads || []).map((thread) => (
                 <SidebarMenuItem key={thread.id}>
                   <Link href={`/chat/${thread.id}`} className="w-full" onClick={handleNavClick}>
                     <SidebarMenuButton isActive={threadId === thread.id} className="w-full justify-start">
@@ -512,49 +513,44 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
           </form>
         </DialogContent>
       </Dialog>
-    </>
-  );
+      );
 }
 
-import { BottomTabBar } from '@/components/mobile/bottom-tab-bar';
+      export function AppLayout({children, threadId}: {children: React.ReactNode; threadId?: string }) {
+    const {isOpen} = useArtifactStore();
+      // ... (existing logic)
 
-// ... (imports)
+      return (
+      <SidebarProvider>
+        <div className="flex min-h-screen w-full bg-background overflow-hidden selection:bg-primary/20 selection:text-primary pb-16 md:pb-0">
+          <CommandMenu />
 
-export function AppLayout({ children, threadId }: { children: React.ReactNode; threadId?: string }) {
-  const { isOpen } = useArtifactStore();
-  // ... (existing logic)
-
-  return (
-    <SidebarProvider>
-      <div className="flex min-h-screen w-full bg-background overflow-hidden selection:bg-primary/20 selection:text-primary pb-16 md:pb-0">
-        <CommandMenu />
-
-        {/* Desktop Sidebar - Hidden on Mobile */}
-        <div className="hidden md:block h-full">
-          <Sidebar className="border-r-0 glass-surface-strong" collapsible="icon">
-            <SidebarContentInternal threadId={threadId} />
-          </Sidebar>
-        </div>
-
-        <SidebarInset className="flex flex-col flex-1 overflow-hidden p-0 bg-gradient-to-br from-background to-muted/50 dark:to-muted/10">
-          {/* Mobile Tab Bar */}
-          <BottomTabBar />
-
-          <div className={cn(
-            "flex flex-col flex-1 min-w-0 transition-all duration-300 ease-in-out h-full overflow-y-auto",
-            isOpen ? "hidden md:flex" : "flex"
-          )}>
-            {/* Note: Mobile Header is now per-page, so we remove the global one here */}
-            {children}
+          {/* Desktop Sidebar - Hidden on Mobile */}
+          <div className="hidden md:block h-full">
+            <Sidebar className="border-r-0 glass-surface-strong" collapsible="icon">
+              <SidebarContentInternal threadId={threadId} />
+            </Sidebar>
           </div>
 
-          {isOpen && (
-            <div className="hidden md:block w-full md:w-auto h-full border-l border-border bg-background z-20">
-              <ArtifactPanel />
+          <SidebarInset className="flex flex-col flex-1 overflow-hidden p-0 bg-gradient-to-br from-background to-muted/50 dark:to-muted/10">
+            {/* Mobile Tab Bar */}
+            <BottomTabBar />
+
+            <div className={cn(
+              "flex flex-col flex-1 min-w-0 transition-all duration-300 ease-in-out h-full overflow-y-auto",
+              isOpen ? "hidden md:flex" : "flex"
+            )}>
+              {/* Note: Mobile Header is now per-page, so we remove the global one here */}
+              {children}
             </div>
-          )}
-        </SidebarInset>
-      </div>
-    </SidebarProvider>
-  );
-}
+
+            {isOpen && (
+              <div className="hidden md:block w-full md:w-auto h-full border-l border-border bg-background z-20">
+                <ArtifactPanel />
+              </div>
+            )}
+          </SidebarInset>
+        </div>
+      </SidebarProvider>
+      );
+  }
