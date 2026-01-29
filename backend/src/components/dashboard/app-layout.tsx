@@ -513,44 +513,45 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
           </form>
         </DialogContent>
       </Dialog>
-      );
+    </>
+  );
 }
 
-      export function AppLayout({children, threadId}: {children: React.ReactNode; threadId?: string }) {
-    const {isOpen} = useArtifactStore();
-      // ... (existing logic)
+export function AppLayout({ children, threadId }: { children: React.ReactNode; threadId?: string }) {
+  const { isOpen } = useArtifactStore();
+  // ... (existing logic)
 
-      return (
-      <SidebarProvider>
-        <div className="flex min-h-screen w-full bg-background overflow-hidden selection:bg-primary/20 selection:text-primary pb-16 md:pb-0">
-          <CommandMenu />
+  return (
+    <SidebarProvider>
+      <div className="flex min-h-screen w-full bg-background overflow-hidden selection:bg-primary/20 selection:text-primary pb-16 md:pb-0">
+        <CommandMenu />
 
-          {/* Desktop Sidebar - Hidden on Mobile */}
-          <div className="hidden md:block h-full">
-            <Sidebar className="border-r-0 glass-surface-strong" collapsible="icon">
-              <SidebarContentInternal threadId={threadId} />
-            </Sidebar>
+        {/* Desktop Sidebar - Hidden on Mobile */}
+        <div className="hidden md:block h-full">
+          <Sidebar className="border-r-0 glass-surface-strong" collapsible="icon">
+            <SidebarContentInternal threadId={threadId} />
+          </Sidebar>
+        </div>
+
+        <SidebarInset className="flex flex-col flex-1 overflow-hidden p-0 bg-gradient-to-br from-background to-muted/50 dark:to-muted/10">
+          {/* Mobile Tab Bar */}
+          <BottomTabBar />
+
+          <div className={cn(
+            "flex flex-col flex-1 min-w-0 transition-all duration-300 ease-in-out h-full overflow-y-auto",
+            isOpen ? "hidden md:flex" : "flex"
+          )}>
+            {/* Note: Mobile Header is now per-page, so we remove the global one here */}
+            {children}
           </div>
 
-          <SidebarInset className="flex flex-col flex-1 overflow-hidden p-0 bg-gradient-to-br from-background to-muted/50 dark:to-muted/10">
-            {/* Mobile Tab Bar */}
-            <BottomTabBar />
-
-            <div className={cn(
-              "flex flex-col flex-1 min-w-0 transition-all duration-300 ease-in-out h-full overflow-y-auto",
-              isOpen ? "hidden md:flex" : "flex"
-            )}>
-              {/* Note: Mobile Header is now per-page, so we remove the global one here */}
-              {children}
+          {isOpen && (
+            <div className="hidden md:block w-full md:w-auto h-full border-l border-border bg-background z-20">
+              <ArtifactPanel />
             </div>
-
-            {isOpen && (
-              <div className="hidden md:block w-full md:w-auto h-full border-l border-border bg-background z-20">
-                <ArtifactPanel />
-              </div>
-            )}
-          </SidebarInset>
-        </div>
-      </SidebarProvider>
-      );
-  }
+          )}
+        </SidebarInset>
+      </div>
+    </SidebarProvider>
+  );
+}
