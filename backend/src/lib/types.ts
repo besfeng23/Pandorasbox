@@ -29,6 +29,7 @@ export interface Thread {
   archived?: boolean; // Frontend property
   title?: string; // Frontend alias for name
   summary?: string; // Frontend property
+  workspaceId?: string; // Multi-tenant link
 }
 
 export interface Message {
@@ -62,6 +63,7 @@ export interface Memory {
   source?: string; // Frontend property
   score?: number; // Frontend property for search results
   embedding?: number[];
+  workspaceId?: string; // Multi-tenant link
 }
 
 export interface SearchResult {
@@ -84,23 +86,44 @@ export interface UserConnector {
 }
 
 export interface Artifact {
-    id: string;
-    userId?: string;
-    title: string;
-    type: 'code' | 'markdown' | 'html' | 'svg' | 'react';
-    content: string;
-    language?: string;
-    createdAt?: Date;
-    updatedAt?: Date;
+  id: string;
+  userId?: string;
+  title: string;
+  type: 'code' | 'markdown' | 'html' | 'svg' | 'react';
+  content: string;
+  language?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+  workspaceId?: string; // Multi-tenant link
 }
 
 export interface AppSettings {
-    theme: 'light' | 'dark' | 'system';
-    active_model?: string;
-    reply_style?: 'concise' | 'detailed' | 'creative';
-    system_prompt_override?: string;
-    personal_api_key?: string;
+  theme: 'light' | 'dark' | 'system';
+  active_model?: string;
+  reply_style?: 'concise' | 'detailed' | 'creative';
+  system_prompt_override?: string;
+  personal_api_key?: string;
 }
 
 // --- BACKEND SPECIFIC TYPES (if any unique) ---
 // (Already covered by interfaces above generally)
+
+export interface Workspace {
+  id: string;
+  name: string;
+  description?: string;
+  ownerId: string;
+  createdAt: Timestamp | Date;
+  updatedAt: Timestamp | Date;
+  settings?: {
+    isPrivate?: boolean;
+    allowedDomains?: string[];
+  };
+}
+
+export interface WorkspaceMember {
+  workspaceId: string;
+  userId: string;
+  role: 'owner' | 'admin' | 'member' | 'viewer';
+  joinedAt: Timestamp | Date;
+}

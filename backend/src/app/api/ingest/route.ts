@@ -36,6 +36,7 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
     const agentId = (formData.get('agentId') as string) || 'universe';
+    const workspaceId = formData.get('workspaceId') as string | null;
 
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400, headers: corsHeaders() });
@@ -76,7 +77,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 4. Start Pipeline Asynchronously
-    const job = await startMemoryPipeline(content, filename, userId, agentId);
+    const job = await startMemoryPipeline(content, filename, userId, agentId, workspaceId || undefined);
 
     return NextResponse.json(
       {

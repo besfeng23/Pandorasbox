@@ -8,6 +8,7 @@ export interface ProcessingJob {
   id: string; // Unique Job ID (UUID)
   userId: string;
   agentId: string;
+  workspaceId?: string;
   filename: string;
   status: ProcessingStatus;
   totalChunks: number;

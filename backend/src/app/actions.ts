@@ -12,19 +12,23 @@ import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 // --- BACKEND LOGIC (Direct DB/AI Access) ---
 // This comment is added to force a new build.
 
-export async function searchMemoryAction(query: string, userId: string, agentId: string): Promise<SearchResult[]> {
+export async function searchMemoryAction(query: string, userId: string, agentId: string, workspaceId?: string): Promise<SearchResult[]> {
     if (!query.trim()) return [];
 
     try {
         const vector = await embedText(query);
 
         // Filter by userId and agentId to ensure privacy and context
-        const filter = {
+        const filter: any = {
             must: [
                 { key: 'userId', match: { value: userId } },
                 { key: 'agentId', match: { value: agentId } }
             ]
         };
+
+        if (workspaceId) {
+            filter.must.push({ key: 'workspaceId', match: { value: workspaceId } });
+        }
 
         const results = await searchPoints('memories', vector, 10, filter);
 
@@ -85,7 +89,7 @@ export async function updateMemoryInMemories(id: string, newText: string, userId
     }
 }
 
-export async function getUserThreads(userId: string, agent?: string): Promise<Thread[]> {
+export async function getUserThreads(userId: string, agent?: string, workspaceId?: string): Promise<Thread[]> {
     try {
         if (!userId || typeof userId !== 'string') {
             console.error('[getUserThreads] Invalid userId:', userId);
@@ -97,6 +101,14 @@ export async function getUserThreads(userId: string, agent?: string): Promise<Th
 
         if (agent) {
             query = query.where('agent', '==', agent);
+        }
+
+        if (workspaceId) {
+            query = query.where('workspaceId', '==', workspaceId);
+        } else {
+            // Optional: handle "no workspace" or "all workspaces"
+            // For strict isolation, we might require one or use a 'personal' tag
+            query = query.where('workspaceId', '==', null);
         }
 
         const snapshot = await query.limit(20).get();
@@ -151,7 +163,7 @@ export async function getMessages(threadId: string, userId: string): Promise<Mes
     }
 }
 
-export async function createThread(agent: 'builder' | 'universe', userId: string) {
+export async function createThread(agent: 'builder' | 'universe', userId: string, workspaceId?: string) {
     try {
         if (!userId || typeof userId !== 'string') {
             console.error('[createThread] Invalid userId:', userId);
@@ -171,6 +183,7 @@ export async function createThread(agent: 'builder' | 'universe', userId: string
         const threadRef = await db.collection(`users/${actualUserId}/threads`).add({
             userId: actualUserId,
             agent,
+            workspaceId: workspaceId || null,
             name: "New Thread", // Don't use AI to generate this yet
             createdAt: FieldValue.serverTimestamp(),
             updatedAt: FieldValue.serverTimestamp(),
@@ -285,12 +298,12 @@ export async function uploadKnowledge(formData: FormData) {
 
 // --- FRONTEND COMPATIBILITY WRAPPERS ---
 
-export async function fetchMemories(userId: string, agentId: string, queryText: string): Promise<SearchResult[]> {
-    return searchMemoryAction(queryText, userId, agentId);
+export async function fetchMemories(userId: string, agentId: string, queryText: string, workspaceId?: string): Promise<SearchResult[]> {
+    return searchMemoryAction(queryText, userId, agentId, workspaceId);
 }
 
-export async function getRecentThreads(userId: string, agent?: string): Promise<Thread[]> {
-    const threads = await getUserThreads(userId, agent);
+export async function getRecentThreads(userId: string, agent?: string, workspaceId?: string): Promise<Thread[]> {
+    const threads = await getUserThreads(userId, agent, workspaceId);
     return JSON.parse(JSON.stringify(threads));
 }
 

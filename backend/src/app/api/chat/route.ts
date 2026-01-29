@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
 
     // 2. Parse Body
     const body = await req.json();
-    const { message, agentId = 'universe', threadId, history = [], attachments = [] } = body; // Map 'message' to current user prompt
+    const { message, agentId = 'universe', threadId, history = [], attachments = [], workspaceId } = body; // Map 'message' to current user prompt
 
     if (!message) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
@@ -57,6 +57,7 @@ export async function POST(req: NextRequest) {
       role: 'user',
       content: message,
       threadId,
+      workspaceId: workspaceId || null,
       createdAt: FieldValue.serverTimestamp(), // Use server timestamp
     };
 
@@ -90,12 +91,21 @@ export async function POST(req: NextRequest) {
     try {
       if (message.length > 10) {
         const queryVector = await embedText(message);
-        const filter = {
+        const filter: any = {
           must: [
             { key: 'userId', match: { value: userId } },
             { key: 'agentId', match: { value: agentId } }
           ]
         };
+
+        // Apply workspace isolation if workspaceId is present
+        if (workspaceId) {
+          filter.must.push({ key: 'workspaceId', match: { value: workspaceId } });
+        } else {
+          // If no workspaceId, search in user's personal/global space
+          // Note: you might want to explicit about this filter
+        }
+
         const searchResults = await searchPoints('memories', queryVector, 5, filter);
 
         if (searchResults.length > 0) {
@@ -137,6 +147,7 @@ export async function POST(req: NextRequest) {
                 language: language || '',
                 userId,
                 threadId,
+                workspaceId: workspaceId || null,
                 createdAt: FieldValue.serverTimestamp(),
               });
               return { success: true, artifactId: id, message: 'Artifact generated and saved.' };
@@ -187,6 +198,7 @@ User ID: ${userId}${context}`,
             role: 'assistant',
             content: text,
             threadId,
+            workspaceId: workspaceId || null,
             createdAt: FieldValue.serverTimestamp(),
           });
 
@@ -214,6 +226,7 @@ User ID: ${userId}${context}`,
                     content: summary,
                     userId,
                     agentId,
+                    workspaceId: workspaceId || null,
                     type: 'consolidated_memory',
                     source: 'chat_auto',
                     createdAt: new Date().toISOString()

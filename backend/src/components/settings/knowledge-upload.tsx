@@ -146,6 +146,10 @@ export function KnowledgeUpload({ userId, agentId = 'universe' }: KnowledgeUploa
           const formData = new FormData();
           formData.append('file', file);
           formData.append('agentId', agentId);
+          const workspaceId = localStorage.getItem('activeWorkspaceId');
+          if (workspaceId) {
+            formData.append('workspaceId', workspaceId);
+          }
 
           // 2. Get auth token
           const token = await user.getIdToken();
@@ -193,9 +197,9 @@ export function KnowledgeUpload({ userId, agentId = 'universe' }: KnowledgeUploa
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-        'application/pdf': ['.pdf'],
-        'text/plain': ['.txt'],
-        'text/markdown': ['.md'],
+      'application/pdf': ['.pdf'],
+      'text/plain': ['.txt'],
+      'text/markdown': ['.md'],
     },
     multiple: false,
     disabled: isPending,
@@ -213,37 +217,37 @@ export function KnowledgeUpload({ userId, agentId = 'universe' }: KnowledgeUploa
       >
         <input {...getInputProps()} />
         {isPending || uploadProgress !== null ? (
-            <div className="flex flex-col items-center text-center w-full max-w-sm px-4">
-                {uploadProgress === 100 ? (
-                    <>
-                        <CheckCircle className="h-10 w-10 text-green-500 mb-2" />
-                        <p className="font-semibold text-lg">Indexing Complete!</p>
-                        <p className="text-sm text-muted-foreground truncate">{fileName}</p>
-                    </>
-                ) : (
-                    <>
-                        <File className="h-10 w-10 text-primary mb-2" />
-                        <p className="text-sm font-semibold text-primary mb-2 truncate">{fileName}</p>
-                        <Progress value={uploadProgress || 0} className="w-full h-2" />
-                        <p className="text-xs text-muted-foreground mt-2">
-                            {statusMessage || 'Processing document, please wait...'}
-                        </p>
-                        {jobId && (
-                            <p className="text-xs text-muted-foreground/70 mt-1">
-                                Job ID: {jobId.substring(0, 8)}...
-                            </p>
-                        )}
-                    </>
-                )}
-            </div>
-        ) : (
-            <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                <UploadCloud className="w-10 h-10 mb-3 text-muted-foreground" />
-                <p className="mb-2 text-sm text-muted-foreground">
-                    <span className="font-semibold">Click to upload</span> or drag and drop
+          <div className="flex flex-col items-center text-center w-full max-w-sm px-4">
+            {uploadProgress === 100 ? (
+              <>
+                <CheckCircle className="h-10 w-10 text-green-500 mb-2" />
+                <p className="font-semibold text-lg">Indexing Complete!</p>
+                <p className="text-sm text-muted-foreground truncate">{fileName}</p>
+              </>
+            ) : (
+              <>
+                <File className="h-10 w-10 text-primary mb-2" />
+                <p className="text-sm font-semibold text-primary mb-2 truncate">{fileName}</p>
+                <Progress value={uploadProgress || 0} className="w-full h-2" />
+                <p className="text-xs text-muted-foreground mt-2">
+                  {statusMessage || 'Processing document, please wait...'}
                 </p>
-                <p className="text-xs text-muted-foreground">PDF, TXT, or MD files</p>
-            </div>
+                {jobId && (
+                  <p className="text-xs text-muted-foreground/70 mt-1">
+                    Job ID: {jobId.substring(0, 8)}...
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center pt-5 pb-6">
+            <UploadCloud className="w-10 h-10 mb-3 text-muted-foreground" />
+            <p className="mb-2 text-sm text-muted-foreground">
+              <span className="font-semibold">Click to upload</span> or drag and drop
+            </p>
+            <p className="text-xs text-muted-foreground">PDF, TXT, or MD files</p>
+          </div>
         )}
       </div>
     </div>

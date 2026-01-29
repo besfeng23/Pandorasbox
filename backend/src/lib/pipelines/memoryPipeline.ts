@@ -34,13 +34,15 @@ export async function startMemoryPipeline(
   content: string,
   filename: string,
   userId: string,
-  agentId: string = 'universe'
+  agentId: string = 'universe',
+  workspaceId?: string
 ): Promise<ProcessingJob> {
   const jobId = uuidv4();
   const initialJob: ProcessingJob = {
     id: jobId,
     userId,
     agentId,
+    workspaceId,
     filename,
     status: 'PENDING',
     totalChunks: 0,
@@ -55,6 +57,7 @@ export async function startMemoryPipeline(
     const db = getFirestoreAdmin();
     await db.collection(`users/${userId}/processing_jobs`).doc(jobId).set({
       ...initialJob,
+      workspaceId: workspaceId || null,
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     });
@@ -67,6 +70,7 @@ export async function startMemoryPipeline(
       chunkCount: 0, // Will be updated when processing completes
       status: 'processing',
       agentId,
+      workspaceId: workspaceId || null,
       jobId,
       createdAt: FieldValue.serverTimestamp(),
     });
@@ -76,7 +80,7 @@ export async function startMemoryPipeline(
   }
 
   // Run the actual processing asynchronously
-  processContent(jobId, content, filename, userId, agentId).catch((error) => {
+  processContent(jobId, content, filename, userId, agentId, workspaceId).catch((error) => {
     console.error(`Memory Pipeline Job Failed (${jobId}):`, error);
   });
 
@@ -88,7 +92,8 @@ async function processContent(
   content: string,
   filename: string,
   userId: string,
-  agentId: string
+  agentId: string,
+  workspaceId?: string
 ) {
   const updateStatus = (
     status: ProcessingStatus,
@@ -195,6 +200,7 @@ ${chunk}`;
         summary: summary.trim(),
         sourceUrl: `file://${filename}`,
         sourceType: 'file_upload',
+        workspaceId: workspaceId || null,
         createdAt: new Date().toISOString(),
         jobId, // Link back to processing job
       };

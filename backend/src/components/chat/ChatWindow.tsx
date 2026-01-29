@@ -238,6 +238,7 @@ export function ChatWindow({ threadId, agentId = 'universe' }: ChatWindowProps) 
           threadId,
           history,
           attachments, // Send attachments to API
+          workspaceId: localStorage.getItem('activeWorkspaceId') || null,
         }),
         signal: abortController.signal,
       });

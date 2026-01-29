@@ -92,7 +92,9 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
   const { isMobile, setOpenMobile } = useSidebar();
   const [agent, setAgent] = useState<'builder' | 'universe'>('builder');
   const [threads, setThreads] = useState<Thread[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [workspaces, setWorkspaces] = useState<any[]>([]);
+  const [workspaceId, setWorkspaceId] = useState<string | null>(null);
+  const [loadingThreads, setLoadingThreads] = useState(true);
   const { toast } = useToast();
 
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
@@ -104,32 +106,52 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
       await renameThread(currentThread.id, newThreadName.trim(), user.uid);
       toast({ title: "Thread renamed" });
       setRenameDialogOpen(false);
-      const fetchedThreads = await getRecentThreads(user.uid, agent);
+      const fetchedThreads = await getRecentThreads(user.uid, agent, workspaceId || undefined);
       setThreads(fetchedThreads);
     }
   };
 
   useEffect(() => {
+    const stored = localStorage.getItem('activeWorkspaceId');
+    setWorkspaceId(stored);
+
+    const fetchWorkspaces = async () => {
+      if (!user) return;
+      try {
+        const token = await user.getIdToken();
+        const response = await fetch('/api/workspaces', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (data.workspaces) setWorkspaces(data.workspaces);
+      } catch (e) {
+        console.error('Fetch Workspaces Error:', e);
+      }
+    };
+    fetchWorkspaces();
+  }, [user]);
+
+  useEffect(() => {
     if (!user) {
-      setIsLoading(false);
+      setLoadingThreads(false);
       setThreads([]);
       return;
     };
 
     const fetchThreads = async () => {
-      setIsLoading(true);
+      setLoadingThreads(true);
       try {
-        const fetchedThreads = await getRecentThreads(user.uid, agent);
+        const fetchedThreads = await getRecentThreads(user.uid, agent, workspaceId || undefined);
         setThreads(fetchedThreads);
       } catch (error) {
         console.error('Error fetching threads:', error);
       } finally {
-        setIsLoading(false);
+        setLoadingThreads(false);
       }
     };
 
     fetchThreads();
-  }, [user, agent]);
+  }, [user, agent, workspaceId]);
 
   const handleNavClick = () => {
     if (isMobile) {
@@ -140,7 +162,7 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
   const handleCreateThread = async () => {
     if (user) {
       try {
-        const result = await createThread(agent, user.uid);
+        const result = await createThread(agent, user.uid, workspaceId || undefined);
         if (result?.id) {
           handleNavClick();
           router.push(`/chat/${result.id}`);
@@ -157,13 +179,61 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
 
   return (
     <>
-      <SidebarHeader>
-        <Link href="/" className="flex items-center gap-2" onClick={handleNavClick}>
-          <PandoraBoxIcon className="h-8 w-8 text-primary" />
-          <span className="text-lg font-headline font-semibold text-foreground">
-            Pandora's Box
-          </span>
-        </Link>
+      <SidebarHeader className="border-b border-white/5 pb-4">
+        <div className="flex items-center justify-between mb-4">
+          <Link href="/" className="flex items-center gap-2" onClick={handleNavClick}>
+            <PandoraBoxIcon className="h-8 w-8 text-primary" />
+            <span className="text-lg font-headline font-semibold text-foreground">
+              Pandora
+            </span>
+          </Link>
+          <ThemeToggle />
+        </div>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="w-full justify-between bg-white/5 border-white/10 hover:bg-white/10 group transition-all">
+              <div className="flex items-center gap-2 overflow-hidden">
+                <div className="h-5 w-5 rounded bg-primary/20 flex items-center justify-center shrink-0">
+                  <Building className="h-3 w-3 text-primary" />
+                </div>
+                <span className="truncate text-xs font-medium">
+                  {workspaceId ? workspaces.find(w => w.id === workspaceId)?.name || 'Loading...' : 'Personal Vault'}
+                </span>
+              </div>
+              <MoreHorizontal className="h-3 w-3 opacity-50 group-hover:opacity-100" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-56" align="start">
+            <DropdownMenuLabel className="text-[10px] uppercase text-muted-foreground">Switch Workspace</DropdownMenuLabel>
+            <DropdownMenuItem
+              className={cn("text-xs", !workspaceId && "bg-primary/10")}
+              onClick={() => {
+                setWorkspaceId(null);
+                localStorage.removeItem('activeWorkspaceId');
+              }}
+            >
+              Personal Vault
+            </DropdownMenuItem>
+            {workspaces.map(ws => (
+              <DropdownMenuItem
+                key={ws.id}
+                className={cn("text-xs", workspaceId === ws.id && "bg-primary/10")}
+                onClick={() => {
+                  setWorkspaceId(ws.id);
+                  localStorage.setItem('activeWorkspaceId', ws.id);
+                }}
+              >
+                {ws.name}
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="text-xs" onClick={() => router.push('/workspaces')}>
+              <PlusCircle className="mr-2 h-3 w-3" />
+              Manage Workspaces
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </SidebarHeader>
 
       <SidebarContent className="p-2">
@@ -279,7 +349,7 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
         </Button>
 
         <SidebarGroup className="mt-4 p-0">
-          {isLoading ? (
+          {loadingThreads ? (
             <div className="flex justify-center p-4">
               <Loader2 className="h-5 w-5 animate-spin" />
             </div>
