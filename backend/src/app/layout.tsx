@@ -9,6 +9,10 @@ export const metadata: Metadata = {
   description: 'Your personal AI companion.',
 };
 
+import { SafeEnvCheck } from '@/components/safe-env-check';
+
+// ...
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -27,8 +31,10 @@ export default function RootLayout({
       </head>
       <body className={cn('font-body antialiased')}>
         <Providers>
-          {children}
-          <MobileNavigation />
+          <SafeEnvCheck>
+            {children}
+            <MobileNavigation />
+          </SafeEnvCheck>
         </Providers>
       </body>
     </html>

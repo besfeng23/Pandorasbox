@@ -11,29 +11,49 @@ import { getServerConfig } from '@/server/config';
 export async function embedText(text: string): Promise<number[]> {
   const config = await getServerConfig();
   const normalizedText = text.trim();
-  
+
   if (!normalizedText) {
     return Array(config.embeddingsDimension).fill(0);
   }
 
-  const response = await fetch(`${config.embeddingsBaseUrl}/embed`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      text: normalizedText,
-    }),
-  });
+  const url = `${config.embeddingsBaseUrl}/embed`;
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Embedding inference failed: ${response.status} - ${errorText}`);
+  try {
+    console.log(`[AI] Embedding text at ${url} (Length: ${normalizedText.length})`);
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        text: normalizedText,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[AI] Embedding failed. Status: ${response.status} ${response.statusText}`);
+      console.error(`[AI] Response Body: ${errorText.substring(0, 500)}`); // Log first 500 chars
+      throw new Error(`Embedding inference failed: ${response.status} - ${errorText.substring(0, 100)}`);
+    }
+
+    // Defensive JSON parsing
+    const textResult = await response.text();
+    try {
+      const result = JSON.parse(textResult);
+      return result.embedding;
+    } catch (jsonError) {
+      console.error('[AI] JSON Parse Error on Embedding Response');
+      console.error('[AI] Received content:', textResult.substring(0, 500)); // Log what we actually got
+      throw new Error(`Invalid JSON code from Embedding API: ${textResult.substring(0, 50)}...`);
+    }
+
+  } catch (error: any) {
+    console.error(`[AI] Critical Embedding Error: ${error.message}`);
+    // Fallback or rethrow? For now rethrow to warn user.
+    throw error;
   }
-
-  const result = await response.json();
-  // Expecting format like { "embedding": [0.1, 0.2, ...] }
-  return result.embedding;
 }
 
 /**
@@ -43,7 +63,7 @@ export async function embedText(text: string): Promise<number[]> {
  */
 export async function embedTextsBatch(texts: string[]): Promise<number[][]> {
   const config = await getServerConfig();
-  
+
   if (texts.length === 0) {
     return [];
   }
@@ -51,7 +71,7 @@ export async function embedTextsBatch(texts: string[]): Promise<number[][]> {
   // Assuming the self-hosted endpoint might support batches or we loop.
   // For now, let's implement a simple loop if the endpoint doesn't support batches.
   // Many local embedding servers support batching at /embed with an array.
-  
+
   const response = await fetch(`${config.embeddingsBaseUrl}/embed_batch`, {
     method: 'POST',
     headers: {
