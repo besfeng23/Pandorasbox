@@ -86,7 +86,7 @@ export function ChatPanel({ threadId }: { threadId: string }) {
 
         if (threadData) {
           setThread(threadData);
-          setMessages(messagesData);
+          setMessages(Array.isArray(messagesData) ? messagesData : []);
         } else {
           setThread(null);
           setMessages([]);
@@ -334,7 +334,7 @@ export function ChatPanel({ threadId }: { threadId: string }) {
     if (!user || !thread || isExtracting || messages.length === 0) return;
     setIsExtracting(true);
     try {
-      const conversationText = messages.map(m => `${m.role}: ${m.content}`).join('\n\n');
+      const conversationText = (messages || []).map(m => `${m.role}: ${m.content}`).join('\n\n');
       const token = await user.getIdToken();
 
 

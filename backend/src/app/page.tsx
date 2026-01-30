@@ -47,7 +47,13 @@ export default function DashboardPage() {
             setIsLoadingThreads(true);
             try {
                 const threads = await getRecentThreads(user.uid);
-                setRecentThreads(threads);
+                console.log('[Dashboard] fetched threads:', threads);
+                if (Array.isArray(threads)) {
+                    setRecentThreads(threads);
+                } else {
+                    console.error('[Dashboard] Expected array but got:', typeof threads, threads);
+                    setRecentThreads([]);
+                }
             } catch (error) {
                 console.error('Error fetching threads:', error);
                 toast({
@@ -55,6 +61,7 @@ export default function DashboardPage() {
                     title: 'Error',
                     description: 'Could not fetch recent threads.'
                 });
+                setRecentThreads([]);
             } finally {
                 setIsLoadingThreads(false);
             }
@@ -204,7 +211,7 @@ export default function DashboardPage() {
                                 </div>
                             ) : (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {recentThreads.slice(0, 4).map(thread => (
+                                    {(recentThreads || []).slice(0, 4).map(thread => (
                                         <Link key={thread.id} href={`/chat/${thread.id}`} className="group">
                                             <Card className="bg-card hover:bg-accent/50 transition-all duration-300 border shadow-none hover:shadow-md rounded-2xl overflow-hidden">
                                                 <CardContent className="p-5 flex items-center justify-between">

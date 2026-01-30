@@ -26,8 +26,14 @@ export function ChatSidebar({ userId, activeThreadId, agentId, onSelectThread }:
 
   useEffect(() => {
     startTransition(async () => {
-      const userThreads = await getUserThreads(userId, agentId); // Pass agentId
-      setThreads(userThreads);
+      try {
+        const userThreads = await getUserThreads(userId, agentId); // Pass agentId
+        console.log('[ChatSidebar] fetched threads:', userThreads);
+        setThreads(Array.isArray(userThreads) ? userThreads : []);
+      } catch (err) {
+        console.error('[ChatSidebar] Failed to load threads:', err);
+        setThreads([]);
+      }
     });
   }, [userId, activeThreadId, agentId]); // Re-fetch when activeThreadId or agentId changes
 
@@ -72,7 +78,7 @@ export function ChatSidebar({ userId, activeThreadId, agentId, onSelectThread }:
                 <p>{searchQuery ? 'No threads found' : 'No chats yet. Start a new conversation!'}</p>
               </div>
             ) : (
-              filteredThreads.map((thread) => (
+              (filteredThreads || []).map((thread) => (
                 <div
                   key={thread.id}
                   className={cn(
