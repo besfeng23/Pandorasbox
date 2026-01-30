@@ -140,6 +140,19 @@ export async function updateMemoryType(id: string, newType: string, content: str
 }
 
 
+// Helper to serialize Firestore data
+function serializeData(data: any): any {
+    if (!data) return data;
+    const serialized = { ...data };
+    if (serialized.createdAt && typeof serialized.createdAt.toDate === 'function') {
+        serialized.createdAt = serialized.createdAt.toDate(); // Convert to Date which Next.js handles
+    }
+    if (serialized.updatedAt && typeof serialized.updatedAt.toDate === 'function') {
+        serialized.updatedAt = serialized.updatedAt.toDate();
+    }
+    return serialized;
+}
+
 export async function getUserThreads(userId: string, agent?: string, workspaceId?: string): Promise<Thread[]> {
     try {
         if (!userId || typeof userId !== 'string') {
@@ -157,24 +170,16 @@ export async function getUserThreads(userId: string, agent?: string, workspaceId
         if (workspaceId) {
             query = query.where('workspaceId', '==', workspaceId);
         } else {
-            // Optional: handle "no workspace" or "all workspaces"
-            // For strict isolation, we might require one or use a 'personal' tag
             query = query.where('workspaceId', '==', null);
         }
 
         const snapshot = await query.limit(20).get();
         return (snapshot?.docs || []).map(doc => ({
             id: doc.id,
-            ...doc.data(),
-            createdAt: (doc.data().createdAt as Timestamp),
-            updatedAt: (doc.data().updatedAt as Timestamp)
+            ...serializeData(doc.data())
         })) as Thread[];
     } catch (error: any) {
         console.error('[getUserThreads] Error:', error);
-        console.error('[getUserThreads] Error stack:', error?.stack);
-        console.error('[getUserThreads] Error code:', error?.code);
-        console.error('[getUserThreads] Error message:', error?.message);
-        // Return empty array instead of throwing to prevent Server Action failures
         return [];
     }
 }
@@ -184,7 +189,7 @@ export async function getThread(threadId: string, userId: string): Promise<Threa
         const db = getFirestoreAdmin();
         const doc = await db.doc(`users/${userId}/threads/${threadId}`).get();
         if (!doc.exists) return null;
-        return { id: doc.id, ...doc.data() } as Thread;
+        return { id: doc.id, ...serializeData(doc.data()) } as Thread;
     } catch (error) {
         console.error('Get Thread Error:', error);
         return null;
@@ -206,7 +211,7 @@ export async function getMessages(threadId: string, userId: string): Promise<Mes
 
         return (snapshot?.docs || []).map(doc => ({
             id: doc.id,
-            ...doc.data()
+            ...serializeData(doc.data())
         })) as Message[];
     } catch (error) {
         console.error('Get Messages Error:', error);

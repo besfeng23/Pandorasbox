@@ -21,8 +21,8 @@ export interface Thread {
   name: string;
   agent: 'builder' | 'universe';
   userId: string;
-  createdAt: Timestamp; // Using Firestore Timestamp
-  updatedAt: Timestamp;
+  createdAt: Timestamp | Date | string | any;
+  updatedAt: Timestamp | Date | string | any;
   version: number;
   history?: ChangeHistoryItem[];
   pinned?: boolean; // Frontend property
@@ -36,8 +36,8 @@ export interface Message {
   id: string;
   role: 'user' | 'assistant' | 'system';
   content: string;
-  createdAt: Timestamp;
-  updatedAt?: Timestamp;
+  createdAt: Timestamp | Date | string | any;
+  updatedAt?: Timestamp | Date | string | any;
   isError?: boolean;
   confidence?: number;
   toolUsages?: ToolUsage[];
