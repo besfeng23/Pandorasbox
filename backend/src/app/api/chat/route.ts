@@ -53,20 +53,20 @@ function detectSubnetwork(message: string): string {
 
 // Helper: Phase 13 - Unified Cognition (Structured Context)
 function enhanceWithCognition(results: any[]): string {
-  if (results.length === 0) return '';
+  if (!Array.isArray(results) || results.length === 0) return '';
 
   // Simple classification of memories
-  const facts = results.filter(r => r.payload?.type === 'fact' || r.score > 0.85);
+  const facts = results.filter(r => (r.payload?.type === 'fact' || r.score > 0.85));
   const interactions = results.filter(r => !r.payload?.type && r.score <= 0.85);
 
   let contextBlock = "\n\n### 🧠 UNIFIED COGNITION STREAM (Phase 13)";
 
   if (facts.length > 0) {
-    contextBlock += "\n**Established Facts:**\n" + facts.map(r => `• ${r.payload?.content}`).join('\n');
+    contextBlock += "\n**Established Facts:**\n" + (facts || []).map(r => `• ${r.payload?.content || ''}`).join('\n');
   }
 
   if (interactions.length > 0) {
-    contextBlock += "\n**Relevant Echoes:**\n" + interactions.map(r => `• ${r.payload?.content}`).join('\n');
+    contextBlock += "\n**Relevant Echoes:**\n" + (interactions || []).map(r => `• ${r.payload?.content || ''}`).join('\n');
   }
 
   return contextBlock;
@@ -142,7 +142,8 @@ export async function POST(req: NextRequest) {
     timings.firestore_write_ok = Date.now();
 
     // 4. Prepare Context for LLM
-    const initialMessages = await convertToModelMessages(safeHistory);
+    const safeHistoryArray = Array.isArray(safeHistory) ? safeHistory : [];
+    const initialMessages = await convertToModelMessages(safeHistoryArray);
     const userContent: any[] = [{ type: 'text', text: message }];
 
     if (attachments && attachments.length > 0) {
@@ -178,8 +179,8 @@ export async function POST(req: NextRequest) {
             filter.must.push({ key: 'workspaceId', match: { value: workspaceId } });
           }
 
-          const searchResults = await searchPoints('memories', queryVector, 5, filter) || [];
-          return enhanceWithCognition(searchResults);
+          const searchResults = (await searchPoints('memories', queryVector, 5, filter)) || [];
+          return enhanceWithCognition(Array.isArray(searchResults) ? searchResults : []);
         };
 
         context = await withTimeout(ragPromise(), 2000, '', 'RAG Search');
