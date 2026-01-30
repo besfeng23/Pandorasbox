@@ -15,15 +15,17 @@ import { v4 as uuidv4 } from 'uuid';
 const getBaseUrl = () => {
   const url = process.env.INFERENCE_URL || process.env.LLM_API_URL;
   if (!url) return undefined;
-  // If it doesn't end in /v1, append it (unless it's already a full path like .../v1/chat)
   if (!url.endsWith('/v1') && !url.includes('/chat')) {
     return `${url}/v1`;
   }
   return url;
 };
 
+const finalBaseUrl = getBaseUrl();
+console.log('[Chat Route] Initializing OpenAI with BaseURL:', finalBaseUrl);
+
 const openai = createOpenAI({
-  baseURL: getBaseUrl(),
+  baseURL: finalBaseUrl,
   apiKey: process.env.LLM_API_KEY || 'dummy-key',
 });
 
