@@ -24,6 +24,10 @@ const getBaseUrl = () => {
 const finalBaseUrl = getBaseUrl();
 console.log('[Chat Route] Initializing OpenAI with BaseURL:', finalBaseUrl);
 
+if (!finalBaseUrl) {
+  console.warn('[Chat Route] WARNING: No INFERENCE_URL or LLM_API_URL set. Defaulting to OpenAI (this will fail without a valid public API Key).');
+}
+
 const openai = createOpenAI({
   baseURL: finalBaseUrl,
   apiKey: process.env.LLM_API_KEY || 'dummy-key',
@@ -110,6 +114,42 @@ export async function POST(req: NextRequest) {
 
     const userId = decodedToken.uid;
 
+    // 5. Pre-flight Check: Verify Inference Server is Reachable
+    timings.inference_start = Date.now();
+    try {
+      const checkUrl = `${finalBaseUrl}/models`; // Standard OpenAI/Ollama check
+      const checkController = new AbortController();
+      const checkTimeout = setTimeout(() => checkController.abort(), 1000); // 1s timeout
+
+      const checkRes = await fetch(checkUrl, {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${process.env.LLM_API_KEY || 'dummy-key'}` },
+        signal: checkController.signal
+      });
+      clearTimeout(checkTimeout);
+
+      if (!checkRes.ok && checkRes.status !== 401 && checkRes.status !== 404) {
+        // 401/404 might mean the endpoint differs but server is up. 500/Connection Refused is bad.
+        console.warn(`[${requestId}] Inference server might be unhealthy: ${checkRes.status}`);
+      }
+    } catch (connError: any) {
+      console.error(`[${requestId}] Inference Server Unreachable (${finalBaseUrl}):`, connError.message);
+      return NextResponse.json(
+        { error: `Inference Server Unreachable: ${connError.message}. Check VPC/VPN connection.` },
+        { status: 503 }
+      );
+    }
+
+    console.log(`[${requestId}] Starting Inference. Timings:`, JSON.stringify({
+      uid: userId,
+      agent: agentId,
+      auth_ms: timings.auth_ok - timings.start,
+      db_ms: timings.firestore_write_ok - timings.auth_ok,
+      rag_ms: timings.memory_search_end - timings.memory_search_start,
+      route_ms: timings.routing_end - timings.routing_start
+    }));
+
+    const result = await streamText({);
     // 2. Parse Body
     const body = await req.json();
     const { message, agentId = 'universe', threadId, history = [], attachments = [], workspaceId, useVision = false } = body;
