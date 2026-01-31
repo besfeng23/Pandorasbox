@@ -286,8 +286,15 @@ export function ChatWindow({ threadId, agentId = 'universe' }: ChatWindowProps) 
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: await response.text() }));
-        const errorMessage = errorData.error || errorData.message || 'Failed to send message';
+        let errorMessage = 'Failed to send message';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.message || errorMessage;
+        } catch {
+          // If JSON parsing fails, try to get text
+          const errorText = await response.text();
+          errorMessage = errorText || errorMessage;
+        }
         throw new Error(errorMessage);
       }
 
