@@ -244,7 +244,6 @@ export async function POST(req: NextRequest) {
 
     // 5. Pre-flight Check: Verify Inference Server is Reachable
     timings.inference_start = Date.now();
-    const activeBaseUrl = getBaseUrl();
     try {
       // Only check if we have a custom URL. If it's undefined (standard OpenAI), we skip this check.
       if (activeBaseUrl) {
