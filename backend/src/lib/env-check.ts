@@ -12,9 +12,8 @@ export async function checkEnvironmentHealth() {
 
     const errors: string[] = [];
 
-    if (!process.env.OPENAI_API_KEY && !process.env.INFERENCE_URL) {
-        // Technically we might not need OpenAI if using local inference, but let's check basic auth
-        // errors.push("Missing Inference Config");
+    if (!process.env.INFERENCE_URL && !process.env.INFERENCE_BASE_URL) {
+        errors.push("Missing INFERENCE_URL (or INFERENCE_BASE_URL).");
     }
 
     if (config.qdrantUrl.includes('localhost')) {

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { streamText, convertToModelMessages, tool } from 'ai';
-import { searchWeb } from '@/lib/ai/tools/tavily';
 import { createOpenAI } from '@ai-sdk/openai';
 import { z } from 'zod';
 import { getAuthAdmin, getFirestoreAdmin } from '@/lib/firebase-admin';
@@ -9,32 +8,30 @@ import { embedText } from '@/lib/ai/embedding';
 import { searchPoints, upsertPoint } from '@/lib/sovereign/qdrant-client';
 import { completeInference } from '@/lib/sovereign/inference';
 import { v4 as uuidv4 } from 'uuid';
+import { handleOptions, corsHeaders } from '@/lib/cors';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
+export async function OPTIONS() {
+  return handleOptions();
+}
+
 const getBaseUrl = () => {
-  const url = process.env.INFERENCE_URL || process.env.LLM_API_URL;
-  if (!url) return undefined;
-  if (!url.endsWith('/v1') && !url.includes('/chat')) {
-    return `${url}/v1`;
-  }
-  return url;
+  const url = process.env.INFERENCE_URL || process.env.INFERENCE_BASE_URL || 'http://localhost:8000';
+  return url.endsWith('/v1') ? url : `${url}/v1`;
 };
 
-// Configure OpenAI provider with custom URL if set
+// Configure OpenAI-compatible provider to point ONLY at local vLLM.
 const getOpenAIModel = () => {
   const finalBaseUrl = getBaseUrl();
   // Unified Telemetry Block
   console.log('[Phase 15] Execution Node Active: Initializing OpenAI with BaseURL:', finalBaseUrl);
 
-  if (!finalBaseUrl) {
-    console.warn('[Chat Route] WARNING: No INFERENCE_URL or LLM_API_URL set. Defaulting to OpenAI.');
-  }
-
   return createOpenAI({
     baseURL: finalBaseUrl,
-    apiKey: process.env.LLM_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY || 'dummy-key',
+    // vLLM OpenAI-compatible endpoints ignore the API key by default; we keep a constant for protocol compatibility.
+    apiKey: process.env.SOVEREIGN_KEY || 'empty',
   });
 };
 
@@ -100,13 +97,7 @@ export async function POST(req: NextRequest) {
   try {
     // 0. Debug & Environment Check
     const activeBaseUrl = getBaseUrl();
-    const apiKey = process.env.LLM_API_KEY || process.env.OPENAI_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY;
-
-    // Fail only if we don't have a custom base URL AND don't have an API key
-    if (!activeBaseUrl && !apiKey) {
-      console.error(`[${requestId}] CRITICAL: No local inference server AND no API Key found.`);
-      return NextResponse.json({ error: 'Server misconfigured (Missing API Key)' }, { status: 500 });
-    }
+    const apiKey = process.env.SOVEREIGN_KEY || 'empty';
 
     // 1. Authenticate User
     const authHeader = req.headers.get('Authorization');
@@ -176,16 +167,8 @@ export async function POST(req: NextRequest) {
 
     const userContent: any[] = [{ type: 'text', text: message }];
 
-    if (attachments && attachments.length > 0) {
-      attachments.forEach((att: any) => {
-        if (att.type.startsWith('image/')) {
-          userContent.push({
-            type: 'image',
-            image: att.base64 || att.url,
-          });
-        }
-      });
-    }
+    // Sovereign default: ignore images unless your local model is explicitly multimodal.
+    // This prevents accidental routing to non-local "vision" backends.
 
     const messages = [...initialMessages, { role: 'user', content: userContent } as const];
 
@@ -245,34 +228,26 @@ export async function POST(req: NextRequest) {
     // 5. Pre-flight Check: Verify Inference Server is Reachable
     timings.inference_start = Date.now();
     try {
-      // Only check if we have a custom URL. If it's undefined (standard OpenAI), we skip this check.
-      if (activeBaseUrl) {
-        const checkUrl = `${activeBaseUrl}/models`; // Standard OpenAI/Ollama check
-        // ... rest stays same
-        const checkController = new AbortController();
-        const checkTimeout = setTimeout(() => checkController.abort(), 1000); // 1s timeout
+      const checkUrl = `${activeBaseUrl}/models`; // OpenAI-compatible health check
+      const checkController = new AbortController();
+      const checkTimeout = setTimeout(() => checkController.abort(), 1000); // 1s timeout
 
-        const checkRes = await fetch(checkUrl, {
-          method: 'GET',
-          headers: { 'Authorization': `Bearer ${process.env.LLM_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY || 'dummy-key'}` },
-          signal: checkController.signal
-        });
-        clearTimeout(checkTimeout);
+      const checkRes = await fetch(checkUrl, {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${apiKey}` },
+        signal: checkController.signal
+      });
+      clearTimeout(checkTimeout);
 
-        if (!checkRes.ok && checkRes.status !== 401 && checkRes.status !== 404) {
-          console.warn(`[${requestId}] Inference server might be unhealthy: ${checkRes.status}`);
-        }
+      if (!checkRes.ok && checkRes.status !== 401 && checkRes.status !== 404) {
+        console.warn(`[${requestId}] Inference server might be unhealthy: ${checkRes.status}`);
       }
     } catch (connError: any) {
       console.error(`[${requestId}] Inference Server Unreachable (${activeBaseUrl}):`, connError.message);
-      // Only fail if we really can't reach the custom server. 
-      // For standard OpenAI, we let the streamText call handle connection errors naturally.
-      if (activeBaseUrl) {
-        return NextResponse.json(
-          { error: `Inference Server Unreachable: ${connError.message}. Check VPC/VPN connection.` },
-          { status: 503 }
-        );
-      }
+      return NextResponse.json(
+        { error: `Inference System Offline - Check Container. Details: ${connError.message}` },
+        { status: 503 }
+      );
     }
 
     // 5. Stream from LLM
@@ -287,12 +262,9 @@ export async function POST(req: NextRequest) {
 
     const openaiModel = getOpenAIModel(); // Call the getter here
     const result = await streamText({
-      model: (attachments.length > 0 || useVision)
-        ? openaiModel(process.env.VISION_MODEL || 'google/gemini-1.5-flash-latest')
-        : openaiModel(process.env.INFERENCE_MODEL || process.env.LLM_MODEL || 'llama-3'),
+      model: openaiModel(process.env.INFERENCE_MODEL || 'mistralai/Mistral-7B-Instruct-v0.3'),
       messages,
       tools: {
-        search_web: searchWeb,
         generate_artifact: tool({
           description: 'Generate a high-quality artifact such as code, a document, an SVG, or a diagram. Use this for significant pieces of work that should be viewed in a separate panel.',
           inputSchema: z.object({
@@ -324,10 +296,9 @@ export async function POST(req: NextRequest) {
           },
         }),
       },
-      system: `You are Pandora, an advanced Sovereign AI assistant with active agency. You operate on a high-end, private cloud infrastructure.
+      system: `You are Pandora, an advanced Sovereign AI assistant running in a fully local/private environment.
 
 ### Capabilities:
-- **Active Web Search**: You can browse the real-time web using your 'search_web' tool. Use this when the user asks about current events, news, or specific verified data.
 - **Memory**: You have access to long-term memory (Unified Cognition).
 - **Artifacts**: You can generate documents and code artifacts.
 

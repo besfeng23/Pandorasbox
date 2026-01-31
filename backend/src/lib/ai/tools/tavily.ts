@@ -5,7 +5,9 @@ import { z } from 'zod';
 const getTavily = () => process.env.TAVILY_API_KEY ? tavily({ apiKey: process.env.TAVILY_API_KEY }) : null;
 
 export const searchWeb = tool({
-    description: 'Search the web for up-to-date information, news, and real-time data.',
+    // NOTE: Sovereign mode forbids external web-search APIs. This tool is kept for compatibility,
+    // but returns an empty result set unless you explicitly choose to enable external retrieval.
+    description: 'Web search (disabled in sovereign mode). Returns empty results.',
     inputSchema: z.object({
         query: z.string().describe('The search query to perform.'),
         max_results: z.number().optional().describe('Maximum number of results to return (default: 5)'),
@@ -15,8 +17,8 @@ export const searchWeb = tool({
     execute: async ({ query, max_results = 5, include_domains, exclude_domains }: { query: string, max_results?: number, include_domains?: string[], exclude_domains?: string[] }) => {
         const tvly = getTavily();
         if (!tvly) {
-            console.warn('TAVILY_API_KEY not found. Returning mock results.');
-            return `[Mock Result] Search functionality required TAVILY_API_KEY. Query was: "${query}"`;
+            console.warn('[Sovereign] Web search is disabled (no TAVILY_API_KEY). Returning empty results.');
+            return [];
         }
 
         try {
@@ -36,7 +38,7 @@ export const searchWeb = tool({
 
         } catch (error) {
             console.error('Tavily search failed:', error);
-            return `Error performing web search: ${error instanceof Error ? error.message : String(error)}`;
+            return [];
         }
     },
 });

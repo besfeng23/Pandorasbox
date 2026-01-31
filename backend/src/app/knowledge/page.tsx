@@ -179,7 +179,7 @@ export default function KnowledgePage() {
                                 <CardContent>
                                     <div className="text-2xl font-bold">PDF, TXT, MD</div>
                                     <p className="text-xs text-muted-foreground">
-                                        Support for more formats (DOCX, CSV, Notion) coming soon in Phase 8.
+                                        Additional formats can be added via custom connectors.
                                     </p>
                                 </CardContent>
                             </Card>

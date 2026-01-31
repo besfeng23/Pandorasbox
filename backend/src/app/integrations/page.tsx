@@ -1,308 +1,224 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/dashboard/app-layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import {
-    Plug,
-    Search,
-    ExternalLink,
-    CheckCircle,
-    Circle,
-    Zap,
-    Calendar,
-    Mail,
-    FileSpreadsheet,
-    MessageCircle,
-    Cloud,
-    Database,
-    Lock
-} from 'lucide-react';
+import { Server, Database, Brain, Mic } from 'lucide-react';
 import { useUser } from '@/firebase';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
 
-interface Integration {
-    id: string;
-    name: string;
-    description: string;
-    icon: React.ReactNode;
-    category: 'productivity' | 'communication' | 'storage' | 'ai';
-    status: 'available' | 'connected' | 'coming-soon';
-    popular?: boolean;
+interface ServiceStatus {
+  id: string;
+  name: string;
+  description: string;
+  icon: React.ReactNode;
+  status: 'online' | 'offline' | 'checking';
+  latency?: number;
+  endpoint?: string;
 }
 
-const integrations: Integration[] = [
-    {
-        id: 'google-calendar',
-        name: 'Google Calendar',
-        description: 'Sync events and schedule meetings with AI assistance.',
-        icon: <Calendar className="h-6 w-6" />,
-        category: 'productivity',
-        status: 'available',
-        popular: true,
-    },
-    {
-        id: 'gmail',
-        name: 'Gmail',
-        description: 'Analyze emails and draft responses with AI.',
-        icon: <Mail className="h-6 w-6" />,
-        category: 'communication',
-        status: 'available',
-        popular: true,
-    },
-    {
-        id: 'notion',
-        name: 'Notion',
-        description: 'Import documents and sync notes to your knowledge base.',
-        icon: <FileSpreadsheet className="h-6 w-6" />,
-        category: 'productivity',
-        status: 'coming-soon',
-    },
-    {
-        id: 'slack',
-        name: 'Slack',
-        description: 'Get AI insights directly in your Slack channels.',
-        icon: <MessageCircle className="h-6 w-6" />,
-        category: 'communication',
-        status: 'coming-soon',
-    },
-    {
-        id: 'google-drive',
-        name: 'Google Drive',
-        description: 'Index files and documents from your Drive.',
-        icon: <Cloud className="h-6 w-6" />,
-        category: 'storage',
-        status: 'available',
-    },
-    {
-        id: 'dropbox',
-        name: 'Dropbox',
-        description: 'Sync files and folders to your knowledge base.',
-        icon: <Database className="h-6 w-6" />,
-        category: 'storage',
-        status: 'coming-soon',
-    },
-    {
-        id: 'openai',
-        name: 'OpenAI API',
-        description: 'Use GPT-4 as an alternative inference backend.',
-        icon: <Zap className="h-6 w-6" />,
-        category: 'ai',
-        status: 'available',
-    },
-    {
-        id: 'anthropic',
-        name: 'Anthropic Claude',
-        description: 'Use Claude as an alternative inference backend.',
-        icon: <Zap className="h-6 w-6" />,
-        category: 'ai',
-        status: 'coming-soon',
-    },
-];
-
 export default function IntegrationsPage() {
-    const { user } = useUser();
-    const [search, setSearch] = useState('');
-    const [filter, setFilter] = useState<'all' | 'connected' | 'available'>('all');
+  const { user } = useUser();
+  const [services, setServices] = useState<ServiceStatus[]>([
+    {
+      id: 'vllm',
+      name: 'vLLM Inference',
+      description: 'Local LLM inference server (Mistral-7B)',
+      icon: <Brain className="h-6 w-6" />,
+      status: 'checking',
+      endpoint: process.env.NEXT_PUBLIC_INFERENCE_URL || 'http://localhost:8000',
+    },
+    {
+      id: 'qdrant',
+      name: 'Qdrant Vector DB',
+      description: 'Vector database for semantic memory search',
+      icon: <Database className="h-6 w-6" />,
+      status: 'checking',
+      endpoint: process.env.NEXT_PUBLIC_QDRANT_URL || 'http://localhost:6333',
+    },
+    {
+      id: 'embeddings',
+      name: 'Embeddings Service',
+      description: 'Text embedding generation (BAAI/bge-small-en-v1.5)',
+      icon: <Server className="h-6 w-6" />,
+      status: 'checking',
+      endpoint: process.env.NEXT_PUBLIC_EMBEDDINGS_URL || 'http://localhost:8080',
+    },
+    {
+      id: 'whisper',
+      name: 'Whisper ASR',
+      description: 'Audio transcription service',
+      icon: <Mic className="h-6 w-6" />,
+      status: 'checking',
+      endpoint: 'http://localhost:9000',
+    },
+  ]);
 
-    const filteredIntegrations = integrations.filter(integration => {
-        const matchesSearch = integration.name.toLowerCase().includes(search.toLowerCase()) ||
-            integration.description.toLowerCase().includes(search.toLowerCase());
+  useEffect(() => {
+    const checkServices = async () => {
+      const updatedServices = await Promise.all(
+        services.map(async (service) => {
+          try {
+            const start = Date.now();
+            let response: Response | null = null;
 
-        if (!matchesSearch) return false;
+            switch (service.id) {
+              case 'vllm':
+                const vllmUrl = (service.endpoint || 'http://localhost:8000').replace('/v1', '');
+                response = await fetch(`${vllmUrl}/v1/models`, {
+                  signal: AbortSignal.timeout(2000),
+                });
+                break;
+              case 'qdrant':
+                response = await fetch(`${service.endpoint || 'http://localhost:6333'}/collections`, {
+                  signal: AbortSignal.timeout(2000),
+                });
+                break;
+              case 'embeddings':
+                response = await fetch(`${service.endpoint || 'http://localhost:8080'}/health`, {
+                  signal: AbortSignal.timeout(2000),
+                });
+                break;
+              case 'whisper':
+                response = await fetch(`${service.endpoint || 'http://localhost:9000'}/health`, {
+                  signal: AbortSignal.timeout(2000),
+                });
+                break;
+            }
 
-        switch (filter) {
-            case 'connected':
-                return integration.status === 'connected';
-            case 'available':
-                return integration.status === 'available';
-            default:
-                return true;
-        }
-    });
+            const latency = Date.now() - start;
+            const isOnline = response?.ok || response?.status === 404; // 404 might mean server is up but endpoint doesn't exist
 
-    const handleConnect = (integration: Integration) => {
-        if (integration.status === 'coming-soon') {
-            toast.info(`${integration.name} is coming soon!`);
-            return;
-        }
+            return {
+              ...service,
+              status: isOnline ? 'online' : 'offline',
+              latency: isOnline ? latency : undefined,
+            };
+          } catch (error) {
+            return {
+              ...service,
+              status: 'offline',
+            };
+          }
+        })
+      );
 
-        toast.success(`Connecting to ${integration.name}...`);
-        // In production, this would open OAuth flow
+      setServices(updatedServices);
     };
 
-    const getStatusBadge = (status: string) => {
-        switch (status) {
-            case 'connected':
-                return (
-                    <Badge className="bg-green-500/10 text-green-500 border-green-500/20">
-                        <CheckCircle className="h-3 w-3 mr-1" />
-                        Connected
-                    </Badge>
-                );
-            case 'coming-soon':
-                return (
-                    <Badge variant="outline" className="text-muted-foreground">
-                        <Lock className="h-3 w-3 mr-1" />
-                        Coming Soon
-                    </Badge>
-                );
-            default:
-                return (
-                    <Badge variant="outline" className="text-primary border-primary/30">
-                        <Circle className="h-3 w-3 mr-1" />
-                        Available
-                    </Badge>
-                );
-        }
-    };
+    if (user) {
+      checkServices();
+      const interval = setInterval(checkServices, 30000); // Refresh every 30s
+      return () => clearInterval(interval);
+    }
+  }, [user]);
 
-    const getCategoryColor = (category: string) => {
-        switch (category) {
-            case 'productivity':
-                return 'bg-blue-500/10 text-blue-500';
-            case 'communication':
-                return 'bg-purple-500/10 text-purple-500';
-            case 'storage':
-                return 'bg-amber-500/10 text-amber-500';
-            case 'ai':
-                return 'bg-green-500/10 text-green-500';
-            default:
-                return 'bg-muted text-muted-foreground';
-        }
-    };
+  const getStatusBadge = (status: ServiceStatus['status']) => {
+    switch (status) {
+      case 'online':
+        return (
+          <Badge className="bg-green-500/10 text-green-500 border-green-500/20">
+            Online
+          </Badge>
+        );
+      case 'offline':
+        return (
+          <Badge variant="destructive">
+            Offline
+          </Badge>
+        );
+      default:
+        return (
+          <Badge variant="outline">
+            Checking...
+          </Badge>
+        );
+    }
+  };
 
-    if (!user) return null;
+  if (!user) return null;
 
-    return (
-        <AppLayout>
-            <div className="flex-1 space-y-6 p-8 pt-6">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <Plug className="h-8 w-8 text-primary" />
-                        <div>
-                            <h2 className="text-3xl font-bold tracking-tight">Integrations</h2>
-                            <p className="text-sm text-muted-foreground">
-                                Connect external services to enhance your AI experience
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="flex flex-col sm:flex-row gap-4">
-                    <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                            placeholder="Search integrations..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            className="pl-10"
-                        />
-                    </div>
-                    <div className="flex gap-2">
-                        <Button
-                            variant={filter === 'all' ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => setFilter('all')}
-                        >
-                            All
-                        </Button>
-                        <Button
-                            variant={filter === 'available' ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => setFilter('available')}
-                        >
-                            Available
-                        </Button>
-                        <Button
-                            variant={filter === 'connected' ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => setFilter('connected')}
-                        >
-                            Connected
-                        </Button>
-                    </div>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {filteredIntegrations.map((integration) => (
-                        <Card
-                            key={integration.id}
-                            className={cn(
-                                "relative overflow-hidden transition-all hover:shadow-lg",
-                                integration.status === 'coming-soon' && "opacity-70"
-                            )}
-                        >
-                            {integration.popular && (
-                                <div className="absolute top-0 right-0">
-                                    <Badge className="rounded-none rounded-bl-lg bg-primary text-primary-foreground text-[10px]">
-                                        Popular
-                                    </Badge>
-                                </div>
-                            )}
-                            <CardHeader className="pb-3">
-                                <div className="flex items-start justify-between">
-                                    <div className={cn(
-                                        "p-3 rounded-xl",
-                                        getCategoryColor(integration.category)
-                                    )}>
-                                        {integration.icon}
-                                    </div>
-                                    {getStatusBadge(integration.status)}
-                                </div>
-                                <CardTitle className="mt-3">{integration.name}</CardTitle>
-                                <CardDescription className="line-clamp-2">
-                                    {integration.description}
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="flex items-center justify-between">
-                                    <Badge
-                                        variant="outline"
-                                        className={cn("text-[10px] uppercase", getCategoryColor(integration.category))}
-                                    >
-                                        {integration.category}
-                                    </Badge>
-                                    <Button
-                                        size="sm"
-                                        variant={integration.status === 'connected' ? 'outline' : 'default'}
-                                        disabled={integration.status === 'coming-soon'}
-                                        onClick={() => handleConnect(integration)}
-                                    >
-                                        {integration.status === 'connected' ? (
-                                            <>
-                                                <ExternalLink className="h-4 w-4 mr-2" />
-                                                Manage
-                                            </>
-                                        ) : integration.status === 'coming-soon' ? (
-                                            'Coming Soon'
-                                        ) : (
-                                            <>
-                                                <Plug className="h-4 w-4 mr-2" />
-                                                Connect
-                                            </>
-                                        )}
-                                    </Button>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))}
-                </div>
-
-                {filteredIntegrations.length === 0 && (
-                    <div className="flex flex-col items-center justify-center py-12 text-center">
-                        <Plug className="h-12 w-12 text-muted-foreground/20 mb-4" />
-                        <p className="text-muted-foreground">No integrations found</p>
-                        <p className="text-sm text-muted-foreground/60">
-                            Try adjusting your search or filters
-                        </p>
-                    </div>
-                )}
+  return (
+    <AppLayout>
+      <div className="flex-1 space-y-6 p-8 pt-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Server className="h-8 w-8 text-primary" />
+            <div>
+              <h2 className="text-3xl font-bold tracking-tight">Local Services Status</h2>
+              <p className="text-sm text-muted-foreground">
+                Monitor your sovereign AI infrastructure
+              </p>
             </div>
-        </AppLayout>
-    );
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
+          {services.map((service) => (
+            <Card
+              key={service.id}
+              className={cn(
+                "relative overflow-hidden transition-all",
+                service.status === 'online' && "border-green-500/30",
+                service.status === 'offline' && "border-destructive/30"
+              )}
+            >
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div className={cn(
+                    "p-3 rounded-xl",
+                    service.status === 'online' ? "bg-green-500/10" : "bg-muted"
+                  )}>
+                    {service.icon}
+                  </div>
+                  {getStatusBadge(service.status)}
+                </div>
+                <CardTitle className="mt-3">{service.name}</CardTitle>
+                <CardDescription className="line-clamp-2">
+                  {service.description}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2 text-sm">
+                  {service.endpoint && (
+                    <div className="text-muted-foreground">
+                      <span className="font-medium">Endpoint:</span> {service.endpoint}
+                    </div>
+                  )}
+                  {service.status === 'online' && service.latency !== undefined && (
+                    <div className="text-muted-foreground">
+                      <span className="font-medium">Latency:</span> {service.latency}ms
+                    </div>
+                  )}
+                  {service.status === 'offline' && (
+                    <div className="text-destructive text-sm">
+                      Service unavailable. Check docker-compose.yml and ensure the container is running.
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        <Card className="border-blue-500/30">
+          <CardHeader>
+            <CardTitle>Sovereign Stack</CardTitle>
+            <CardDescription>
+              All AI processing runs 100% locally. No data leaves your infrastructure.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="list-disc space-y-2 pl-5 text-sm text-muted-foreground">
+              <li>vLLM: Local LLM inference (no OpenAI API calls)</li>
+              <li>Qdrant: Private vector database (no cloud embeddings)</li>
+              <li>Embeddings: Self-hosted embedding model</li>
+              <li>Whisper: Local audio transcription</li>
+            </ul>
+          </CardContent>
+        </Card>
+      </div>
+    </AppLayout>
+  );
 }

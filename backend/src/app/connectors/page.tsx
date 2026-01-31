@@ -26,21 +26,18 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useUser, useFirestore } from '@/firebase';
+import { useUser } from '@/firebase';
 import type { UserConnector } from '@/lib/types';
 import { staticConnectors, type StaticConnector } from '@/lib/connectors';
 import { connectDataSource, disconnectDataSource, getUserConnectors } from '@/app/actions';
 import { Loader2 } from 'lucide-react';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 
 type UiConnector = StaticConnector & {
-  status: 'connected' | 'available' | 'coming_soon' | 'error' | 'disconnected';
+  status: 'connected' | 'available' | 'error' | 'disconnected';
 };
 
 export default function ConnectorsPage() {
   const { user } = useUser();
-  const db = useFirestore();
   const { toast } = useToast();
 
   const [isLoading, setIsLoading] = useState(true);
@@ -84,9 +81,7 @@ export default function ConnectorsPage() {
       const userConnector = userConnectors.find(uc => uc.id === staticConnector.id);
       let status: UiConnector['status'] = 'available';
 
-      if (staticConnector.availability === 'coming_soon') {
-        status = 'coming_soon';
-      } else if (userConnector) {
+      if (userConnector) {
         if (userConnector.status === 'connected') status = 'connected';
         else if (userConnector.status === 'error') status = 'error';
         else if (userConnector.status === 'disconnected') status = 'available'; // Treat disconnected as available to reconnect
@@ -98,14 +93,6 @@ export default function ConnectorsPage() {
 
   const handleConnectorClick = (connector: UiConnector) => {
     setSelectedConnector(connector);
-    if (connector.availability === 'coming_soon') {
-      toast({
-        title: 'Coming Soon',
-        description: `${connector.name} integration is on our roadmap!`,
-      });
-      return;
-    }
-
     if (connector.status === 'connected') {
       setDisconnectDialogOpen(true);
       return;
@@ -113,30 +100,6 @@ export default function ConnectorsPage() {
 
     // Handle connection flow
     switch (connector.type) {
-      case 'oauth':
-        setIsSubmitting(true);
-        console.log(`OAuth Flow Initiated for: ${connector.name}`);
-        toast({
-          title: 'Connecting (Mock)',
-          description: `Please follow the OAuth flow for ${connector.name}.`,
-        });
-        // In a real app, this would redirect to an OAuth provider.
-        // Here we simulate a successful connection.
-        setTimeout(async () => {
-          if(user) {
-            await connectDataSource(user.uid, connector.id);
-            toast({
-              title: 'Connected!',
-              description: `Successfully connected to ${connector.name}.`,
-            });
-            // Refresh connectors
-            const updatedConnectors = await getUserConnectors(user.uid);
-            setUserConnectors(updatedConnectors);
-          }
-          setIsSubmitting(false);
-        }, 1500);
-        break;
-
       case 'url':
         setUrlDialogOpen(true);
         break;
@@ -144,7 +107,7 @@ export default function ConnectorsPage() {
       case 'config':
         toast({
           title: 'Configuration Required',
-          description: 'Database configuration is not yet available.',
+          description: 'This connector requires configuration.',
         });
         break;
     }
@@ -202,9 +165,8 @@ export default function ConnectorsPage() {
         return <Badge variant="destructive">Error</Badge>;
       case 'available':
         return <Badge variant="outline" className="text-muted-foreground">Available</Badge>;
-      case 'coming_soon':
       default:
-        return <Badge variant="secondary" className="text-muted-foreground">Coming Soon</Badge>;
+        return <Badge variant="outline" className="text-muted-foreground">Available</Badge>;
     }
   };
   

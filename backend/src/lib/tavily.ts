@@ -3,6 +3,10 @@
 
 import { tavily, type TavilyClient } from '@tavily/core';
 
+// NOTE: SOVEREIGN_AUDIT - This uses an external API (Tavily).
+// While search is often external, ensure no sensitive data is sent here.
+// Strictly used for retrieval, not inference.
+
 let tavilyClient: TavilyClient | null = null;
 
 function getTavilyClient(): TavilyClient {

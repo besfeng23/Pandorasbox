@@ -6,6 +6,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Brain, Eye } from 'lucide-react';
 
@@ -73,15 +74,21 @@ export default function AISettingsPage() {
                     </div>
 
                     <div className="space-y-4">
-                        <h4 className="text-sm font-medium">Coming Soon</h4>
-                        <div className="grid gap-4 opacity-50">
-                            <div className="flex items-center justify-between border-dashed border p-3 rounded-lg">
-                                <span className="text-sm">Extended Thinking (Chain of Thought)</span>
-                                <Switch disabled />
+                        <h4 className="text-sm font-medium">Advanced Features</h4>
+                        <div className="grid gap-4">
+                            <div className="flex items-center justify-between border p-3 rounded-lg">
+                                <div>
+                                    <span className="text-sm font-medium">Extended Thinking (Chain of Thought)</span>
+                                    <p className="text-xs text-muted-foreground mt-1">Available via agent routing in chat</p>
+                                </div>
+                                <Badge variant="outline">Active</Badge>
                             </div>
-                            <div className="flex items-center justify-between border-dashed border p-3 rounded-lg">
-                                <span className="text-sm">Web Search Priority</span>
-                                <Switch disabled />
+                            <div className="flex items-center justify-between border p-3 rounded-lg">
+                                <div>
+                                    <span className="text-sm font-medium">Knowledge Base Search</span>
+                                    <p className="text-xs text-muted-foreground mt-1">Automatic RAG from Qdrant memory</p>
+                                </div>
+                                <Badge variant="outline">Active</Badge>
                             </div>
                         </div>
                     </div>

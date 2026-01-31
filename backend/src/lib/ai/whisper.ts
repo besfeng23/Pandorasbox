@@ -1,25 +1,31 @@
-import OpenAI from 'openai';
-
-const getOpenAI = () => new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY,
-});
+import 'server-only';
 
 /**
- * Transcribes audio using OpenAI Whisper
+ * Transcribes audio using local Whisper service
  * @param file The audio file (Blob/File)
  * @returns The transcribed text
  */
 export async function transcribeAudio(file: File | Blob): Promise<string> {
     try {
-        const openai = getOpenAI();
-        const transcription = await openai.audio.transcriptions.create({
-            file: file as any,
-            model: "whisper-1",
+        const formData = new FormData();
+        formData.append('audio_file', file);
+        formData.append('task', 'transcribe');
+        formData.append('output', 'json');
+
+        // Call the local Whisper service defined in docker-compose.yml
+        const response = await fetch('http://localhost:9000/asr', {
+            method: 'POST',
+            body: formData,
         });
 
-        return transcription.text;
+        if (!response.ok) {
+            throw new Error(`Whisper service error: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        return data.text || '';
     } catch (error: any) {
-        console.error('Whisper Transcription Error:', error);
-        throw new Error(`Transcription failed: ${error.message}`);
+        console.error('Local Whisper Transcription Error:', error);
+        throw new Error(`Transcription failed: ${error.message}. Is the 'whisper' container running?`);
     }
 }

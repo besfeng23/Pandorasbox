@@ -9,10 +9,11 @@
  */
 
 import { getFirestoreAdmin } from '@/lib/firebase-admin';
-import { tavilySearch } from '@/lib/tavily';
 import { FieldValue } from 'firebase-admin/firestore';
 import { saveMemory } from '@/lib/memory-utils';
 import { chatCompletion } from '@/server/inference-client';
+import { searchPoints } from '@/lib/sovereign/qdrant-client';
+import { embedText } from '@/lib/ai/embedding';
 
 export interface DeepResearchResult {
   processed: number;
@@ -90,36 +91,29 @@ export async function runDeepResearchBatch(maxTopics: number = 5): Promise<DeepR
           updatedAt: FieldValue.serverTimestamp(),
         });
 
-        // ---- SEARCH PHASE ----
-        const queries = [
-          `Advanced guide to ${topic}`,
-          `Key concepts in ${topic}`,
-        ];
+        // ---- SEARCH PHASE (Internal Knowledge Base Only) ----
+        // Deep Research now uses only the internal Qdrant knowledge base
+        // This ensures 100% sovereignty - no external API calls
+        const queryVector = await embedText(`Advanced guide to ${topic}`);
+        const filter = {
+          must: [
+            { key: 'userId', match: { value: userId } }
+          ]
+        };
 
-        const searchResults = [];
-        for (const q of queries) {
-          try {
-            const result = await tavilySearch(q, { maxResults: 4 });
-            searchResults.push(result);
-          } catch (searchError: any) {
-            console.warn(`[DeepResearch] Tavily search failed for query "${q}":`, searchError);
-          }
+        const internalResults = await searchPoints('memories', queryVector, 10, filter);
+        
+        if (!internalResults || internalResults.length === 0) {
+          throw new Error(`No relevant knowledge found in internal memory for topic: ${topic}. Deep Research requires existing knowledge to synthesize.`);
         }
 
-        if (searchResults.length === 0) {
-          throw new Error('All Tavily searches failed or returned no results.');
-        }
-
-        // Flatten and format search results into a single text blob
-        const formattedSearchText = searchResults
-          .map(sr =>
-            sr.results
-              .map(r => {
-                const snippet = (r.snippet || '').slice(0, 500); // keep snippets reasonably small
-                return `TITLE: ${r.title}\nURL: ${r.url}\nSNIPPET: ${snippet}`;
-              })
-              .join('\n\n')
-          )
+        // Format internal memory results into a single text blob
+        const formattedSearchText = internalResults
+          .map((r: any) => {
+            const content = (r.payload?.content || '').slice(0, 1000);
+            const source = r.payload?.source || 'memory';
+            return `SOURCE: ${source}\nCONTENT: ${content}`;
+          })
           .join('\n\n-----------------------------\n\n');
 
         // ---- SYNTHESIS PHASE ----

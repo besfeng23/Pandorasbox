@@ -3,13 +3,12 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { AppLayout } from '@/components/dashboard/app-layout';
 import { cn } from '@/lib/utils';
-import { User, Lock, Bell, CreditCard, BrainCircuit, Book, Plug } from 'lucide-react';
+import { User, Lock, Bell, BrainCircuit, Book, Plug } from 'lucide-react';
 const navItems = [
     { name: 'Profile', href: '/settings/profile', icon: User, category: 'Account' },
     { name: 'AI Intelligence', href: '/settings/ai', icon: BrainCircuit, category: 'Account' },
     { name: 'Knowledge', href: '/knowledge', icon: Book, category: 'Data' },
     { name: 'Connectors', href: '/connectors', icon: Plug, category: 'Data' },
-    { name: 'Billing', href: '/settings/billing', icon: CreditCard, category: 'System' },
     { name: 'Security', href: '/settings/security', icon: Lock, category: 'System' },
 ];
 
