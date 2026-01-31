@@ -5,7 +5,17 @@ import OpenAI from 'openai';
 // Lazy client getter
 const getOpenAI = () => {
   const baseUrl = process.env.INFERENCE_BASE_URL || process.env.INFERENCE_URL || 'http://localhost:8000';
-  const INFERENCE_URL = baseUrl.endsWith('/v1') ? baseUrl : `${baseUrl}/v1`;
+  // Ensure /v1 is appended for OpenAI-compatible API (works for both Ollama and vLLM)
+  let INFERENCE_URL: string;
+  if (baseUrl.endsWith('/v1')) {
+    INFERENCE_URL = baseUrl;
+  } else if (baseUrl.includes('/') && !baseUrl.match(/:\d+$/)) {
+    // URL has a path already, append /v1
+    INFERENCE_URL = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) + '/v1' : baseUrl + '/v1';
+  } else {
+    // Plain host:port, append /v1
+    INFERENCE_URL = `${baseUrl}/v1`;
+  }
   const SOVEREIGN_KEY = process.env.SOVEREIGN_KEY || 'empty';
 
   return new OpenAI({

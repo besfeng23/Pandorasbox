@@ -19,7 +19,17 @@ export async function OPTIONS() {
 
 const getBaseUrl = () => {
   const url = process.env.INFERENCE_URL || process.env.INFERENCE_BASE_URL || 'http://localhost:8000';
-  return url.endsWith('/v1') ? url : `${url}/v1`;
+  // Ollama uses port 11434 and requires /v1 for OpenAI-compatible API
+  // vLLM uses port 8000 and requires /v1 for OpenAI-compatible API
+  // Ensure we always append /v1 if not present
+  if (url.endsWith('/v1')) {
+    return url;
+  }
+  // Don't add /v1 if URL already ends with a path (e.g., /api)
+  if (url.includes('/') && !url.match(/:\d+$/)) {
+    return url.endsWith('/') ? url.slice(0, -1) + '/v1' : url + '/v1';
+  }
+  return `${url}/v1`;
 };
 
 // Configure OpenAI-compatible provider to point ONLY at local vLLM.
