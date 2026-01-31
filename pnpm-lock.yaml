@@ -460,7 +460,7 @@ importers:
         specifier: ^9.0.1
         version: 9.0.1
       zod:
-        specifier: ^3.22.0
+        specifier: ^3.25.76
         version: 3.25.76
       zustand:
         specifier: ^4.5.4
