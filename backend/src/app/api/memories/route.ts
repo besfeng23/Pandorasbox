@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+export const dynamic = 'force-dynamic';
 import { getFirestoreAdmin, getAuthAdmin } from '@/lib/firebase-admin';
 import { searchMemoryAction, createMemoryFromSettings } from '@/app/actions';
 import { handleOptions, corsHeaders } from '@/lib/cors';
@@ -20,7 +21,7 @@ export async function GET(request: NextRequest) {
   // Verify token if strictly needed, but for internal microservice pattern (frontend->backend)
   // usually we trust the passed userId if secured by network or shared secret.
   // Ideally, frontend passes the ID Token in Authorization header.
-  
+
   // Reuse the logic from actions.ts which wraps Qdrant
   try {
     const results = await searchMemoryAction(query, userId, agentId);
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const userId = searchParams.get('userId');
   const agentId = searchParams.get('agentId') || 'builder';
-  
+
   if (!userId) return NextResponse.json({ error: 'Missing userId' }, { status: 400, headers: corsHeaders() });
 
   try {

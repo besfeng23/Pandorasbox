@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+export const dynamic = 'force-dynamic';
 import { getFirestoreAdmin, getAuthAdmin } from '@/lib/firebase-admin';
 import { handleOptions, corsHeaders } from '@/lib/cors';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
@@ -38,7 +39,7 @@ export async function GET(request: NextRequest) {
     // 2. Query conversations collection
     const db = getFirestoreAdmin();
     const conversationsRef = db.collection('conversations');
-    
+
     const snapshot = await conversationsRef
       .where('userId', '==', userId)
       .orderBy('updatedAt', 'desc')
@@ -48,7 +49,7 @@ export async function GET(request: NextRequest) {
     const conversations = snapshot.docs.map((doc) => {
       const data = doc.data();
       const updatedAt = data.updatedAt as Timestamp;
-      
+
       return {
         id: doc.id,
         name: data.name || 'New Chat',
@@ -111,7 +112,7 @@ export async function POST(request: NextRequest) {
     // 3. Create conversation document
     const db = getFirestoreAdmin();
     const conversationsRef = db.collection('conversations');
-    
+
     const now = Timestamp.now();
     const conversationData = {
       userId,

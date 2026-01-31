@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+export const dynamic = 'force-dynamic';
 import { handleOptions, corsHeaders } from '@/lib/cors';
 import { getUserThreads, createThread } from '@/app/actions';
 
@@ -26,7 +27,7 @@ export async function POST(request: NextRequest) {
   try {
     const { userId, agent } = await request.json();
     if (!userId) return NextResponse.json({ error: 'Missing userId' }, { status: 400, headers: corsHeaders() });
-    
+
     const result = await createThread(agent || 'builder', userId);
     return NextResponse.json({ id: result.id }, { headers: corsHeaders() });
   } catch (error: unknown) {

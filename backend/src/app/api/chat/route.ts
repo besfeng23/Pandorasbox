@@ -10,8 +10,9 @@ import { searchPoints, upsertPoint } from '@/lib/sovereign/qdrant-client';
 import { completeInference } from '@/lib/sovereign/inference';
 import { v4 as uuidv4 } from 'uuid';
 
-// Configure OpenAI provider with custom URL if set
-// Ensure we handle the /v1 suffix correctly for vLLM/OpenAI-compatible endpoints
+export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
+
 const getBaseUrl = () => {
   const url = process.env.INFERENCE_URL || process.env.LLM_API_URL;
   if (!url) return undefined;
@@ -21,19 +22,21 @@ const getBaseUrl = () => {
   return url;
 };
 
-const finalBaseUrl = getBaseUrl();
-console.log('[Chat Route] Initializing OpenAI with BaseURL:', finalBaseUrl);
+// Configure OpenAI provider with custom URL if set
+const getOpenAIModel = () => {
+  const finalBaseUrl = getBaseUrl();
+  // Unified Telemetry Block
+  console.log('[Phase 15] Execution Node Active: Initializing OpenAI with BaseURL:', finalBaseUrl);
 
-if (!finalBaseUrl) {
-  console.warn('[Chat Route] WARNING: No INFERENCE_URL or LLM_API_URL set. Defaulting to OpenAI (this will fail without a valid public API Key).');
-}
+  if (!finalBaseUrl) {
+    console.warn('[Chat Route] WARNING: No INFERENCE_URL or LLM_API_URL set. Defaulting to OpenAI.');
+  }
 
-const openai = createOpenAI({
-  baseURL: finalBaseUrl,
-  apiKey: process.env.LLM_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY || 'dummy-key',
-});
-
-export const maxDuration = 60; // Allow 60 seconds for generation
+  return createOpenAI({
+    baseURL: finalBaseUrl,
+    apiKey: process.env.LLM_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY || 'dummy-key',
+  });
+};
 
 // Helper: Phase 14 - Distributed Subnetworks Router
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -238,10 +241,12 @@ export async function POST(req: NextRequest) {
 
     // 5. Pre-flight Check: Verify Inference Server is Reachable
     timings.inference_start = Date.now();
+    const activeBaseUrl = getBaseUrl();
     try {
       // Only check if we have a custom URL. If it's undefined (standard OpenAI), we skip this check.
-      if (finalBaseUrl) {
-        const checkUrl = `${finalBaseUrl}/models`; // Standard OpenAI/Ollama check
+      if (activeBaseUrl) {
+        const checkUrl = `${activeBaseUrl}/models`; // Standard OpenAI/Ollama check
+        // ... rest stays same
         const checkController = new AbortController();
         const checkTimeout = setTimeout(() => checkController.abort(), 1000); // 1s timeout
 
@@ -257,10 +262,10 @@ export async function POST(req: NextRequest) {
         }
       }
     } catch (connError: any) {
-      console.error(`[${requestId}] Inference Server Unreachable (${finalBaseUrl}):`, connError.message);
+      console.error(`[${requestId}] Inference Server Unreachable (${activeBaseUrl}):`, connError.message);
       // Only fail if we really can't reach the custom server. 
       // For standard OpenAI, we let the streamText call handle connection errors naturally.
-      if (finalBaseUrl) {
+      if (activeBaseUrl) {
         return NextResponse.json(
           { error: `Inference Server Unreachable: ${connError.message}. Check VPC/VPN connection.` },
           { status: 503 }
@@ -278,10 +283,11 @@ export async function POST(req: NextRequest) {
       route_ms: timings.routing_end - timings.routing_start
     }));
 
+    const openaiModel = getOpenAIModel(); // Call the getter here
     const result = await streamText({
       model: (attachments.length > 0 || useVision)
-        ? openai(process.env.VISION_MODEL || 'google/gemini-1.5-flash-latest')
-        : openai(process.env.INFERENCE_MODEL || process.env.LLM_MODEL || 'llama-3'),
+        ? openaiModel(process.env.VISION_MODEL || 'google/gemini-1.5-flash-latest')
+        : openaiModel(process.env.INFERENCE_MODEL || process.env.LLM_MODEL || 'llama-3'),
       messages,
       tools: {
         search_web: searchWeb,

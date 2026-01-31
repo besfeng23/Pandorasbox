@@ -2,7 +2,7 @@ import { tavily } from '@tavily/core';
 import { tool } from 'ai';
 import { z } from 'zod';
 
-const tvly = process.env.TAVILY_API_KEY ? tavily({ apiKey: process.env.TAVILY_API_KEY }) : null;
+const getTavily = () => process.env.TAVILY_API_KEY ? tavily({ apiKey: process.env.TAVILY_API_KEY }) : null;
 
 export const searchWeb = tool({
     description: 'Search the web for up-to-date information, news, and real-time data.',
@@ -13,6 +13,7 @@ export const searchWeb = tool({
         exclude_domains: z.array(z.string()).optional().describe('List of domains to exclude from search')
     }),
     execute: async ({ query, max_results = 5, include_domains, exclude_domains }: { query: string, max_results?: number, include_domains?: string[], exclude_domains?: string[] }) => {
+        const tvly = getTavily();
         if (!tvly) {
             console.warn('TAVILY_API_KEY not found. Returning mock results.');
             return `[Mock Result] Search functionality required TAVILY_API_KEY. Query was: "${query}"`;
