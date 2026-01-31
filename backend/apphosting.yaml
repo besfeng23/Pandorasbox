@@ -56,6 +56,11 @@ env:
     availability:
       - RUNTIME
 
+  - variable: LLM_API_KEY
+    secret: llm-api-key
+    availability:
+      - RUNTIME
+
   - variable: FIREBASE_PROJECT_ID
     value: seismic-vista-480710-q5
     availability:
