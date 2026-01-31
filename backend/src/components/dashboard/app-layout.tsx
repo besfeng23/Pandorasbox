@@ -369,8 +369,8 @@ export function AppLayout({ children, threadId }: { children: React.ReactNode; t
         {/* Mobile Header - Visible only on mobile */}
         <MobileHeader />
 
-        {/* Desktop Sidebar - Hidden on Mobile */}
-        <div className="hidden md:block h-full">
+        {/* Desktop Sidebar - Rendered as Sheet on Mobile */}
+        <div className="h-full">
           <Sidebar className="border-r-0 glass-surface-strong" collapsible="icon">
             <SidebarContentInternal threadId={threadId} />
           </Sidebar>
