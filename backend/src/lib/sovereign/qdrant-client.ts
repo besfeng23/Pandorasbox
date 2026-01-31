@@ -159,6 +159,42 @@ export async function deletePoint(collection: string, id: string | number) {
   }
 }
 
+/**
+ * Delete multiple points matching a filter
+ */
+export async function deletePointsByFilter(collection: string, filter: any) {
+  const startTime = Date.now();
+  try {
+    const response = await fetch(`${QDRANT_URL}/collections/${collection}/points/delete?wait=true`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        filter,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Qdrant filtered delete failed: ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    const endTime = Date.now();
+
+    logEvent('MEMORY_DELETE_FILTERED', {
+      duration: endTime - startTime,
+      collection,
+      status: 'success'
+    });
+
+    return result;
+  } catch (error: any) {
+    console.error('Qdrant filtered delete error:', error);
+    throw error;
+  }
+}
+
 export async function getPoint(collection: string, id: string | number): Promise<QdrantSearchResult | null> {
   try {
     const response = await fetch(`${QDRANT_URL}/collections/${collection}/points/${id}`, {

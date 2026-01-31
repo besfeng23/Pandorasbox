@@ -1,4 +1,4 @@
-export type LogEventType = 'AI_REQUEST' | 'MEMORY_SEARCH' | 'INGESTION' | 'ERROR' | 'MEMORY_DELETE';
+export type LogEventType = 'AI_REQUEST' | 'MEMORY_SEARCH' | 'INGESTION' | 'ERROR' | 'MEMORY_DELETE' | 'MEMORY_DELETE_FILTERED';
 
 export function logEvent(type: LogEventType, payload: Record<string, any>) {
   const logEntry = {

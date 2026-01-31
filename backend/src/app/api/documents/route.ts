@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthAdmin, getFirestoreAdmin } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
+import { deletePointsByFilter } from '@/lib/sovereign/qdrant-client';
 
 export const dynamic = 'force-dynamic';
 
@@ -92,9 +93,20 @@ export async function DELETE(req: NextRequest) {
         // Delete from Firestore
         await documentRef.delete();
 
-        // TODO: Delete related vectors from Qdrant (by filename filter)
-        // This would require a Qdrant client delete operation
-        // For now, we just delete the Firestore record
+        // Delete related vectors from Qdrant by source (filename)
+        try {
+            await deletePointsByFilter('memories', {
+                must: [
+                    { key: 'userId', match: { value: userId } },
+                    { key: 'filename', match: { value: filename } }
+                ]
+            });
+            console.log(`[Documents] Deleted vectors for ${filename} in Qdrant.`);
+        } catch (qdrantError) {
+            console.error(`[Documents] Failed to delete vectors from Qdrant for ${filename}:`, qdrantError);
+            // We continue as the firestore record is already gone, or we might want to throw?
+            // Usually best to be best-effort or warn.
+        }
 
         console.log(`[Documents] Deleted document ${filename} (${documentId}) for user ${userId}`);
 
