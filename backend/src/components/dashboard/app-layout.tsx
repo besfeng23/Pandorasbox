@@ -7,6 +7,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useUser, useAuthActions } from '@/firebase';
 import type { Thread } from '@/lib/types';
 import { BottomTabBar } from '@/components/mobile/bottom-tab-bar';
+import MobileHeader from '@/components/mobile-header';
 import { ThreadList } from '@/components/dashboard/thread-list';
 import {
   Sidebar,
@@ -365,6 +366,9 @@ export function AppLayout({ children, threadId }: { children: React.ReactNode; t
       <div className="flex min-h-screen w-full bg-background overflow-hidden selection:bg-primary/20 selection:text-primary pb-16 md:pb-0">
         <CommandMenu />
 
+        {/* Mobile Header - Visible only on mobile */}
+        <MobileHeader />
+
         {/* Desktop Sidebar - Hidden on Mobile */}
         <div className="hidden md:block h-full">
           <Sidebar className="border-r-0 glass-surface-strong" collapsible="icon">
@@ -373,8 +377,9 @@ export function AppLayout({ children, threadId }: { children: React.ReactNode; t
         </div>
 
         <SidebarInset className="flex flex-col flex-1 overflow-hidden p-0 bg-gradient-to-br from-background to-muted/50 dark:to-muted/10">
-          {/* Mobile Tab Bar */}
-          <BottomTabBar />
+          {/* Mobile Tab Bar - Disabled for new Header design
+           <BottomTabBar /> 
+          */}
 
           <div className={cn(
             "flex flex-col flex-1 min-w-0 transition-all duration-300 ease-in-out h-full overflow-y-auto",
