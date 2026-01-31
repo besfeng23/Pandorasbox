@@ -1,3 +1,11 @@
 {
-  "mcpServers": {}
+  "mcpServers": {
+    "pandoras-box": {
+      "command": "node",
+      "args": ["backend/src/mcp/index.ts"],
+      "env": {
+        "NODE_ENV": "production"
+      }
+    }
+  }
 }
