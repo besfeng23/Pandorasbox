@@ -3,8 +3,6 @@ export const dynamic = 'force-dynamic';
 import { getAuthAdmin, getFirestoreAdmin } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 
-export const dynamic = 'force-dynamic';
-
 // GET /api/artifacts - List all artifacts for current user
 export async function GET(req: NextRequest) {
     try {
