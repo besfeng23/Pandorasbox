@@ -47,19 +47,30 @@ export function Message({
   const isUser = message.role === 'user';
   const hasMemoryRecall = !isUser && message.toolUsages?.some(t => t.toolName.includes('memory'));
 
+  // Defensive: Ensure content is always a string
+  const safeContent = message.content || '';
+  const hasContent = safeContent.trim().length > 0;
+  const isErrorState = !hasContent && message.role === 'assistant' && !isLastAssistantMessage;
+
   // Typewriter Effect Logic
-  const [displayedContent, setDisplayedContent] = React.useState(isLastAssistantMessage ? '' : message.content);
+  const [displayedContent, setDisplayedContent] = React.useState(isLastAssistantMessage ? '' : safeContent);
 
   React.useEffect(() => {
     if (!isLastAssistantMessage) {
-      setDisplayedContent(message.content);
+      setDisplayedContent(safeContent);
+      return;
+    }
+
+    // Only run typewriter if we have content
+    if (!safeContent || safeContent.length === 0) {
+      setDisplayedContent('');
       return;
     }
 
     let currentIndex = 0;
     const interval = setInterval(() => {
-      if (currentIndex < message.content.length) {
-        setDisplayedContent(message.content.slice(0, currentIndex + 1));
+      if (currentIndex < safeContent.length) {
+        setDisplayedContent(safeContent.slice(0, currentIndex + 1));
         currentIndex++;
       } else {
         clearInterval(interval);
@@ -67,7 +78,7 @@ export function Message({
     }, 10); // 10ms speed for smooth typing
 
     return () => clearInterval(interval);
-  }, [message.content, isLastAssistantMessage]);
+  }, [safeContent, isLastAssistantMessage]);
 
   return (
     <div className="group/message">
@@ -94,15 +105,28 @@ export function Message({
             </div>
           )}
           {isUser ? (
-            <p className="text-base whitespace-pre-wrap leading-relaxed">{message.content}</p>
+            <p className="text-base whitespace-pre-wrap leading-relaxed">
+              {safeContent || <span className="text-muted-foreground italic">Empty message</span>}
+            </p>
           ) : (
             <div className="prose prose-sm dark:prose-invert max-w-none leading-relaxed">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {displayedContent}
-              </ReactMarkdown>
+              {hasContent ? (
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {displayedContent}
+                </ReactMarkdown>
+              ) : (
+                <div className="flex items-center gap-2 text-destructive-foreground/80 py-2">
+                  <Cog className="h-4 w-4 animate-spin" />
+                  <span className="text-sm">
+                    {isErrorState || message.isError 
+                      ? 'Error: No response from AI. The inference server may be offline or unreachable. Check your VPC connector configuration.' 
+                      : 'Waiting for response...'}
+                  </span>
+                </div>
+              )}
             </div>
           )}
-          {message.isError && (
+          {(message.isError || isErrorState) && hasContent && (
             <p className="mt-2 text-xs text-destructive-foreground/80">Could not generate response.</p>
           )}
           {message.toolUsages && message.toolUsages.length > 0 && (
