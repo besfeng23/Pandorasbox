@@ -99,9 +99,12 @@ export async function POST(req: NextRequest) {
 
   try {
     // 0. Debug & Environment Check
-    const apiKey = process.env.LLM_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY;
-    if (!apiKey) {
-      console.error(`[${requestId}] CRITICAL: OPENAI_API_KEY is missing in environment variables.`);
+    const activeBaseUrl = getBaseUrl();
+    const apiKey = process.env.LLM_API_KEY || process.env.OPENAI_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY;
+
+    // Fail only if we don't have a custom base URL AND don't have an API key
+    if (!activeBaseUrl && !apiKey) {
+      console.error(`[${requestId}] CRITICAL: No local inference server AND no API Key found.`);
       return NextResponse.json({ error: 'Server misconfigured (Missing API Key)' }, { status: 500 });
     }
 
