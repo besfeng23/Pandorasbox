@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { streamText, convertToModelMessages, tool, type UIMessage } from 'ai';
+import { streamText, convertToModelMessages, tool } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 import { z } from 'zod';
 import { getAuthAdmin, getFirestoreAdmin } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
-import { cookies } from 'next/headers';
 import { embedText } from '@/lib/ai/embedding';
 import { searchPoints, upsertPoint } from '@/lib/sovereign/qdrant-client';
 import { completeInference } from '@/lib/sovereign/inference';
@@ -36,6 +35,7 @@ const openai = createOpenAI({
 export const maxDuration = 60; // Allow 60 seconds for generation
 
 // Helper: Phase 14 - Distributed Subnetworks Router
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function detectSubnetwork(message: string): string {
   const lower = message.toLowerCase();
 
@@ -114,42 +114,6 @@ export async function POST(req: NextRequest) {
 
     const userId = decodedToken.uid;
 
-    // 5. Pre-flight Check: Verify Inference Server is Reachable
-    timings.inference_start = Date.now();
-    try {
-      const checkUrl = `${finalBaseUrl}/models`; // Standard OpenAI/Ollama check
-      const checkController = new AbortController();
-      const checkTimeout = setTimeout(() => checkController.abort(), 1000); // 1s timeout
-
-      const checkRes = await fetch(checkUrl, {
-        method: 'GET',
-        headers: { 'Authorization': `Bearer ${process.env.LLM_API_KEY || 'dummy-key'}` },
-        signal: checkController.signal
-      });
-      clearTimeout(checkTimeout);
-
-      if (!checkRes.ok && checkRes.status !== 401 && checkRes.status !== 404) {
-        // 401/404 might mean the endpoint differs but server is up. 500/Connection Refused is bad.
-        console.warn(`[${requestId}] Inference server might be unhealthy: ${checkRes.status}`);
-      }
-    } catch (connError: any) {
-      console.error(`[${requestId}] Inference Server Unreachable (${finalBaseUrl}):`, connError.message);
-      return NextResponse.json(
-        { error: `Inference Server Unreachable: ${connError.message}. Check VPC/VPN connection.` },
-        { status: 503 }
-      );
-    }
-
-    console.log(`[${requestId}] Starting Inference. Timings:`, JSON.stringify({
-      uid: userId,
-      agent: agentId,
-      auth_ms: timings.auth_ok - timings.start,
-      db_ms: timings.firestore_write_ok - timings.auth_ok,
-      rag_ms: timings.memory_search_end - timings.memory_search_start,
-      route_ms: timings.routing_end - timings.routing_start
-    }));
-
-    const result = await streamText({);
     // 2. Parse Body
     const body = await req.json();
     const { message, agentId = 'universe', threadId, history = [], attachments = [], workspaceId, useVision = false } = body;
@@ -210,9 +174,216 @@ export async function POST(req: NextRequest) {
 
     const messages = [...initialMessages, { role: 'user', content: userContent } as const];
 
-    // ... (rest of the code)
+    // 4.5 RAG: Search for relevant context (Phase 13 Implementation)
+    // Wrapped in Best-Effort Timeout (2000ms)
+    let context = '';
+    timings.memory_search_start = Date.now();
 
-    // ...
+    if (message.length > 5) {
+      try {
+        const ragPromise = async () => {
+          const queryVector = await embedText(message);
+          const filter: any = {
+            must: [
+              { key: 'userId', match: { value: userId } },
+              { key: 'agentId', match: { value: agentId } }
+            ]
+          };
+
+          if (workspaceId) {
+            filter.must.push({ key: 'workspaceId', match: { value: workspaceId } });
+          }
+
+          const searchResults = (await searchPoints('memories', queryVector, 5, filter)) || [];
+          return enhanceWithCognition(Array.isArray(searchResults) ? searchResults : []);
+        };
+
+        context = await withTimeout(ragPromise(), 2000, '', 'RAG Search');
+      } catch (ragError) {
+        console.error(`[${requestId}] RAG Search failed:`, ragError);
+      }
+    }
+    timings.memory_search_end = Date.now();
+
+    // 4.8 Phase 14: Subnetwork Routing (Semantic)
+    // Wrapped in Best-Effort Timeout (1500ms)
+    let routingInfo = '';
+    timings.routing_start = Date.now();
+    try {
+      const { routeQuery } = await import('@/lib/ai/router');
+      const routeResult = await withTimeout(
+        routeQuery(message),
+        1500,
+        { agentId: agentId, confidence: 0, reasoning: 'Timeout Fallback' },
+        'Router'
+      );
+
+      routingInfo = `\n\n### 📡 ACTIVE SUBNETWORK: ${routeResult.agentId.toUpperCase()}_LANE\n(Router: ${routeResult.reasoning})`;
+    } catch (routeError: any) {
+      // Ignore routing errors in logs unless critical
+      if (routeError?.message !== 'Timeout Fallback') {
+        console.warn(`[${requestId}] Routing skipped:`, routeError.message);
+      }
+    }
+    timings.routing_end = Date.now();
+
+    // 5. Pre-flight Check: Verify Inference Server is Reachable
+    timings.inference_start = Date.now();
+    try {
+      const checkUrl = `${finalBaseUrl}/models`; // Standard OpenAI/Ollama check
+      const checkController = new AbortController();
+      const checkTimeout = setTimeout(() => checkController.abort(), 1000); // 1s timeout
+
+      const checkRes = await fetch(checkUrl, {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${process.env.LLM_API_KEY || 'dummy-key'}` },
+        signal: checkController.signal
+      });
+      clearTimeout(checkTimeout);
+
+      if (!checkRes.ok && checkRes.status !== 401 && checkRes.status !== 404) {
+        console.warn(`[${requestId}] Inference server might be unhealthy: ${checkRes.status}`);
+      }
+    } catch (connError: any) {
+      console.error(`[${requestId}] Inference Server Unreachable (${finalBaseUrl}):`, connError.message);
+      return NextResponse.json(
+        { error: `Inference Server Unreachable: ${connError.message}. Check VPC/VPN connection.` },
+        { status: 503 }
+      );
+    }
+
+    // 5. Stream from LLM
+    console.log(`[${requestId}] Starting Inference. Timings:`, JSON.stringify({
+      uid: userId,
+      agent: agentId,
+      auth_ms: timings.auth_ok - timings.start,
+      db_ms: timings.firestore_write_ok - timings.auth_ok,
+      rag_ms: timings.memory_search_end - timings.memory_search_start,
+      route_ms: timings.routing_end - timings.routing_start
+    }));
+
+    const result = await streamText({
+      model: (attachments.length > 0 || useVision)
+        ? openai(process.env.VISION_MODEL || 'google/gemini-1.5-flash-latest')
+        : openai(process.env.INFERENCE_MODEL || process.env.LLM_MODEL || 'llama-3'),
+      messages,
+      tools: {
+        generate_artifact: tool({
+          description: 'Generate a high-quality artifact such as code, a document, an SVG, or a diagram. Use this for significant pieces of work that should be viewed in a separate panel.',
+          inputSchema: z.object({
+            title: z.string().describe('The title of the artifact'),
+            type: z.enum(['code', 'markdown', 'html', 'svg', 'react']).describe('The type of artifact'),
+            language: z.string().optional().describe('The programming language (if applicable)'),
+            content: z.string().describe('The full content of the artifact'),
+          }),
+          execute: async ({ title, type, content, language }: { title: string, type: 'code' | 'markdown' | 'html' | 'svg' | 'react', content: string, language?: string }) => {
+            try {
+              const db = getFirestoreAdmin();
+              const artifactRef = db.collection('artifacts').doc();
+              const id = artifactRef.id;
+              await artifactRef.set({
+                id,
+                title,
+                type,
+                content,
+                language: language || '',
+                userId,
+                threadId,
+                workspaceId: workspaceId || null,
+                createdAt: FieldValue.serverTimestamp(),
+              });
+              return { success: true, artifactId: id, message: 'Artifact generated and saved.' };
+            } catch (error: any) {
+              return { success: false, error: error.message };
+            }
+          },
+        }),
+      },
+      system: `You are Pandora, an advanced Sovereign AI assistant. You operate on a high-end, private cloud infrastructure.
+
+${agentId === 'builder' ? `
+### Role: THE BUILDER 🏗️
+- **Expertise**: Full-stack engineering, Cloud Architecture, POSIX compliance, and Low-latency systems.
+- **Tone**: Precise, technical, and constructive.
+- **Workflow**:
+  1. Analyze requirements.
+  2. Plan architecture using modular patterns.
+  3. Provide production-ready, typed code.
+  4. Explain design decisions and trade-offs.
+` : `
+### Role: THE UNIVERSE 🌌
+- **Expertise**: Creative synthesis, Philosophical inquiry, Deep Knowledge exploration.
+- **Tone**: Wise, expansive, and poetic yet grounded.
+- **Workflow**:
+  1. Listen deeply to the user's intent.
+  2. Synthesize information from multiple domains.
+  3. Offer provocative insights.
+`}
+${routingInfo}
+
+### Operational Guardrails:
+- **Privacy**: You are private and sovereign. Do not disclose user memories unless relevant.
+- **Integrity**: Cite your sources if relevant context is provided below.
+- **Format**: Use clean Markdown with bold headers.
+
+User ID: ${userId}${context}`,
+      temperature: 0.7,
+      onFinish: async ({ text }) => {
+        try {
+          const assistantMessageRef = db.collection(`users/${userId}/agents/${agentId}/history`).doc();
+          await assistantMessageRef.set({
+            role: 'assistant',
+            content: text,
+            threadId,
+            workspaceId: workspaceId || null,
+            createdAt: FieldValue.serverTimestamp(),
+          });
+
+          // Use non-blocking update
+          db.doc(`users/${userId}/threads/${threadId}`).update({
+            updatedAt: FieldValue.serverTimestamp(),
+          }).catch(e => console.error('Failed to update thread timestamp:', e));
+
+          // Automated Long-term Memory (Consolidated Memory)
+          if (text.length > 50) {
+            // FIRE AND FORGET - Do not await memory consolidation
+            (async () => {
+              try {
+                const summaryPrompt = [
+                  { role: 'system' as const, content: 'You are a memory consolidation expert. Summarize the following exchange into a single, high-density factual statement for long-term storage.' },
+                  { role: 'user' as const, content: `User: ${message}\nAssistant: ${text}` }
+                ];
+                const summary = await completeInference(summaryPrompt);
+
+                if (summary) {
+                  const summaryVector = await embedText(summary);
+                  await upsertPoint('memories', {
+                    id: uuidv4(),
+                    vector: summaryVector,
+                    payload: {
+                      content: summary,
+                      userId,
+                      agentId,
+                      workspaceId: workspaceId || null,
+                      type: 'consolidated_memory',
+                      source: 'chat_auto',
+                      createdAt: new Date().toISOString()
+                    }
+                  });
+                  console.log(`[${requestId}] Automated memory consolidated.`);
+                }
+              } catch (memoryError) {
+                console.error(`[${requestId}] Failed to consolidate memory:`, memoryError);
+              }
+            })();
+          }
+        } catch (saveError) {
+          console.error(`[${requestId}] Failed to save assistant message:`, saveError);
+        }
+      },
+    });
+
+    return result.toUIMessageStreamResponse();
 
   } catch (error: any) {
     console.error(`[${requestId}] Chat API Fatal Error:`, error);
