@@ -124,7 +124,7 @@ export async function POST(req: NextRequest) {
       decodedToken = await auth.verifyIdToken(token);
     } catch (e: any) {
       console.error(`[${requestId}] Token verification failed:`, e.message);
-      return NextResponse.json({ error: `Invalid token: ${e.message}` }, { status: 401 });
+      return NextResponse.json({ error: `Invalid token: ${e.message}` }, { status: 401, headers: corsHeaders() });
     }
     timings.auth_ok = Date.now();
 
@@ -135,10 +135,10 @@ export async function POST(req: NextRequest) {
     const { message, agentId = 'universe', threadId, history = [], attachments = [], workspaceId, useVision = false } = body;
 
     if (!message) {
-      return NextResponse.json({ error: 'Message is required' }, { status: 400 });
+      return NextResponse.json({ error: 'Message is required' }, { status: 400, headers: corsHeaders() });
     }
     if (!threadId) {
-      return NextResponse.json({ error: 'Thread ID is required' }, { status: 400 });
+      return NextResponse.json({ error: 'Thread ID is required' }, { status: 400, headers: corsHeaders() });
     }
 
     // 3. Save User Message to Firestore
@@ -476,7 +476,7 @@ User ID: ${userId}${context}`,
     console.error(`[${requestId}] Stack Trace:`, error.stack); // Log stack trace
     return NextResponse.json(
       { error: error.message || 'Internal Server Error' },
-      { status: 500 }
+      { status: 500, headers: corsHeaders() }
     );
   }
 }
