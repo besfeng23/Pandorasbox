@@ -29,7 +29,7 @@ export async function getServerConfig(): Promise<ServerConfig> {
         cachedConfig = {
           inferenceBaseUrl: inferenceUrl,
           inferenceModel:
-            secrets.INFERENCE_MODEL || process.env.INFERENCE_MODEL || 'mistralai/Mistral-7B-Instruct-v0.3',
+            secrets.INFERENCE_MODEL || process.env.INFERENCE_MODEL || 'mistral',
           embeddingsBaseUrl:
             secrets.EMBEDDINGS_BASE_URL || process.env.EMBEDDINGS_BASE_URL || 'http://localhost:8080',
           embeddingsDimension: parseInt(
@@ -51,7 +51,7 @@ export async function getServerConfig(): Promise<ServerConfig> {
   const inferenceUrl = process.env.INFERENCE_BASE_URL || process.env.INFERENCE_URL || 'http://localhost:8000';
   cachedConfig = {
     inferenceBaseUrl: inferenceUrl,
-    inferenceModel: process.env.INFERENCE_MODEL || 'mistralai/Mistral-7B-Instruct-v0.3',
+    inferenceModel: process.env.INFERENCE_MODEL || 'mistral',
     embeddingsBaseUrl: process.env.EMBEDDINGS_BASE_URL || 'http://localhost:8080',
     embeddingsDimension: parseInt(process.env.EMBEDDINGS_DIMENSION || '384', 10),
     qdrantUrl: process.env.QDRANT_URL || 'http://localhost:6333',

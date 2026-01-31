@@ -275,7 +275,7 @@ export async function POST(req: NextRequest) {
     let result;
     try {
       result = await streamText({
-      model: openaiModel(process.env.INFERENCE_MODEL || 'mistralai/Mistral-7B-Instruct-v0.3'),
+      model: openaiModel(process.env.INFERENCE_MODEL || 'mistral'),
       messages,
       tools: {
         generate_artifact: tool({

@@ -15,7 +15,8 @@ const getOpenAI = () => {
   });
 };
 
-export const INFERENCE_MODEL = process.env.INFERENCE_MODEL || 'mistralai/Mistral-7B-Instruct-v0.3';
+// Default to 'mistral' for Ollama compatibility, but allow override for vLLM
+export const INFERENCE_MODEL = process.env.INFERENCE_MODEL || 'mistral';
 
 export type ChatMessage = {
   role: 'system' | 'user' | 'assistant';

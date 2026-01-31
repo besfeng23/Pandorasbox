@@ -16,7 +16,19 @@ export async function embedText(text: string): Promise<number[]> {
     return Array(config.embeddingsDimension).fill(0);
   }
 
-  const url = `${config.embeddingsBaseUrl}/embed`;
+  // Embedding service uses OpenAI-compatible endpoint: /v1/embeddings
+  // Handle both cases: base URL with or without /v1
+  let url: string;
+  if (config.embeddingsBaseUrl.includes('/v1/embeddings')) {
+    url = config.embeddingsBaseUrl;
+  } else if (config.embeddingsBaseUrl.endsWith('/v1')) {
+    url = `${config.embeddingsBaseUrl}/embeddings`;
+  } else if (config.embeddingsBaseUrl.endsWith('/v1/')) {
+    url = `${config.embeddingsBaseUrl}embeddings`;
+  } else {
+    // Default: append /v1/embeddings
+    url = `${config.embeddingsBaseUrl.replace(/\/$/, '')}/v1/embeddings`;
+  }
 
   try {
     console.log(`[AI] Embedding text at ${url} (Length: ${normalizedText.length})`);
@@ -26,9 +38,11 @@ export async function embedText(text: string): Promise<number[]> {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        text: normalizedText,
-      }),
+    body: JSON.stringify({
+      // OpenAI-compatible format
+      input: normalizedText,
+      model: 'text-embedding-ada-002', // Model name (may be ignored by service)
+    }),
     });
 
     if (!response.ok) {
@@ -42,7 +56,11 @@ export async function embedText(text: string): Promise<number[]> {
     const textResult = await response.text();
     try {
       const result = JSON.parse(textResult);
-      return result.embedding;
+      // Support both OpenAI-compatible format (data[0].embedding) and custom format (embedding)
+      if (result.data && Array.isArray(result.data) && result.data[0]?.embedding) {
+        return result.data[0].embedding;
+      }
+      return result.embedding || result.embeddings?.[0] || [];
     } catch (jsonError) {
       console.error('[AI] JSON Parse Error on Embedding Response');
       console.error('[AI] Received content:', textResult.substring(0, 500)); // Log what we actually got
