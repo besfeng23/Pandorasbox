@@ -57,8 +57,8 @@ export default function IntegrationsPage() {
 
   useEffect(() => {
     const checkServices = async () => {
-      const updatedServices = await Promise.all(
-        services.map(async (service) => {
+      const updatedServices: ServiceStatus[] = await Promise.all(
+        services.map(async (service): Promise<ServiceStatus> => {
           try {
             const start = Date.now();
             let response: Response | null = null;
@@ -92,13 +92,13 @@ export default function IntegrationsPage() {
 
             return {
               ...service,
-              status: isOnline ? 'online' : 'offline',
+              status: (isOnline ? 'online' : 'offline') as 'online' | 'offline',
               latency: isOnline ? latency : undefined,
             };
           } catch (error) {
             return {
               ...service,
-              status: 'offline',
+              status: 'offline' as const,
             };
           }
         })
