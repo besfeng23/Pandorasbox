@@ -232,7 +232,8 @@ export function ChatPanel({ threadId }: { threadId: string }) {
     const visionEnabled = localStorage.getItem('vision_enabled') === 'true';
 
     try {
-      const token = await user.getIdToken();
+      // Force refresh token to ensure it's valid for the backend check
+      const token = await user.getIdToken(true);
       const agentId = thread.agent;
       const messagePayload = {
         message: values.content,
@@ -296,7 +297,8 @@ export function ChatPanel({ threadId }: { threadId: string }) {
         setMessages(prev => prev.filter(m => m.id !== lastAssistantMessage.id));
       }
 
-      const token = await user.getIdToken();
+      // Force refresh token
+      const token = await user.getIdToken(true);
       const visionEnabled = localStorage.getItem('vision_enabled') === 'true';
 
       const response = await fetch('/api/chat', {
@@ -335,7 +337,7 @@ export function ChatPanel({ threadId }: { threadId: string }) {
     setIsExtracting(true);
     try {
       const conversationText = (messages || []).map(m => `${m.role}: ${m.content}`).join('\n\n');
-      const token = await user.getIdToken();
+      const token = await user.getIdToken(true);
 
 
       const response = await fetch('/api/memory', {

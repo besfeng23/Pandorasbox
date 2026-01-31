@@ -94,10 +94,18 @@ export async function POST(req: NextRequest) {
   const timings: Record<string, number> = { start: Date.now() };
 
   try {
+    // 0. Debug & Environment Check
+    const apiKey = process.env.LLM_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY;
+    if (!apiKey) {
+      console.error(`[${requestId}] CRITICAL: OPENAI_API_KEY is missing in environment variables.`);
+      return NextResponse.json({ error: 'Server misconfigured (Missing API Key)' }, { status: 500 });
+    }
+
     // 1. Authenticate User
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.warn(`[${requestId}] 401 Unauthorized: Missing or invalid Authorization header. Received:`, authHeader);
+      return NextResponse.json({ error: 'Unauthorized: Missing Authorization header' }, { status: 401 });
     }
     const token = authHeader.split('Bearer ')[1];
 
@@ -106,9 +114,9 @@ export async function POST(req: NextRequest) {
     let decodedToken;
     try {
       decodedToken = await auth.verifyIdToken(token);
-    } catch (e) {
-      console.error(`[${requestId}] Token verification failed:`, e);
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    } catch (e: any) {
+      console.error(`[${requestId}] Token verification failed:`, e.message);
+      return NextResponse.json({ error: `Invalid token: ${e.message}` }, { status: 401 });
     }
     timings.auth_ok = Date.now();
 
@@ -232,31 +240,31 @@ export async function POST(req: NextRequest) {
     try {
       // Only check if we have a custom URL. If it's undefined (standard OpenAI), we skip this check.
       if (finalBaseUrl) {
-         const checkUrl = `${finalBaseUrl}/models`; // Standard OpenAI/Ollama check
-         const checkController = new AbortController();
-         const checkTimeout = setTimeout(() => checkController.abort(), 1000); // 1s timeout
- 
-         const checkRes = await fetch(checkUrl, {
-           method: 'GET',
-           headers: { 'Authorization': `Bearer ${process.env.LLM_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY || 'dummy-key'}` },
-           signal: checkController.signal
-         });
-         clearTimeout(checkTimeout);
- 
-         if (!checkRes.ok && checkRes.status !== 401 && checkRes.status !== 404) {
-           console.warn(`[${requestId}] Inference server might be unhealthy: ${checkRes.status}`);
-         }
+        const checkUrl = `${finalBaseUrl}/models`; // Standard OpenAI/Ollama check
+        const checkController = new AbortController();
+        const checkTimeout = setTimeout(() => checkController.abort(), 1000); // 1s timeout
+
+        const checkRes = await fetch(checkUrl, {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${process.env.LLM_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY || 'dummy-key'}` },
+          signal: checkController.signal
+        });
+        clearTimeout(checkTimeout);
+
+        if (!checkRes.ok && checkRes.status !== 401 && checkRes.status !== 404) {
+          console.warn(`[${requestId}] Inference server might be unhealthy: ${checkRes.status}`);
+        }
       }
     } catch (connError: any) {
       console.error(`[${requestId}] Inference Server Unreachable (${finalBaseUrl}):`, connError.message);
       // Only fail if we really can't reach the custom server. 
       // For standard OpenAI, we let the streamText call handle connection errors naturally.
-       if (finalBaseUrl) {
-           return NextResponse.json(
-             { error: `Inference Server Unreachable: ${connError.message}. Check VPC/VPN connection.` },
-             { status: 503 }
-           );
-       }
+      if (finalBaseUrl) {
+        return NextResponse.json(
+          { error: `Inference Server Unreachable: ${connError.message}. Check VPC/VPN connection.` },
+          { status: 503 }
+        );
+      }
     }
 
     // 5. Stream from LLM
