@@ -41,7 +41,7 @@ export async function embedText(text: string): Promise<number[]> {
     body: JSON.stringify({
       // OpenAI-compatible format
       input: normalizedText,
-      model: 'text-embedding-ada-002', // Model name (may be ignored by service)
+      // Note: model field is optional - embedding service uses MODEL_NAME env var
     }),
     });
 
