@@ -270,7 +270,7 @@ export async function POST(req: NextRequest) {
       console.error(`[${requestId}] Inference Server Unreachable (${activeBaseUrl}):`, connError.message);
       return NextResponse.json(
         { error: `Inference System Offline - Check Container. Details: ${connError.message}` },
-        { status: 503 }
+        { status: 503, headers: corsHeaders() }
       );
     }
 
