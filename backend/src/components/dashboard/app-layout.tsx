@@ -179,7 +179,7 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
     <>
       <SidebarHeader className="border-b border-white/5 pb-4">
         <div className="flex items-center gap-3 px-2 py-2">
-          <PandoraBoxIcon className="h-6 w-6 text-white" />
+          <PandoraBoxIcon className="h-6 w-6 text-white bg-transparent" />
           <span className="text-sm font-semibold text-white tracking-wide">
             Pandora&apos;s Box
           </span>
@@ -187,10 +187,10 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="w-full justify-between bg-white/5 border-white/10 hover:bg-white/10 group transition-all">
+            <Button variant="outline" className="w-full justify-between bg-zinc-900 border-zinc-800 hover:bg-zinc-800 text-zinc-300 group transition-all">
               <div className="flex items-center gap-2 overflow-hidden">
-                <div className="h-5 w-5 rounded bg-primary/20 flex items-center justify-center shrink-0">
-                  <Building className="h-3 w-3 text-primary" />
+                <div className="h-5 w-5 rounded bg-blue-500/20 flex items-center justify-center shrink-0">
+                  <Building className="h-3 w-3 text-blue-400" />
                 </div>
                 <span className="truncate text-xs font-medium">
                   {workspaceId ? workspaces.find(w => w.id === workspaceId)?.name || 'Loading...' : 'Personal Vault'}
@@ -291,14 +291,7 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
 
         <SidebarSeparator className="mx-2" />
 
-        <div className="px-4 py-2">
-          <Tabs value={agent} onValueChange={(value) => setAgent(value as 'builder' | 'universe')} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 p-1 bg-muted/50 rounded-lg">
-              <TabsTrigger value="builder" className="text-[10px] py-1">Builder</TabsTrigger>
-              <TabsTrigger value="universe" className="text-[10px] py-1">Universe</TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </div>
+
 
 
         <SidebarGroup className="mt-4 p-0">
