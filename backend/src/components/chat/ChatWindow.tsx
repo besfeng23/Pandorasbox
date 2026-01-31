@@ -327,11 +327,22 @@ export function ChatWindow({ threadId, agentId = 'universe' }: ChatWindowProps) 
         return updated;
       });
 
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: error.message || 'Failed to send message. Please try again.',
-      });
+          // Extract error message from response if available
+          let errorMessage = error.message || 'Failed to send message. Please try again.';
+          try {
+            if (error.message && error.message.includes('{')) {
+              const errorData = JSON.parse(error.message);
+              errorMessage = errorData.error || errorMessage;
+            }
+          } catch {
+            // If parsing fails, use the original message
+          }
+          
+          toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: errorMessage,
+          });
     } finally {
       setIsStreaming(false);
       abortControllerRef.current = null;

@@ -403,13 +403,32 @@ User ID: ${userId}${context}`,
         message: inferenceError.message,
         stack: inferenceError.stack,
         cause: inferenceError.cause,
-        baseUrl: activeBaseUrl
+        baseUrl: activeBaseUrl,
+        model: process.env.INFERENCE_MODEL || 'mistral'
       });
+      
+      // Extract more specific error information
+      let errorMessage = inferenceError.message || 'Unknown error';
+      let userFriendlyMessage = errorMessage;
+      
+      // Check for common error patterns
+      if (errorMessage.includes('model') && errorMessage.includes('not found')) {
+        userFriendlyMessage = `Model not found: The model '${process.env.INFERENCE_MODEL || 'mistral'}' is not available. Please check your Ollama/vLLM installation and ensure the model is pulled/loaded.`;
+      } else if (errorMessage.includes('ECONNREFUSED') || errorMessage.includes('Connection refused')) {
+        userFriendlyMessage = `Connection refused: Cannot reach inference server at ${activeBaseUrl}. Check VPC connector and ensure the service is running.`;
+      } else if (errorMessage.includes('timeout') || errorMessage.includes('TIMEOUT')) {
+        userFriendlyMessage = `Request timeout: The inference server did not respond in time. The service may be overloaded or unavailable.`;
+      }
       
       return NextResponse.json(
         { 
-          error: `Inference failed: ${inferenceError.message || 'Unknown error'}. Check if vLLM is running at ${activeBaseUrl || 'INFERENCE_URL'}.`,
-          details: process.env.NODE_ENV === 'development' ? inferenceError.stack : undefined
+          error: userFriendlyMessage,
+          details: process.env.NODE_ENV === 'development' ? {
+            originalError: errorMessage,
+            baseUrl: activeBaseUrl,
+            model: process.env.INFERENCE_MODEL || 'mistral',
+            stack: inferenceError.stack
+          } : undefined
         },
         { status: 503, headers: corsHeaders() }
       );
