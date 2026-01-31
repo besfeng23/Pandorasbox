@@ -13,6 +13,14 @@ export interface QdrantSearchResult {
 
 export async function searchPoints(collection: string, vector: number[], limit: number = 5, filter?: any): Promise<QdrantSearchResult[]> {
   const startTime = Date.now();
+  console.log('[Qdrant] Starting search:', {
+    collection,
+    vectorLength: vector.length,
+    limit,
+    hasFilter: !!filter,
+    qdrantUrl: QDRANT_URL
+  });
+  
   try {
     const body: any = {
       vector,
@@ -24,7 +32,10 @@ export async function searchPoints(collection: string, vector: number[], limit: 
       body.filter = filter;
     }
 
-    const response = await fetch(`${QDRANT_URL}/collections/${collection}/points/search`, {
+    const url = `${QDRANT_URL}/collections/${collection}/points/search`;
+    console.log(`[Qdrant] Request URL: ${url}`);
+    
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -33,18 +44,37 @@ export async function searchPoints(collection: string, vector: number[], limit: 
     });
 
     if (!response.ok) {
+      const endTime = Date.now();
+      const duration = endTime - startTime;
+      console.error(`[Qdrant] Search failed:`, {
+        status: response.status,
+        statusText: response.statusText,
+        collection,
+        duration: `${duration}ms`
+      });
       // If collection doesn't exist, we might return empty or throw
-      if (response.status === 404) return [];
+      if (response.status === 404) {
+        console.warn(`[Qdrant] Collection '${collection}' not found, returning empty results`);
+        return [];
+      }
       throw new Error(`Qdrant search failed: ${response.statusText}. Memory System Offline - Check Container.`);
     }
 
     const data = await response.json();
     const endTime = Date.now();
+    const duration = endTime - startTime;
+    const resultCount = data.result?.length || 0;
+
+    console.log(`[Qdrant] Search success:`, {
+      collection,
+      resultsCount: resultCount,
+      duration: `${duration}ms`
+    });
 
     logEvent('MEMORY_SEARCH', {
-      duration: endTime - startTime,
+      duration,
       collection,
-      results_count: data.result?.length || 0
+      results_count: resultCount
     });
 
     return data.result || [];
@@ -69,12 +99,23 @@ export async function searchPoints(collection: string, vector: number[], limit: 
 
 export async function upsertPoint(collection: string, point: { id: string | number; vector: number[]; payload?: any }) {
   const startTime = Date.now();
+  console.log('[Qdrant] Starting upsert:', {
+    collection,
+    pointId: point.id,
+    vectorLength: point.vector.length,
+    hasPayload: !!point.payload,
+    qdrantUrl: QDRANT_URL
+  });
+  
   try {
     // Ensure collection exists (basic check, in prod we might want to separate this)
     // For now we assume collection management happens elsewhere or we just try to upsert
     // Qdrant HTTP API: PUT /collections/{collection_name}/points
 
-    const response = await fetch(`${QDRANT_URL}/collections/${collection}/points?wait=true`, {
+    const url = `${QDRANT_URL}/collections/${collection}/points?wait=true`;
+    console.log(`[Qdrant] Upsert URL: ${url}`);
+    
+    const response = await fetch(url, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -85,14 +126,30 @@ export async function upsertPoint(collection: string, point: { id: string | numb
     });
 
     if (!response.ok) {
+      const endTime = Date.now();
+      const duration = endTime - startTime;
+      console.error(`[Qdrant] Upsert failed:`, {
+        status: response.status,
+        statusText: response.statusText,
+        collection,
+        pointId: point.id,
+        duration: `${duration}ms`
+      });
       throw new Error(`Qdrant upsert failed: ${response.statusText}. Memory System Offline - Check Container.`);
     }
 
     const result = await response.json();
     const endTime = Date.now();
+    const duration = endTime - startTime;
+
+    console.log(`[Qdrant] Upsert success:`, {
+      collection,
+      pointId: point.id,
+      duration: `${duration}ms`
+    });
 
     logEvent('INGESTION', {
-      duration: endTime - startTime,
+      duration,
       collection,
       operation: 'upsert',
       status: 'success'

@@ -13,15 +13,31 @@ export interface ServerConfig {
 let cachedConfig: ServerConfig | null = null;
 
 export async function getServerConfig(): Promise<ServerConfig> {
-  if (cachedConfig) return cachedConfig;
+  if (cachedConfig) {
+    console.log('[Config] Using cached config');
+    return cachedConfig;
+  }
+
+  console.log('[Config] Loading server configuration...');
+  console.log('[Config] Environment check:', {
+    hasSecretsUrl: !!process.env.SECRETS_URL,
+    nodeEnv: process.env.NODE_ENV,
+    hasInferenceBaseUrl: !!process.env.INFERENCE_BASE_URL,
+    hasInferenceUrl: !!process.env.INFERENCE_URL,
+    hasInferenceModel: !!process.env.INFERENCE_MODEL,
+    hasEmbeddingsBaseUrl: !!process.env.EMBEDDINGS_BASE_URL,
+    hasQdrantUrl: !!process.env.QDRANT_URL
+  });
 
   // Try Cloud Run secrets URL if available
   const secretsUrl = process.env.SECRETS_URL;
   if (secretsUrl && process.env.NODE_ENV === 'production') {
     try {
+      console.log(`[Config] Attempting to fetch secrets from URL: ${secretsUrl}`);
       const res = await fetch(secretsUrl);
       if (res.ok) {
         const secrets = await res.json();
+        console.log('[Config] Successfully loaded secrets from URL');
         // Support both INFERENCE_BASE_URL (preferred) and INFERENCE_URL (legacy)
         const inferenceUrl = secrets.INFERENCE_BASE_URL || secrets.INFERENCE_URL ||
           process.env.INFERENCE_BASE_URL || process.env.INFERENCE_URL ||
@@ -39,14 +55,24 @@ export async function getServerConfig(): Promise<ServerConfig> {
           qdrantUrl: secrets.QDRANT_URL || process.env.QDRANT_URL || 'http://localhost:6333',
           firebaseProjectId: secrets.FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || '',
         };
+        console.log('[Config] Configuration loaded:', {
+          inferenceBaseUrl: cachedConfig.inferenceBaseUrl,
+          inferenceModel: cachedConfig.inferenceModel,
+          embeddingsBaseUrl: cachedConfig.embeddingsBaseUrl,
+          qdrantUrl: cachedConfig.qdrantUrl,
+          embeddingsDimension: cachedConfig.embeddingsDimension
+        });
         return cachedConfig;
+      } else {
+        console.warn(`[Config] Secrets URL returned status ${res.status}, falling back to env vars`);
       }
-    } catch (e) {
-      console.warn('Failed to fetch secrets from URL, falling back to env vars:', e);
+    } catch (e: any) {
+      console.warn('[Config] Failed to fetch secrets from URL, falling back to env vars:', e.message);
     }
   }
 
   // Fallback to environment variables
+  console.log('[Config] Loading configuration from environment variables');
   // Support both INFERENCE_BASE_URL (preferred) and INFERENCE_URL (legacy)
   const inferenceUrl = process.env.INFERENCE_BASE_URL || process.env.INFERENCE_URL || 'http://localhost:8000';
   cachedConfig = {
@@ -57,6 +83,15 @@ export async function getServerConfig(): Promise<ServerConfig> {
     qdrantUrl: process.env.QDRANT_URL || 'http://localhost:6333',
     firebaseProjectId: process.env.FIREBASE_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || '',
   };
+
+  console.log('[Config] Final configuration:', {
+    inferenceBaseUrl: cachedConfig.inferenceBaseUrl,
+    inferenceModel: cachedConfig.inferenceModel,
+    embeddingsBaseUrl: cachedConfig.embeddingsBaseUrl,
+    qdrantUrl: cachedConfig.qdrantUrl,
+    embeddingsDimension: cachedConfig.embeddingsDimension,
+    firebaseProjectId: cachedConfig.firebaseProjectId ? '***' : 'not set'
+  });
 
   return cachedConfig;
 }

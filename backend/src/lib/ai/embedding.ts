@@ -9,10 +9,18 @@ import { getServerConfig } from '@/server/config';
  * @returns The embedding vector.
  */
 export async function embedText(text: string): Promise<number[]> {
+  const startTime = Date.now();
   const config = await getServerConfig();
   const normalizedText = text.trim();
 
+  console.log('[Embedding] Starting embedding generation:', {
+    textLength: normalizedText.length,
+    baseUrl: config.embeddingsBaseUrl,
+    dimension: config.embeddingsDimension
+  });
+
   if (!normalizedText) {
+    console.warn('[Embedding] Empty text provided, returning zero vector');
     return Array(config.embeddingsDimension).fill(0);
   }
 
@@ -31,7 +39,7 @@ export async function embedText(text: string): Promise<number[]> {
   }
 
   try {
-    console.log(`[AI] Embedding text at ${url} (Length: ${normalizedText.length})`);
+    console.log(`[Embedding] Request URL: ${url}, Text length: ${normalizedText.length}`);
 
     const response = await fetch(url, {
       method: 'POST',
@@ -47,8 +55,14 @@ export async function embedText(text: string): Promise<number[]> {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`[AI] Embedding failed. Status: ${response.status} ${response.statusText}`);
-      console.error(`[AI] Response Body: ${errorText.substring(0, 500)}`); // Log first 500 chars
+      const duration = Date.now() - startTime;
+      console.error(`[Embedding] Request failed:`, {
+        status: response.status,
+        statusText: response.statusText,
+        url,
+        duration: `${duration}ms`,
+        errorPreview: errorText.substring(0, 200)
+      });
       throw new Error(`Embedding inference failed: ${response.status} - ${errorText.substring(0, 100)}`);
     }
 
@@ -57,19 +71,39 @@ export async function embedText(text: string): Promise<number[]> {
     try {
       const result = JSON.parse(textResult);
       // Support both OpenAI-compatible format (data[0].embedding) and custom format (embedding)
+      let embedding: number[];
       if (result.data && Array.isArray(result.data) && result.data[0]?.embedding) {
-        return result.data[0].embedding;
+        embedding = result.data[0].embedding;
+      } else {
+        embedding = result.embedding || result.embeddings?.[0] || [];
       }
-      return result.embedding || result.embeddings?.[0] || [];
-    } catch (jsonError) {
-      console.error('[AI] JSON Parse Error on Embedding Response');
-      console.error('[AI] Received content:', textResult.substring(0, 500)); // Log what we actually got
-      throw new Error(`Invalid JSON code from Embedding API: ${textResult.substring(0, 50)}...`);
+      
+      const duration = Date.now() - startTime;
+      console.log(`[Embedding] Success:`, {
+        duration: `${duration}ms`,
+        embeddingLength: embedding.length,
+        format: result.data ? 'OpenAI-compatible' : 'custom'
+      });
+      
+      return embedding;
+    } catch (jsonError: any) {
+      const duration = Date.now() - startTime;
+      console.error('[Embedding] JSON Parse Error:', {
+        error: jsonError.message,
+        duration: `${duration}ms`,
+        responsePreview: textResult.substring(0, 500)
+      });
+      throw new Error(`Invalid JSON from Embedding API: ${textResult.substring(0, 50)}...`);
     }
 
   } catch (error: any) {
-    console.error(`[AI] Critical Embedding Error: ${error.message}`);
-    // Fallback or rethrow? For now rethrow to warn user.
+    const duration = Date.now() - startTime;
+    console.error(`[Embedding] Critical Error:`, {
+      message: error.message,
+      duration: `${duration}ms`,
+      url,
+      stack: error.stack?.substring(0, 200)
+    });
     throw error;
   }
 }

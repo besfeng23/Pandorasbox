@@ -186,11 +186,15 @@ export async function POST(req: NextRequest) {
     // Wrapped in Best-Effort Timeout (2000ms)
     let context = '';
     timings.memory_search_start = Date.now();
+    console.log(`[${requestId}] Starting RAG search, message length: ${message.length}`);
 
     if (message.length > 5) {
       try {
         const ragPromise = async () => {
+          console.log(`[${requestId}] Embedding query text for RAG search`);
           const queryVector = await embedText(message);
+          console.log(`[${requestId}] Query vector generated, length: ${queryVector.length}`);
+          
           const filter: any = {
             must: [
               { key: 'userId', match: { value: userId } },
@@ -202,16 +206,26 @@ export async function POST(req: NextRequest) {
             filter.must.push({ key: 'workspaceId', match: { value: workspaceId } });
           }
 
+          console.log(`[${requestId}] Searching Qdrant with filter:`, JSON.stringify(filter));
           const searchResults = (await searchPoints('memories', queryVector, 5, filter)) || [];
-          return enhanceWithCognition(Array.isArray(searchResults) ? searchResults : []);
+          console.log(`[${requestId}] RAG search returned ${searchResults.length} results`);
+          const enhanced = enhanceWithCognition(Array.isArray(searchResults) ? searchResults : []);
+          console.log(`[${requestId}] Enhanced context length: ${enhanced.length}`);
+          return enhanced;
         };
 
         context = await withTimeout(ragPromise(), 2000, '', 'RAG Search');
-      } catch (ragError) {
-        console.error(`[${requestId}] RAG Search failed:`, ragError);
+      } catch (ragError: any) {
+        console.error(`[${requestId}] RAG Search failed:`, {
+          error: ragError.message,
+          stack: ragError.stack?.substring(0, 200)
+        });
       }
+    } else {
+      console.log(`[${requestId}] Skipping RAG search (message too short)`);
     }
     timings.memory_search_end = Date.now();
+    console.log(`[${requestId}] RAG search completed in ${timings.memory_search_end - timings.memory_search_start}ms`);
 
     // 4.8 Phase 14: Subnetwork Routing (Semantic)
     // Wrapped in Best-Effort Timeout (1500ms)
