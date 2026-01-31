@@ -6,7 +6,7 @@ const tvly = process.env.TAVILY_API_KEY ? tavily({ apiKey: process.env.TAVILY_AP
 
 export const searchWeb = tool({
     description: 'Search the web for up-to-date information, news, and real-time data.',
-    parameters: z.object({
+    inputSchema: z.object({
         query: z.string().describe('The search query to perform.'),
         max_results: z.number().optional().describe('Maximum number of results to return (default: 5)'),
         include_domains: z.array(z.string()).optional().describe('List of domains to include in search'),
