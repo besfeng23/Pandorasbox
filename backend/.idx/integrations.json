@@ -1,5 +1,32 @@
 {
-  "firebase_hosting": {},
-  "gemini_api": {},
-  "secrets_manager": {}
+  "firebase_hosting": {
+    "enabled": true,
+    "note": "Firebase Hosting for deployment"
+  },
+  "secrets_manager": {
+    "enabled": true,
+    "note": "GCP Secrets Manager for environment variables"
+  },
+  "local_services": {
+    "vllm": {
+      "enabled": true,
+      "endpoint": "http://localhost:8000",
+      "note": "Local vLLM inference server (Mistral-7B)"
+    },
+    "qdrant": {
+      "enabled": true,
+      "endpoint": "http://localhost:6333",
+      "note": "Local Qdrant vector database"
+    },
+    "embeddings": {
+      "enabled": true,
+      "endpoint": "http://localhost:8080",
+      "note": "Local embeddings service (BAAI/bge-small-en-v1.5)"
+    },
+    "whisper": {
+      "enabled": true,
+      "endpoint": "http://localhost:9000",
+      "note": "Local Whisper ASR service"
+    }
+  }
 }
