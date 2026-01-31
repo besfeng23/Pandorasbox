@@ -59,6 +59,16 @@ async function initializeRouter() {
 }
 
 function cosineSimilarity(a: number[], b: number[]): number {
+    // Safety checks
+    if (!a || !b || a.length === 0 || b.length === 0) {
+        console.warn('[Router] Invalid vectors for cosine similarity');
+        return 0;
+    }
+    if (a.length !== b.length) {
+        console.warn(`[Router] Vector length mismatch: ${a.length} vs ${b.length}`);
+        return 0;
+    }
+    
     let dotProduct = 0;
     let normA = 0;
     let normB = 0;
@@ -67,7 +77,14 @@ function cosineSimilarity(a: number[], b: number[]): number {
         normA += a[i] * a[i];
         normB += b[i] * b[i];
     }
-    return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+    
+    const denominator = Math.sqrt(normA) * Math.sqrt(normB);
+    if (denominator === 0) {
+        console.warn('[Router] Zero denominator in cosine similarity');
+        return 0;
+    }
+    
+    return dotProduct / denominator;
 }
 
 export async function routeQuery(query: string): Promise<{ agentId: string; confidence: number; reasoning: string }> {
