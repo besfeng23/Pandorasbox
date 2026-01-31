@@ -12,7 +12,7 @@ export const searchWeb = tool({
         include_domains: z.array(z.string()).optional().describe('List of domains to include in search'),
         exclude_domains: z.array(z.string()).optional().describe('List of domains to exclude from search')
     }),
-    execute: async ({ query, max_results = 5, include_domains, exclude_domains }) => {
+    execute: async ({ query, max_results = 5, include_domains, exclude_domains }: { query: string, max_results?: number, include_domains?: string[], exclude_domains?: string[] }) => {
         if (!tvly) {
             console.warn('TAVILY_API_KEY not found. Returning mock results.');
             return `[Mock Result] Search functionality required TAVILY_API_KEY. Query was: "${query}"`;
