@@ -8,7 +8,7 @@ import type { AppSettings } from '@/lib/types';
 
 const defaultSettings: AppSettings = {
   theme: 'system',
-  active_model: 'mistralai/Mistral-7B-Instruct-v0.3',
+  active_model: 'mistral', // Updated for Ollama compatibility
   reply_style: 'detailed',
   system_prompt_override: '',
   personal_api_key: '',
