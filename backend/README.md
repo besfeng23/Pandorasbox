@@ -48,6 +48,45 @@ INFERENCE_MODEL=mistralai/Mistral-7B-Instruct-v0.3
 QDRANT_URL=http://localhost:6333
 ```
 
+## Cloud Run Deployment (VPC Connector Required)
+
+**⚠️ CRITICAL:** When deploying to Cloud Run, you **must** configure a VPC Connector to access internal services (vLLM, Qdrant, Embeddings).
+
+### Symptoms of Missing VPC Connector:
+- Empty chat bubbles (no response from AI)
+- Error messages: "Inference System Offline" or "Connection refused"
+- Chat messages fail silently with empty responses
+
+### Fix: Enable VPC Connector in Cloud Run
+
+1. **Via Firebase App Hosting (`apphosting.yaml`):**
+   ```yaml
+   runConfig:
+     vpcAccess:
+       connector: projects/YOUR_PROJECT/locations/us-central1/connectors/pandora-vpc-connector
+       egress: PRIVATE_RANGES_ONLY
+   ```
+
+2. **Via Google Cloud Console:**
+   - Go to **Cloud Run** > Your Service > **Edit & Deploy New Revision**
+   - Navigate to **Networking** tab
+   - Under **VPC**, select **"Use Serverless VPC Access Connector"**
+   - Choose your connector (or create one if missing)
+   - Set **Egress** to **"Private IPs only"**
+   - **Deploy**
+
+3. **Via gcloud CLI:**
+   ```bash
+   gcloud run services update YOUR_SERVICE \
+     --vpc-connector projects/YOUR_PROJECT/locations/us-central1/connectors/pandora-vpc-connector \
+     --vpc-egress private-ranges-only
+   ```
+
+### Verify VPC Connector:
+- Check Cloud Run service logs for connection errors
+- Visit `/api/health/inference` - should return `{"status":"online"}`
+- Chat should now show responses instead of empty bubbles
+
 ## Development
 
 ```bash
