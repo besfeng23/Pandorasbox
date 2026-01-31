@@ -257,11 +257,24 @@ export async function POST(req: NextRequest) {
       auth_ms: timings.auth_ok - timings.start,
       db_ms: timings.firestore_write_ok - timings.auth_ok,
       rag_ms: timings.memory_search_end - timings.memory_search_start,
-      route_ms: timings.routing_end - timings.routing_start
+      route_ms: timings.routing_end - timings.routing_start,
+      inference_url: activeBaseUrl || 'default'
     }));
 
     const openaiModel = getOpenAIModel(); // Call the getter here
-    const result = await streamText({
+    
+    // Validate that we have a valid model configuration
+    if (!activeBaseUrl && !apiKey) {
+      console.error(`[${requestId}] CRITICAL: No inference URL and no API key`);
+      return NextResponse.json(
+        { error: 'Inference server not configured. Please set INFERENCE_URL environment variable.' },
+        { status: 503, headers: corsHeaders() }
+      );
+    }
+
+    let result;
+    try {
+      result = await streamText({
       model: openaiModel(process.env.INFERENCE_MODEL || 'mistralai/Mistral-7B-Instruct-v0.3'),
       messages,
       tools: {
@@ -384,7 +397,33 @@ User ID: ${userId}${context}`,
         }
       },
     });
+    } catch (inferenceError: any) {
+      console.error(`[${requestId}] Inference Error:`, inferenceError);
+      console.error(`[${requestId}] Inference Error Details:`, {
+        message: inferenceError.message,
+        stack: inferenceError.stack,
+        cause: inferenceError.cause,
+        baseUrl: activeBaseUrl
+      });
+      
+      return NextResponse.json(
+        { 
+          error: `Inference failed: ${inferenceError.message || 'Unknown error'}. Check if vLLM is running at ${activeBaseUrl || 'INFERENCE_URL'}.`,
+          details: process.env.NODE_ENV === 'development' ? inferenceError.stack : undefined
+        },
+        { status: 503, headers: corsHeaders() }
+      );
+    }
 
+    if (!result) {
+      console.error(`[${requestId}] CRITICAL: streamText returned null/undefined`);
+      return NextResponse.json(
+        { error: 'Failed to initialize inference stream' },
+        { status: 500, headers: corsHeaders() }
+      );
+    }
+
+    console.log(`[${requestId}] Stream initialized successfully`);
     return result.toUIMessageStreamResponse();
 
   } catch (error: any) {

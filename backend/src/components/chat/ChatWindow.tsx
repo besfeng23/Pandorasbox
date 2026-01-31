@@ -286,8 +286,14 @@ export function ChatWindow({ threadId, agentId = 'universe' }: ChatWindowProps) 
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || 'Failed to send message');
+        const errorData = await response.json().catch(() => ({ error: await response.text() }));
+        const errorMessage = errorData.error || errorData.message || 'Failed to send message';
+        throw new Error(errorMessage);
+      }
+
+      // Check if response has a body (streaming)
+      if (!response.body) {
+        throw new Error('No response body received. The inference server may be offline.');
       }
 
       // Process the streaming response
