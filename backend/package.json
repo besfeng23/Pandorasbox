@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "save-settings-memories": "tsx scripts/save-all-settings-memories.ts",
     "test-tavily": "tsx scripts/test-tavily-search.ts",
-    "auto-commit": "tsx scripts/auto-commit.ts"
+    "auto-commit": "tsx scripts/auto-commit.ts",
+    "test": "vitest"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.21",
@@ -111,6 +112,7 @@
     "tsconfig-paths": "^4.2.0",
     "tsx": "^4.19.2",
     "typescript": "5.9.3",
-    "typescript-eslint": "^8.53.1"
+    "typescript-eslint": "^8.53.1",
+    "vitest": "^4.0.18"
   }
 }

@@ -1,33 +1,50 @@
 # Pandora's Box
 
-An AI-powered chat application with persistent long-term memory and MCP (Model Context Protocol) server capabilities.
+An AI-powered sovereign chat application with persistent long-term memory, subnetwork routing, and full observability.
 
 ## Features
 
-- **AI Chat Interface**: ChatGPT-like interface with persistent memory
-- **Vector Search**: Semantic search across conversation history and memories
-- **Memory Management**: Store and retrieve long-term memories with embeddings
-- **Artifact Creation**: Generate and save code/markdown artifacts
-- **Sovereign Architecture**: Completely self-hosted with no external dependencies
+- **AI Chat Interface**: ChatGPT-like interface with persistent memory and thread management.
+- **Sovereign Architecture**: Completely self-hosted with no external dependencies (runs on vLLM + Qdrant).
+- **Subnetwork Routing (Phase 14)**: Automatically routes queries to specialized agents:
+  - **The Builder**: Writes code, fixes bugs (React/Next.js expert).
+  - **The Universe**: Philosophical and creative exploration.
+  - **The Analyst**: Data analysis and reasoning.
+- **Long-Term Memory (Phase 13)**: Vector-based semantic search across all conversation history using Qdrant.
+- **Real-Time Observability**:
+  - **System Status**: Live inference and memory health indicators in the sidebar.
+  - **Sentry**: Full-stack crash reporting, performance tracing, and user identification.
+
+## System Architecture
+
+### 1. Subnetwork Router
+The `Router` (`src/lib/ai/router.ts`) analyzes every user message using semantic embeddings. It calculates the cosine similarity between the user's intent and the "Prototype Embedding" of each specialized agent.
+- **Technical queries** -> Routed to *The Builder*.
+- **Abstract queries** -> Routed to *The Universe*.
+
+### 2. Unified Cognition (RAG)
+Before generating a response, the system searches the `memories` collection in Qdrant for relevant facts and past interactions. These are injected into the LLM context as "Established Facts" or "Relevant Echoes".
+
+### 3. Monitoring & Status
+- **Frontend**: The generic Sidebar footer polls `/api/health/inference` and `/api/health/memory` to show Red/Green status dots.
+- **Sentry**: Connected to both Client and Server.
+  - **User ID**: Automatically tagged in Sentry issues via `useUser()` hook.
+  - **Tracing**: Distributed tracing links frontend navigation to backend API processing.
 
 ## Environment Variables
 
 ### Required
-
-- None (Local vLLM)
 - `INFERENCE_URL`: URL to your vLLM instance (e.g., `http://localhost:8000/v1`)
 - `QDRANT_URL`: URL to your Qdrant instance (e.g., `http://localhost:6333`)
 - `EMBEDDINGS_BASE_URL`: URL to your local embeddings service
-- Firebase service account credentials (via `service-account.json` or Application Default Credentials)
+- `LLM_API_KEY`: (Secret) API Key for the inference provider.
+- Firebase Service Account (via Google Cloud Secrets in production).
 
 ### Local Infrastructure
-
-When running locally with the bundled inference, embeddings, and Qdrant services:
-
+When running locally:
 ```bash
 INFERENCE_URL=http://localhost:8000/v1
 INFERENCE_MODEL=mistralai/Mistral-7B-Instruct-v0.3
-EMBEDDINGS_BASE_URL=http://localhost:8080
 QDRANT_URL=http://localhost:6333
 ```
 
@@ -37,16 +54,16 @@ QDRANT_URL=http://localhost:6333
 # Install dependencies
 npm install
 
-# Start local infrastructure (or: docker-compose up -d)
+# Start local infrastructure
 npm run infra:up
-
-# Verify services
-curl http://localhost:6333/collections  # Qdrant
-curl http://localhost:8080/health        # Embeddings
 
 # Run Next.js development server
 npm run dev
 
-# Type checking
-npm run typecheck
+# Run Unit Tests (New)
+npm test
 ```
+
+## Deployment
+This project is configured for **Firebase App Hosting**.
+Secrets (like `LLM_API_KEY`) are managed via Google Cloud Secret Manager.
