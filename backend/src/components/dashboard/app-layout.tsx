@@ -317,20 +317,25 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
       </SidebarContent >
 
       <SidebarFooter>
-        <SystemStatus />
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="w-full justify-start gap-2 p-2">
-              <Avatar className="h-8 w-8">
+            <Button variant="ghost" className="w-full justify-start gap-3 p-2 h-auto hover:bg-zinc-800">
+              <Avatar className="h-8 w-8 rounded-full bg-zinc-700">
                 {user?.photoURL && <AvatarImage src={user.photoURL} alt={user.displayName || user.email || 'User'} />}
                 <AvatarFallback>
-                  <User />
+                  <User className="h-4 w-4 text-zinc-300" />
                 </AvatarFallback>
               </Avatar>
-              <div className="flex flex-col items-start">
-                <span className="text-sm font-medium text-foreground">
+              <div className="flex flex-col items-start min-w-0">
+                <span className="text-sm font-medium text-white truncate max-w-[140px]">
                   {user?.displayName || user?.email || 'User'}
                 </span>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="w-2 h-2 rounded-full bg-red-500 shadow-sm shadow-red-500/50"></span>
+                  <span className="w-2 h-2 rounded-full bg-zinc-600"></span>
+                  <span className="text-[10px] font-medium text-zinc-500 tracking-wider">SYSTEM</span>
+                </div>
               </div>
             </Button>
           </DropdownMenuTrigger>
