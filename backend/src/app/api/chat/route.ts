@@ -283,9 +283,11 @@ export async function POST(req: NextRequest) {
     }
 
     let result;
+    const modelName = process.env.INFERENCE_MODEL || 'mistral';
+    console.log(`[${requestId}] Using model: ${modelName}, BaseURL: ${activeBaseUrl}`);
     try {
       result = await streamText({
-      model: openaiModel(process.env.INFERENCE_MODEL || 'mistral'),
+      model: openaiModel(modelName),
       messages,
       tools: {
         generate_artifact: tool({

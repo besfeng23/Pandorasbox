@@ -18,6 +18,14 @@ const getOpenAI = () => {
   }
   const SOVEREIGN_KEY = process.env.SOVEREIGN_KEY || 'empty';
 
+  // Debug logging
+  console.log('[Sovereign Inference] Initializing OpenAI client:', {
+    baseUrl,
+    inferenceUrl: INFERENCE_URL,
+    hasApiKey: !!SOVEREIGN_KEY && SOVEREIGN_KEY !== 'empty',
+    model: process.env.INFERENCE_MODEL || 'mistral'
+  });
+
   return new OpenAI({
     baseURL: INFERENCE_URL,
     apiKey: SOVEREIGN_KEY,
@@ -36,16 +44,24 @@ export type ChatMessage = {
 export async function streamInference(messages: ChatMessage[]) {
   try {
     const openai = getOpenAI();
+    console.log('[Sovereign Inference] Creating stream with model:', INFERENCE_MODEL, 'Messages:', messages.length);
     const stream = await openai.chat.completions.create({
       model: INFERENCE_MODEL,
       messages: messages,
       stream: true,
       temperature: 0.7,
     });
+    console.log('[Sovereign Inference] Stream created successfully');
     return stream;
-  } catch (error) {
-    console.error('Sovereign Inference Error:', error);
-    throw new Error('Inference System Offline - Check Container.');
+  } catch (error: any) {
+    console.error('[Sovereign Inference] Stream Error:', {
+      message: error.message,
+      status: error.status,
+      code: error.code,
+      model: INFERENCE_MODEL,
+      baseUrl: process.env.INFERENCE_BASE_URL || process.env.INFERENCE_URL
+    });
+    throw new Error(`Inference System Offline - ${error.message || 'Check Container'}`);
   }
 }
 
@@ -61,6 +77,7 @@ export async function completeInference(
 ): Promise<string> {
   try {
     const openai = getOpenAI();
+    console.log('[Sovereign Inference] Creating completion with model:', INFERENCE_MODEL, 'Temperature:', temperature);
     const completion = await openai.chat.completions.create({
       model: INFERENCE_MODEL,
       messages: messages,
@@ -69,10 +86,18 @@ export async function completeInference(
       max_tokens: 500, // Limit for summaries
     });
 
-    return completion.choices[0]?.message?.content || '';
-  } catch (error) {
-    console.error('Sovereign Inference Error (non-streaming):', error);
-    throw new Error('Inference System Offline - Check Container.');
+    const content = completion.choices[0]?.message?.content || '';
+    console.log('[Sovereign Inference] Completion received, length:', content.length);
+    return content;
+  } catch (error: any) {
+    console.error('[Sovereign Inference] Completion Error:', {
+      message: error.message,
+      status: error.status,
+      code: error.code,
+      model: INFERENCE_MODEL,
+      baseUrl: process.env.INFERENCE_BASE_URL || process.env.INFERENCE_URL
+    });
+    throw new Error(`Inference System Offline - ${error.message || 'Check Container'}`);
   }
 }
 
