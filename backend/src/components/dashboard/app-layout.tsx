@@ -178,14 +178,11 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
   return (
     <>
       <SidebarHeader className="border-b border-white/5 pb-4">
-        <div className="flex items-center justify-between mb-4">
-          <Link href="/" className="flex items-center gap-2" onClick={handleNavClick}>
-            <PandoraBoxIcon className="h-8 w-8 text-primary" />
-            <span className="text-lg font-headline font-semibold text-foreground">
-              Pandora
-            </span>
-          </Link>
-          <ThemeToggle />
+        <div className="flex items-center gap-3 px-2 py-2">
+          <PandoraBoxIcon className="h-6 w-6 text-white" />
+          <span className="text-sm font-semibold text-white tracking-wide">
+            Pandora&apos;s Box
+          </span>
         </div>
 
         <DropdownMenu>
@@ -236,121 +233,61 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
 
       <SidebarContent className="p-2 gap-4">
         <SidebarGroup>
-          <div className="px-4 py-2 mb-1">
-            <h4 className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-widest">Conversations</h4>
-          </div>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <Link href="/" className="w-full" onClick={handleNavClick}>
-                <SidebarMenuButton isActive={pathname === '/'} className="w-full justify-start">
-                  <Bot />
-                  <span>Chat Assistant</span>
-                </SidebarMenuButton>
-              </Link>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <Button
-                variant="default"
-                className="w-full justify-start shadow-md hover:shadow-lg transition-all group bg-primary text-primary-foreground hover:bg-primary/90"
-                onClick={handleCreateThread}
-              >
-                <PlusCircle className="mr-2 h-4 w-4 group-hover:scale-110 transition-transform" />
-                <span className="font-semibold flex-1">Start New Chat</span>
-                <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
-                  <span className="text-xs">⌘</span>N
-                </kbd>
-              </Button>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <div className="px-4 py-2 mb-1 mt-4 border-t border-white/5 pt-4">
-            <h4 className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-widest">Knowledge</h4>
-          </div>
           <SidebarMenu>
             <SidebarMenuItem>
               <Link href="/memory" className="w-full" onClick={handleNavClick}>
-                <SidebarMenuButton isActive={pathname.startsWith('/memory')} className="w-full justify-start">
-                  <BrainCircuit />
-                  <span>Memory Vault</span>
+                <SidebarMenuButton isActive={pathname.startsWith('/memory')} className="w-full justify-start text-muted-foreground hover:text-white data-[active=true]:text-white">
+                  <BrainCircuit className="h-4 w-4" />
+                  <span>Memory</span>
                 </SidebarMenuButton>
               </Link>
             </SidebarMenuItem>
-            <SidebarMenuItem>
-              <Link href="/knowledge" className="w-full" onClick={handleNavClick}>
-                <SidebarMenuButton isActive={pathname.startsWith('/knowledge')} className="w-full justify-start">
-                  <Book />
-                  <span>Knowledge Library</span>
-                </SidebarMenuButton>
-              </Link>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <Link href="/graph" className="w-full" onClick={handleNavClick}>
-                <SidebarMenuButton isActive={pathname.startsWith('/graph')} className="w-full justify-start">
-                  <Share2 />
-                  <span>Knowledge Graph</span>
-                </SidebarMenuButton>
-              </Link>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <div className="px-4 py-2 mb-1 mt-4 border-t border-white/5 pt-4">
-            <h4 className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-widest">Assets</h4>
-          </div>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <Link href="/artifacts" className="w-full" onClick={handleNavClick}>
-                <SidebarMenuButton isActive={pathname.startsWith('/artifacts')} className="w-full justify-start">
-                  <Sparkles />
-                  <span>Assets</span>
-                </SidebarMenuButton>
-              </Link>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <div className="px-4 py-2 mb-1 mt-4 border-t border-white/5 pt-4">
-            <h4 className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-widest">System</h4>
-          </div>
-          <SidebarMenu>
             <SidebarMenuItem>
               <Link href="/connectors" className="w-full" onClick={handleNavClick}>
-                <SidebarMenuButton isActive={pathname.startsWith('/connectors')} className="w-full justify-start">
-                  <Plug />
-                  <span>Connectors</span>
+                <SidebarMenuButton isActive={pathname.startsWith('/connectors')} className="w-full justify-start text-muted-foreground hover:text-white data-[active=true]:text-white">
+                  <Plug className="h-4 w-4" />
+                  <span>Data Connectors</span>
                 </SidebarMenuButton>
               </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
               <Link href="/agents" className="w-full" onClick={handleNavClick}>
-                <SidebarMenuButton isActive={pathname.startsWith('/agents')} className="w-full justify-start">
-                  <User />
-                  <span>Agent Fleet</span>
-                </SidebarMenuButton>
-              </Link>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <Link href="/health" className="w-full" onClick={handleNavClick}>
-                <SidebarMenuButton isActive={pathname.startsWith('/health')} className="w-full justify-start">
-                  <Activity />
-                  <span>Health Stats</span>
-                </SidebarMenuButton>
-              </Link>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <Link href="/admin" className="w-full" onClick={handleNavClick}>
-                <SidebarMenuButton isActive={pathname.startsWith('/admin')} className="w-full justify-start">
-                  <Shield />
-                  <span>Admin Panel</span>
+                <SidebarMenuButton isActive={pathname.startsWith('/agents')} className="w-full justify-start text-muted-foreground hover:text-white data-[active=true]:text-white">
+                  <Bot className="h-4 w-4" />
+                  <span>Agents</span>
                 </SidebarMenuButton>
               </Link>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
+
+        <div className="px-2 py-4">
+          <Tabs value={agent} onValueChange={(value) => setAgent(value as 'builder' | 'universe')} className="w-full">
+            <TabsList className="grid w-full grid-cols-2 bg-zinc-800/50 p-1 rounded-lg h-9">
+              <TabsTrigger
+                value="builder"
+                className="text-xs font-medium py-1 data-[state=active]:bg-zinc-700 data-[state=active]:text-white text-zinc-400"
+              >
+                Builder
+              </TabsTrigger>
+              <TabsTrigger
+                value="universe"
+                className="text-xs font-medium py-1 data-[state=active]:bg-zinc-700 data-[state=active]:text-white text-zinc-400"
+              >
+                Universe
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+
+          <Button
+            variant="outline"
+            className="w-full mt-4 justify-center gap-2 border-zinc-800 bg-transparent hover:bg-zinc-800 text-white h-10"
+            onClick={handleCreateThread}
+          >
+            <PlusCircle className="h-4 w-4 text-zinc-400" />
+            <span>New Thread</span>
+          </Button>
+        </div>
 
         <SidebarSeparator className="mx-2" />
 

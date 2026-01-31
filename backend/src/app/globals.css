@@ -63,29 +63,33 @@
   }
 
   .dark {
-    /* Apple-esque Dark Mode */
-    --background: 0 0% 0%;
-    /* #000000 (Pure Black for OLED) */
+    /* Pandora's Box Dark Mode */
+    --background: 240 10% 3.9%; /* #09090b */
     --foreground: 0 0% 98%;
-    /* #FAFAFA */
-    --card: 240 3.7% 11%;
-    /* #1C1C1E (Secondary System Grouped) */
+
+    --card: 240 10% 6%; /* Slightly lighter than bg */
     --card-foreground: 0 0% 98%;
-    --popover: 240 3.7% 11%;
+
+    --popover: 240 10% 3.9%;
     --popover-foreground: 0 0% 98%;
-    --primary: 211 100% 50%;
-    /* #007AFF (System Blue) */
+
+    --primary: 211 100% 50%; /* #007AFF */
     --primary-foreground: 0 0% 100%;
-    --secondary: 240 3.7% 15.9%;
+
+    --secondary: 240 4% 16%;
     --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
+
+    --muted: 240 4% 16%;
     --muted-foreground: 240 5% 64.9%;
+
     --accent: 211 100% 50%;
-    --accent-foreground: 0 0% 98%;
+    --accent-foreground: 0 0% 100%;
+
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
+
+    --border: 240 4% 16%;
+    --input: 240 4% 16%;
     --ring: 211 100% 50%;
 
     /* Semantic Colors (Dark) */
@@ -102,13 +106,13 @@
     --chart-4: 0 90% 60%;
     --chart-5: 280 60% 60%;
 
-    --sidebar-background: 0 0% 0%;
+    --sidebar-background: 240 10% 3.9%;
     --sidebar-foreground: 240 5% 64.9%;
     --sidebar-primary: 211 100% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent: 240 4% 16%;
     --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-border: 240 4% 16%;
     --sidebar-ring: 211 100% 50%;
   }
 }

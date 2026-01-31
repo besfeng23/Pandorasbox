@@ -1,88 +1,24 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppLayout } from '@/components/dashboard/app-layout';
 import { useAuth } from '@/hooks/use-auth';
-import { LogoutButton } from '@/components/auth/logout-button';
-import { useFirestore } from '@/firebase';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Loader2, Bot, BrainCircuit, History, ArrowRight } from 'lucide-react';
-import { createThread, getRecentThreads } from '@/app/actions';
-import { Timestamp } from 'firebase/firestore';
-import { WelcomeScreen } from '@/components/chat/welcome-screen';
-import { WelcomeWizard } from '@/components/onboarding/welcome-wizard';
-import type { Thread } from '@/lib/types';
-import { Skeleton } from '@/components/ui/skeleton';
-import { formatDistanceToNow } from 'date-fns';
-import { useToast } from '@/hooks/use-toast';
-import { ErrorBoundary } from '@/components/error-boundary';
-import { motion } from 'framer-motion';
-import { cn } from '@/lib/utils';
+import { Loader2, Bot, Sparkles, PlusCircle } from 'lucide-react';
+import { createThread } from '@/app/actions';
+import { AgentCard } from '@/components/dashboard/agent-card';
 import { PandoraBoxIcon } from '@/components/icons';
+import { motion } from 'framer-motion';
 
 export default function DashboardPage() {
     const { user, isLoading: userLoading } = useAuth();
     const router = useRouter();
-    const { toast } = useToast();
-
-    const [recentThreads, setRecentThreads] = useState<Thread[]>([]);
-    const [isLoadingThreads, setIsLoadingThreads] = useState(true);
 
     useEffect(() => {
         if (!userLoading && !user) {
             router.push('/login');
         }
     }, [user, userLoading, router]);
-
-    useEffect(() => {
-        if (!user) {
-            setIsLoadingThreads(false);
-            return;
-        };
-
-        const fetchThreads = async () => {
-            setIsLoadingThreads(true);
-            try {
-                const threads = await getRecentThreads(user.uid);
-                console.log('[Dashboard] fetched threads:', threads);
-                if (Array.isArray(threads)) {
-                    setRecentThreads(threads);
-                } else {
-                    console.error('[Dashboard] Expected array but got:', typeof threads, threads);
-                    setRecentThreads([]);
-                }
-            } catch (error) {
-                console.error('Error fetching threads:', error);
-                toast({
-                    variant: 'destructive',
-                    title: 'Error',
-                    description: 'Could not fetch recent threads.'
-                });
-                setRecentThreads([]);
-            } finally {
-                setIsLoadingThreads(false);
-            }
-        };
-
-        fetchThreads();
-    }, [user, toast]);
-
-    const [showWizard, setShowWizard] = useState(false);
-
-    useEffect(() => {
-        if (!user) return;
-        const checkWizard = async () => {
-            const { checkOnboardingStatus } = await import('@/app/actions');
-            const completed = await checkOnboardingStatus(user.uid);
-            if (!completed) {
-                setShowWizard(true);
-            }
-        };
-        checkWizard();
-    }, [user]);
 
     const handleCreateThread = async (agent: 'builder' | 'universe') => {
         if (user) {
@@ -93,152 +29,79 @@ export default function DashboardPage() {
         }
     };
 
-    const formatTimestamp = (timestamp: any) => {
-        if (!timestamp) return 'N/A';
-        // Handle Firestore Timestamp
-        if (timestamp instanceof Timestamp) {
-            return formatDistanceToNow(timestamp.toDate(), { addSuffix: true });
-        }
-        // Handle Date object or ISO string
-        const date = new Date(timestamp);
-        if (isNaN(date.getTime())) return 'N/A';
-        return formatDistanceToNow(date, { addSuffix: true });
-    };
-
     if (userLoading || !user) {
         return (
-            <div className="flex h-screen w-full items-center justify-center bg-background">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <div className="flex h-screen w-full items-center justify-center bg-black text-white">
+                <Loader2 className="h-8 w-8 animate-spin text-[#007AFF]" />
             </div>
         );
     }
 
     return (
         <AppLayout>
-            <ErrorBoundary>
-                <div className="flex-1 overflow-y-auto">
-                    <div className="max-w-6xl mx-auto p-4 md:p-12 space-y-8 md:space-y-12 animate-in-fade">
-                        {/* Hero Section */}
-                        <header className="text-center space-y-4 py-4 md:py-8">
-                            <motion.div
-                                initial={{ opacity: 0, scale: 0.9 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                transition={{ duration: 0.5 }}
-                                className="inline-flex items-center justify-center p-3 rounded-full bg-primary/10 mb-2 md:mb-4"
-                            >
-                                <PandoraBoxIcon className="h-10 w-10 md:h-12 md:w-12 text-primary" />
-                            </motion.div>
-                            <h1 className="font-headline text-3xl md:text-6xl font-bold tracking-tight bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent px-2">
-                                Welcome, {user.displayName || 'Explorer'}
-                            </h1>
-                            <p className="text-base md:text-xl text-muted-foreground max-w-2xl mx-auto px-4">
-                                Your personal intelligence hub.
-                            </p>
-                        </header>
-
-                        {/* Quick Actions Grid */}
-                        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 px-2">
-                            <Card className="glass-surface-strong group hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary/20 hover:border-primary/30 transition-all duration-300 cursor-pointer overflow-hidden border-white/10 dark:border-white/5 relative" onClick={() => handleCreateThread('builder')}>
-                                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-50 group-hover:opacity-100 transition-opacity duration-300" />
-                                <CardContent className="p-6 space-y-4 relative z-10">
-                                    <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-primary group-hover:scale-110 transition-transform shadow-inner border border-primary/10">
-                                        <Bot className="h-7 w-7" />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <h3 className="font-headline font-semibold text-xl group-hover:text-primary transition-colors">New Session</h3>
-                                        <p className="text-sm text-muted-foreground line-clamp-2">Start a new conversation context.</p>
-                                    </div>
-                                    <Button size="sm" className="w-full mt-2 group-hover:bg-primary group-hover:text-primary-foreground transition-colors shadow-sm" variant="secondary">
-                                        Create Session <ArrowRight className="ml-2 h-4 w-4" />
-                                    </Button>
-                                </CardContent>
-                            </Card>
-
-                            <Card className="glass-surface-strong group hover:-translate-y-1 hover:shadow-2xl hover:shadow-purple-500/20 hover:border-purple-500/30 transition-all duration-300 cursor-pointer overflow-hidden border-white/10 dark:border-white/5 relative" onClick={() => router.push('/knowledge')}>
-                                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent opacity-50 group-hover:opacity-100 transition-opacity duration-300" />
-                                <CardContent className="p-6 space-y-4 relative z-10">
-                                    <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-purple-500/20 to-purple-500/5 flex items-center justify-center text-purple-500 group-hover:scale-110 transition-transform shadow-inner border border-purple-500/10">
-                                        <BrainCircuit className="h-7 w-7" />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <h3 className="font-headline font-semibold text-xl group-hover:text-purple-400 transition-colors">Add Knowledge</h3>
-                                        <p className="text-sm text-muted-foreground line-clamp-2">Upload documents to the Neural Vault.</p>
-                                    </div>
-                                    <Button size="sm" className="w-full mt-2 group-hover:bg-purple-600 group-hover:text-white transition-colors shadow-sm" variant="secondary">
-                                        Manage Library <ArrowRight className="ml-2 h-4 w-4" />
-                                    </Button>
-                                </CardContent>
-                            </Card>
-
-                            <Card className="glass-panel p-6 flex flex-col justify-between border-white/10 bg-muted/5">
-                                <div className="space-y-4">
-                                    <div className="flex items-center justify-between">
-                                        <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">Vault Status</h3>
-                                        <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-muted-foreground">Inference</span>
-                                            <span className="font-medium text-green-500">Active</span>
-                                        </div>
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-muted-foreground">Memory Vault</span>
-                                            <span className="font-medium">6.2 GB</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <Button variant="link" className="p-0 h-auto justify-start text-xs text-primary group" onClick={() => router.push('/health')}>
-                                    Full Diagnostics <ArrowRight className="ml-1 h-3 w-3 group-hover:translate-x-1 transition-transform" />
-                                </Button>
-                            </Card>
-                        </section>
-
-                        {/* Recent Activity */}
-                        <section className="space-y-6">
-                            <div className="flex items-center justify-between">
-                                <h2 className="text-2xl font-bold tracking-tight px-1">Recent Sessions</h2>
-                                <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => router.push('/chat')}>View All</Button>
-                            </div>
-
-                            {isLoadingThreads ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <Skeleton className="h-24 w-full rounded-2xl" />
-                                    <Skeleton className="h-24 w-full rounded-2xl" />
-                                </div>
-                            ) : recentThreads.length === 0 ? (
-                                <div className="text-center py-12 border-2 border-dashed rounded-3xl border-muted/20">
-                                    <p className="text-muted-foreground">No recent sessions found. Start building to see them here.</p>
-                                </div>
-                            ) : (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {(recentThreads || []).slice(0, 4).map(thread => (
-                                        <Link key={thread.id} href={`/chat/${thread.id}`} className="group">
-                                            <Card className="bg-card hover:bg-accent/50 transition-all duration-300 border shadow-none hover:shadow-md rounded-2xl overflow-hidden">
-                                                <CardContent className="p-5 flex items-center justify-between">
-                                                    <div className="flex items-center gap-4 overflow-hidden">
-                                                        <div className={cn(
-                                                            "h-10 w-10 rounded-xl flex items-center justify-center shrink-0",
-                                                            thread.agent === 'builder' ? "bg-primary/10 text-primary" : "bg-purple-500/10 text-purple-500"
-                                                        )}>
-                                                            {thread.agent === 'builder' ? <Bot className="h-5 w-5" /> : <BrainCircuit className="h-5 w-5" />}
-                                                        </div>
-                                                        <div className="space-y-0.5 truncate">
-                                                            <h4 className="font-medium truncate">{thread.name}</h4>
-                                                            <p className="text-xs text-muted-foreground">{formatTimestamp(thread.updatedAt)}</p>
-                                                        </div>
-                                                    </div>
-                                                    <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-                                                </CardContent>
-                                            </Card>
-                                        </Link>
-                                    ))}
-                                </div>
-                            )}
-                        </section>
+            <div className="flex-1 flex flex-col items-center justify-center min-h-[calc(100vh-64px)] p-6 animate-in-fade">
+                {/* Hero Section */}
+                <header className="text-center space-y-6 mb-12 max-w-2xl">
+                    <div className="flex justify-center mb-6">
+                        {/* Optional Logo Animation if desired, or simplified as per screenshot which has no logo but top bar logo */}
                     </div>
-                </div>
-            </ErrorBoundary>
-            {user && <WelcomeWizard userId={user.uid} open={showWizard} onOpenChange={setShowWizard} />}
+
+                    <motion.h1
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 }}
+                        className="text-4xl md:text-5xl font-bold tracking-tight text-white"
+                    >
+                        Welcome to Pandora&apos;s Box
+                    </motion.h1>
+
+                    <motion.p
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 }}
+                        className="text-lg text-zinc-400 max-w-lg mx-auto leading-relaxed"
+                    >
+                        Your personal AI companion for building and exploring. Let&apos;s get you started.
+                    </motion.p>
+                </header>
+
+                {/* Main Action Container */}
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.3, duration: 0.4 }}
+                    className="w-full max-w-3xl bg-[#121214] rounded-3xl p-8 md:p-12 border border-white/5 shadow-2xl shadow-black/40"
+                    style={{ backgroundColor: '#121214' }} // Fallback/Force specific dark gray from screenshot
+                >
+                    <div className="text-center space-y-2 mb-10">
+                        <h2 className="text-2xl font-bold text-white flex items-center justify-center gap-3">
+                            <PlusCircle className="h-6 w-6 text-zinc-400" />
+                            Create your first thread
+                        </h2>
+                        <p className="text-zinc-500 text-sm">
+                            Choose an agent to start a new conversation. Each agent has a unique purpose.
+                        </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <AgentCard
+                            title="Builder Agent"
+                            description="The Builder agent helps you create and refine ideas. It's your collaborative partner for brainstorming, writing, and problem-solving."
+                            buttonText="Start with Builder"
+                            icon={Bot}
+                            onClick={() => handleCreateThread('builder')}
+                        />
+
+                        <AgentCard
+                            title="Universe Agent"
+                            description="The Universe agent has access to a broad range of knowledge. Use it to learn new things, explore topics, and get answers to your questions."
+                            buttonText="Start with Universe"
+                            icon={Sparkles}
+                            onClick={() => handleCreateThread('universe')}
+                        />
+                    </div>
+                </motion.div>
+            </div>
         </AppLayout>
     );
 }
