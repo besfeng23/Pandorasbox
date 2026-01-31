@@ -84,12 +84,22 @@ export async function routeQuery(query: string): Promise<{ agentId: string; conf
 
     try {
         const queryVector = await embedText(query);
+        
+        if (!queryVector || queryVector.length === 0) {
+            console.warn('[Router] Empty query vector, using fallback');
+            return { agentId: 'universe', confidence: 0.0, reasoning: 'Empty embedding fallback' };
+        }
 
         let bestMatch = AGENTS[0];
         let maxScore = -1;
 
         for (const agent of AGENTS) {
-            if (agent.prototype_embedding) {
+            if (agent.prototype_embedding && agent.prototype_embedding.length > 0) {
+                // Ensure vectors have same dimension
+                if (queryVector.length !== agent.prototype_embedding.length) {
+                    console.warn(`[Router] Dimension mismatch for agent ${agent.id}, skipping`);
+                    continue;
+                }
                 const score = cosineSimilarity(queryVector, agent.prototype_embedding);
                 if (score > maxScore) {
                     maxScore = score;
@@ -98,14 +108,23 @@ export async function routeQuery(query: string): Promise<{ agentId: string; conf
             }
         }
 
+        // Ensure we have a valid match
+        if (maxScore < 0) {
+            console.warn('[Router] No valid agent match found, using fallback');
+            return { agentId: 'universe', confidence: 0.0, reasoning: 'No match fallback' };
+        }
+
         return {
             agentId: bestMatch.id,
             confidence: maxScore,
             reasoning: `Semantic similarity match (${maxScore.toFixed(2)}) with: ${bestMatch.description.slice(0, 30)}...`
         };
 
-    } catch (error) {
-        console.error('[Router] Routing failed', error);
+    } catch (error: any) {
+        console.error('[Router] Routing failed:', {
+            error: error.message,
+            stack: error.stack?.substring(0, 200)
+        });
         return { agentId: 'universe', confidence: 0.0, reasoning: 'Routing error fallback' };
     }
 }

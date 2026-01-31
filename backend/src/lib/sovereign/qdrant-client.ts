@@ -13,6 +13,21 @@ export interface QdrantSearchResult {
 
 export async function searchPoints(collection: string, vector: number[], limit: number = 5, filter?: any): Promise<QdrantSearchResult[]> {
   const startTime = Date.now();
+  
+  // Input validation
+  if (!collection || typeof collection !== 'string') {
+    console.error('[Qdrant] Invalid collection name:', collection);
+    return [];
+  }
+  if (!vector || !Array.isArray(vector) || vector.length === 0) {
+    console.error('[Qdrant] Invalid vector provided:', { vectorLength: vector?.length, isArray: Array.isArray(vector) });
+    return [];
+  }
+  if (limit < 1 || limit > 100) {
+    console.warn('[Qdrant] Limit out of bounds, clamping:', limit);
+    limit = Math.max(1, Math.min(100, limit));
+  }
+  
   console.log('[Qdrant] Starting search:', {
     collection,
     vectorLength: vector.length,

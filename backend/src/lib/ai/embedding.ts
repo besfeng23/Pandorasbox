@@ -10,6 +10,13 @@ import { getServerConfig } from '@/server/config';
  */
 export async function embedText(text: string): Promise<number[]> {
   const startTime = Date.now();
+  
+  // Input validation
+  if (!text || typeof text !== 'string') {
+    console.error('[Embedding] Invalid input:', { type: typeof text, value: text });
+    throw new Error('Text must be a non-empty string');
+  }
+  
   const config = await getServerConfig();
   const normalizedText = text.trim();
 
@@ -22,6 +29,14 @@ export async function embedText(text: string): Promise<number[]> {
   if (!normalizedText) {
     console.warn('[Embedding] Empty text provided, returning zero vector');
     return Array(config.embeddingsDimension).fill(0);
+  }
+  
+  // Validate config
+  if (!config.embeddingsBaseUrl) {
+    throw new Error('Embeddings base URL not configured');
+  }
+  if (!config.embeddingsDimension || config.embeddingsDimension < 1) {
+    throw new Error(`Invalid embeddings dimension: ${config.embeddingsDimension}`);
   }
 
   // Embedding service uses OpenAI-compatible endpoint: /v1/embeddings

@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       console.warn(`[${requestId}] 401 Unauthorized: Missing or invalid Authorization header. Received:`, authHeader);
-      return NextResponse.json({ error: 'Unauthorized: Missing Authorization header' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized: Missing Authorization header' }, { status: 401, headers: corsHeaders() });
     }
     const token = authHeader.split('Bearer ')[1];
 
