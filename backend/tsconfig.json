@@ -41,6 +41,7 @@
     "functions",
     "scripts",
     "**/__tests__/**",
+    "e2e",
     "deploy",
     ".next"
   ]

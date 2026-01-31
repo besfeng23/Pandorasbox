@@ -1,11 +1,4 @@
-// Only import server-only in Next.js context (not for standalone MCP server)
-if (typeof process !== 'undefined' && process.env.NEXT_RUNTIME) {
-  try {
-    require('server-only');
-  } catch {
-    // Ignore if not in Next.js context
-  }
-}
+import 'server-only';
 
 /* eslint-disable @typescript-eslint/no-require-imports */
 import { embedText, embedTextsBatch } from './ai/embedding';
