@@ -24,8 +24,11 @@ import {
 } from "@/components/ui/tooltip";
 import { Badge } from '@/components/ui/badge';
 
+import { VoiceInput } from './voice-input';
+
 interface FloatingComposerProps {
-    onSubmit: (message: string, attachments?: { url: string; type: string; base64?: string }[]) => void;
+    userId: string;
+    onSubmit: (content: string | FormData, attachments?: { url: string; type: string; base64?: string }[]) => void;
     disabled?: boolean;
     isLoading?: boolean;
     placeholder?: string;
@@ -42,6 +45,7 @@ const fileToBase64 = (file: File): Promise<string> => {
 };
 
 export function FloatingComposer({
+    userId,
     onSubmit,
     disabled = false,
     isLoading = false,
@@ -205,20 +209,16 @@ export function FloatingComposer({
                         <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={toggleRecording}
-                                        className={cn(
-                                            "h-10 w-10 rounded-full transition-all",
-                                            isRecording ? "bg-red-500/20 text-red-500 scale-110" : "text-muted-foreground hover:text-primary hover:bg-primary/10"
-                                        )}
-                                    >
-                                        <Mic className={cn("h-5 w-5", isRecording && "animate-pulse")} />
-                                    </Button>
+                                    <div>
+                                        <VoiceInput
+                                            userId={userId}
+                                            onTranscriptionStatusChange={(status) => setIsRecording(status)}
+                                            disabled={disabled || isLoading}
+                                            onAudioSubmit={onSubmit}
+                                        />
+                                    </div>
                                 </TooltipTrigger>
-                                <TooltipContent side="top">{isRecording ? 'Stop Recording' : 'Voice Input'}</TooltipContent>
+                                <TooltipContent side="top">Voice Input</TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
 

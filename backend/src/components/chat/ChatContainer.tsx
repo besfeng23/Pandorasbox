@@ -7,12 +7,9 @@ import { ChatInput } from './ChatInput';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
+import { type Message as MessageType } from '@/lib/types';
 
-export interface ChatMessage {
-  role: 'user' | 'assistant';
-  content: string;
-  id?: string;
-}
+export type ChatMessage = MessageType;
 
 interface ChatContainerProps {
   initialConversationId?: string | null;
@@ -66,6 +63,8 @@ export function ChatContainer({ initialConversationId = null }: ChatContainerPro
           role: msg.role,
           content: msg.content,
           id: msg.id,
+          createdAt: msg.createdAt || new Date().toISOString(),
+          history: msg.history || [],
         }));
 
         setMessages(loadedMessages);
@@ -115,6 +114,8 @@ export function ChatContainer({ initialConversationId = null }: ChatContainerPro
         role: 'assistant',
         content: '',
         id: `assistant-${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        history: [],
       };
 
       // Add assistant message placeholder immediately
@@ -240,6 +241,8 @@ export function ChatContainer({ initialConversationId = null }: ChatContainerPro
         role: 'user',
         content: content.trim(),
         id: `user-${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        history: [],
       };
 
       setMessages((prev) => [...prev, userMessage]);

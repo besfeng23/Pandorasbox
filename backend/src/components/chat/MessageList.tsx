@@ -1,23 +1,26 @@
 'use client';
 
-import { type ChatMessage } from './ChatWindow';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { User, Bot } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import { ArtifactViewer } from './artifact-viewer';
-import { AssistantEvidenceBlock } from './assistant-evidence-block';
+import { Message } from './message';
+import { type Message as MessageType } from '@/lib/types';
+import { Bot } from 'lucide-react';
 
 interface MessageListProps {
-  messages: ChatMessage[];
+  messages: MessageType[];
+  onRegenerate?: () => void;
+  isRegenerating?: boolean;
+  onSpeak?: (content: string) => void;
 }
 
 /**
  * Scrollable message list component that displays user and assistant messages
  * Automatically scrolls to bottom when new messages arrive
  */
-export function MessageList({ messages }: MessageListProps) {
+export function MessageList({
+  messages,
+  onRegenerate,
+  isRegenerating,
+  onSpeak
+}: MessageListProps) {
   if (messages.length === 0) {
     return (
       <div className="flex h-full items-center justify-center animate-in-fade">
@@ -34,70 +37,20 @@ export function MessageList({ messages }: MessageListProps) {
     );
   }
 
+  const lastAssistantMessage = [...messages].reverse().find(m => m.role === 'assistant');
+
   return (
     <div className="flex flex-col gap-6 p-6">
-      {messages.map((message, index) => {
-        const isUser = message.role === 'user';
-
-        return (
-          <div
-            key={index}
-            className={cn(
-              'flex items-start gap-4 animate-in-slide',
-              isUser ? 'flex-row-reverse' : 'flex-row'
-            )}
-            style={{ animationDelay: `${index * 0.05}s` }}
-          >
-            <Avatar className="h-9 w-9 shrink-0 border border-border shadow-sm">
-              <AvatarFallback className={cn(
-                isUser ? "bg-primary text-primary-foreground" : "bg-card text-foreground"
-              )}>
-                {isUser ? <User className="h-5 w-5" /> : <Bot className="h-5 w-5 text-primary" />}
-              </AvatarFallback>
-            </Avatar>
-
-            <div
-              className={cn(
-                'max-w-[85%] rounded-[20px] px-5 py-3 text-sm md:text-base selection:bg-primary/20',
-                isUser
-                  ? 'chat-bubble-user rounded-tr-none'
-                  : 'chat-bubble-assistant rounded-tl-none'
-              )}
-            >
-              {isUser ? (
-                <p className="whitespace-pre-wrap break-words leading-relaxed">
-                  {message.content}
-                </p>
-              ) : (
-                <div className="flex flex-col gap-4">
-                  <div className="prose prose-sm md:prose-base dark:prose-invert max-w-none leading-relaxed prose-p:my-1 prose-pre:my-2 prose-code:text-primary">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                      {message.content || '...'}
-                    </ReactMarkdown>
-                  </div>
-
-                  {message.toolResults && message.toolResults.map((result: any, idx: number) => {
-                    if (result.toolName === 'generate_artifact' && result.result?.success) {
-                      return (
-                        <ArtifactViewer
-                          key={idx}
-                          artifactId={result.result.artifactId}
-                        />
-                      );
-                    }
-                    return null;
-                  })}
-
-                  {/* Evidence Block for Assistant Messages */}
-                  {!isUser && message.sources && (
-                    <AssistantEvidenceBlock sources={message.sources} />
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        );
-      })}
+      {messages.map((message) => (
+        <Message
+          key={message.id}
+          message={message}
+          onRegenerate={onRegenerate}
+          isLastAssistantMessage={message.id === lastAssistantMessage?.id}
+          isRegenerating={isRegenerating}
+          onSpeak={onSpeak ? () => onSpeak(message.content) : undefined}
+        />
+      ))}
     </div>
   );
 }

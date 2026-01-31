@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { type ChatMessage } from '@/lib/llm/llm-client';
+import { type Message as MessageType } from '@/lib/types';
 import { MessageList } from '@/components/chat/MessageList';
 import { ChatInput } from '@/components/chat/ChatInput';
+
+export type ChatMessage = MessageType;
 
 /**
  * ChatPage component - Core chat interface with streaming support
@@ -41,12 +43,18 @@ export default function ChatPage() {
     const userMessage: ChatMessage = {
       role: 'user',
       content: prompt.trim(),
+      id: `user-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      history: [],
     };
 
     // 2. Add pending assistant message
     const pendingAssistantMessage: ChatMessage = {
       role: 'assistant',
       content: '',
+      id: `assistant-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      history: [],
     };
 
     setMessages((prev) => [...prev, userMessage, pendingAssistantMessage]);
@@ -64,7 +72,7 @@ export default function ChatPage() {
 
     try {
       // 3. Build history array (exclude the pending assistant message)
-      const history: ChatMessage[] = messages.map((msg) => ({
+      const history = messages.map((msg) => ({
         role: msg.role,
         content: msg.content,
       }));
@@ -129,7 +137,7 @@ export default function ChatPage() {
               try {
                 // Try to parse as JSON (OpenAI-compatible format)
                 const parsed = JSON.parse(data);
-                
+
                 // Handle different response formats
                 let textContent = '';
                 if (typeof parsed === 'string') {

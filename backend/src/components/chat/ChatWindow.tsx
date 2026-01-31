@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { type Message as MessageType } from '@/lib/types';
 import { MessageList } from './MessageList';
 import { FloatingComposer } from './floating-composer';
 import { FollowUpChips, generateFollowUpSuggestions } from './follow-up-chips';
@@ -9,20 +10,14 @@ import { InspectorDrawer, useInspectorDrawer } from '@/components/dashboard/insp
 import { Button } from '@/components/ui/button';
 import { Loader2, Bot, BrainCircuit, PanelRightOpen } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useVoice } from '@/hooks/use-voice';
 
-export interface ChatMessage {
+export interface ChatMessage extends Partial<MessageType> {
   role: 'user' | 'assistant' | 'system';
   content: string;
   id?: string;
   attachments?: { url: string; type: string }[];
   toolResults?: any[];
-  sources?: {
-    title: string;
-    url?: string;
-    snippet: string;
-    relevance: number;
-    sourceType: 'file' | 'web' | 'memory';
-  }[];
 }
 
 interface ChatWindowProps {
@@ -43,6 +38,7 @@ export function ChatWindow({ threadId, agentId = 'universe' }: ChatWindowProps) 
   const abortControllerRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inspector = useInspectorDrawer();
+  const { speak } = useVoice();
 
 
   // Auto-scroll to bottom when new messages arrive
@@ -196,15 +192,26 @@ export function ChatWindow({ threadId, agentId = 'universe' }: ChatWindowProps) 
   /**
    * Handle message submission
    */
-  const handleSubmit = async (content: string, attachments?: { url: string; type: string }[]) => {
-    if (!user || (!content.trim() && (!attachments || attachments.length === 0)) || isStreaming) {
+  const handleSubmit = async (content: string | FormData, attachments?: { url: string; type: string }[]) => {
+    if (!user || isStreaming) {
       return;
+    }
+
+    let messageText = '';
+    let voiceFormData: FormData | null = null;
+
+    if (content instanceof FormData) {
+      voiceFormData = content;
+      messageText = voiceFormData.get('message') as string || 'Voice Message';
+    } else {
+      if (!content.trim() && (!attachments || attachments.length === 0)) return;
+      messageText = content.trim();
     }
 
     // Add user message immediately
     const userMessage: ChatMessage = {
       role: 'user',
-      content: content.trim(),
+      content: messageText,
       id: `user-${Date.now()}`,
       attachments: attachments,
     };
@@ -238,7 +245,7 @@ export function ChatWindow({ threadId, agentId = 'universe' }: ChatWindowProps) 
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          message: content.trim(),
+          message: messageText,
           agentId,
           threadId,
           history,
@@ -257,7 +264,7 @@ export function ChatWindow({ threadId, agentId = 'universe' }: ChatWindowProps) 
       await processStream(response);
 
       // Generate follow-up suggestions after successful response
-      const suggestions = generateFollowUpSuggestions(content, agentId);
+      const suggestions = generateFollowUpSuggestions(messageText, agentId);
       setFollowUpSuggestions(suggestions);
     } catch (error: any) {
       if (error.name === 'AbortError') {
@@ -329,7 +336,10 @@ export function ChatWindow({ threadId, agentId = 'universe' }: ChatWindowProps) 
 
       {/* Message List */}
       <div className="flex-1 overflow-y-auto no-scrollbar scroll-smooth">
-        <MessageList messages={messages} />
+        <MessageList
+          messages={messages as MessageType[]}
+          onSpeak={(content: string) => speak(content)}
+        />
         <div ref={messagesEndRef} />
       </div>
 
@@ -344,6 +354,7 @@ export function ChatWindow({ threadId, agentId = 'universe' }: ChatWindowProps) 
             className="mb-4"
           />
           <FloatingComposer
+            userId={user.uid}
             onSubmit={handleSubmit}
             disabled={isStreaming}
             isLoading={isStreaming}
