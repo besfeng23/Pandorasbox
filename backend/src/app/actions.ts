@@ -8,6 +8,10 @@ import { searchPoints, upsertPoint, deletePoint, scrollPoints, type QdrantSearch
 import { embedText } from '@/lib/ai/embedding';
 import { v4 as uuidv4 } from 'uuid';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
+import { transcribeAudio } from '@/lib/ai/whisper';
+import { completeInference } from '@/lib/sovereign/inference';
+import { processAndStore } from '@/lib/knowledge/ingestor';
+import pdf from 'pdf-parse';
 
 // --- BACKEND LOGIC (Direct DB/AI Access) ---
 // This comment is added to force a new build.
@@ -309,11 +313,36 @@ export async function deleteMessage(threadId: string, messageId: string, userId:
 // --- MISSING STUBS TO FIX BUILD ERRORS ---
 
 export async function summarizeThread(threadId: string, userId: string) {
-    return { success: true, message: 'Summary generated' };
+    try {
+        const messages = await getMessages(threadId, userId);
+        if (messages.length === 0) return { success: false, message: 'No messages to summarize' };
+
+        const summaryPrompt = [
+            { role: 'system' as const, content: 'You are a master of synthesis. Provide a 3-word title/summary for the following conversation.' },
+            { role: 'user' as const, content: messages.map(m => `${m.role}: ${m.content}`).join('\n') }
+        ];
+
+        const summary = await completeInference(summaryPrompt);
+        await updateThread(threadId, userId, (await getThread(threadId, userId))?.agent || 'universe', { name: summary });
+
+        return { success: true, message: 'Summary generated', summary };
+    } catch (error: any) {
+        console.error('Summarize Thread Error:', error);
+        return { success: false, message: error.message };
+    }
 }
 
 export async function transcribeAndProcessMessage(formData: FormData) {
-    return { success: true, message: 'Audio processed' };
+    try {
+        const file = formData.get('audio_file') as File;
+        if (!file) throw new Error('No audio file provided');
+
+        const text = await transcribeAudio(file);
+        return { success: true, text };
+    } catch (error: any) {
+        console.error('Voice Processing Error:', error);
+        return { success: false, message: error.message };
+    }
 }
 
 export async function updateThread(threadId: string, userId: string, agentId: string, data: any) {
@@ -333,23 +362,80 @@ export async function updateThread(threadId: string, userId: string, agentId: st
 }
 
 export async function reindexMemories(userId: string, agentId?: string) {
-    return { success: true, message: 'Memories reindexed', processed: 0 };
+    try {
+        const filter: any = { must: [{ key: 'userId', match: { value: userId } }] };
+        if (agentId) filter.must.push({ key: 'agentId', match: { value: agentId } });
+
+        const points = await scrollPoints('memories', 100, filter);
+        for (const point of points) {
+            if (point.payload?.content) {
+                const vector = await embedText(point.payload.content);
+                await upsertPoint('memories', {
+                    id: point.id,
+                    vector,
+                    payload: point.payload
+                });
+            }
+        }
+        return { success: true, message: 'Memories reindexed', processed: points.length };
+    } catch (error: any) {
+        return { success: false, message: error.message };
+    }
 }
 
 export async function generateUserApiKey(userId: string) {
-    return { success: true, apiKey: 'sk-placeholder', message: 'API key generated' };
+    return { success: true, apiKey: `sk-box-${uuidv4()}`, message: 'API key generated' };
 }
 
 export async function clearMemory(userId: string, agentId?: string) {
-    return { success: true, message: 'Memory cleared' };
+    try {
+        const filter: any = { must: [{ key: 'userId', match: { value: userId } }] };
+        if (agentId) filter.must.push({ key: 'agentId', match: { value: agentId } });
+
+        const points = await scrollPoints('memories', 100, filter);
+        for (const point of points) {
+            await deletePoint('memories', String(point.id));
+        }
+        return { success: true, message: 'Memory cleared' };
+    } catch (error: any) {
+        return { success: false, message: error.message };
+    }
 }
 
 export async function exportUserData(userId: string) {
-    return { success: true, data: JSON.stringify({ threads: [], memories: [] }), message: 'Data exported' };
+    const db = getFirestoreAdmin();
+    const threads = await getUserThreads(userId);
+    const filter = { must: [{ key: 'userId', match: { value: userId } }] };
+    const points = await scrollPoints('memories', 100, filter);
+
+    return { success: true, data: JSON.stringify({ threads, memories: points }), message: 'Data exported' };
 }
 
 export async function uploadKnowledge(formData: FormData) {
-    return { success: true, message: 'File uploaded' };
+    try {
+        const userId = formData.get('userId') as string;
+        const agentId = formData.get('agentId') as string || 'universe';
+        const file = formData.get('file') as File;
+
+        if (!file || !userId) throw new Error('Missing file or userId');
+
+        let text = '';
+        if (file.type === 'application/pdf') {
+            const buffer = Buffer.from(await file.arrayBuffer());
+            const data = await pdf(buffer);
+            text = data.text;
+        } else {
+            text = await file.text();
+        }
+
+        if (!text.trim()) throw new Error('File content is empty');
+
+        const result = await processAndStore(text, file.name, agentId, userId);
+        return { success: true, message: `Successfully ingested ${result.chunks} chunks from ${file.name}` };
+    } catch (error: any) {
+        console.error('Upload Knowledge Error:', error);
+        return { success: false, message: error.message };
+    }
 }
 
 // --- FRONTEND COMPATIBILITY WRAPPERS ---

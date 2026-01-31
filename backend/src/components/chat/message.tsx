@@ -118,7 +118,7 @@ export function Message({
                   <AccordionContent>
                     <div className="space-y-4 p-2 bg-background/50 rounded-md mt-1">
                       {message.toolUsages.map((tool, index) => {
-                        if (tool.toolName === 'web_retrieval') {
+                        if (tool.toolName === 'web_retrieval' || tool.toolName === 'search_web') {
                           return (
                             <div key={index} className="text-xs border-t border-border pt-3 first:border-t-0 first:pt-0">
                               <p className="font-semibold text-foreground text-sm mb-2 flex items-center gap-2"><Globe className="h-4 w-4" /> Web Results</p>
@@ -127,7 +127,7 @@ export function Message({
                                   <div key={idx} className="p-2 bg-muted/50 rounded-md">
                                     <a href={citation.source} target="_blank" rel="noopener noreferrer" className="text-primary font-medium hover:underline block truncate text-sm">{citation.title}</a>
                                     <p className="text-muted-foreground text-xs mt-1">{citation.source}</p>
-                                    <p className="mt-2 text-foreground/90 italic">"{citation.snippet}"</p>
+                                    {citation.snippet && <p className="mt-2 text-foreground/90 italic">"{citation.snippet}"</p>}
                                   </div>
                                 ))}
                               </div>

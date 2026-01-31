@@ -26,12 +26,12 @@ export const searchWeb = tool({
                 includeAnswer: true,
             });
 
-            // Format results for the LLM
-            const context = response.results.map(r =>
-                `Title: ${r.title}\nURL: ${r.url}\nContent: ${r.content.slice(0, 500)}...`
-            ).join('\n\n');
-
-            return `Answer: ${response.answer}\n\nSources:\n${context}`;
+            // Format results for the LLM and the specialized UI
+            return response.results.map(r => ({
+                title: r.title,
+                source: r.url,
+                snippet: r.content.slice(0, 500)
+            }));
 
         } catch (error) {
             console.error('Tavily search failed:', error);

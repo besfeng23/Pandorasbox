@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { type Message as MessageType } from '@/lib/types';
+import { type Message as MessageType, type ToolUsage } from '@/lib/types';
 import { MessageList } from './MessageList';
 import { FloatingComposer } from './floating-composer';
 import { FollowUpChips, generateFollowUpSuggestions } from './follow-up-chips';
@@ -11,13 +11,14 @@ import { Button } from '@/components/ui/button';
 import { Loader2, Bot, BrainCircuit, PanelRightOpen } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useVoice } from '@/hooks/use-voice';
+import { transcribeAndProcessMessage } from '@/app/actions';
 
 export interface ChatMessage extends Partial<MessageType> {
   role: 'user' | 'assistant' | 'system';
   content: string;
   id?: string;
   attachments?: { url: string; type: string }[];
-  toolResults?: any[];
+  toolUsages?: ToolUsage[];
 }
 
 interface ChatWindowProps {
@@ -135,31 +136,48 @@ export function ChatWindow({ threadId, agentId = 'universe' }: ChatWindowProps) 
                 // Detection for Artifacts
                 if (Array.isArray(data)) {
                   for (const item of data) {
-                    if (item.toolCall && item.toolCall.toolName === 'generate_artifact') {
-                      console.log('Artifact generation detected...', item.toolCall.args);
-                    }
-                    if (item.toolResult && item.toolResult.toolName === 'generate_artifact') {
-                      const { artifactId, success } = item.toolResult.result;
-                      if (success && artifactId) {
-                        console.log('Artifact generated successfully:', artifactId);
-
-                        // Update the message state with tool results
-                        setMessages((prev) => {
-                          const updated = [...prev];
-                          const lastIndex = updated.length - 1;
-                          if (lastIndex >= 0 && updated[lastIndex].role === 'assistant') {
-                            const currentToolResults = updated[lastIndex].toolResults || [];
+                    if (item.toolCall) {
+                      setMessages((prev) => {
+                        const updated = [...prev];
+                        const lastIndex = updated.length - 1;
+                        if (lastIndex >= 0 && updated[lastIndex].role === 'assistant') {
+                          const usages = updated[lastIndex].toolUsages || [];
+                          // Avoid duplicates
+                          if (!usages.some(u => u.toolName === item.toolCall.toolName && JSON.stringify(u.input) === JSON.stringify(item.toolCall.args))) {
                             updated[lastIndex] = {
                               ...updated[lastIndex],
-                              toolResults: [...currentToolResults, item.toolResult]
+                              toolUsages: [...usages, {
+                                toolName: item.toolCall.toolName,
+                                input: item.toolCall.args,
+                                output: null
+                              }]
                             };
                           }
-                          return updated;
-                        });
+                        }
+                        return updated;
+                      });
+                    }
+                    if (item.toolResult) {
+                      setMessages((prev) => {
+                        const updated = [...prev];
+                        const lastIndex = updated.length - 1;
+                        if (lastIndex >= 0 && updated[lastIndex].role === 'assistant') {
+                          const usages = [...(updated[lastIndex].toolUsages || [])];
+                          const usageIndex = usages.findIndex(u => u.toolName === item.toolResult.toolName && !u.output);
 
-                        // Optionally auto-open the panel
-                        // useArtifactStore.getState().setActiveArtifactById(artifactId); // If we have such a method
-                      }
+                          if (usageIndex !== -1) {
+                            usages[usageIndex] = {
+                              ...usages[usageIndex],
+                              output: item.toolResult.result
+                            };
+                            updated[lastIndex] = {
+                              ...updated[lastIndex],
+                              toolUsages: usages
+                            };
+                          }
+                        }
+                        return updated;
+                      });
                     }
                   }
                 }
@@ -202,7 +220,19 @@ export function ChatWindow({ threadId, agentId = 'universe' }: ChatWindowProps) 
 
     if (content instanceof FormData) {
       voiceFormData = content;
-      messageText = voiceFormData.get('message') as string || 'Voice Message';
+      setIsStreaming(true); // Show loading while transcribing
+      const transcriptionResult = await transcribeAndProcessMessage(voiceFormData);
+      if (transcriptionResult.success && transcriptionResult.text) {
+        messageText = transcriptionResult.text;
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Transcription Failed',
+          description: transcriptionResult.message || 'Could not convert voice to text.',
+        });
+        setIsStreaming(false);
+        return;
+      }
     } else {
       if (!content.trim() && (!attachments || attachments.length === 0)) return;
       messageText = content.trim();
