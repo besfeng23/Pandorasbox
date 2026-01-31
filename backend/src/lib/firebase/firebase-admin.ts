@@ -1,5 +1,6 @@
 'use server';
 
+/* eslint-disable @typescript-eslint/no-require-imports */
 import 'server-only';
 import admin from 'firebase-admin';
 

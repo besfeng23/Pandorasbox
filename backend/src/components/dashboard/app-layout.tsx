@@ -45,6 +45,12 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -75,6 +81,7 @@ import {
   Bell,
 } from 'lucide-react';
 import { PandoraBoxIcon } from '@/components/icons';
+import { useSystemStatus } from '@/hooks/use-system-status';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { createThread, renameThread, deleteThread, getRecentThreads } from '@/app/actions';
@@ -95,6 +102,17 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
   const { isMobile, setOpenMobile } = useSidebar();
   const [agent, setAgent] = useState<'builder' | 'universe'>('builder');
   const [threads, setThreads] = useState<Thread[]>([]);
+  const { inferenceStatus, memoryStatus } = useSystemStatus();
+
+  const getStatusColor = (status: 'online' | 'offline' | 'checking') => {
+    switch (status) {
+      case 'online': return 'bg-emerald-500 shadow-emerald-500/50';
+      case 'offline': return 'bg-red-500 shadow-red-500/50';
+      case 'checking': return 'bg-yellow-500 animate-pulse';
+      default: return 'bg-zinc-600';
+    }
+  };
+
   const [workspaces, setWorkspaces] = useState<any[]>([]);
   const [workspaceId, setWorkspaceId] = useState<string | null>(null);
   const [loadingThreads, setLoadingThreads] = useState(true);
@@ -332,8 +350,24 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
                   {user?.displayName || user?.email || 'User'}
                 </span>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <span className="w-2 h-2 rounded-full bg-red-500 shadow-sm shadow-red-500/50"></span>
-                  <span className="w-2 h-2 rounded-full bg-zinc-600"></span>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className={cn("w-2 h-2 rounded-full shadow-sm transition-colors duration-300", getStatusColor(inferenceStatus))}></span>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="text-[10px] bg-black border-white/10">Inference (Brain): {inferenceStatus}</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className={cn("w-2 h-2 rounded-full shadow-sm transition-colors duration-300", getStatusColor(memoryStatus))}></span>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="text-[10px] bg-black border-white/10">Memory (Qdrant): {memoryStatus}</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+
                   <span className="text-[10px] font-medium text-zinc-500 tracking-wider">SYSTEM</span>
                 </div>
               </div>

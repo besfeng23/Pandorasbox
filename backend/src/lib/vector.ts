@@ -7,6 +7,7 @@ if (typeof process !== 'undefined' && process.env.NEXT_RUNTIME) {
   }
 }
 
+/* eslint-disable @typescript-eslint/no-require-imports */
 import { embedText, embedTextsBatch } from './ai/embedding';
 import { searchPoints } from './sovereign/qdrant-client';
 
@@ -42,33 +43,33 @@ export async function searchHistory(
   agentId: string = 'universe',
   limit: number = 10
 ): Promise<{ text: string; id: string; score: number, timestamp: Date }[]> {
-    if (!queryText || !userId) {
-        return [];
-    }
-    try {
-        const queryEmbedding = await generateEmbedding(queryText);
-        const collectionName = 'memories';
-        
-        // Filter by userId and agentId
-        const filter = {
-          must: [
-            { key: 'userId', match: { value: userId } },
-            { key: 'agentId', match: { value: agentId } }
-          ]
-        };
-        
-        const qdrantResults = await searchPoints(collectionName, queryEmbedding, limit, filter);
-        
-        return qdrantResults.map(res => ({
-            text: res.payload?.content || '',
-            id: String(res.id),
-            score: res.score,
-            timestamp: res.payload?.createdAt ? new Date(res.payload.createdAt) : new Date(),
-        }));
-    } catch (error) {
-        console.warn(`Vector search failed for user ${userId} in collection memories`, error);
-        return [];
-    }
+  if (!queryText || !userId) {
+    return [];
+  }
+  try {
+    const queryEmbedding = await generateEmbedding(queryText);
+    const collectionName = 'memories';
+
+    // Filter by userId and agentId
+    const filter = {
+      must: [
+        { key: 'userId', match: { value: userId } },
+        { key: 'agentId', match: { value: agentId } }
+      ]
+    };
+
+    const qdrantResults = await searchPoints(collectionName, queryEmbedding, limit, filter);
+
+    return qdrantResults.map(res => ({
+      text: res.payload?.content || '',
+      id: String(res.id),
+      score: res.score,
+      timestamp: res.payload?.createdAt ? new Date(res.payload.createdAt) : new Date(),
+    }));
+  } catch (error) {
+    console.warn(`Vector search failed for user ${userId} in collection memories`, error);
+    return [];
+  }
 }
 
 /**
@@ -86,5 +87,5 @@ export async function searchMemories(
   agentId: string = 'universe',
   limit: number = 10
 ): Promise<{ text: string; id: string; score: number, timestamp: Date }[]> {
-    return searchHistory(queryText, userId, agentId, limit);
+  return searchHistory(queryText, userId, agentId, limit);
 }
