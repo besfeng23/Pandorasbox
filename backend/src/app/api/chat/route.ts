@@ -29,7 +29,7 @@ if (!finalBaseUrl) {
 
 const openai = createOpenAI({
   baseURL: finalBaseUrl,
-  apiKey: process.env.LLM_API_KEY || 'dummy-key',
+  apiKey: process.env.LLM_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY || 'dummy-key',
 });
 
 export const maxDuration = 60; // Allow 60 seconds for generation
@@ -230,26 +230,33 @@ export async function POST(req: NextRequest) {
     // 5. Pre-flight Check: Verify Inference Server is Reachable
     timings.inference_start = Date.now();
     try {
-      const checkUrl = `${finalBaseUrl}/models`; // Standard OpenAI/Ollama check
-      const checkController = new AbortController();
-      const checkTimeout = setTimeout(() => checkController.abort(), 1000); // 1s timeout
-
-      const checkRes = await fetch(checkUrl, {
-        method: 'GET',
-        headers: { 'Authorization': `Bearer ${process.env.LLM_API_KEY || 'dummy-key'}` },
-        signal: checkController.signal
-      });
-      clearTimeout(checkTimeout);
-
-      if (!checkRes.ok && checkRes.status !== 401 && checkRes.status !== 404) {
-        console.warn(`[${requestId}] Inference server might be unhealthy: ${checkRes.status}`);
+      // Only check if we have a custom URL. If it's undefined (standard OpenAI), we skip this check.
+      if (finalBaseUrl) {
+         const checkUrl = `${finalBaseUrl}/models`; // Standard OpenAI/Ollama check
+         const checkController = new AbortController();
+         const checkTimeout = setTimeout(() => checkController.abort(), 1000); // 1s timeout
+ 
+         const checkRes = await fetch(checkUrl, {
+           method: 'GET',
+           headers: { 'Authorization': `Bearer ${process.env.LLM_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY || 'dummy-key'}` },
+           signal: checkController.signal
+         });
+         clearTimeout(checkTimeout);
+ 
+         if (!checkRes.ok && checkRes.status !== 401 && checkRes.status !== 404) {
+           console.warn(`[${requestId}] Inference server might be unhealthy: ${checkRes.status}`);
+         }
       }
     } catch (connError: any) {
       console.error(`[${requestId}] Inference Server Unreachable (${finalBaseUrl}):`, connError.message);
-      return NextResponse.json(
-        { error: `Inference Server Unreachable: ${connError.message}. Check VPC/VPN connection.` },
-        { status: 503 }
-      );
+      // Only fail if we really can't reach the custom server. 
+      // For standard OpenAI, we let the streamText call handle connection errors naturally.
+       if (finalBaseUrl) {
+           return NextResponse.json(
+             { error: `Inference Server Unreachable: ${connError.message}. Check VPC/VPN connection.` },
+             { status: 503 }
+           );
+       }
     }
 
     // 5. Stream from LLM

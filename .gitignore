@@ -74,3 +74,4 @@ defa/
 .firebase/
 backend/.next/
 backend/deploy/
+.env.local

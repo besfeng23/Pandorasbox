@@ -23,9 +23,9 @@ export async function getServerConfig(): Promise<ServerConfig> {
       if (res.ok) {
         const secrets = await res.json();
         // Support both INFERENCE_BASE_URL (preferred) and INFERENCE_URL (legacy)
-        const inferenceUrl = secrets.INFERENCE_BASE_URL || secrets.INFERENCE_URL || 
-                             process.env.INFERENCE_BASE_URL || process.env.INFERENCE_URL || 
-                             'http://localhost:8000';
+        const inferenceUrl = secrets.INFERENCE_BASE_URL || secrets.INFERENCE_URL ||
+          process.env.INFERENCE_BASE_URL || process.env.INFERENCE_URL ||
+          'http://localhost:8000';
         cachedConfig = {
           inferenceBaseUrl: inferenceUrl,
           inferenceModel:
@@ -37,7 +37,7 @@ export async function getServerConfig(): Promise<ServerConfig> {
             10,
           ),
           qdrantUrl: secrets.QDRANT_URL || process.env.QDRANT_URL || 'http://localhost:6333',
-          firebaseProjectId: secrets.FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || '',
+          firebaseProjectId: secrets.FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || '',
         };
         return cachedConfig;
       }
@@ -55,7 +55,7 @@ export async function getServerConfig(): Promise<ServerConfig> {
     embeddingsBaseUrl: process.env.EMBEDDINGS_BASE_URL || 'http://localhost:8080',
     embeddingsDimension: parseInt(process.env.EMBEDDINGS_DIMENSION || '384', 10),
     qdrantUrl: process.env.QDRANT_URL || 'http://localhost:6333',
-    firebaseProjectId: process.env.FIREBASE_PROJECT_ID || '',
+    firebaseProjectId: process.env.FIREBASE_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || '',
   };
 
   return cachedConfig;

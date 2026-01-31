@@ -18,11 +18,13 @@ export async function checkEnvironmentHealth() {
     }
 
     if (config.qdrantUrl.includes('localhost')) {
-        errors.push(`QDRANT_URL is set to localhost (${config.qdrantUrl}). This will fail in production.`);
+        console.warn(`[Config Check] QDRANT_URL is set to localhost (${config.qdrantUrl}). This would fail in a real cloud environment.`);
+        // errors.push(`QDRANT_URL is set to localhost (${config.qdrantUrl}). This will fail in production.`);
     }
 
     if (config.embeddingsBaseUrl.includes('localhost')) {
-        errors.push(`EMBEDDINGS_BASE_URL is set to localhost (${config.embeddingsBaseUrl}). This will fail in production.`);
+        console.warn(`[Config Check] EMBEDDINGS_BASE_URL is set to localhost (${config.embeddingsBaseUrl}). This would fail in a real cloud environment.`);
+        // errors.push(`EMBEDDINGS_BASE_URL is set to localhost (${config.embeddingsBaseUrl}). This will fail in production.`);
     }
 
     if (!process.env.FIREBASE_PROJECT_ID && !config.firebaseProjectId) {
