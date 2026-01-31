@@ -4,7 +4,7 @@ import remarkGfm from 'remark-gfm';
 import type { Message as MessageType } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { User, Bot, Cog, RefreshCw, Loader2, Globe, Sparkles } from 'lucide-react';
+import { User, Bot, Cog, RefreshCw, Loader2, Globe, Sparkles, Volume2 } from 'lucide-react';
 import {
   Accordion,
   AccordionContent,
@@ -36,11 +36,13 @@ export function Message({
   onRegenerate,
   isLastAssistantMessage,
   isRegenerating,
+  onSpeak,
 }: {
   message: MessageType,
   onRegenerate?: () => void,
   isLastAssistantMessage?: boolean,
-  isRegenerating?: boolean
+  isRegenerating?: boolean,
+  onSpeak?: () => void
 }) {
   const isUser = message.role === 'user';
   const hasMemoryRecall = !isUser && message.toolUsages?.some(t => t.toolName.includes('memory'));
@@ -181,16 +183,24 @@ export function Message({
           </Avatar>
         )}
       </div>
-      {isLastAssistantMessage && onRegenerate && (
-        <div className={cn('flex pt-2 transition-opacity group-hover/message:opacity-100', isRegenerating ? 'opacity-100' : 'opacity-0', isUser ? 'justify-end' : 'justify-start pl-12')}>
-          <Button variant="outline" size="sm" onClick={onRegenerate} disabled={isRegenerating}>
-            {isRegenerating ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCw className="mr-2 h-4 w-4" />
-            )}
-            Regenerate
-          </Button>
+      {isLastAssistantMessage && (onRegenerate || onSpeak) && (
+        <div className={cn('flex pt-2 gap-2 transition-opacity group-hover/message:opacity-100', isRegenerating ? 'opacity-100' : 'opacity-0', isUser ? 'justify-end' : 'justify-start pl-12')}>
+          {onRegenerate && (
+            <Button variant="outline" size="sm" onClick={onRegenerate} disabled={isRegenerating}>
+              {isRegenerating ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="mr-2 h-4 w-4" />
+              )}
+              Regenerate
+            </Button>
+          )}
+          {onSpeak && (
+            <Button variant="ghost" size="sm" onClick={onSpeak} className="text-muted-foreground hover:text-foreground">
+              <Volume2 className="h-4 w-4 mr-2" />
+              Read Aloud
+            </Button>
+          )}
         </div>
       )}
     </div>

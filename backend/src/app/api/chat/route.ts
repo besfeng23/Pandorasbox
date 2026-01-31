@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { streamText, convertToModelMessages, tool } from 'ai';
+import { searchWeb } from '@/lib/ai/tools/tavily';
 import { createOpenAI } from '@ai-sdk/openai';
 import { z } from 'zod';
 import { getAuthAdmin, getFirestoreAdmin } from '@/lib/firebase-admin';
@@ -283,6 +284,7 @@ export async function POST(req: NextRequest) {
         : openai(process.env.INFERENCE_MODEL || process.env.LLM_MODEL || 'llama-3'),
       messages,
       tools: {
+        search_web: searchWeb,
         generate_artifact: tool({
           description: 'Generate a high-quality artifact such as code, a document, an SVG, or a diagram. Use this for significant pieces of work that should be viewed in a separate panel.',
           inputSchema: z.object({
@@ -314,7 +316,13 @@ export async function POST(req: NextRequest) {
           },
         }),
       },
-      system: `You are Pandora, an advanced Sovereign AI assistant. You operate on a high-end, private cloud infrastructure.
+      system: `You are Pandora, an advanced Sovereign AI assistant with active agency. You operate on a high-end, private cloud infrastructure.
+
+### Capabilities:
+- **Active Web Search**: You can browse the real-time web using your 'search_web' tool. Use this when the user asks about current events, news, or specific verified data.
+- **Memory**: You have access to long-term memory (Unified Cognition).
+- **Artifacts**: You can generate documents and code artifacts.
+
 
 ${agentId === 'builder' ? `
 ### Role: THE BUILDER 🏗️

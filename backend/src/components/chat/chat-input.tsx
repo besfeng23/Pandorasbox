@@ -14,10 +14,12 @@ import { cn } from '@/lib/utils';
 
 interface ChatInputProps {
   userId: string;
-  onMessageSubmit: (formData: FormData) => boolean;
+  onMessageSubmit: (formData: FormData) => boolean | Promise<boolean>;
   isSending: boolean;
   onStop?: () => void; // New prop for stop functionality
 }
+
+// ... (FollowUpSuggestions code omitted for brevity) ...
 
 function FollowUpSuggestions({ userId, onSuggestionClick }: { userId: string, onSuggestionClick: (suggestion: string) => void }) {
   const { suggestions, dismissSuggestion, pinSuggestion, pinnedIds } = useSuggestions(userId);
@@ -172,9 +174,11 @@ export function ChatInput({ userId, onMessageSubmit, isSending, onStop }: ChatIn
       formData.append('idToken', idToken);
     }
 
-    const isProcessing = onMessageSubmit(formData);
+    const result = onMessageSubmit(formData);
+    const isProcessing = result instanceof Promise ? await result : result;
 
-    if (!isProcessing) {
+    // If onMessageSubmit returns TRUE (successfully sent), we reset.
+    if (isProcessing) {
       formRef.current?.reset();
       setImagePreview(null);
       if (textareaRef.current) {

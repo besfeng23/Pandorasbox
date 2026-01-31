@@ -2,30 +2,20 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
 import { getThread, getMessages, deleteMessage } from '@/app/actions';
-import { Timestamp } from 'firebase/firestore';
-import { useFirestore, useUser } from '@/firebase';
+import { useUser } from '@/firebase';
 import type { Message as MessageType, Thread } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Form, FormControl, FormField, FormItem } from '@/components/ui/form';
 import { cn } from '@/lib/utils';
-import { Loader2, Send, Square, Bot, BrainCircuit, Mic, Volume2, VolumeX } from 'lucide-react';
+import { Loader2, Square, Volume2, VolumeX, BrainCircuit } from 'lucide-react';
 import { useVoice } from '@/hooks/use-voice';
 import { WelcomeScreen } from './welcome-screen';
 import { Message } from './message';
 import { useToast } from '@/hooks/use-toast';
 import { AnimatePresence, motion } from 'framer-motion';
-import { PandoraBoxIcon } from '@/components/icons';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ThinkingIndicator } from './thinking-indicator';
-
-const formSchema = z.object({
-  content: z.string().min(1, 'Message cannot be empty.'),
-});
+import { ChatInput } from './chat-input';
 
 export function ChatPanel({ threadId }: { threadId: string }) {
   const [messages, setMessages] = useState<MessageType[]>([]);
@@ -42,29 +32,7 @@ export function ChatPanel({ threadId }: { threadId: string }) {
   const { toast } = useToast();
   const { user } = useUser();
   const [autoSpeak, setAutoSpeak] = useState(false);
-  const stopRecordingRef = useRef<(() => void) | null>(null);
-  const { isRecording, startRecording, isSpeaking, speak } = useVoice();
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: { content: '' },
-  });
-
-  const handleMicClick = async () => {
-    if (isRecording) {
-      if (stopRecordingRef.current) {
-        stopRecordingRef.current();
-        stopRecordingRef.current = null;
-      }
-    } else {
-      const stopFn = await startRecording((text) => {
-        const current = form.getValues('content');
-        form.setValue('content', current ? `${current} ${text}` : text);
-      });
-      if (stopFn) {
-        stopRecordingRef.current = stopFn;
-      }
-    }
-  };
+  const { speak } = useVoice();
 
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -125,8 +93,7 @@ export function ChatPanel({ threadId }: { threadId: string }) {
     const reader = response.body!.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
-    let lastAssistantText = ''; // Track final text for auto-speak
-
+    let lastAssistantText = '';
 
     setStreamingMessage({
       id: 'assistant-streaming',
@@ -146,7 +113,7 @@ export function ChatPanel({ threadId }: { threadId: string }) {
       buffer += chunk;
 
       const lines = buffer.split('\n');
-      buffer = lines.pop() || ''; // Keep the last partial line in the buffer
+      buffer = lines.pop() || '';
 
       for (const line of lines) {
         if (!line.trim()) continue;
@@ -166,7 +133,7 @@ export function ChatPanel({ threadId }: { threadId: string }) {
               ...prev!,
               content: prev!.content + data
             }));
-          } else if (type === '2') { // Data from StreamData
+          } else if (type === '2') { // Data
             if (Array.isArray(data)) {
               for (const item of data) {
                 if (item.type === 'tool_start') {
@@ -174,24 +141,19 @@ export function ChatPanel({ threadId }: { threadId: string }) {
                   setToolStartTime(new Date());
                   setThinkingLogs(prev => [...prev, item.display || `Executing ${item.toolName}...`]);
                 } else if (item.type === 'tool_end') {
-                  // We keep the log but maybe update status?
-                  // For now just clear tool active state after a short delay or when next tool starts
                   if (item.status === 'error') {
                     setThinkingLogs(prev => [...prev, `Error: ${item.error || 'Unknown error'}`]);
                   }
-                  // We don't necessarily want to hide the logs immediately
                 }
               }
             }
           }
         } catch (e) {
-          // Not JSON or partial chunk, ignore for now
-          console.warn('Failed to parse line:', line, e);
+          console.warn('Failed to parse line:', line);
         }
       }
     }
 
-    // Final buffer check
     if (buffer.trim()) {
       const colonIndex = buffer.indexOf(':');
       if (colonIndex !== -1) {
@@ -206,14 +168,9 @@ export function ChatPanel({ threadId }: { threadId: string }) {
       }
     }
 
-    // After stream ends, wait a bit then hide tool indicator if it's still there
-    setTimeout(() => {
-      setIsToolActive(false);
-    }, 1000);
-
+    setTimeout(() => setIsToolActive(false), 1000);
     setStreamingMessage(null);
 
-    // Auto-speak the final response if enabled
     if (autoSpeak && lastAssistantText) {
       speak(lastAssistantText);
     }
@@ -224,23 +181,35 @@ export function ChatPanel({ threadId }: { threadId: string }) {
     }
   };
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    if (!user || !thread) return;
-    setIsSending(true);
-    form.reset();
+  const onMessageSubmit = async (formData: FormData): Promise<boolean> => {
+    if (!user || !thread) return false;
 
-    const visionEnabled = localStorage.getItem('vision_enabled') === 'true';
+    // Prevent duplicate submissions
+    if (isSending) return false;
+
+    setIsSending(true);
+
+    const message = formData.get('message') as string;
+    const imageData = formData.get('image_data') as string;
+    const audioFile = formData.get('audio_file') as File; // TODO: Handle audio upload/transcription if needed via separate API or here
+
+    // Quick vision check
+    const visionEnabled = localStorage.getItem('vision_enabled') === 'true' || !!imageData;
 
     try {
-      // Force refresh token to ensure it's valid for the backend check
       const token = await user.getIdToken(true);
       const agentId = thread.agent;
-      const messagePayload = {
-        message: values.content,
+
+      const payload: any = {
+        message: message || (audioFile ? "Audio message" : ""), // Fallback
         threadId: thread.id,
         agentId,
         useVision: visionEnabled,
       };
+
+      if (imageData) {
+        payload.attachments = [{ type: 'image/base64', base64: imageData }];
+      }
 
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
@@ -248,14 +217,13 @@ export function ChatPanel({ threadId }: { threadId: string }) {
       const abortController = new AbortController();
       abortControllerRef.current = abortController;
 
-
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(messagePayload),
+        body: JSON.stringify(payload),
         signal: abortController.signal
       });
 
@@ -266,6 +234,7 @@ export function ChatPanel({ threadId }: { threadId: string }) {
       if (response.body) {
         await handleStream(response);
       }
+      return true; // Success
     } catch (error: any) {
       if (error.name !== 'AbortError') {
         const isOffline = error.message?.includes('fetch') || error.message?.includes('Network');
@@ -273,10 +242,11 @@ export function ChatPanel({ threadId }: { threadId: string }) {
           variant: 'destructive',
           title: isOffline ? 'AI is Asleep' : 'Error',
           description: isOffline
-            ? 'The Sovereign Brain is currently unreachable. Check your container status.'
+            ? 'The Sovereign Brain is currently unreachable.'
             : (error.message || 'Failed to send message.'),
         });
       }
+      return false; // Failed
     } finally {
       setIsSending(false);
     }
@@ -297,7 +267,6 @@ export function ChatPanel({ threadId }: { threadId: string }) {
         setMessages(prev => prev.filter(m => m.id !== lastAssistantMessage.id));
       }
 
-      // Force refresh token
       const token = await user.getIdToken(true);
       const visionEnabled = localStorage.getItem('vision_enabled') === 'true';
 
@@ -319,13 +288,10 @@ export function ChatPanel({ threadId }: { threadId: string }) {
       if (response.body) await handleStream(response);
 
     } catch (error: any) {
-      const isOffline = error.message?.includes('fetch') || error.message?.includes('Network');
       toast({
         variant: 'destructive',
-        title: isOffline ? 'AI is Asleep' : 'Error Regenerating',
-        description: isOffline
-          ? 'The Sovereign Brain is currently unreachable. Check your container status.'
-          : (error.message || 'Could not regenerate response.'),
+        title: 'Error Regenerating',
+        description: error.message || 'Could not regenerate response.',
       });
     } finally {
       setIsRegenerating(false);
@@ -338,7 +304,6 @@ export function ChatPanel({ threadId }: { threadId: string }) {
     try {
       const conversationText = (messages || []).map(m => `${m.role}: ${m.content}`).join('\n\n');
       const token = await user.getIdToken(true);
-
 
       const response = await fetch('/api/memory', {
         method: 'POST',
@@ -389,36 +354,14 @@ export function ChatPanel({ threadId }: { threadId: string }) {
           <WelcomeScreen onThreadCreated={(id) => threadId === id ? null : window.location.href = `/chat/${id}`} />
         </div>
         <div className="border-t bg-card p-4">
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="flex items-start gap-4">
-              <FormField
-                control={form.control}
-                name="content"
-                render={({ field }) => (
-                  <FormItem className="flex-1">
-                    <FormControl>
-                      <Textarea
-                        placeholder="Type your first message..."
-                        className="resize-none"
-                        rows={1}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && !e.shiftKey && !isSending && !isRegenerating && !isToolActive) {
-                            e.preventDefault();
-                            form.handleSubmit(onSubmit)();
-                          }
-                        }}
-                        {...field}
-                        disabled={!thread || isSending || isRegenerating || isToolActive}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" size="icon" disabled={!thread || isSending || isRegenerating || isToolActive}>
-                {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-              </Button>
-            </form>
-          </Form>
+          {user && (
+            <ChatInput
+              userId={user.uid}
+              onMessageSubmit={onMessageSubmit}
+              isSending={isSending || isRegenerating}
+              onStop={handleStop}
+            />
+          )}
         </div>
       </div>
     );
@@ -463,6 +406,7 @@ export function ChatPanel({ threadId }: { threadId: string }) {
                   isLastAssistantMessage={message.id === lastMessage?.id && lastMessage?.role === 'assistant'}
                   onRegenerate={handleRegenerate}
                   isRegenerating={isRegenerating}
+                  onSpeak={() => speak(message.content)}
                 />
               </motion.div>
             ))}
@@ -481,6 +425,7 @@ export function ChatPanel({ threadId }: { threadId: string }) {
                 isLastAssistantMessage={true}
                 onRegenerate={handleRegenerate}
                 isRegenerating={isRegenerating}
+                onSpeak={() => speak(streamingMessage.content)}
               />
             </motion.div>
           )}
@@ -513,59 +458,17 @@ export function ChatPanel({ threadId }: { threadId: string }) {
         </div>
       </div>
       <div className="border-t bg-card p-4 safe-area-pb">
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex items-start gap-4">
-            <FormField
-              control={form.control}
-              name="content"
-              render={({ field }) => (
-                <FormItem className="flex-1">
-                  <FormControl>
-                    <Textarea
-                      placeholder={isSending || isRegenerating || isToolActive ? "Assistant is thinking..." : "Type your message here..."}
-                      className="resize-none min-h-[44px]"
-                      rows={1}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey && !isSending && !isRegenerating && !isToolActive) {
-                          e.preventDefault();
-                          form.handleSubmit(onSubmit)();
-                        }
-                      }}
-                      {...field}
-                      disabled={isSending || isRegenerating || isToolActive}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-            {isSending || isRegenerating || isToolActive ? (
-              <Button variant="outline" size="icon" disabled className="h-[44px] w-[44px]">
-                <Loader2 className="h-4 w-4 animate-spin" />
-              </Button>
-            ) : (
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  size="icon"
-                  variant={isRecording ? "destructive" : "secondary"}
-                  onClick={handleMicClick}
-                  disabled={isSending || isRegenerating}
-                  className="h-[44px] w-[44px]"
-                >
-                  {isRecording ? <Square className="h-4 w-4 fill-current" /> : <Mic className="h-4 w-4" />}
-                </Button>
-                <Button type="submit" size="icon" className="h-[44px] w-[44px]">
-                  <Send className="h-4 w-4" />
-                </Button>
-              </div>
-            )}
-          </form>
-        </Form>
+        {user && (
+          <ChatInput
+            userId={user.uid}
+            onMessageSubmit={onMessageSubmit}
+            isSending={isSending || isRegenerating}
+            onStop={handleStop}
+          />
+        )}
         {(isSending || isRegenerating) && (
           <div className="mt-2 flex justify-center">
-            <Button variant="destructive" size="sm" onClick={handleStop} className="h-8 text-xs">
-              <Square className="mr-2 h-3 w-3" /> Stop generating
-            </Button>
+            {/* ChatInput handles stop button internally now */}
           </div>
         )}
       </div>
