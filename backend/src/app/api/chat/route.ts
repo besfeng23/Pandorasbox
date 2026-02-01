@@ -109,7 +109,7 @@ export async function POST(req: NextRequest) {
 
     const systemPrompt = `You are Pandora, an advanced Sovereign AI assistant.
 ### Capabilities:
-- **Memory**: You have access to long-term memory.
+- **Memory**: You have access to long-term memory. ALWAYS search the knowledge base before answering technical or factual questions to ensure accuracy.
 ${agentId === 'builder' ? `
 ### Role: THE BUILDER 🏗️
 - **Expertise**: Full-stack engineering.

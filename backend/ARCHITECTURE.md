@@ -23,13 +23,13 @@ Pandora is a "Sovereign AI" stack, meaning it runs entirely on infrastructure yo
     *   **Role:** Orchestrates data flow between the user, the database, and the AI model.
 
 3.  **The Brain (Inference):**
-    *   **Engine:** vLLM (running `mistralai/Mistral-7B-Instruct-v0.3`)
-    *   **Protocol:** OpenAI-compatible JSON-RPC (at `http://localhost:8000/v1`)
-    *   **Hardware:** Requires NVIDIA GPU (T4/L4 or better).
+    *   **Engine:** Ollama / vLLM (running `llama3.2:latest`)
+    *   **Protocol:** OpenAI-compatible API
+    *   **Hardware:** Private GCP Compute Engine (Ollama Node at `10.128.0.4`).
 
 4.  **The Memory (Long-term Storage):**
-    *   **Vector DB:** Qdrant (running at `http://localhost:6333`)
-    *   **Embeddings:** Local embedding model (e.g., `BAAI/bge-small-en-v1.5`) via `http://localhost:8080` or direct library.
+    *   **Vector DB:** Qdrant (running at `10.128.0.3:6333`)
+    *   **Embeddings:** `all-MiniLM-L6-v2` (384 dimensions)
     *   **Role:** Stores semantic embeddings of all chat history and uploaded knowledge.
 
 5.  **The Ledger (Sync & Auth):**

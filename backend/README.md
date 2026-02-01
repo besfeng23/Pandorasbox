@@ -11,6 +11,9 @@ An AI-powered sovereign chat application with persistent long-term memory, subne
   - **The Universe**: Philosophical and creative exploration.
   - **The Analyst**: Data analysis and reasoning.
 - **Long-Term Memory (Phase 13)**: Vector-based semantic search across all conversation history using Qdrant.
+  - **Requirement**: `memories` collection MUST use **384 dimensions** (matches `all-MiniLM-L6-v2`).
+- **MCP Integration**: Model Context Protocol support for tool discovery and execution.
+  - **Schema Generation**: `pnpm run mcp:generate-schema` creates Claude-compatible tool definitions.
 - **Real-Time Observability**:
   - **System Status**: Live inference and memory health indicators in the sidebar.
   - **Sentry**: Full-stack crash reporting, performance tracing, and user identification.
@@ -43,9 +46,17 @@ Before generating a response, the system searches the `memories` collection in Q
 ### Local Infrastructure
 When running locally:
 ```bash
-INFERENCE_URL=http://localhost:8000/v1
-INFERENCE_MODEL=mistralai/Mistral-7B-Instruct-v0.3
+INFERENCE_URL=http://localhost:11434 # For Ollama
+INFERENCE_MODEL=llama3.2:latest
 QDRANT_URL=http://localhost:6333
+EMBEDDINGS_BASE_URL=https://pandora-embeddings... # or local 8080
+```
+
+### "Anti-Gravity" Infrastructure (Production)
+The system uses a **VPC Peering/IAP Bridge** to reach local hardware:
+- **Inference (Ollama)**: `10.128.0.4:11434`
+- **Memory (Qdrant)**: `10.128.0.3:6333`
+- **VPC Connector**: `pandora-vpc-connector` (us-central1)
 ```
 
 ## Cloud Run Deployment (VPC Connector Required)
