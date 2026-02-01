@@ -2,6 +2,11 @@
  * ═══════════════════════════════════════════════════════════════════════════
  * SEMANTIC ROUTER (DISPATCHER)
  * ═══════════════════════════════════════════════════════════════════════════
+ * 
+ * Split-Brain Architecture:
+ *   - REFLEX: Fast intent classification (Groq preferred, Ollama fallback)
+ *   - BUILDER: Code generation (Groq)
+ *   - UNIVERSE: Chat/Memory (Private Ollama)
  */
 
 import { GroqProvider, OllamaProvider, LLMProvider, LLMMessage } from './llm-provider';
@@ -15,17 +20,29 @@ export interface DispatcherConfig {
 
 export class Dispatcher {
     private universe: LLMProvider;
-    private builder: LLMProvider;
+    private builder: LLMProvider | null;
     private reflex: LLMProvider;
+    private hasGroq: boolean;
 
     constructor(config: DispatcherConfig) {
         this.universe = new OllamaProvider(config.universeUrl);
-        this.builder = new GroqProvider(config.groqKey);
-        this.reflex = new GroqProvider(config.groqKey); // Using Groq for reflex layer too
+        this.hasGroq = !!config.groqKey && config.groqKey.length > 10;
+        
+        if (this.hasGroq) {
+            this.builder = new GroqProvider(config.groqKey);
+            this.reflex = new GroqProvider(config.groqKey);
+            console.log('[Dispatcher] Initialized with Groq for Builder/Reflex');
+        } else {
+            // Fallback: Use Ollama for everything when Groq is unavailable
+            this.builder = null; // Will fallback to Universe
+            this.reflex = new OllamaProvider(config.universeUrl);
+            console.warn('[Dispatcher] GROQ_API_KEY not set - using Ollama for all agents');
+        }
     }
 
     /**
      * Classify user intent for routing
+     * Uses fast Groq model if available, falls back to local Ollama
      */
     async classifyIntent(prompt: string): Promise<Intent> {
         const systemPrompt = `Analyze the user's prompt and classify it into one of three intents:
@@ -35,18 +52,35 @@ export class Dispatcher {
 
 Respond with ONLY the word: BUILD, CHAT, or VOICE.`;
 
-        const response = await this.reflex.generateResponse(
-            [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: prompt }
-            ],
-            process.env.REFLEX_MODEL || 'llama-3.1-8b-instant'
-        );
+        try {
+            const model = this.hasGroq 
+                ? (process.env.REFLEX_MODEL || 'llama-3.1-8b-instant')
+                : (process.env.UNIVERSE_MODEL || 'mistral');
+                
+            const response = await this.reflex.generateResponse(
+                [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: prompt }
+                ],
+                model
+            );
 
-        const intent = response.content.trim().toUpperCase();
-        if (intent.includes('BUILD')) return 'BUILD';
-        if (intent.includes('VOICE')) return 'VOICE';
-        return 'CHAT';
+            const intent = response.content.trim().toUpperCase();
+            if (intent.includes('BUILD')) return 'BUILD';
+            if (intent.includes('VOICE')) return 'VOICE';
+            return 'CHAT';
+        } catch (error: any) {
+            console.error('[Dispatcher] Intent classification failed:', error.message);
+            // Default to CHAT on error to ensure graceful degradation
+            return 'CHAT';
+        }
+    }
+
+    /**
+     * Check if Groq (Builder Agent) is available
+     */
+    isBuilderAvailable(): boolean {
+        return this.hasGroq && this.builder !== null;
     }
 
     /**
@@ -57,13 +91,12 @@ Respond with ONLY the word: BUILD, CHAT, or VOICE.`;
 
         console.log(`[Dispatcher] Routing intent: ${intent}`);
 
-        if (intent === 'BUILD') {
+        if (intent === 'BUILD' && this.builder) {
             return this.builder.generateResponse(messages, process.env.BUILDER_MODEL);
         }
 
-        // Default to Universe for Chat/Remember
+        // Default to Universe for Chat/Remember (or BUILD fallback)
         try {
-            // Check health of private GPU first
             const islandHealthy = await this.universe.checkHealth();
             if (!islandHealthy) {
                 throw new Error('Universe Agent (Private GPU) is offline or cold.');
@@ -74,7 +107,7 @@ Respond with ONLY the word: BUILD, CHAT, or VOICE.`;
             return {
                 content: `⚠️ **System Connectivity Alert:** The Universe Agent (Private GPU) is currently offline or unreachable via VPC. 
         
-I am unable to access your long-term memories or sovereign processing at this moment. Please check the GCP instance status at 10.128.0.4.`
+I am unable to access your long-term memories or sovereign processing at this moment. Please check the GCP instance status at 10.128.0.8.`
             };
         }
     }
@@ -86,9 +119,6 @@ let dispatcher: Dispatcher | null = null;
 export function getDispatcher() {
     if (!dispatcher) {
         const groqKey = process.env.GROQ_API_KEY || '';
-        if (!groqKey) {
-            console.warn('[Dispatcher] GROQ_API_KEY not configured - Builder/Reflex agents will fail');
-        }
         dispatcher = new Dispatcher({
             universeUrl: process.env.UNIVERSE_INFERENCE_URL || 'http://10.128.0.8:11434',
             groqKey: groqKey
