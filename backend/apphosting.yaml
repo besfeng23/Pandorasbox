@@ -1,18 +1,32 @@
-# Settings for Backend (on Cloud Run).
-# See https://firebase.google.com/docs/app-hosting/configure#cloud-run
+# ═══════════════════════════════════════════════════════════════════════════
+# PANDORA'S BOX - GOOGLE CLOUD RUN DEPLOYMENT CONFIGURATION
+# "Two-Brain System" - Hybrid Native AI Architecture
+# ═══════════════════════════════════════════════════════════════════════════
+# Firebase App Hosting Configuration
+# See: https://firebase.google.com/docs/app-hosting/configure
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CLOUD RUN SETTINGS
+# ─────────────────────────────────────────────────────────────────────────────
 runConfig:
-  minInstances: 1 # CRITICAL: Keeps the CPU from freezing immediately after response
-  maxInstances: 10
-  concurrency: 80
-  cpu: 1
-  memoryMiB: 2048
+  minInstances: 1          # Keep warm to avoid cold starts
+  maxInstances: 10         # Scale up to 10 instances
+  concurrency: 80          # Requests per instance
+  cpu: 1                   # 1 vCPU
+  memoryMiB: 2048          # 2GB RAM
+  
+  # VPC Access Connector - Required for private IP access to Ollama & Qdrant
   vpcAccess:
     connector: projects/seismic-vista-480710-q5/locations/us-central1/connectors/pandora-vpc-connector
-    egress: PRIVATE_RANGES_ONLY
+    egress: PRIVATE_RANGES_ONLY  # Only route private IPs through VPC
 
-# Environment variables and secrets.
+# ─────────────────────────────────────────────────────────────────────────────
+# ENVIRONMENT VARIABLES
+# ─────────────────────────────────────────────────────────────────────────────
 env:
-  # Public Firebase configuration (needed at BUILD time for Next.js)
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 🔥 FIREBASE PUBLIC CONFIGURATION (BUILD + RUNTIME)
+  # ═══════════════════════════════════════════════════════════════════════════
   - variable: NEXT_PUBLIC_FIREBASE_API_KEY
     value: AIzaSyBd6iZ2jEx1jmniBLD35no5gu1J4D4tSCM
     availability:
@@ -49,50 +63,64 @@ env:
       - BUILD
       - RUNTIME
 
-  # Sentry DSN for error tracking
+  - variable: FIREBASE_PROJECT_ID
+    value: seismic-vista-480710-q5
+    availability:
+      - BUILD
+      - RUNTIME
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 📊 SENTRY ERROR TRACKING
+  # ═══════════════════════════════════════════════════════════════════════════
   - variable: NEXT_PUBLIC_SENTRY_DSN
     value: https://9c170ff10657b483a588e3f631bdfeb8@o4510689910784000.ingest.de.sentry.io/4510689928740944
     availability:
       - BUILD
       - RUNTIME
 
-  # API Keys - Using Cloud Secret Manager
-  # See https://firebase.google.com/docs/app-hosting/configure#secret-parameters
-  - variable: FIREBASE_SERVICE_ACCOUNT_KEY
-    secret: firebase-service-account-key@1
-    availability:
-      - RUNTIME
-
-  - variable: FIREBASE_PROJECT_ID
-    value: seismic-vista-480710-q5
-    availability:
-      - BUILD
-      - RUNTIME
-  
-  # CRON_SECRET for securing API routes
-  - variable: CRON_SECRET
-    secret: cron-secret
-    availability:
-      - RUNTIME
-  
-  # Sovereign AI Configuration (Ollama at private IP)
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 🌌 LOCAL BRAIN CONFIGURATION (Universe Agent - Ollama)
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Private Ollama instance on VPC
   - variable: INFERENCE_URL
     value: http://10.128.0.4:11434/v1
     availability:
       - RUNTIME
 
-  # Using smaller model for CPU-only inference (no GPU on e2-standard-8)
-  # Options: mistral (7B, slow), qwen2.5:1.5b-instruct (1.5B, fast)
-  - variable: INFERENCE_MODEL
-    value: qwen2.5:1.5b-instruct
+  - variable: LOCAL_INFERENCE_URL
+    value: http://10.128.0.4:11434/v1
     availability:
       - RUNTIME
 
+  # CRITICAL FIX: Use 'mistral' not 'mistralai/Mistral-7B-Instruct-v0.3'
+  # Ollama uses short model names, not HuggingFace paths
+  - variable: INFERENCE_MODEL
+    value: mistral
+    availability:
+      - RUNTIME
+
+  - variable: LOCAL_INFERENCE_MODEL
+    value: mistral
+    availability:
+      - RUNTIME
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 🧠 MEMORY SUBSYSTEM (Qdrant Vector Database)
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Private Qdrant instance on VPC
   - variable: QDRANT_URL
     value: http://10.128.0.3:6333
     availability:
       - RUNTIME
 
+  - variable: QDRANT_COLLECTION
+    value: memories
+    availability:
+      - RUNTIME
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 🔢 EMBEDDINGS SERVICE
+  # ═══════════════════════════════════════════════════════════════════════════
   - variable: EMBEDDING_MODEL
     value: all-MiniLM-L6-v2
     availability:
@@ -102,8 +130,29 @@ env:
     value: https://pandora-embeddings-service-536979070288.us-central1.run.app
     availability:
       - RUNTIME
-  
-  # Firebase Admin Credentials (using ADMIN_ prefix to avoid reserved FIREBASE_ prefix)
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 📡 SERVER CONFIGURATION
+  # ═══════════════════════════════════════════════════════════════════════════
+  - variable: HOSTNAME
+    value: "0.0.0.0"
+    availability:
+      - RUNTIME
+
+  - variable: NODE_ENV
+    value: production
+    availability:
+      - RUNTIME
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 🔐 SECRETS (Google Secret Manager)
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Firebase Admin Service Account
+  - variable: FIREBASE_SERVICE_ACCOUNT_KEY
+    secret: firebase-service-account-key@1
+    availability:
+      - RUNTIME
+
   - variable: ADMIN_CLIENT_EMAIL
     secret: firebase-client-email
     availability:
@@ -114,14 +163,20 @@ env:
     availability:
       - RUNTIME
 
-  # Tavily Search API
+  # Cron Job Authentication
+  - variable: CRON_SECRET
+    secret: cron-secret
+    availability:
+      - RUNTIME
+
+  # Tavily Search API (Web Retrieval)
   - variable: TAVILY_API_KEY
     secret: tavily-api-key
     availability:
       - RUNTIME
-      
-  # Server Configuration (Fix for Cloud Run)
-  - variable: HOSTNAME
-    value: "0.0.0.0"
+
+  # ☁️ CLOUD BRAIN (Groq API for Builder Agent)
+  - variable: GROQ_API_KEY
+    secret: groq-api-key
     availability:
       - RUNTIME
