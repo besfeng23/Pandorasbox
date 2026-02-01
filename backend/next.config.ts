@@ -79,6 +79,7 @@ const nextConfig: NextConfig = {
   },
 
   experimental: {
+    mcp: true,
   },
 
   env: {

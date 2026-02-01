@@ -33,26 +33,26 @@ function verifyCronSecret(request: NextRequest): boolean {
     console.warn('[Janitor Cron] CRON_SECRET not configured');
     return false;
   }
-  
+
   // Check Authorization header
   const authHeader = request.headers.get('Authorization');
   if (authHeader === `Bearer ${cronSecret}`) {
     return true;
   }
-  
+
   // Check x-cron-secret header (Vercel cron)
   const cronHeader = request.headers.get('x-cron-secret');
   if (cronHeader === cronSecret) {
     return true;
   }
-  
+
   // Check query parameter (for testing)
   const url = new URL(request.url);
   const querySecret = url.searchParams.get('secret');
   if (querySecret === cronSecret) {
     return true;
   }
-  
+
   return false;
 }
 
@@ -69,14 +69,14 @@ export async function GET(request: NextRequest) {
       { status: 401 }
     );
   }
-  
+
   const startTime = Date.now();
   console.log('[Janitor Cron] Starting memory janitor run');
-  
+
   try {
     const janitor = getMemoryJanitor();
     const db = getFirestoreAdmin();
-    
+
     // Get all active users (users with activity in last 7 days)
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const usersSnapshot = await db
@@ -84,17 +84,17 @@ export async function GET(request: NextRequest) {
       .where('lastActive', '>', sevenDaysAgo)
       .limit(100) // Process max 100 users per run
       .get();
-    
+
     const results: Array<{
       userId: string;
       agentId: string;
       result: any;
     }> = [];
-    
+
     // Process each user's memories
     for (const userDoc of usersSnapshot.docs) {
       const userId = userDoc.id;
-      
+
       // Run janitor for 'universe' agent (primary agent)
       try {
         const result = await janitor.run(userId, 'universe');
@@ -117,11 +117,11 @@ export async function GET(request: NextRequest) {
         });
       }
     }
-    
+
     const totalTime = Date.now() - startTime;
-    
+
     console.log(`[Janitor Cron] Completed in ${totalTime}ms, processed ${results.length} users`);
-    
+
     return NextResponse.json({
       success: true,
       timestamp: new Date().toISOString(),
@@ -129,7 +129,7 @@ export async function GET(request: NextRequest) {
       usersProcessed: results.length,
       results
     });
-    
+
   } catch (error: any) {
     console.error('[Janitor Cron] Fatal error:', error);
     return NextResponse.json(
@@ -156,30 +156,30 @@ export async function POST(request: NextRequest) {
       { status: 401 }
     );
   }
-  
+
   try {
     const body = await request.json();
     const { userId, agentId = 'universe' } = body;
-    
+
     if (!userId) {
       return NextResponse.json(
         { error: 'Bad Request', message: 'userId is required' },
         { status: 400 }
       );
     }
-    
+
     console.log(`[Janitor Cron] Manual run for user: ${userId}, agent: ${agentId}`);
-    
+
     const janitor = getMemoryJanitor();
     const result = await janitor.run(userId, agentId);
-    
+
     return NextResponse.json({
       success: true,
       userId: userId.slice(0, 8) + '...',
       agentId,
       result
     });
-    
+
   } catch (error: any) {
     console.error('[Janitor Cron] Manual run error:', error);
     return NextResponse.json(
