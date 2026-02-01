@@ -5,11 +5,11 @@ FROM node:20-slim
 # Set the working directory to /app
 WORKDIR /app
 
-# Copy the package.json and package-lock.json files
-COPY package.json package-lock.json ./
+# Copy the package.json file
+COPY package.json ./
 
-# Install production dependencies.
-RUN rm -rf package-lock.json && npm install
+# Install pnpm and dependencies
+RUN npm install -g pnpm && pnpm install
 
 # Copy the rest of your backend application code
 COPY . .

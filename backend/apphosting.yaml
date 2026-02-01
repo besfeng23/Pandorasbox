@@ -81,8 +81,10 @@ env:
     availability:
       - RUNTIME
 
+  # Using smaller model for CPU-only inference (no GPU on e2-standard-8)
+  # Options: mistral (7B, slow), qwen2.5:1.5b-instruct (1.5B, fast)
   - variable: INFERENCE_MODEL
-    value: mistral
+    value: qwen2.5:1.5b-instruct
     availability:
       - RUNTIME
 
