@@ -82,7 +82,7 @@ env:
       - RUNTIME
 
   - variable: INFERENCE_MODEL
-    value: mistralai/Mistral-7B-Instruct-v0.3
+    value: mistral
     availability:
       - RUNTIME
 
