@@ -97,7 +97,9 @@ export class OllamaProvider implements LLMProvider {
 
     async checkHealth(): Promise<boolean> {
         try {
-            const response = await fetch(`${this.baseUrl}/api/tags`);
+            const response = await fetch(`${this.baseUrl}/api/tags`, {
+                signal: AbortSignal.timeout(5000)
+            });
             return response.ok;
         } catch {
             return false;

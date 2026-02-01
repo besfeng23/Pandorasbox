@@ -24,7 +24,8 @@ export async function getServerConfig(): Promise<ServerConfig> {
     nodeEnv: process.env.NODE_ENV,
     hasInferenceBaseUrl: !!process.env.INFERENCE_BASE_URL,
     hasInferenceUrl: !!process.env.INFERENCE_URL,
-    hasInferenceModel: !!process.env.INFERENCE_MODEL,
+    hasUniverseInferenceUrl: !!process.env.UNIVERSE_INFERENCE_URL,
+    hasUniverseModel: !!process.env.UNIVERSE_MODEL,
     hasEmbeddingsBaseUrl: !!process.env.EMBEDDINGS_BASE_URL,
     hasQdrantUrl: !!process.env.QDRANT_URL
   });
@@ -39,13 +40,13 @@ export async function getServerConfig(): Promise<ServerConfig> {
         const secrets = await res.json();
         console.log('[Config] Successfully loaded secrets from URL');
         // Support both INFERENCE_BASE_URL (preferred) and INFERENCE_URL (legacy)
-        const inferenceUrl = secrets.INFERENCE_BASE_URL || secrets.INFERENCE_URL ||
-          process.env.INFERENCE_BASE_URL || process.env.INFERENCE_URL ||
+        const inferenceUrl = secrets.UNIVERSE_INFERENCE_URL || secrets.INFERENCE_BASE_URL || secrets.INFERENCE_URL ||
+          process.env.UNIVERSE_INFERENCE_URL || process.env.INFERENCE_BASE_URL || process.env.INFERENCE_URL ||
           'http://localhost:8000';
         cachedConfig = {
           inferenceBaseUrl: inferenceUrl,
           inferenceModel:
-            secrets.INFERENCE_MODEL || process.env.INFERENCE_MODEL || 'mistral',
+            secrets.UNIVERSE_MODEL || secrets.INFERENCE_MODEL || process.env.UNIVERSE_MODEL || process.env.INFERENCE_MODEL || 'mistral',
           embeddingsBaseUrl:
             secrets.EMBEDDINGS_BASE_URL || process.env.EMBEDDINGS_BASE_URL || 'http://localhost:8080',
           embeddingsDimension: parseInt(
@@ -73,11 +74,11 @@ export async function getServerConfig(): Promise<ServerConfig> {
 
   // Fallback to environment variables
   console.log('[Config] Loading configuration from environment variables');
-  // Support both INFERENCE_BASE_URL (preferred) and INFERENCE_URL (legacy)
-  const inferenceUrl = process.env.INFERENCE_BASE_URL || process.env.INFERENCE_URL || 'http://localhost:8000';
+  // Support for Split-Brain UNIVERSE_INFERENCE_URL and legacy INFERENCE_URL
+  const inferenceUrl = process.env.UNIVERSE_INFERENCE_URL || process.env.INFERENCE_BASE_URL || process.env.INFERENCE_URL || 'http://localhost:8000';
   cachedConfig = {
     inferenceBaseUrl: inferenceUrl,
-    inferenceModel: process.env.INFERENCE_MODEL || 'mistral',
+    inferenceModel: process.env.UNIVERSE_MODEL || process.env.INFERENCE_MODEL || 'mistral',
     embeddingsBaseUrl: process.env.EMBEDDINGS_BASE_URL || 'http://localhost:8080',
     embeddingsDimension: parseInt(process.env.EMBEDDINGS_DIMENSION || '384', 10),
     qdrantUrl: process.env.QDRANT_URL || 'http://localhost:6333',
