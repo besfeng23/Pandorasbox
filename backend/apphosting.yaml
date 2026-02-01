@@ -1,11 +1,11 @@
 # Settings for Backend (on Cloud Run).
 # See https://firebase.google.com/docs/app-hosting/configure#cloud-run
 runConfig:
-  minInstances: 0
-  # maxInstances: 100
-  # concurrency: 80
-  # cpu: 1
-  # memoryMiB: 512
+  minInstances: 1 # CRITICAL: Keeps the CPU from freezing immediately after response
+  maxInstances: 10
+  concurrency: 80
+  cpu: 1
+  memoryMiB: 2048
   vpcAccess:
     connector: projects/seismic-vista-480710-q5/locations/us-central1/connectors/pandora-vpc-connector
     egress: PRIVATE_RANGES_ONLY
@@ -49,15 +49,17 @@ env:
       - BUILD
       - RUNTIME
 
+  # Sentry DSN for error tracking
+  - variable: NEXT_PUBLIC_SENTRY_DSN
+    value: https://9c170ff10657b483a588e3f631bdfeb8@o4510689910784000.ingest.de.sentry.io/4510689928740944
+    availability:
+      - BUILD
+      - RUNTIME
+
   # API Keys - Using Cloud Secret Manager
   # See https://firebase.google.com/docs/app-hosting/configure#secret-parameters
   - variable: FIREBASE_SERVICE_ACCOUNT_KEY
     secret: firebase-service-account-key@1
-    availability:
-      - RUNTIME
-
-  - variable: LLM_API_KEY
-    secret: llm-api-key
     availability:
       - RUNTIME
 
@@ -73,14 +75,14 @@ env:
     availability:
       - RUNTIME
   
-  # Sovereign AI Configuration
+  # Sovereign AI Configuration (Ollama at private IP)
   - variable: INFERENCE_URL
-    value: http://10.128.0.4:8000/v1
+    value: http://10.128.0.4:11434/v1
     availability:
       - RUNTIME
 
   - variable: INFERENCE_MODEL
-    value: mistralai/Mistral-7B-Instruct-v0.3
+    value: mistral
     availability:
       - RUNTIME
 
@@ -93,8 +95,31 @@ env:
     value: all-MiniLM-L6-v2
     availability:
       - RUNTIME
-
+      
   - variable: EMBEDDINGS_BASE_URL
     value: https://pandora-embeddings-service-536979070288.us-central1.run.app
+    availability:
+      - RUNTIME
+  
+  # Firebase Admin Credentials (using ADMIN_ prefix to avoid reserved FIREBASE_ prefix)
+  - variable: ADMIN_CLIENT_EMAIL
+    secret: firebase-client-email
+    availability:
+      - RUNTIME
+
+  - variable: ADMIN_PRIVATE_KEY
+    secret: firebase-private-key
+    availability:
+      - RUNTIME
+
+  # Tavily Search API
+  - variable: TAVILY_API_KEY
+    secret: tavily-api-key
+    availability:
+      - RUNTIME
+      
+  # Server Configuration (Fix for Cloud Run)
+  - variable: HOSTNAME
+    value: "0.0.0.0"
     availability:
       - RUNTIME
