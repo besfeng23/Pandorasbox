@@ -37,11 +37,11 @@ export interface TranscriptionOptions {
 export class GroqWhisperService {
   private groqClient: Groq | null = null;
   private readonly model = GroqModels.WHISPER;
-  
+
   constructor() {
     this.initializeClient();
   }
-  
+
   private initializeClient(): void {
     const apiKey = process.env.GROQ_API_KEY;
     if (apiKey) {
@@ -51,7 +51,7 @@ export class GroqWhisperService {
       console.warn('[GroqWhisper] GROQ_API_KEY not set');
     }
   }
-  
+
   /**
    * Transcribe audio buffer to text
    * @param audioBuffer - Raw audio data (WAV, MP3, M4A, WEBM, etc.)
@@ -66,20 +66,21 @@ export class GroqWhisperService {
     if (!this.groqClient) {
       throw new Error('Groq client not initialized - GROQ_API_KEY required');
     }
-    
+
     const startTime = Date.now();
-    
+
     // Create a File-like object for Groq SDK
-    const audioFile = new File([audioBuffer], filename, {
+    // Fix: Wrap in Uint8Array to satisfy BlobPart type definition
+    const audioFile = new File([new Uint8Array(audioBuffer)], filename, {
       type: this.getMimeType(filename)
     });
-    
+
     console.log('[GroqWhisper] Starting transcription:', {
       filename,
       size: audioBuffer.length,
       mimeType: this.getMimeType(filename)
     });
-    
+
     try {
       const response = await this.groqClient.audio.transcriptions.create({
         file: audioFile,
@@ -89,29 +90,29 @@ export class GroqWhisperService {
         temperature: options.temperature ?? 0,
         response_format: 'verbose_json'
       });
-      
+
       const processingTime = Date.now() - startTime;
-      
+
       console.log('[GroqWhisper] Transcription complete:', {
         textLength: response.text.length,
         language: response.language,
         duration: response.duration,
         processingTimeMs: processingTime
       });
-      
+
       return {
         text: response.text,
         language: response.language,
         duration: response.duration,
         processingTimeMs: processingTime
       };
-      
+
     } catch (error: any) {
       console.error('[GroqWhisper] Transcription failed:', error.message);
       throw new Error(`Transcription failed: ${error.message}`);
     }
   }
-  
+
   /**
    * Transcribe from a base64-encoded audio string
    */
@@ -123,17 +124,17 @@ export class GroqWhisperService {
     // Remove data URL prefix if present
     const base64Data = base64Audio.replace(/^data:audio\/\w+;base64,/, '');
     const audioBuffer = Buffer.from(base64Data, 'base64');
-    
+
     return this.transcribe(audioBuffer, filename, options);
   }
-  
+
   /**
    * Check if the service is available
    */
   isAvailable(): boolean {
     return this.groqClient !== null;
   }
-  
+
   /**
    * Get MIME type from filename
    */
