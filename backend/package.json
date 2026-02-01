@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack -p 9002",
+    "mcp:generate-schema": "tsx src/mcp/schema-generator.ts",
     "build": "next build && node scripts/post-build-fix.js",
     "start": "node scripts/start-server.js",
     "lint": "eslint .",

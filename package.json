@@ -4,6 +4,7 @@
   "description": "Monorepo for PandoraFullStack frontend and backend",
   "main": "index.js",
   "scripts": {
+    "mcp:generate-schema": "pnpm --filter nextn mcp:generate-schema",
     "install-all": "npm install --prefix backend",
     "dev": "npm run dev --prefix backend",
     "build": "pnpm --prefix backend build",

@@ -1,0 +1,15 @@
+{
+    "mcpServers": {
+        "pandoras-box": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "tsx",
+                "C:\\Users\\Administrator\\Desktop\\BOX\\backend\\src\\mcp\\index.ts"
+            ],
+            "env": {
+                "NODE_ENV": "development"
+            }
+        }
+    }
+}

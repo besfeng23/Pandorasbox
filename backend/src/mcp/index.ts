@@ -52,21 +52,21 @@ const GenerateArtifactInputSchema = z.object({
 // Validate required environment variables
 function validateEnvironment() {
   // OPENAI_API_KEY is no longer required as we use self-hosted AI
-  const requiredVars: string[] = []; 
+  const requiredVars: string[] = [];
   const missing: string[] = [];
-  
+
   for (const varName of requiredVars) {
     if (!process.env[varName]?.trim()) {
       missing.push(varName);
     }
   }
-  
+
   if (missing.length > 0) {
     console.error('❌ Missing required environment variables:', missing.join(', '));
     console.error('Please set these in .env.local file');
     throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
   }
-  
+
   // Check for Firebase service account
   const serviceAccountPath = join(process.cwd(), 'service-account.json');
   if (!existsSync(serviceAccountPath)) {
@@ -81,11 +81,11 @@ let envValidated = false;
 try {
   validateEnvironment();
   envValidated = true;
-    console.error('✅ Environment variables validated');
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'An unknown error occurred';
-    console.error('❌ Environment validation failed:', message);
-  }
+  console.error('✅ Environment variables validated');
+} catch (error: unknown) {
+  const message = error instanceof Error ? error.message : 'An unknown error occurred';
+  console.error('❌ Environment validation failed:', message);
+}
 
 // Initialize the server
 const server = new Server(
@@ -197,7 +197,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   try {
     console.error(`🔧 Executing tool: ${name}`);
-    
+
     switch (name) {
       case 'search_knowledge_base': {
         const parsedArgs = SearchKnowledgeBaseInputSchema.parse(args);
@@ -286,12 +286,12 @@ async function main() {
     if (!envValidated) {
       console.error('⚠️  Starting server with unvalidated environment. Tools may fail.');
     }
-    
+
     const transport = new StdioServerTransport();
     await server.connect(transport);
     console.error('✅ Pandora\'s Box MCP server running on stdio');
     console.error('📋 Available tools: search_knowledge_base, add_memory, generate_artifact');
-    
+
     try {
       const { getFirestoreAdmin } = await import('@/lib/firebase-admin');
       getFirestoreAdmin();
