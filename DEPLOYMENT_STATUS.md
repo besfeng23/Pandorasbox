@@ -33,7 +33,7 @@
 ### Private Infrastructure (VPC)
 | Component | Internal IP | Port | Status |
 |-----------|-------------|------|--------|
-| **Ollama** (qwen2.5:1.5b) | `10.128.0.4` | 11434 | 🟢 RUNNING |
+| **Ollama** (mistral/qwen2.5) | `10.128.0.8` | 11434 | 🟢 RUNNING |
 | **Qdrant** (memories) | `10.128.0.3` | 6333 | 🟢 RUNNING |
 
 ### VPC Connector
@@ -51,7 +51,7 @@
 
 ### Sovereign AI Configuration
 ```yaml
-INFERENCE_URL: http://10.128.0.4:11434/v1
+INFERENCE_URL: http://10.128.0.8:11434/v1
 INFERENCE_MODEL: qwen2.5:1.5b-instruct  # 4x faster than mistral on CPU
 QDRANT_URL: http://10.128.0.3:6333
 EMBEDDING_MODEL: all-MiniLM-L6-v2
@@ -64,6 +64,7 @@ EMBEDDINGS_BASE_URL: https://pandora-embeddings-service-536979070288.us-central1
 - ✅ `firebase-private-key`
 - ✅ `cron-secret`
 - ✅ `tavily-api-key`
+- ⚠️ `groq-api-key` (REQUIRED for Split-Brain Builder Agent)
 
 ---
 

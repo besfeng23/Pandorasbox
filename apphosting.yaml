@@ -76,8 +76,9 @@ env:
       - RUNTIME
   
   # Sovereign AI Configuration
+  # NOTE: Updated from 10.128.0.4 to 10.128.0.8 (VM IP changed)
   - variable: INFERENCE_URL
-    value: http://10.128.0.4:11434/v1
+    value: http://10.128.0.8:11434/v1
     availability:
       - RUNTIME
 
