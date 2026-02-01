@@ -61,7 +61,7 @@ Respond with a JSON array of strings: ["Fact 1", "Fact 2", ...]`;
       const output = result.response.text();
 
       // Basic JSON cleaning if necessary
-      const jsonString = output.match(/\[.*\]/s)?.[0] || '[]';
+      const jsonString = output.match(/\[[\s\S]*\]/)?.[0] || '[]';
       const facts: string[] = JSON.parse(jsonString);
 
       // 3. Create "Crystallized Facts" in Qdrant
