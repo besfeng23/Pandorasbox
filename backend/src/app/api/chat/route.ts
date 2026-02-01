@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
       // Route to Groq for builder/code tasks
       // No RAG context for Builder (Privacy)
       const groqApiKey = process.env.GROQ_API_KEY;
-      
+
       if (!groqApiKey) {
         console.warn(`[${requestId}] GROQ_API_KEY not set! Falling back to Universe Agent.`);
         // Fallback to Universe Agent if Groq key is missing
@@ -128,11 +128,13 @@ export async function POST(req: NextRequest) {
         model = process.env.UNIVERSE_MODEL || 'mistral:latest';
         routingInfo = '\n\n### 📡 ACTIVE SUBNETWORK: UNIVERSE_FALLBACK (Groq unavailable)';
       } else {
-        console.log(`[${requestId}] Routing to Groq Builder Agent`);
+        console.log(`[${requestId}] Routing to Groq Builder Agent with model: ${process.env.BUILDER_MODEL || 'llama-3.3-70b-versatile'}`);
         routingInfo = '\n\n### 📡 ACTIVE SUBNETWORK: CODER_LANE';
         provider = createOpenAI({
           apiKey: groqApiKey,
           baseURL: 'https://api.groq.com/openai/v1',
+          // @ts-ignore compatibility mode
+          compatibility: 'compatible',
         });
         model = process.env.BUILDER_MODEL || 'llama-3.3-70b-versatile';
       }
