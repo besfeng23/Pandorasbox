@@ -120,6 +120,34 @@ env:
     secret: tavily-api-key
     availability:
       - RUNTIME
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # SPLIT-BRAIN ARCHITECTURE - Groq Cloud (Builder + Reflex Agents)
+  # ═══════════════════════════════════════════════════════════════════════════
+  - variable: GROQ_API_KEY
+    secret: groq-api-key
+    availability:
+      - RUNTIME
+
+  - variable: BUILDER_MODEL
+    value: llama-3.3-70b-versatile
+    availability:
+      - RUNTIME
+
+  - variable: REFLEX_MODEL
+    value: llama-3.1-8b-instant
+    availability:
+      - RUNTIME
+
+  - variable: UNIVERSE_INFERENCE_URL
+    value: http://10.128.0.8:11434
+    availability:
+      - RUNTIME
+
+  - variable: UNIVERSE_MODEL
+    value: mistral:latest
+    availability:
+      - RUNTIME
       
   # Server Configuration (Fix for Cloud Run)
   - variable: HOSTNAME
