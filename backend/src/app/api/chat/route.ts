@@ -98,39 +98,7 @@ export async function POST(req: NextRequest) {
     });
 
     let context = '';
-    if (message.length > 5) {
-      try {
-        const ragPromise = async () => {
-          const queryVector = await embedText(message);
-          const filter: any = { must: [{ key: 'userId', match: { value: userId } }, { key: 'agentId', match: { value: agentId } }] };
-          if (workspaceId) filter.must.push({ key: 'workspaceId', match: { value: workspaceId } });
-          const searchResults = (await searchPoints('memories', queryVector, 5, filter)) || [];
-          return enhanceWithCognition(searchResults);
-        };
-        context = await withTimeout(ragPromise(), 10000, '', 'RAG Search');
-      } catch (e: any) { console.error(`[${requestId}] RAG Error:`, e.message); }
-    }
 
-    let routingInfo = '';
-    try {
-      if (/(code|function)/i.test(message)) routingInfo = '\n\n### 📡 ACTIVE SUBNETWORK: CODER_LANE';
-    } catch (e) { }
-
-    const openaiProvider = getOpenAIModel();
-    const modelName = process.env.INFERENCE_MODEL || 'mistral';
-
-    const systemPrompt = `You are Pandora, an advanced Sovereign AI assistant.
-### Capabilities:
-- **Memory**: You have access to long-term memory. ALWAYS search the knowledge base before answering technical or factual questions to ensure accuracy.
-${agentId === 'builder' ? `
-### Role: THE BUILDER 🏗️
-- **Expertise**: Full-stack engineering.
-` : `
-### Role: THE UNIVERSE 🌌
-- **Expertise**: Creative synthesis.
-`}
-${routingInfo}
-User ID: ${userId}${context}`;
 
     // ═══════════════════════════════════════════════════════════════════════════
     // SPLIT-BRAIN ROUTING (Phase 2)
@@ -141,16 +109,33 @@ User ID: ${userId}${context}`;
 
     let provider;
     let model;
+    let routingInfo = '';
 
-    if (intent === 'BUILD') {
+    if (intent === 'BUILD' || agentId === 'builder') {
       // Route to Groq for builder/code tasks
+      // No RAG context for Builder (Privacy)
+      routingInfo = '\n\n### 📡 ACTIVE SUBNETWORK: CODER_LANE';
       provider = createOpenAI({
         apiKey: process.env.GROQ_API_KEY || '',
         baseURL: 'https://api.groq.com/openai/v1',
       });
       model = process.env.BUILDER_MODEL || 'llama-3.3-70b-versatile';
     } else {
-      // Route to Private GPU (Universe) for general chat/memory
+      // 1. Perform RAG only for Universe/Chat Agent
+      if (message.length > 5) {
+        try {
+          const ragPromise = async () => {
+            const queryVector = await embedText(message);
+            const filter: any = { must: [{ key: 'userId', match: { value: userId } }, { key: 'agentId', match: { value: agentId } }] };
+            if (workspaceId) filter.must.push({ key: 'workspaceId', match: { value: workspaceId } });
+            const searchResults = (await searchPoints('memories', queryVector, 5, filter)) || [];
+            return enhanceWithCognition(searchResults);
+          };
+          context = await withTimeout(ragPromise(), 10000, '', 'RAG Search');
+        } catch (e: any) { console.error(`[${requestId}] RAG Error:`, e.message); }
+      }
+
+      // 2. Route to Private GPU (Universe)
       provider = createOpenAI({
         apiKey: process.env.SOVEREIGN_KEY || 'ollama',
         baseURL: `${process.env.UNIVERSE_INFERENCE_URL || 'http://10.128.0.4:11434'}/v1`,
@@ -159,6 +144,19 @@ User ID: ${userId}${context}`;
       });
       model = process.env.UNIVERSE_MODEL || 'llama3:70b-instruct-q4_0';
     }
+
+    const systemPrompt = `You are Pandora, an advanced Sovereign AI assistant.
+### Capabilities:
+- **Memory**: You have access to long-term memory. ALWAYS search the knowledge base before answering technical or factual questions to ensure accuracy.
+${agentId === 'builder' || intent === 'BUILD' ? `
+### Role: THE BUILDER 🏗️
+- **Expertise**: Full-stack engineering.
+` : `
+### Role: THE UNIVERSE 🌌
+- **Expertise**: Creative synthesis.
+`}
+${routingInfo}
+User ID: ${userId}${context}`;
 
     const cleanHistory = Array.isArray(history) ? history.filter(m => m.role && m.content) : [];
 
