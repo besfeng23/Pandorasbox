@@ -53,7 +53,7 @@ export class MemoryJanitor {
 Focus on extracting persistent preferences, life events, emotional states, and recurring themes.
 
 CHAT FRAGMENTS:
-${memories.map(m => m.content).join('\n---\n')}
+${memories.map((m: { content: string }) => m.content).join('\n---\n')}
 
 Respond with a JSON array of strings: ["Fact 1", "Fact 2", ...]`;
 
