@@ -79,6 +79,7 @@ const nextConfig: NextConfig = {
   },
 
   experimental: {
+    // @ts-ignore - Experimental MCP is not yet in the NextConfig types
     mcp: true,
   },
 
