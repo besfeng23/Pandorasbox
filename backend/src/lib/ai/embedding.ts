@@ -10,13 +10,13 @@ import { getServerConfig } from '@/server/config';
  */
 export async function embedText(text: string): Promise<number[]> {
   const startTime = Date.now();
-  
+
   // Input validation
   if (!text || typeof text !== 'string') {
     console.error('[Embedding] Invalid input:', { type: typeof text, value: text });
     throw new Error('Text must be a non-empty string');
   }
-  
+
   const config = await getServerConfig();
   const normalizedText = text.trim();
 
@@ -30,7 +30,7 @@ export async function embedText(text: string): Promise<number[]> {
     console.warn('[Embedding] Empty text provided, returning zero vector');
     return Array(config.embeddingsDimension).fill(0);
   }
-  
+
   // Validate config
   if (!config.embeddingsBaseUrl) {
     throw new Error('Embeddings base URL not configured');
@@ -53,20 +53,26 @@ export async function embedText(text: string): Promise<number[]> {
     url = `${config.embeddingsBaseUrl.replace(/\/$/, '')}/v1/embeddings`;
   }
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 7000); // Strict 7s timeout
+
   try {
     console.log(`[Embedding] Request URL: ${url}, Text length: ${normalizedText.length}`);
 
     const response = await fetch(url, {
       method: 'POST',
+      signal: controller.signal,
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.SOVEREIGN_KEY || 'ollama'}`,
       },
-    body: JSON.stringify({
-      // OpenAI-compatible format
-      input: normalizedText,
-      // Note: model field is optional - embedding service uses MODEL_NAME env var
-    }),
+      body: JSON.stringify({
+        // OpenAI-compatible format
+        input: normalizedText,
+        // Note: model field is optional - embedding service uses MODEL_NAME env var
+      }),
     });
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -92,14 +98,14 @@ export async function embedText(text: string): Promise<number[]> {
       } else {
         embedding = result.embedding || result.embeddings?.[0] || [];
       }
-      
+
       const duration = Date.now() - startTime;
       console.log(`[Embedding] Success:`, {
         duration: `${duration}ms`,
         embeddingLength: embedding.length,
         format: result.data ? 'OpenAI-compatible' : 'custom'
       });
-      
+
       return embedding;
     } catch (jsonError: any) {
       const duration = Date.now() - startTime;

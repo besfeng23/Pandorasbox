@@ -149,7 +149,7 @@ export async function POST(req: NextRequest) {
             const searchResults = (await searchPoints('memories', queryVector, 5, filter)) || [];
             return enhanceWithCognition(searchResults);
           };
-          context = await withTimeout(ragPromise(), 10000, '', 'RAG Search');
+          context = await withTimeout(ragPromise(), 12000, '', 'RAG Search');
         } catch (e: any) { console.error(`[${requestId}] RAG Error:`, e.message); }
       }
 
@@ -187,6 +187,17 @@ User ID: ${userId}${context}`;
       model: provider(model),
       system: systemPrompt,
       messages: uiMessages as any,
+      onError: (error: any) => {
+        console.error(`[${requestId}] streamText Error Diagnostic:`, {
+          error: error.message || error.error?.message || String(error),
+          model,
+          intent,
+          agentId,
+          hasSovereignKey: !!process.env.SOVEREIGN_KEY,
+          hasGroqKey: !!process.env.GROQ_API_KEY,
+          hasOpenAIKey: !!process.env.OPENAI_API_KEY
+        });
+      },
       onFinish: async ({ text: completion }) => {
         try {
           const assistantMessageRef = db.collection(`users/${userId}/agents/${agentId}/history`).doc();

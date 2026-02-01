@@ -184,3 +184,14 @@ env:
     secret: groq-api-key
     availability:
       - RUNTIME
+
+  # 🔐 SOVEREIGN CORE (Ollama / vLLM Access)
+  - variable: SOVEREIGN_KEY
+    secret: sovereign-key
+    availability:
+      - RUNTIME
+
+  - variable: OPENAI_API_KEY
+    secret: openai-api-key
+    availability:
+      - RUNTIME
