@@ -285,16 +285,36 @@ if (workspaceRoot && workspaceRoot !== backendDir) {
       fs.rmSync(deployDir, { recursive: true, force: true });
     }
     fs.mkdirSync(deployDir, { recursive: true });
-    fs.cpSync(sourceStandaloneDir, deployDir, { recursive: true, dereference: true, force: true });
-    console.log(`[Post-build] ✅ Copied standalone to ${deployDir}`);
+    // Use a safer copy strategy that skips system files if they somehow got in
+    try {
+      fs.cpSync(sourceStandaloneDir, deployDir, {
+        recursive: true,
+        force: true,
+        filter: (src) => {
+          const base = path.basename(src);
+          // Skip system/temp directories that might be transiently created
+          return base !== 'proc' && base !== 'sys' && base !== '.npm';
+        }
+      });
+      console.log(`[Post-build] ✅ Copied standalone to ${deployDir}`);
+    } catch (e) {
+      console.warn(`[Post-build] ⚠️  Warning during deploy copy: ${e.message}`);
+      // If CP fails, try a simpler fallback
+      if (!fs.existsSync(path.join(deployDir, 'server.js'))) {
+        console.error(`[Post-build] ❌ Deploy directory incomplete.`);
+      }
+    }
 
     // STEP 2: Copy the fixed standalone directory to workspace root (for Adapter detection)
     try {
       fs.cpSync(sourceStandaloneDir, targetStandaloneDir, {
         recursive: true,
-        dereference: true,
         errorOnExist: false,
-        force: true
+        force: true,
+        filter: (src) => {
+          const base = path.basename(src);
+          return base !== 'proc' && base !== 'sys';
+        }
       });
       console.log(`[Post-build] ✅ Copied fixed standalone directory to workspace root`);
 

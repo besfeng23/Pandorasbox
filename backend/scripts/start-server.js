@@ -14,11 +14,15 @@ console.log(`[Start] CWD is ${process.cwd()}`);
 const candidates = [
     // 1. In deploy/backend/server.js (Expected for monorepo structure)
     path.resolve(__dirname, '../deploy/backend/server.js'),
-    // 2. In deploy/server.js (If flattened)
+    // 2. In deploy/app/server.js (Alternative monorepo name)
+    path.resolve(__dirname, '../deploy/app/server.js'),
+    // 3. In deploy/server.js (If flattened)
     path.resolve(__dirname, '../deploy/server.js'),
-    // 3. Fallback to .next/standalone/backend/server.js
+    // 4. Fallback to .next/standalone/backend/server.js
     path.resolve(__dirname, '../.next/standalone/backend/server.js'),
-    // 4. Fallback to .next/standalone/server.js
+    // 5. Fallback to .next/standalone/app/server.js
+    path.resolve(__dirname, '../.next/standalone/app/server.js'),
+    // 6. Fallback to .next/standalone/server.js
     path.resolve(__dirname, '../.next/standalone/server.js')
 ];
 
@@ -48,21 +52,24 @@ if (serverPath) {
     console.error(`[Start] ❌ Server file not found in any candidate location.`);
     console.error(`[Start] Searched:`, candidates);
 
-    // Debug: List directory contents of deploy
+    // Debug: List directory contents recursively to find where server.js is hiding
     try {
-        const deployDir = path.resolve(__dirname, '../deploy');
-        if (fs.existsSync(deployDir)) {
-            console.log(`[Start] Contents of ${deployDir}:`, fs.readdirSync(deployDir));
-            // Check backend subdir
-            const backendSub = path.join(deployDir, 'backend');
-            if (fs.existsSync(backendSub)) {
-                console.log(`[Start] Contents of ${backendSub}:`, fs.readdirSync(backendSub));
+        const listDirRecursive = (dir, depth = 0) => {
+            if (depth > 3) return;
+            if (!fs.existsSync(dir)) return;
+            const files = fs.readdirSync(dir);
+            console.log(`[Start] [Depth ${depth}] Contents of ${dir}:`, files);
+            for (const file of files) {
+                const fullPath = path.join(dir, file);
+                if (fs.statSync(fullPath).isDirectory()) {
+                    listDirRecursive(fullPath, depth + 1);
+                }
             }
-        } else {
-            console.log(`[Start] Directory ${deployDir} does not exist.`);
-        }
+        };
+        console.log('[Start] 🔍 Deep filesystem audit of /app:');
+        listDirRecursive('/app');
     } catch (e) {
-        console.error('[Start] Failed to list directories', e);
+        console.error('[Start] Failed to perform deep audit', e);
     }
 
     process.exit(1);

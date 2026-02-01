@@ -10,7 +10,8 @@ async def get_model():
     global model
     if model is None:
         # Load the model only when it's needed
-        model_name = os.getenv("EMBEDDING_MODEL_NAME", "BAAI/bge-small-en-v1.5")
+        model_name = os.getenv("EMBEDDING_MODEL") or os.getenv("EMBEDDING_MODEL_NAME") or "all-MiniLM-L6-v2"
+        print(f"Loading model: {model_name}")
         model = SentenceTransformer(model_name)
     return model
 
