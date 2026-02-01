@@ -114,12 +114,28 @@ export async function POST(req: NextRequest) {
     if (intent === 'BUILD' || agentId === 'builder') {
       // Route to Groq for builder/code tasks
       // No RAG context for Builder (Privacy)
-      routingInfo = '\n\n### 📡 ACTIVE SUBNETWORK: CODER_LANE';
-      provider = createOpenAI({
-        apiKey: process.env.GROQ_API_KEY || '',
-        baseURL: 'https://api.groq.com/openai/v1',
-      });
-      model = process.env.BUILDER_MODEL || 'llama-3.3-70b-versatile';
+      const groqApiKey = process.env.GROQ_API_KEY;
+      
+      if (!groqApiKey) {
+        console.warn(`[${requestId}] GROQ_API_KEY not set! Falling back to Universe Agent.`);
+        // Fallback to Universe Agent if Groq key is missing
+        provider = createOpenAI({
+          apiKey: process.env.SOVEREIGN_KEY || 'ollama',
+          baseURL: `${process.env.UNIVERSE_INFERENCE_URL || 'http://10.128.0.8:11434'}/v1`,
+          // @ts-ignore compatibility mode
+          compatibility: 'compatible',
+        });
+        model = process.env.UNIVERSE_MODEL || 'mistral:latest';
+        routingInfo = '\n\n### 📡 ACTIVE SUBNETWORK: UNIVERSE_FALLBACK (Groq unavailable)';
+      } else {
+        console.log(`[${requestId}] Routing to Groq Builder Agent`);
+        routingInfo = '\n\n### 📡 ACTIVE SUBNETWORK: CODER_LANE';
+        provider = createOpenAI({
+          apiKey: groqApiKey,
+          baseURL: 'https://api.groq.com/openai/v1',
+        });
+        model = process.env.BUILDER_MODEL || 'llama-3.3-70b-versatile';
+      }
     } else {
       // 1. Perform RAG only for Universe/Chat Agent
       if (message.length > 5) {
@@ -138,7 +154,7 @@ export async function POST(req: NextRequest) {
       // 2. Route to Private GPU (Universe)
       provider = createOpenAI({
         apiKey: process.env.SOVEREIGN_KEY || 'ollama',
-        baseURL: `${process.env.UNIVERSE_INFERENCE_URL || 'http://10.128.0.4:11434'}/v1`,
+        baseURL: `${process.env.UNIVERSE_INFERENCE_URL || 'http://10.128.0.8:11434'}/v1`,
         // @ts-ignore compatibility mode
         compatibility: 'compatible',
       });

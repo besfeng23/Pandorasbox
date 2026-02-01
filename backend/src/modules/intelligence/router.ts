@@ -85,9 +85,13 @@ let dispatcher: Dispatcher | null = null;
 
 export function getDispatcher() {
     if (!dispatcher) {
+        const groqKey = process.env.GROQ_API_KEY || '';
+        if (!groqKey) {
+            console.warn('[Dispatcher] GROQ_API_KEY not configured - Builder/Reflex agents will fail');
+        }
         dispatcher = new Dispatcher({
-            universeUrl: process.env.UNIVERSE_INFERENCE_URL || 'http://10.128.0.4:11434',
-            groqKey: process.env.GROQ_API_KEY || ''
+            universeUrl: process.env.UNIVERSE_INFERENCE_URL || 'http://10.128.0.8:11434',
+            groqKey: groqKey
         });
     }
     return dispatcher;
