@@ -33,7 +33,7 @@
 ### Private Infrastructure (VPC)
 | Component | Internal IP | Port | Status |
 |-----------|-------------|------|--------|
-| **Ollama** (mistral) | `10.128.0.4` | 11434 | 🟢 RUNNING |
+| **Ollama** (qwen2.5:1.5b) | `10.128.0.4` | 11434 | 🟢 RUNNING |
 | **Qdrant** (memories) | `10.128.0.3` | 6333 | 🟢 RUNNING |
 
 ### VPC Connector
@@ -52,7 +52,7 @@
 ### Sovereign AI Configuration
 ```yaml
 INFERENCE_URL: http://10.128.0.4:11434/v1
-INFERENCE_MODEL: mistral
+INFERENCE_MODEL: qwen2.5:1.5b-instruct  # 4x faster than mistral on CPU
 QDRANT_URL: http://10.128.0.3:6333
 EMBEDDING_MODEL: all-MiniLM-L6-v2
 EMBEDDINGS_BASE_URL: https://pandora-embeddings-service-536979070288.us-central1.run.app
