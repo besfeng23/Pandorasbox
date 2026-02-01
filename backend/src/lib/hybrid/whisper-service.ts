@@ -89,7 +89,7 @@ export class GroqWhisperService {
         prompt: options.prompt,
         temperature: options.temperature ?? 0,
         response_format: 'verbose_json'
-      });
+      }) as any;
 
       const processingTime = Date.now() - startTime;
 
