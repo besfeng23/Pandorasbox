@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
           const searchResults = (await searchPoints('memories', queryVector, 5, filter)) || [];
           return enhanceWithCognition(searchResults);
         };
-        context = await withTimeout(ragPromise(), 2000, '', 'RAG Search');
+        context = await withTimeout(ragPromise(), 10000, '', 'RAG Search');
       } catch (e: any) { console.error(`[${requestId}] RAG Error:`, e.message); }
     }
 
@@ -105,7 +105,7 @@ export async function POST(req: NextRequest) {
     } catch (e) { }
 
     const openaiProvider = getOpenAIModel();
-    const modelName = process.env.INFERENCE_MODEL || 'llama3.2:latest';
+    const modelName = process.env.INFERENCE_MODEL || 'mistral';
 
     const systemPrompt = `You are Pandora, an advanced Sovereign AI assistant.
 ### Capabilities:

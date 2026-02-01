@@ -8,29 +8,29 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { trackEvent } from '@/lib/analytics';
 
 const AnswerLaneInputSchema = z.object({
-  userId: z.string(),
-  message: z.string(),
-  assistantMessageId: z.string(),
-  threadId: z.string(), // Pass threadId for context
+    userId: z.string(),
+    message: z.string(),
+    assistantMessageId: z.string(),
+    threadId: z.string(), // Pass threadId for context
 });
 
 const AnswerLaneOutputSchema = z.object({
-  answer: z.string(),
-  lowConfidenceTopic: z.string().nullable().optional(),
+    answer: z.string(),
+    lowConfidenceTopic: z.string().nullable().optional(),
 });
 
 async function extractAndSaveArtifact(rawResponse: string, userId: string): Promise<{ cleanResponse: string; artifactId?: string }> {
     const firestoreAdmin = getFirestoreAdmin();
     const artifactRegex = /<artifact\s+title="([^"]+)"\s+type="([^"]+)">([\s\S]*?)<\/artifact>/;
     const match = rawResponse.match(artifactRegex);
-  
+
     if (!match) {
-      return { cleanResponse: rawResponse };
+        return { cleanResponse: rawResponse };
     }
-  
+
     const [, title, type, content] = match;
     const artifactType = type === 'code' ? 'code' : 'markdown';
-    
+
     const artifactData = {
         userId: userId,
         title: title,
@@ -39,20 +39,20 @@ async function extractAndSaveArtifact(rawResponse: string, userId: string): Prom
         version: 1,
         createdAt: FieldValue.serverTimestamp(),
     };
-  
+
     const artifactRef = await firestoreAdmin.collection('artifacts').add(artifactData);
-  
+
     // Track analytics
     await trackEvent(userId, 'artifact_created', { artifactType, title });
-  
+
     const citation = `[Artifact Created: ${title}]`;
     const cleanResponse = rawResponse.replace(artifactRegex, `\n${citation}\n`);
-  
+
     return { cleanResponse, artifactId: artifactRef.id };
 }
 
 export async function runAnswerLane(
-  input: z.infer<typeof AnswerLaneInputSchema>
+    input: z.infer<typeof AnswerLaneInputSchema>
 ): Promise<z.infer<typeof AnswerLaneOutputSchema>> {
     const { userId, message, assistantMessageId, threadId } = input;
     const firestoreAdmin = getFirestoreAdmin();
@@ -72,7 +72,7 @@ export async function runAnswerLane(
         await logProgress('Analyzing context...');
         const settingsDoc = await firestoreAdmin.collection('settings').doc(userId).get();
         const settings = { reply_style: 'detailed', system_prompt_override: '', ...settingsDoc.data() };
-        
+
         // --- SHORT-TERM MEMORY: Fetch recent conversation ---
         await logProgress('Recalling conversation...');
         const recentHistorySnapshot = await firestoreAdmin
@@ -92,46 +92,58 @@ export async function runAnswerLane(
 
         // --- LONG-TERM MEMORY: Vector Search ---
         await logProgress('Searching memory...');
-        
-        const [historyResults, memoriesResults] = await Promise.all([
-            searchHistory(message, userId).catch(err => {
-                console.warn('[AnswerLane] History search failed:', err);
-                return [];
-            }),
-            searchMemories(message, userId, 'universe', 10).catch(err => {
-                console.warn('[AnswerLane] Memories search failed:', err);
-                return [];
-            })
-        ]);
-        
+
+        const withTimeout = <T>(promise: Promise<T>, ms: number, fallback: T, name: string): Promise<T> => {
+            return Promise.race([
+                promise,
+                new Promise<T>((resolve) => setTimeout(() => { console.warn(`[Timeout] ${name} timed out after ${ms}ms`); resolve(fallback); }, ms))
+            ]);
+        };
+
+        const [historyResults, memoriesResults] = await withTimeout(
+            Promise.all([
+                searchHistory(message, userId).catch(err => {
+                    console.warn('[AnswerLane] History search failed:', err);
+                    return [];
+                }),
+                searchMemories(message, userId, 'universe', 10).catch(err => {
+                    console.warn('[AnswerLane] Memories search failed:', err);
+                    return [];
+                })
+            ]),
+            10000,
+            [[], []],
+            'RAG Search'
+        );
+
         const allResults = [...historyResults, ...memoriesResults]
             .sort((a, b) => (b.score || 0) - (a.score || 0))
             .slice(0, 10);
 
         await logProgress(`Found ${allResults.length} relevant memories.`);
-        
+
         const insightMemories = allResults.filter((r: any) => r.type === 'insight');
         const regularMemories = allResults.filter((r: any) => r.type !== 'insight');
-        
+
         const formatMemory = (d: any, idx: number, isInsight: boolean) => {
-          const relevance = (d.score * 100).toFixed(0);
-          const label = isInsight ? `INSIGHT ${idx + 1}` : `MEMORY ${idx + 1}`;
-          const emphasis = isInsight ? '⭐ PRIORITIZE THIS - LEARNED PATTERN ⭐' : '';
-          return `=== ${label} (${relevance}% RELEVANT) ${emphasis} ===\n${d.text}\n=== END ${label} ===`;
+            const relevance = (d.score * 100).toFixed(0);
+            const label = isInsight ? `INSIGHT ${idx + 1}` : `MEMORY ${idx + 1}`;
+            const emphasis = isInsight ? '⭐ PRIORITIZE THIS - LEARNED PATTERN ⭐' : '';
+            return `=== ${label} (${relevance}% RELEVANT) ${emphasis} ===\n${d.text}\n=== END ${label} ===`;
         };
-        
-        const retrievedHistory = allResults.length > 0 
-          ? [
-              ...insightMemories.map((d, idx) => formatMemory(d, idx + 1, true)),
-              ...regularMemories.map((d, idx) => formatMemory(d, insightMemories.length + idx + 1, false)),
+
+        const retrievedHistory = allResults.length > 0
+            ? [
+                ...insightMemories.map((d, idx) => formatMemory(d, idx + 1, true)),
+                ...regularMemories.map((d, idx) => formatMemory(d, insightMemories.length + idx + 1, false)),
             ].join("\n\n")
-          : "(No memories matched this specific query.)";
-        
-        const memoryUsageInstructions = allResults.length > 0 
-          ? `YOU HAVE ${allResults.length} RELEVANT MEMORIES ABOVE. YOU MUST USE THEM IN YOUR RESPONSE.
+            : "(No memories matched this specific query.)";
+
+        const memoryUsageInstructions = allResults.length > 0
+            ? `YOU HAVE ${allResults.length} RELEVANT MEMORIES ABOVE. YOU MUST USE THEM IN YOUR RESPONSE.
 Reference specific memories and PRIORITIZE INSIGHT MEMORIES (marked with ⭐).`
-          : `Use general context from past conversations if available.`;
-        
+            : `Use general context from past conversations if available.`;
+
         const finalSystemPrompt = settings.system_prompt_override || `You are Pandora, a helpful AI assistant with FULL ACCESS to the user's long-term memory system.
 
 --- LONG TERM MEMORY ---
@@ -143,13 +155,13 @@ ${recentHistory}
 --- REQUIREMENTS ---
 ${memoryUsageInstructions}
 `;
-        
+
         await logProgress('Drafting response...');
-        
+
         const completion = await chatCompletion({
             messages: [
                 { role: 'system', content: finalSystemPrompt },
-                { role: 'user', content: message } 
+                { role: 'user', content: message }
             ],
             temperature: 0.7
         });
@@ -174,20 +186,20 @@ ${memoryUsageInstructions}
                 ],
                 temperature: 0.1
             });
-            
+
             const evalText = evalCompletion.choices[0].message.content || '{}';
             const jsonMatch = evalText.match(/\{[\s\S]*\}/);
             const evalData = JSON.parse(jsonMatch ? jsonMatch[0] : evalText);
-            
+
             if (evalData.confidence < 0.6 && evalData.topic) {
                 lowConfidenceTopic = evalData.topic;
             }
         } catch (evalError) {
             console.warn('[AnswerLane] Evaluation failed:', evalError);
         }
-        
+
         const embedding = await generateEmbedding(cleanResponse);
-        
+
         await assistantMessageRef.update({
             content: cleanResponse,
             embedding: embedding,
@@ -198,10 +210,10 @@ ${memoryUsageInstructions}
 
         return { answer: cleanResponse, lowConfidenceTopic };
 
-    } catch(error: any) {
+    } catch (error: any) {
         console.error("Error in Answer Lane: ", error);
         const userFacingError = "Sorry, I encountered an error while processing your request.";
-        
+
         try {
             await assistantMessageRef.update({
                 content: userFacingError,
