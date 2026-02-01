@@ -79,28 +79,31 @@ env:
       - RUNTIME
 
   # ═══════════════════════════════════════════════════════════════════════════
-  # 🌌 LOCAL BRAIN CONFIGURATION (Universe Agent - Ollama)
+  # 🌌 SPLIT-BRAIN ARCHITECTURE (Universe, Builder, Reflex)
   # ═══════════════════════════════════════════════════════════════════════════
-  # Private Ollama instance on VPC
-  - variable: INFERENCE_URL
-    value: http://10.128.0.4:11434/v1
+  # Private Ollama instance on VPC (Universe Agent)
+  - variable: UNIVERSE_INFERENCE_URL
+    value: http://10.128.0.4:11434
     availability:
       - RUNTIME
 
-  - variable: LOCAL_INFERENCE_URL
-    value: http://10.128.0.4:11434/v1
+  - variable: UNIVERSE_MODEL
+    value: "llama3:70b-instruct-q4_0"
     availability:
       - RUNTIME
 
-  # CRITICAL FIX: Use 'mistral' not 'mistralai/Mistral-7B-Instruct-v0.3'
-  # Ollama uses short model names, not HuggingFace paths
-  - variable: INFERENCE_MODEL
-    value: mistral
+  - variable: BUILDER_MODEL
+    value: "llama-3.3-70b-versatile"
     availability:
       - RUNTIME
 
-  - variable: LOCAL_INFERENCE_MODEL
-    value: mistral
+  - variable: REFLEX_MODEL
+    value: "llama-3.1-8b-instant"
+    availability:
+      - RUNTIME
+
+  - variable: REFLEX_AUDIO_MODEL
+    value: "whisper-large-v3"
     availability:
       - RUNTIME
 

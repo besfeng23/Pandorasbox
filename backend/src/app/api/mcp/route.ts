@@ -8,6 +8,7 @@
 
 import { NextRequest } from 'next/server';
 import { search_universe_memory, searchUniverseMemorySchema } from '@/lib/mcp/tools/memory-tools';
+import { generate_artifact, generateArtifactSchema } from '@/lib/mcp/tools/artifact-tools';
 
 export async function POST(req: NextRequest) {
     try {
@@ -30,6 +31,19 @@ export async function POST(req: NextRequest) {
                             },
                             required: ['query', 'userId']
                         }
+                    },
+                    {
+                        name: 'generate_artifact',
+                        description: 'High-velocity code/artifact generation using the Groq Builder agent.',
+                        inputSchema: {
+                            type: 'object',
+                            properties: {
+                                description: { type: 'string', description: 'What to build' },
+                                language: { type: 'string', enum: ['typescript', 'javascript', 'tsx', 'markdown', 'css'] },
+                                context: { type: 'string', description: 'Additional context' }
+                            },
+                            required: ['description', 'language']
+                        }
                     }
                 ]
             });
@@ -42,6 +56,12 @@ export async function POST(req: NextRequest) {
             if (name === 'search_universe_memory') {
                 const validatedArgs = searchUniverseMemorySchema.parse(args);
                 const result = await search_universe_memory(validatedArgs);
+                return Response.json(result);
+            }
+
+            if (name === 'generate_artifact') {
+                const validatedArgs = generateArtifactSchema.parse(args);
+                const result = await generate_artifact(validatedArgs);
                 return Response.json(result);
             }
 
