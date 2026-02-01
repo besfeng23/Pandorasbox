@@ -9,6 +9,7 @@ import { searchPoints, upsertPoint } from '@/lib/sovereign/qdrant-client';
 import { completeInference } from '@/lib/sovereign/inference';
 import { v4 as uuidv4 } from 'uuid';
 import { handleOptions, corsHeaders } from '@/lib/cors';
+import { getDispatcher } from '@/modules/intelligence/router';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -131,6 +132,34 @@ ${agentId === 'builder' ? `
 ${routingInfo}
 User ID: ${userId}${context}`;
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // SPLIT-BRAIN ROUTING (Phase 2)
+    // ═══════════════════════════════════════════════════════════════════════════
+    const dispatcher = getDispatcher();
+    const intent = await dispatcher.classifyIntent(message);
+    console.log(`[Phase 17] Dispatcher classified intent: ${intent}`);
+
+    let provider;
+    let model;
+
+    if (intent === 'BUILD') {
+      // Route to Groq for builder/code tasks
+      provider = createOpenAI({
+        apiKey: process.env.GROQ_API_KEY || '',
+        baseURL: 'https://api.groq.com/openai/v1',
+      });
+      model = process.env.BUILDER_MODEL || 'llama-3.3-70b-versatile';
+    } else {
+      // Route to Private GPU (Universe) for general chat/memory
+      provider = createOpenAI({
+        apiKey: process.env.SOVEREIGN_KEY || 'ollama',
+        baseURL: `${process.env.UNIVERSE_INFERENCE_URL || 'http://10.128.0.4:11434'}/v1`,
+        // @ts-ignore compatibility mode
+        compatibility: 'compatible',
+      });
+      model = process.env.UNIVERSE_MODEL || 'llama3:70b-instruct-q4_0';
+    }
+
     const cleanHistory = Array.isArray(history) ? history.filter(m => m.role && m.content) : [];
 
     const uiMessages = [
@@ -139,7 +168,7 @@ User ID: ${userId}${context}`;
     ];
 
     const result = await streamText({
-      model: openaiProvider(modelName),
+      model: provider(model),
       system: systemPrompt,
       messages: uiMessages as any,
       onFinish: async ({ text: completion }) => {
