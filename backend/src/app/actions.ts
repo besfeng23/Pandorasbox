@@ -11,6 +11,7 @@ import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { transcribeAudio } from '@/lib/ai/whisper';
 import { completeInference } from '@/lib/sovereign/inference';
 import { processAndStore } from '@/lib/knowledge/ingestor';
+import { hybridSearch } from '@/lib/hybrid/search';
 import pdf from 'pdf-parse';
 
 // --- BACKEND LOGIC (Direct DB/AI Access) ---
@@ -20,27 +21,13 @@ export async function searchMemoryAction(query: string, userId: string, agentId:
     if (!query.trim()) return [];
 
     try {
-        const vector = await embedText(query);
-
-        // Filter by userId and agentId to ensure privacy and context
-        const filter: any = {
-            must: [
-                { key: 'userId', match: { value: userId } },
-                { key: 'agentId', match: { value: agentId } }
-            ]
-        };
-
-        if (workspaceId) {
-            filter.must.push({ key: 'workspaceId', match: { value: workspaceId } });
-        }
-
-        const results = await searchPoints('memories', vector, 10, filter);
+        const results = await hybridSearch(query, userId, agentId, workspaceId, 10);
 
         return (results || []).map(r => ({
             id: r.id.toString(),
             text: r.payload?.content || '',
             score: r.score,
-            timestamp: r.payload?.createdAt || new Date().toISOString(),
+            timestamp: r.payload?.createdAt || r.payload?.created_at || new Date().toISOString(),
             payload: r.payload // Include full payload for frontend filtering
         }));
     } catch (error) {

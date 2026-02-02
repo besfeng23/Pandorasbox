@@ -50,13 +50,15 @@ export class MemoryJanitor {
 
       // 2. Synthesize using OpenAI (more reliable in this env) or Gemini
       let facts: string[] = [];
-      const prompt = `Synthesize these ${memories.length} chat fragments into concise factual statements about the user.
-Focus on extracting persistent preferences, life events, emotional states, and recurring themes.
+      const prompt = `You are a Knowledge Base Manager. Your goal is to compress the following chat logs into a set of high-density factual statements.
+Discard greetings, small talk, and redundant fragments.
+Preserve specific technical details, user preferences, configuration values, life events, and recurring themes.
 
 CHAT FRAGMENTS:
-${memories.map((m: { content: string }) => m.content).join('\n---\n')}
+${memories.map((m: { content: string }) => `- ${m.content}`).join('\n')}
 
-Respond with a JSON array of strings: ["Fact 1", "Fact 2", ...]`;
+Respond with a JSON object containing a 'facts' array of strings. 
+Example: { "facts": ["User prefers dark mode for all IDEs", "User is the lead developer of Coder Lane"] }`;
 
       const openaiKey = process.env.OPENAI_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY;
       if (openaiKey && openaiKey.startsWith('sk-')) {
@@ -110,6 +112,11 @@ Respond with a JSON array of strings: ["Fact 1", "Fact 2", ...]`;
 
   private async fetchRecentMemories(uid: string, agentId: string, limit: number) {
     const collectionName = `memories__${agentId}`;
+
+    // Optional: Only process "decaying" memories (older than 7 days by default for this run)
+    // In a real production environment, you might use 30 days.
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
     const response = await fetch(`${this.qdrantUrl}/collections/${collectionName}/points/scroll`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -119,7 +126,12 @@ Respond with a JSON array of strings: ["Fact 1", "Fact 2", ...]`;
             { key: 'uid', match: { value: uid } }
           ],
           must_not: [
-            { key: 'type', match: { value: 'fact' } }
+            { key: 'type', match: { value: 'fact' } },
+            { key: 'type', match: { value: 'crystallized' } }
+          ],
+          should: [
+            // Boost older memories for pruning
+            { key: 'createdAt', range: { lt: sevenDaysAgo } }
           ]
         },
         limit,
