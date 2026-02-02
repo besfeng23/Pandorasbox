@@ -56,8 +56,6 @@ function verifyCronSecret(request: NextRequest): boolean {
   }
 
   // Check query parameter (for testing)
-  const url = new URL(request.url);
-  const querySecret = url.searchParams.get('secret');
   if (querySecret === cronSecret) {
     return true;
   }
