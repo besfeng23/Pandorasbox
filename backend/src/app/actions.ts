@@ -318,11 +318,13 @@ export async function summarizeThread(threadId: string, userId: string) {
         if (messages.length === 0) return { success: false, message: 'No messages to summarize' };
 
         const summaryPrompt = [
-            { role: 'system' as const, content: 'You are a master of synthesis. Provide a 3-word title/summary for the following conversation.' },
-            { role: 'user' as const, content: messages.map(m => `${m.role}: ${m.content}`).join('\n') }
+            { role: 'system' as const, content: 'Summarize this chat in 3-5 words for a thread title. Return ONLY the title text, no quotes or punctuation.' },
+            { role: 'user' as const, content: messages.slice(0, 10).map(m => `${m.role}: ${m.content}`).join('\n') }
         ];
 
-        const summary = await completeInference(summaryPrompt);
+        let summary = await completeInference(summaryPrompt);
+        summary = summary.replace(/^["']|["']$/g, '').trim(); // Clean up quotes
+
         await updateThread(threadId, userId, (await getThread(threadId, userId))?.agent || 'universe', { name: summary });
 
         return { success: true, message: 'Summary generated', summary };

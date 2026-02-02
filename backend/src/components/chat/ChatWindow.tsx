@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, Bot, BrainCircuit, PanelRightOpen } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useVoice } from '@/hooks/use-voice';
-import { transcribeAndProcessMessage } from '@/app/actions';
+import { transcribeAndProcessMessage, getMessages, summarizeThread, getThread } from '@/app/actions';
 
 export interface ChatMessage extends Partial<MessageType> {
   role: 'user' | 'assistant' | 'system';
@@ -46,6 +46,36 @@ export function ChatWindow({ threadId, agentId = 'universe' }: ChatWindowProps) 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Load chat history on mount
+  useEffect(() => {
+    async function loadHistory() {
+      if (!user || !threadId) return;
+
+      setIsLoading(true);
+      try {
+        const history = await getMessages(threadId, user.uid);
+        if (history && history.length > 0) {
+          setMessages(history.map(msg => ({
+            ...msg,
+            role: msg.role as 'user' | 'assistant' | 'system',
+            createdAt: typeof msg.createdAt === 'object' ? msg.createdAt.toISOString?.() || new Date().toISOString() : msg.createdAt
+          })));
+        }
+      } catch (error) {
+        console.error('Failed to load history:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Failed to load chat history.',
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadHistory();
+  }, [threadId, user?.uid]);
 
   /**
    * Process streaming response from the API
@@ -309,6 +339,19 @@ export function ChatWindow({ threadId, agentId = 'universe' }: ChatWindowProps) 
       // Generate follow-up suggestions after successful response
       const suggestions = generateFollowUpSuggestions(messageText, agentId);
       setFollowUpSuggestions(suggestions);
+
+      // Auto-summarize if this is the first exchange
+      if (messages.length <= 2) {
+        try {
+          const thread = await getThread(threadId, user.uid);
+          if (thread && (thread.name === "New Thread" || !thread.name)) {
+            console.log('[ChatWindow] Triggering auto-summary for thread:', threadId);
+            await summarizeThread(threadId, user.uid);
+          }
+        } catch (e) {
+          console.error('Auto-summary failed:', e);
+        }
+      }
     } catch (error: any) {
       if (error.name === 'AbortError') {
         // User cancelled - remove the assistant message placeholder
@@ -327,22 +370,22 @@ export function ChatWindow({ threadId, agentId = 'universe' }: ChatWindowProps) 
         return updated;
       });
 
-          // Extract error message from response if available
-          let errorMessage = error.message || 'Failed to send message. Please try again.';
-          try {
-            if (error.message && error.message.includes('{')) {
-              const errorData = JSON.parse(error.message);
-              errorMessage = errorData.error || errorMessage;
-            }
-          } catch {
-            // If parsing fails, use the original message
-          }
-          
-          toast({
-            variant: 'destructive',
-            title: 'Error',
-            description: errorMessage,
-          });
+      // Extract error message from response if available
+      let errorMessage = error.message || 'Failed to send message. Please try again.';
+      try {
+        if (error.message && error.message.includes('{')) {
+          const errorData = JSON.parse(error.message);
+          errorMessage = errorData.error || errorMessage;
+        }
+      } catch {
+        // If parsing fails, use the original message
+      }
+
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: errorMessage,
+      });
     } finally {
       setIsStreaming(false);
       abortControllerRef.current = null;
