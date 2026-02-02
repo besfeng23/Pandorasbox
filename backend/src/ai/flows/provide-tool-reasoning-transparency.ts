@@ -9,8 +9,8 @@
  * - ProvideToolReasoningTransparencyOutput - The return type for the provideToolReasoningTransparency function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
 
 // Define schemas for input and output
 const ProvideToolReasoningTransparencyInputSchema = z.object({
@@ -39,8 +39,8 @@ export async function provideToolReasoningTransparency(input: ProvideToolReasoni
 // Define the prompt
 const provideToolReasoningTransparencyPrompt = ai.definePrompt({
   name: 'provideToolReasoningTransparencyPrompt',
-  input: {schema: ProvideToolReasoningTransparencyInputSchema},
-  output: {schema: ProvideToolReasoningTransparencyOutputSchema},
+  input: { schema: ProvideToolReasoningTransparencyInputSchema },
+  output: { schema: ProvideToolReasoningTransparencyOutputSchema },
   prompt: `You are an AI assistant that provides transparent reasoning for your answers, especially when using tools.
 
   When answering the user's query, if you use any tools, clearly state which tools you used, the input you provided to the tool, and the output you received from the tool.
@@ -48,7 +48,7 @@ const provideToolReasoningTransparencyPrompt = ai.definePrompt({
   Present this information in a structured and easy-to-understand format.
 
   User Query: {{{query}}}
-  `,config: {
+  `, config: {
     safetySettings: [
       {
         category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
@@ -66,7 +66,7 @@ const provideToolReasoningTransparencyFlow = ai.defineFlow(
     outputSchema: ProvideToolReasoningTransparencyOutputSchema,
   },
   async input => {
-    const {output} = await provideToolReasoningTransparencyPrompt(input);
+    const { output } = await provideToolReasoningTransparencyPrompt(input);
     return output!;
   }
 );

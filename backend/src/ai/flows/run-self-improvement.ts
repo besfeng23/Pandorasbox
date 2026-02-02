@@ -100,9 +100,9 @@ export async function runSelfImprovement(
           avgResponseTime: performanceAnalysis.avgResponseTime,
           optimalWeights: performanceAnalysis.optimalWeights
             ? {
-                internal: performanceAnalysis.optimalWeights.internal,
-                external: performanceAnalysis.optimalWeights.external,
-              }
+              internal: performanceAnalysis.optimalWeights.internal,
+              external: performanceAnalysis.optimalWeights.external,
+            }
             : undefined,
           recommendations: performanceAnalysis.recommendations,
         },

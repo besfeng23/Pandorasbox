@@ -111,7 +111,7 @@ export async function runHybridLane(
 
       } catch (error: any) {
         console.error(`[runHybridLane] Error in hybrid reasoning:`, error);
-        
+
         // Return empty results on error
         return {
           fusedResults: [],

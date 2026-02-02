@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { streamText, convertToModelMessages, tool } from 'ai';
+import { streamText, convertToCoreMessages, tool } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 import { z } from 'zod';
 import { getAuthAdmin, getFirestoreAdmin } from '@/lib/firebase-admin';

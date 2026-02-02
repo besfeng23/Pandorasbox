@@ -34,7 +34,7 @@ function validateEnvironment() {
   if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY?.trim()) {
     console.warn(
       '⚠️  FIREBASE_SERVICE_ACCOUNT_KEY is not set. ' +
-        'The MCP server will fall back to Application Default Credentials or service-account.json.'
+      'The MCP server will fall back to Application Default Credentials or service-account.json.'
     );
   }
 }
@@ -83,7 +83,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         name: 'add_memory',
         description:
           'Add a new memory to the Pandora knowledge base. The memory will be embedded and stored in Firestore and Qdrant.',
-        inputSchema: {
+        parameters: {
           type: 'object',
           properties: {
             memory: {
@@ -102,7 +102,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         name: 'query_knowledge',
         description:
           'Query the Pandora knowledge base (history + memories) using semantic search. Returns ranked results.',
-        inputSchema: {
+        parameters: {
           type: 'object',
           properties: {
             query: {

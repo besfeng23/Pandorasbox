@@ -8,8 +8,8 @@
  * - GenerateThreadSummaryOutput - The return type for the generateThreadSummary function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
 
 const GenerateThreadSummaryInputSchema = z.object({
   messages: z.array(z.string()).describe('A list of messages in the chat thread.'),
@@ -29,8 +29,8 @@ export async function generateThreadSummary(input: GenerateThreadSummaryInput): 
 
 const prompt = ai.definePrompt({
   name: 'generateThreadSummaryPrompt',
-  input: {schema: GenerateThreadSummaryInputSchema},
-  output: {schema: GenerateThreadSummaryOutputSchema},
+  input: { schema: GenerateThreadSummaryInputSchema },
+  output: { schema: GenerateThreadSummaryOutputSchema },
   prompt: `You are an expert summarizer of chat threads. Please provide a concise summary of the following conversation:\n\n{% raw %}{{#each messages}}\n{{this}}\n{% endraw %}{{#endeach}}\n\nSummary: `,
   config: {
     safetySettings: [
@@ -49,7 +49,7 @@ const generateThreadSummaryFlow = ai.defineFlow(
     outputSchema: GenerateThreadSummaryOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
+    const { output } = await prompt(input);
     return output!;
   }
 );

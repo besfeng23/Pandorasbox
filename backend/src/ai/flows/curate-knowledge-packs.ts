@@ -8,8 +8,8 @@
  * - CurateKnowledgePacksOutput - The return type for the curateKnowledgePacks function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
 
 const CurateKnowledgePacksInputSchema = z.object({
   knowledgePackName: z.string().describe('The name of the knowledge pack.'),
@@ -34,8 +34,8 @@ export async function curateKnowledgePacks(
 
 const prompt = ai.definePrompt({
   name: 'curateKnowledgePacksPrompt',
-  input: {schema: CurateKnowledgePacksInputSchema},
-  output: {schema: CurateKnowledgePacksOutputSchema},
+  input: { schema: CurateKnowledgePacksInputSchema },
+  output: { schema: CurateKnowledgePacksOutputSchema },
   prompt: `You are a knowledge curator. A user wants to create a knowledge pack with the following details:
 
 Knowledge Pack Name: {{{knowledgePackName}}}
@@ -62,7 +62,7 @@ const curateKnowledgePacksFlow = ai.defineFlow(
   },
   async input => {
     try {
-      const {output} = await prompt(input);
+      const { output } = await prompt(input);
       return {
         success: true,
         message: output?.message || 'Knowledge pack successfully curated.',

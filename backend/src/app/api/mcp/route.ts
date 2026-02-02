@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
                     {
                         name: 'search_universe_memory',
                         description: 'Search the local Universe memory for semantic facts and chat history.',
-                        inputSchema: {
+                        parameters: {
                             type: 'object',
                             properties: {
                                 query: { type: 'string', description: 'The search query' },
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
                     {
                         name: 'generate_artifact',
                         description: 'High-velocity code/artifact generation using the Groq Builder agent.',
-                        inputSchema: {
+                        parameters: {
                             type: 'object',
                             properties: {
                                 description: { type: 'string', description: 'What to build' },

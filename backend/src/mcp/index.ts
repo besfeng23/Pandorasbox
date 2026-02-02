@@ -121,7 +121,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       {
         name: 'search_knowledge_base',
         description: 'Search the knowledge base using semantic search. Searches both conversation history and stored memories to find relevant information.',
-        inputSchema: {
+        parameters: {
           type: 'object',
           properties: {
             query: {
@@ -145,7 +145,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       {
         name: 'add_memory',
         description: 'Add a new memory to the knowledge base. The memory will be stored with an embedding for future semantic search.',
-        inputSchema: {
+        parameters: {
           type: 'object',
           properties: {
             memory: {
@@ -163,7 +163,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       {
         name: 'generate_artifact',
         description: 'Create and save a code or markdown artifact. Artifacts can be code snippets, documentation, or other structured content.',
-        inputSchema: {
+        parameters: {
           type: 'object',
           properties: {
             title: {

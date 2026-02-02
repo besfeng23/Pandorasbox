@@ -11,8 +11,8 @@
  * @function crossThreadSearch - The exported function to initiate the cross-thread search flow.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
 
 const CrossThreadSearchInputSchema = z.object({
   query: z.string().describe('The search query provided by the user.'),
@@ -42,8 +42,8 @@ export type CrossThreadSearchOutput = z.infer<typeof CrossThreadSearchOutputSche
 
 const crossThreadSearchPrompt = ai.definePrompt({
   name: 'crossThreadSearchPrompt',
-  input: {schema: CrossThreadSearchInputSchema},
-  output: {schema: CrossThreadSearchOutputSchema},
+  input: { schema: CrossThreadSearchInputSchema },
+  output: { schema: CrossThreadSearchOutputSchema },
   prompt: `You are a search assistant designed to find relevant messages across multiple chat threads.
 
   Given a user's query and optional filters, search through the available messages and return the most relevant results.
@@ -87,14 +87,14 @@ const crossThreadSearchPrompt = ai.definePrompt({
 });
 
 const crossThreadSearchFlow = ai.defineFlow({
-    name: 'crossThreadSearchFlow',
-    inputSchema: CrossThreadSearchInputSchema,
-    outputSchema: CrossThreadSearchOutputSchema,
-  },
+  name: 'crossThreadSearchFlow',
+  inputSchema: CrossThreadSearchInputSchema,
+  outputSchema: CrossThreadSearchOutputSchema,
+},
   async input => {
     // TODO: Integrate with Firestore to fetch and filter messages based on the input criteria.
     // For now, return a placeholder result.
-    const {output} = await crossThreadSearchPrompt(input);
+    const { output } = await crossThreadSearchPrompt(input);
     return output!;
   }
 );

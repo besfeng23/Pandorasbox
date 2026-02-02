@@ -8,7 +8,7 @@ export const searchWeb = tool({
     // NOTE: Sovereign mode forbids external web-search APIs. This tool is kept for compatibility,
     // but returns an empty result set unless you explicitly choose to enable external retrieval.
     description: 'Web search (disabled in sovereign mode). Returns empty results.',
-    inputSchema: z.object({
+    parameters: z.object({
         query: z.string().describe('The search query to perform.'),
         max_results: z.number().optional().describe('Maximum number of results to return (default: 5)'),
         include_domains: z.array(z.string()).optional().describe('List of domains to include in search'),
