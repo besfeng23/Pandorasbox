@@ -7,6 +7,10 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { embedText } from '@/lib/ai/embedding';
 import { searchPoints, upsertPoint } from '@/lib/sovereign/qdrant-client';
 import { completeInference } from '@/lib/sovereign/inference';
+import { hybridSearch } from '@/lib/hybrid/search';
+import { generateReasoning } from '@/lib/ai/reasoning';
+import { generatePlan } from '@/lib/ai/planner';
+import { selfVerify } from '@/lib/ai/reflection';
 import { v4 as uuidv4 } from 'uuid';
 import { handleOptions, corsHeaders } from '@/lib/cors';
 import { getDispatcher } from '@/modules/intelligence/router';
@@ -111,6 +115,7 @@ export async function POST(req: NextRequest) {
     let provider;
     let model;
     let routingInfo = '';
+    let reasoningData: any = null;
 
     if (intent === 'BUILD' || agentId === 'builder') {
       // Route to Groq for builder/code tasks
@@ -140,18 +145,23 @@ export async function POST(req: NextRequest) {
         model = process.env.BUILDER_MODEL || 'llama-3.3-70b-versatile';
       }
     } else {
-      // 1. Perform RAG only for Universe/Chat Agent
+      // 1. Perform Hybrid Search for Universe/Chat Agent
       if (message.length > 5) {
         try {
-          const ragPromise = async () => {
-            const queryVector = await embedText(message);
-            const filter: any = { must: [{ key: 'userId', match: { value: userId } }, { key: 'agentId', match: { value: agentId } }] };
-            if (workspaceId) filter.must.push({ key: 'workspaceId', match: { value: workspaceId } });
-            const searchResults = (await searchPoints('memories', queryVector, 5, filter)) || [];
-            return enhanceWithCognition(searchResults);
-          };
-          context = await withTimeout(ragPromise(), 12000, '', 'RAG Search');
-        } catch (e: any) { console.error(`[${requestId}] RAG Error:`, e.message); }
+          const searchResults = await hybridSearch(message, userId, agentId, workspaceId, 5);
+          context = `\n\n### 🧠 RECALLED CONTEXT:\n${searchResults.map(r => r.payload?.content).join('\n---\n')}`;
+
+          // PHASE 4: AI Intelligence (Reasoning & Planning)
+          console.log(`[Intelligence] Generating reasoning for message...`);
+          const reasoning = await generateReasoning([...history, { role: 'user', content: message }]);
+          reasoningData = reasoning;
+
+          routingInfo += `\n\n### 💭 THINKING PROCESS:\n${reasoning.thinking}`;
+
+          // Update system prompt with thinking process context
+          context += `\n\n### 🧩 INTERNAL REASONING:\nPlan: ${reasoning.decomposition.join(' -> ')}\nConfidence: ${reasoning.confidence}`;
+
+        } catch (e: any) { console.error(`[${requestId}] Intelligence Error:`, e.message); }
       }
 
       // 2. Route to Private GPU (Universe)
@@ -203,16 +213,37 @@ User ID: ${userId}${context}`;
         },
         onFinish: async ({ text: completion }) => {
           try {
+            // Perform Self-ReflectionFact-Check
+            const verification = await selfVerify(completion, context);
+            console.log(`[Reflection] Result: ${verification.isAccurate ? 'PASS' : 'FAIL'} - ${verification.reasoning}`);
+
             const assistantMessageRef = db.collection(`users/${userId}/agents/${agentId}/history`).doc();
+
+            // Create a "faked" tool usage to show reasoning in the UI
+            const toolUsages: any[] = [];
+
+            if (reasoningData) {
+              toolUsages.push({
+                toolName: 'Reasoning Engine',
+                input: { goal: 'Chain-of-Thought Decomposition' },
+                output: { thinking: reasoningData.thinking, steps: reasoningData.decomposition, confidence: reasoningData.confidence }
+              });
+            }
+
             await assistantMessageRef.set({
               role: 'assistant',
-              content: completion,
+              content: verification.isAccurate ? completion : (verification.correction || completion),
               threadId,
               workspaceId: workspaceId || null,
               createdAt: FieldValue.serverTimestamp(),
+              toolUsages,
+              metadata: {
+                verification: verification.reasoning,
+                wasCorrected: !verification.isAccurate
+              }
             });
             db.doc(`users/${userId}/threads/${threadId}`).update({ updatedAt: FieldValue.serverTimestamp() }).catch(e => { });
-          } catch (e) { }
+          } catch (e) { console.error(`[${requestId}] onFinish Error:`, e); }
         }
       });
 
