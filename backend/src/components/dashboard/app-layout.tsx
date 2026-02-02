@@ -84,7 +84,7 @@ import { PandoraBoxIcon } from '@/components/icons';
 import { useSystemStatus } from '@/hooks/use-system-status';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { createThread, renameThread, deleteThread, getRecentThreads } from '@/app/actions';
+import { createThread, renameThread, deleteThread, getRecentThreads, getThread } from '@/app/actions';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
@@ -147,6 +147,17 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
     };
     fetchWorkspaces();
   }, [user]);
+
+  // Sync agent tab with current thread
+  useEffect(() => {
+    if (threadId && user) {
+      getThread(threadId, user.uid).then((t: Thread | null) => {
+        if (t?.agent && (t.agent === 'builder' || t.agent === 'universe')) {
+          setAgent(t.agent);
+        }
+      });
+    }
+  }, [threadId, user]);
 
   useEffect(() => {
     if (!user) {

@@ -152,23 +152,33 @@ export async function getUserThreads(userId: string, agent?: string, workspaceId
         }
 
         const db = getFirestoreAdmin();
-        let query = db.collection(`users/${userId}/threads`).orderBy('updatedAt', 'desc');
+        // Fetch threads without complex filters to avoid index requirements
+        let query = db.collection(`users/${userId}/threads`);
 
-        if (agent) {
-            query = query.where('agent', '==', agent);
-        }
-
-        if (workspaceId) {
-            query = query.where('workspaceId', '==', workspaceId);
-        } else {
-            query = query.where('workspaceId', '==', null);
-        }
-
-        const snapshot = await query.limit(20).get();
-        return (snapshot?.docs || []).map(doc => ({
+        // We'll limit and get, then filter/sort in memory for robustness
+        const snapshot = await query.limit(100).get();
+        let threads = (snapshot?.docs || []).map(doc => ({
             id: doc.id,
             ...serializeData(doc.data())
         })) as Thread[];
+
+        // In-memory filtering
+        if (agent) {
+            threads = threads.filter(t => t.agent === agent);
+        }
+
+        if (workspaceId !== undefined) {
+            threads = threads.filter(t => t.workspaceId === (workspaceId || null));
+        }
+
+        // In-memory sorting (updatedAt desc)
+        threads.sort((a, b) => {
+            const timeA = a.updatedAt instanceof Date ? a.updatedAt.getTime() : 0;
+            const timeB = b.updatedAt instanceof Date ? b.updatedAt.getTime() : 0;
+            return timeB - timeA;
+        });
+
+        return threads.slice(0, 20);
     } catch (error: any) {
         console.error('[getUserThreads] Error:', error);
         return [];
