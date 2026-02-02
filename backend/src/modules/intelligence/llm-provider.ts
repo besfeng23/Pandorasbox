@@ -70,15 +70,23 @@ export class OllamaProvider implements LLMProvider {
     constructor(private baseUrl: string) { }
 
     async generateResponse(messages: LLMMessage[], model: string = 'llama3:70b-instruct-q4_0'): Promise<LLMResponse> {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+
         const response = await fetch(`${this.baseUrl}/api/chat`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            signal: controller.signal,
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${process.env.SOVEREIGN_KEY || 'ollama'}`
+            },
             body: JSON.stringify({
                 model,
                 messages,
                 stream: false,
             }),
         });
+        clearTimeout(timeoutId);
 
         if (!response.ok) {
             throw new Error(`Ollama error: ${response.statusText}`);

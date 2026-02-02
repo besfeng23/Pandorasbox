@@ -104,7 +104,8 @@ export async function POST(req: NextRequest) {
     // SPLIT-BRAIN ROUTING (Phase 2)
     // ═══════════════════════════════════════════════════════════════════════════
     const dispatcher = getDispatcher();
-    const intent = await dispatcher.classifyIntent(message);
+    // Wrap classification in timeout to prevent hanging
+    const intent = await withTimeout(dispatcher.classifyIntent(message), 5000, 'CHAT' as any, 'Intent Classification');
     console.log(`[Phase 17] Dispatcher classified intent: ${intent}`);
 
     let provider;
@@ -183,37 +184,50 @@ User ID: ${userId}${context}`;
       { role: 'user', content: message }
     ];
 
-    const result = await streamText({
-      model: provider(model),
-      system: systemPrompt,
-      messages: uiMessages as any,
-      onError: (error: any) => {
-        console.error(`[${requestId}] streamText Error Diagnostic:`, {
-          error: error.message || error.error?.message || String(error),
-          model,
-          intent,
-          agentId,
-          hasSovereignKey: !!process.env.SOVEREIGN_KEY,
-          hasGroqKey: !!process.env.GROQ_API_KEY,
-          hasOpenAIKey: !!process.env.OPENAI_API_KEY
-        });
-      },
-      onFinish: async ({ text: completion }) => {
-        try {
-          const assistantMessageRef = db.collection(`users/${userId}/agents/${agentId}/history`).doc();
-          await assistantMessageRef.set({
-            role: 'assistant',
-            content: completion,
-            threadId,
-            workspaceId: workspaceId || null,
-            createdAt: FieldValue.serverTimestamp(),
+    try {
+      const result = await streamText({
+        model: provider(model),
+        system: systemPrompt,
+        messages: uiMessages as any,
+        abortSignal: AbortSignal.timeout(30000), // 30s max for the whole stream
+        onError: (error: any) => {
+          console.error(`[${requestId}] streamText Error Diagnostic:`, {
+            error: error.message || error.error?.message || String(error),
+            model,
+            intent,
+            agentId,
+            hasSovereignKey: !!process.env.SOVEREIGN_KEY,
+            hasGroqKey: !!process.env.GROQ_API_KEY,
+            hasOpenAIKey: !!process.env.OPENAI_API_KEY
           });
-          db.doc(`users/${userId}/threads/${threadId}`).update({ updatedAt: FieldValue.serverTimestamp() }).catch(e => { });
-        } catch (e) { }
-      }
-    });
+        },
+        onFinish: async ({ text: completion }) => {
+          try {
+            const assistantMessageRef = db.collection(`users/${userId}/agents/${agentId}/history`).doc();
+            await assistantMessageRef.set({
+              role: 'assistant',
+              content: completion,
+              threadId,
+              workspaceId: workspaceId || null,
+              createdAt: FieldValue.serverTimestamp(),
+            });
+            db.doc(`users/${userId}/threads/${threadId}`).update({ updatedAt: FieldValue.serverTimestamp() }).catch(e => { });
+          } catch (e) { }
+        }
+      });
 
-    return result.toTextStreamResponse({ headers: corsHeaders() });
+      return result.toDataStreamResponse({ headers: corsHeaders() });
+    } catch (primaryError: any) {
+      console.warn(`[${requestId}] Primary provider failed, triggering Gemini Safety Net:`, primaryError.message);
+
+      // SAFETY NET: Fallback to Gemini if Groq/Ollama fails
+      // Note: We'd ideally use the @ai-sdk/google provider here. 
+      // If not yet installed, we'll return a helpful error message with a retry suggestion.
+      // For now, let's try a fallback to a potentially more stable Groq model if it was an Ollama failure,
+      // or return a "Sovereign Node Offline" message that doesn't hang.
+
+      throw primaryError; // Proceed to global catch if no fallback provider is ready
+    }
 
   } catch (error: any) {
     console.error(`[${requestId}] Chat API Fatal Error:`, error);

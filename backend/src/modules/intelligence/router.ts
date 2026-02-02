@@ -27,7 +27,7 @@ export class Dispatcher {
     constructor(config: DispatcherConfig) {
         this.universe = new OllamaProvider(config.universeUrl);
         this.hasGroq = !!config.groqKey && config.groqKey.length > 10;
-        
+
         if (this.hasGroq) {
             this.builder = new GroqProvider(config.groqKey);
             this.reflex = new GroqProvider(config.groqKey);
@@ -53,10 +53,13 @@ export class Dispatcher {
 Respond with ONLY the word: BUILD, CHAT, or VOICE.`;
 
         try {
-            const model = this.hasGroq 
+            const model = this.hasGroq
                 ? (process.env.REFLEX_MODEL || 'llama-3.1-8b-instant')
                 : (process.env.UNIVERSE_MODEL || 'mistral');
-                
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000);
+
             const response = await this.reflex.generateResponse(
                 [
                     { role: 'system', content: systemPrompt },
@@ -64,6 +67,7 @@ Respond with ONLY the word: BUILD, CHAT, or VOICE.`;
                 ],
                 model
             );
+            clearTimeout(timeoutId);
 
             const intent = response.content.trim().toUpperCase();
             if (intent.includes('BUILD')) return 'BUILD';

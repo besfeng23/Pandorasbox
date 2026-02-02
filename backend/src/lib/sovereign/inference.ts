@@ -54,14 +54,7 @@ export async function streamInference(messages: ChatMessage[]) {
     console.log('[Sovereign Inference] Stream created successfully');
     return stream;
   } catch (error: any) {
-    console.error('[Sovereign Inference] Stream Error:', {
-      message: error.message,
-      status: error.status,
-      code: error.code,
-      model: INFERENCE_MODEL,
-      baseUrl: process.env.INFERENCE_BASE_URL || process.env.INFERENCE_URL
-    });
-    throw new Error(`Inference System Offline - ${error.message || 'Check Container'}`);
+    throw new Error(`AI Inference Engine Offline - ${error.message || 'Check Container status'}`);
   }
 }
 
@@ -90,14 +83,7 @@ export async function completeInference(
     console.log('[Sovereign Inference] Completion received, length:', content.length);
     return content;
   } catch (error: any) {
-    console.error('[Sovereign Inference] Completion Error:', {
-      message: error.message,
-      status: error.status,
-      code: error.code,
-      model: INFERENCE_MODEL,
-      baseUrl: process.env.INFERENCE_BASE_URL || process.env.INFERENCE_URL
-    });
-    throw new Error(`Inference System Offline - ${error.message || 'Check Container'}`);
+    throw new Error(`AI Inference Engine Offline - ${error.message || 'Check Container status'}`);
   }
 }
 
