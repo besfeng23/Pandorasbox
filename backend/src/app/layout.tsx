@@ -29,7 +29,7 @@ export default function RootLayout({
         />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
       </head>
-      <body className={cn('font-body antialiased bg-background dark:bg-grid-black bg-grid-white')}>
+      <body className={cn('font-body antialiased bg-background dark:bg-grid-black bg-grid-white max-w-[100vw] overflow-x-hidden')}>
         <Providers>
           <SafeEnvCheck>
             {children}

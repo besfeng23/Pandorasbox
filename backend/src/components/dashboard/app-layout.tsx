@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useUser, useAuthActions } from '@/firebase';
 import type { Thread } from '@/lib/types';
-import { BottomTabBar } from '@/components/mobile/bottom-tab-bar';
 import MobileHeader from '@/components/mobile-header';
 import { ThreadList } from '@/components/dashboard/thread-list';
 import {
@@ -413,7 +412,7 @@ export function AppLayout({ children, threadId }: { children: React.ReactNode; t
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full bg-background overflow-hidden selection:bg-primary/20 selection:text-primary pb-16 md:pb-0">
+      <div className="flex min-h-screen w-full bg-background overflow-hidden selection:bg-primary/20 selection:text-primary">
         <CommandMenu />
 
         {/* Mobile Header - Visible only on mobile */}
