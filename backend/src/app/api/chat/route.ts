@@ -11,6 +11,9 @@ import { hybridSearch } from '@/lib/hybrid/search';
 import { generateReasoning } from '@/lib/ai/reasoning';
 import { generatePlan } from '@/lib/ai/planner';
 import { selfVerify } from '@/lib/ai/reflection';
+import { detectAmbiguity } from '@/lib/ai/active-learning';
+import { getFewShotPrompt } from '@/lib/ai/few-shot';
+import { selectModel } from '@/lib/ai/model-selector';
 import { v4 as uuidv4 } from 'uuid';
 import { handleOptions, corsHeaders } from '@/lib/cors';
 import { getDispatcher } from '@/modules/intelligence/router';
@@ -116,6 +119,14 @@ export async function POST(req: NextRequest) {
     let model;
     let routingInfo = '';
     let reasoningData: any = null;
+    let activeLearningQuestion: string | undefined;
+
+    // PHASE 21: Active Learning & Ambiguity Detection
+    const ambiguity = await detectAmbiguity(message);
+    if (ambiguity.needsClarification) {
+      activeLearningQuestion = ambiguity.question;
+      console.log(`[ActiveLearning] Ambiguity detected: ${activeLearningQuestion}`);
+    }
 
     if (intent === 'BUILD' || agentId === 'builder') {
       // Route to Groq for builder/code tasks
@@ -157,6 +168,10 @@ export async function POST(req: NextRequest) {
           reasoningData = reasoning;
 
           routingInfo += `\n\n### 💭 THINKING PROCESS:\n${reasoning.thinking}`;
+
+          // PHASE 3: Few-Shot Learning
+          const examples = await getFewShotPrompt(message, userId);
+          if (examples) context += `\n\n${examples}`;
 
           // Update system prompt with thinking process context
           context += `\n\n### 🧩 INTERNAL REASONING:\nPlan: ${reasoning.decomposition.join(' -> ')}\nConfidence: ${reasoning.confidence}`;
@@ -239,7 +254,8 @@ User ID: ${userId}${context}`;
               toolUsages,
               metadata: {
                 verification: verification.reasoning,
-                wasCorrected: !verification.isAccurate
+                wasCorrected: !verification.isAccurate,
+                wasClarified: !!activeLearningQuestion
               }
             });
             db.doc(`users/${userId}/threads/${threadId}`).update({ updatedAt: FieldValue.serverTimestamp() }).catch(e => { });
