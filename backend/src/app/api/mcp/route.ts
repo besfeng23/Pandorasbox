@@ -7,7 +7,12 @@
  */
 
 import { NextRequest } from 'next/server';
-import { search_universe_memory, searchUniverseMemorySchema } from '@/lib/mcp/tools/memory-tools';
+import {
+    search_universe_memory,
+    searchUniverseMemorySchema,
+    add_universe_memory,
+    addUniverseMemorySchema
+} from '@/lib/mcp/tools/memory-tools';
 import { generate_artifact, generateArtifactSchema } from '@/lib/mcp/tools/artifact-tools';
 
 export async function POST(req: NextRequest) {
@@ -30,6 +35,19 @@ export async function POST(req: NextRequest) {
                                 limit: { type: 'number', description: 'Max results' }
                             },
                             required: ['query', 'userId']
+                        }
+                    },
+                    {
+                        name: 'add_universe_memory',
+                        description: 'Explicitly save a factual memory about the user to long-term storage (instant crystallization).',
+                        parameters: {
+                            type: 'object',
+                            properties: {
+                                content: { type: 'string', description: 'The fact to remember' },
+                                userId: { type: 'string', description: 'The user ID' },
+                                agentId: { type: 'string', enum: ['universe', 'builder'], description: 'The agent brain' }
+                            },
+                            required: ['content', 'userId']
                         }
                     },
                     {
@@ -56,6 +74,12 @@ export async function POST(req: NextRequest) {
             if (name === 'search_universe_memory') {
                 const validatedArgs = searchUniverseMemorySchema.parse(args);
                 const result = await search_universe_memory(validatedArgs);
+                return Response.json(result);
+            }
+
+            if (name === 'add_universe_memory') {
+                const validatedArgs = addUniverseMemorySchema.parse(args);
+                const result = await add_universe_memory(validatedArgs);
                 return Response.json(result);
             }
 
