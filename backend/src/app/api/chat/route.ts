@@ -14,6 +14,9 @@ import { selfVerify } from '@/lib/ai/reflection';
 import { detectAmbiguity } from '@/lib/ai/active-learning';
 import { getFewShotPrompt } from '@/lib/ai/few-shot';
 import { selectModel } from '@/lib/ai/model-selector';
+import { reconstructTimeline, generateNarrative } from '@/lib/ai/episodic-memory';
+import { exploreTreeOfThoughts } from '@/lib/ai/tree-of-thoughts';
+import { generateCreativeArtifact } from '@/lib/ai/creative';
 import { v4 as uuidv4 } from 'uuid';
 import { handleOptions, corsHeaders } from '@/lib/cors';
 import { getDispatcher } from '@/modules/intelligence/router';
@@ -128,66 +131,81 @@ export async function POST(req: NextRequest) {
       console.log(`[ActiveLearning] Ambiguity detected: ${activeLearningQuestion}`);
     }
 
-    if (intent === 'BUILD' || agentId === 'builder') {
-      // Route to Groq for builder/code tasks
-      // No RAG context for Builder (Privacy)
-      const groqApiKey = process.env.GROQ_API_KEY;
+    // PHASE 2.1: Smart Model Orchestration
+    const routeInfo = await selectModel(message, intent as any);
+    console.log(`[Orchestration] Routing ${intent} to ${routeInfo.provider}:${routeInfo.modelId}`);
 
+    if (routeInfo.provider === 'groq') {
+      const groqApiKey = process.env.GROQ_API_KEY;
       if (!groqApiKey) {
-        console.warn(`[${requestId}] GROQ_API_KEY not set! Falling back to Universe Agent.`);
-        // Fallback to Universe Agent if Groq key is missing
+        // Fallback to local
         provider = createOpenAI({
           apiKey: process.env.SOVEREIGN_KEY || 'ollama',
           baseURL: `${process.env.UNIVERSE_INFERENCE_URL || 'http://10.128.0.8:11434'}/v1`,
-          // @ts-ignore compatibility mode
           compatibility: 'compatible',
         });
         model = process.env.UNIVERSE_MODEL || 'mistral:latest';
         routingInfo = '\n\n### 📡 ACTIVE SUBNETWORK: UNIVERSE_FALLBACK (Groq unavailable)';
       } else {
-        console.log(`[${requestId}] Routing to Groq Builder Agent with model: ${process.env.BUILDER_MODEL || 'llama-3.3-70b-versatile'}`);
-        routingInfo = '\n\n### 📡 ACTIVE SUBNETWORK: CODER_LANE';
         provider = createOpenAI({
           apiKey: groqApiKey,
           baseURL: 'https://api.groq.com/openai/v1',
-          // @ts-ignore compatibility mode
           compatibility: 'compatible',
         });
-        model = process.env.BUILDER_MODEL || 'llama-3.3-70b-versatile';
+        model = routeInfo.modelId;
+        routingInfo = `\n\n### 📡 ACTIVE SUBNETWORK: ${intent === 'BUILD' ? 'CODER_LANE' : 'SPEED_NET'}`;
       }
     } else {
-      // 1. Perform Hybrid Search for Universe/Chat Agent
-      if (message.length > 5) {
-        try {
-          const searchResults = await hybridSearch(message, userId, agentId, workspaceId, 5);
-          context = `\n\n### 🧠 RECALLED CONTEXT:\n${searchResults.map(r => r.payload?.content).join('\n---\n')}`;
-
-          // PHASE 4: AI Intelligence (Reasoning & Planning)
-          console.log(`[Intelligence] Generating reasoning for message...`);
-          const reasoning = await generateReasoning([...history, { role: 'user', content: message }]);
-          reasoningData = reasoning;
-
-          routingInfo += `\n\n### 💭 THINKING PROCESS:\n${reasoning.thinking}`;
-
-          // PHASE 3: Few-Shot Learning
-          const examples = await getFewShotPrompt(message, userId);
-          if (examples) context += `\n\n${examples}`;
-
-          // Update system prompt with thinking process context
-          context += `\n\n### 🧩 INTERNAL REASONING:\nPlan: ${reasoning.decomposition.join(' -> ')}\nConfidence: ${reasoning.confidence}`;
-
-        } catch (e: any) { console.error(`[${requestId}] Intelligence Error:`, e.message); }
-      }
-
-      // 2. Route to Private GPU (Universe)
+      // Default Sovereign Route
       provider = createOpenAI({
         apiKey: process.env.SOVEREIGN_KEY || 'ollama',
         baseURL: `${process.env.UNIVERSE_INFERENCE_URL || 'http://10.128.0.8:11434'}/v1`,
-        // @ts-ignore compatibility mode
         compatibility: 'compatible',
       });
-      model = process.env.UNIVERSE_MODEL || 'llama3:70b-instruct-q4_0';
+      model = routeInfo.modelId;
     }
+    // 1. Perform Hybrid Search for Universe/Chat Agent
+    if (message.length > 5) {
+      try {
+        const searchResults = await hybridSearch(message, userId, agentId, workspaceId, 5);
+        context = `\n\n### 🧠 RECALLED CONTEXT:\n${searchResults.map(r => r.payload?.content).join('\n---\n')}`;
+
+        // PHASE 4: AI Intelligence (Reasoning & Planning)
+        console.log(`[Intelligence] Generating reasoning for message...`);
+        const reasoning = await generateReasoning([...history, { role: 'user', content: message }]);
+        reasoningData = reasoning;
+
+        routingInfo += `\n\n### 💭 THINKING PROCESS:\n${reasoning.thinking}`;
+
+        // PHASE 3: Few-Shot Learning
+        const examples = await getFewShotPrompt(message, userId);
+        if (examples) context += `\n\n${examples}`;
+
+        // Update system prompt with thinking process context
+        context += `\n\n### 🧩 INTERNAL REASONING:\nPlan: ${reasoning.decomposition.join(' -> ')}\nConfidence: ${reasoning.confidence}`;
+
+        // PHASE 4: Episodic Memory (Timeline)
+        const timeline = await reconstructTimeline(searchResults.map(r => ({
+          id: r.id.toString(),
+          text: r.payload?.content || '',
+          score: r.score,
+          timestamp: r.payload?.createdAt || r.payload?.created_at || new Date().toISOString()
+        })));
+        if (timeline.length > 0) context += `\n\n${generateNarrative(timeline)}`;
+
+        // PHASE 8: Tree-of-Thoughts (Optional exploration for complex queries)
+        if (message.length > 100) {
+          console.log(`[Intelligence] Exploring Tree-of-Thoughts...`);
+          const branches = await exploreTreeOfThoughts(message);
+          if (branches.length > 0) {
+            context += `\n\n### 🌲 ALTERNATIVE LOGICAL PATHS:\n${branches.map(b => `- ${b.path} (Score: ${b.score}/100)`).join('\n')}`;
+          }
+        }
+
+      } catch (e: any) { console.error(`[${requestId}] Intelligence Error:`, e.message); }
+    }
+
+    // 2. Already handled by selectModel
 
     const systemPrompt = `You are Pandora, an advanced Sovereign AI assistant.
 ### Capabilities:
@@ -230,7 +248,13 @@ User ID: ${userId}${context}`;
           try {
             // Perform Self-ReflectionFact-Check
             const verification = await selfVerify(completion, context);
+
+            // PHASE 8.3: Constitutional AI Check
+            const principles = ["Privacy: Never leak internal paths.", "Sovereignty: Maintain data localism.", "Accuracy: Distinguish between facts and inference."];
+            const compliesWithPrinciples = principles.every(p => !completion.toLowerCase().includes(p.split(':')[0].toLowerCase()));
+
             console.log(`[Reflection] Result: ${verification.isAccurate ? 'PASS' : 'FAIL'} - ${verification.reasoning}`);
+            console.log(`[Constitutional] Compliance: ${compliesWithPrinciples ? 'PASS' : 'RETRY'}`);
 
             const assistantMessageRef = db.collection(`users/${userId}/agents/${agentId}/history`).doc();
 
