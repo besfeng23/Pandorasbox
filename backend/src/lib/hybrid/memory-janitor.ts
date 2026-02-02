@@ -10,6 +10,7 @@
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { v4 as uuidv4 } from 'uuid';
+import OpenAI from 'openai';
 
 export interface JanitorRunResult {
   processedMemories: number;
@@ -32,23 +33,23 @@ export class MemoryJanitor {
   /**
    * Run the synthesis process for a user
    */
-  async run(userId: string, agentId: string = 'universe'): Promise<JanitorRunResult> {
+  async run(uid: string, agentId: string = 'universe'): Promise<JanitorRunResult> {
     const errors: string[] = [];
     let processedMemories = 0;
     let createdFacts = 0;
     let deletedMemories = 0;
 
     try {
-      // 1. Fetch last 100 Episodic Memories from Qdrant
-      const memories = await this.fetchRecentMemories(userId, agentId, 100);
+      // 1. Fetch last 100 Memories from Qdrant (excluding facts)
+      const memories = await this.fetchRecentMemories(uid, agentId, 100);
       processedMemories = memories.length;
 
       if (memories.length === 0) {
         return { processedMemories: 0, createdFacts: 0, deletedMemories: 0, errors: [] };
       }
 
-      // 2. Pass to Gemini 1.5 Pro for synthesis
-      const model = this.genAI.getGenerativeModel({ model: "gemini-1.5-pro-latest" });
+      // 2. Synthesize using OpenAI (more reliable in this env) or Gemini
+      let facts: string[] = [];
       const prompt = `Synthesize these ${memories.length} chat fragments into concise factual statements about the user.
 Focus on extracting persistent preferences, life events, emotional states, and recurring themes.
 
@@ -57,22 +58,45 @@ ${memories.map((m: { content: string }) => m.content).join('\n---\n')}
 
 Respond with a JSON array of strings: ["Fact 1", "Fact 2", ...]`;
 
-      const result = await model.generateContent(prompt);
-      const output = result.response.text();
+      const openaiKey = process.env.OPENAI_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY;
+      if (openaiKey && openaiKey.startsWith('sk-')) {
+        try {
+          console.log(`[MemoryJanitor] Attempting synthesis with OpenAI (gpt-4o)...`);
+          const openai = new OpenAI({ apiKey: openaiKey });
+          const response = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: [{ role: "user", content: prompt + "\n\nIMPORTANT: Return a JSON object with a 'facts' key containing the array." }],
+            response_format: { type: "json_object" }
+          });
+          const content = response.choices[0].message.content || '{}';
+          console.log(`[MemoryJanitor] OpenAI Raw Response: ${content.substring(0, 100)}...`);
+          const parsed = JSON.parse(content);
+          facts = Array.isArray(parsed) ? parsed : (parsed.facts || parsed.statements || parsed.result || []);
+          console.log(`[MemoryJanitor] Extracted ${facts.length} facts from OpenAI.`);
+        } catch (e: any) {
+          console.warn('[MemoryJanitor] OpenAI failed, falling back to Gemini:', e.message);
+        }
+      }
 
-      // Basic JSON cleaning if necessary
-      const jsonString = output.match(/\[[\s\S]*\]/)?.[0] || '[]';
-      const facts: string[] = JSON.parse(jsonString);
+      if (facts.length === 0) {
+        console.log(`[MemoryJanitor] Attempting synthesis with Gemini...`);
+        const model = this.genAI.getGenerativeModel({ model: "gemini-1.5-pro-latest" });
+        const result = await model.generateContent(prompt);
+        const output = result.response.text();
+        const jsonString = output.match(/\[[\s\S]*\]/)?.[0] || '[]';
+        facts = JSON.parse(jsonString);
+        console.log(`[MemoryJanitor] Extracted ${facts.length} facts from Gemini.`);
+      }
 
       // 3. Create "Crystallized Facts" in Qdrant
       for (const fact of facts) {
-        await this.insertCrystallizedFact(userId, agentId, fact);
+        await this.insertCrystallizedFact(uid, agentId, fact);
         createdFacts++;
       }
 
       // 4. Delete old fragments
       for (const m of memories) {
-        await this.deletePoint(m.id);
+        await this.deletePoint(agentId, m.id);
         deletedMemories++;
       }
 
@@ -84,15 +108,18 @@ Respond with a JSON array of strings: ["Fact 1", "Fact 2", ...]`;
     return { processedMemories, createdFacts, deletedMemories, errors };
   }
 
-  private async fetchRecentMemories(userId: string, agentId: string, limit: number) {
-    const response = await fetch(`${this.qdrantUrl}/collections/${this.collectionName}/points/scroll`, {
+  private async fetchRecentMemories(uid: string, agentId: string, limit: number) {
+    const collectionName = `memories__${agentId}`;
+    const response = await fetch(`${this.qdrantUrl}/collections/${collectionName}/points/scroll`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         filter: {
           must: [
-            { key: 'userId', match: { value: userId } },
-            { key: 'type', match: { value: 'episodic' } }
+            { key: 'uid', match: { value: uid } }
+          ],
+          must_not: [
+            { key: 'type', match: { value: 'fact' } }
           ]
         },
         limit,
@@ -106,9 +133,12 @@ Respond with a JSON array of strings: ["Fact 1", "Fact 2", ...]`;
     }));
   }
 
-  private async insertCrystallizedFact(userId: string, agentId: string, content: string) {
+  private async insertCrystallizedFact(uid: string, agentId: string, content: string) {
+    const collectionName = `memories__${agentId}`;
+    console.log(`[MemoryJanitor] Generating embedding for fact: ${content.substring(0, 50)}...`);
     const embedding = await this.generateEmbedding(content);
-    await fetch(`${this.qdrantUrl}/collections/${this.collectionName}/points`, {
+    console.log(`[MemoryJanitor] Inserting fact into ${collectionName}...`);
+    const res = await fetch(`${this.qdrantUrl}/collections/${collectionName}/points`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -116,23 +146,32 @@ Respond with a JSON array of strings: ["Fact 1", "Fact 2", ...]`;
           id: uuidv4(),
           vector: embedding,
           payload: {
-            userId,
+            uid,
             agentId,
             content,
-            type: 'crystallized_fact',
-            createdAt: Date.now()
+            type: 'fact',
+            createdAt: new Date().toISOString()
           }
         }]
       })
     });
+    const data = await res.json();
+    console.log(`[MemoryJanitor] Fact insertion status: ${res.status}, Qdrant Status: ${JSON.stringify(data.status)}`);
+    if (!res.ok || data.status === 'error') {
+      throw new Error(`Qdrant fact insertion failed: ${res.status} - ${JSON.stringify(data.status)}`);
+    }
   }
 
-  private async deletePoint(id: string) {
-    await fetch(`${this.qdrantUrl}/collections/${this.collectionName}/points/delete`, {
+  private async deletePoint(agentId: string, id: string) {
+    const collectionName = `memories__${agentId}`;
+    const res = await fetch(`${this.qdrantUrl}/collections/${collectionName}/points/delete`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ points: [id] })
     });
+    if (!res.ok) {
+      console.warn(`[MemoryJanitor] Failed to delete point ${id} from ${collectionName}: ${res.status}`);
+    }
   }
 
   private async generateEmbedding(text: string): Promise<number[]> {

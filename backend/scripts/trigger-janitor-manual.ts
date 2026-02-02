@@ -2,6 +2,11 @@ import { config } from 'dotenv';
 import { resolve } from 'path';
 config({ path: resolve(process.cwd(), '.env.local') });
 
+// Override to use SSH Tunnel
+process.env.QDRANT_URL = 'http://localhost:6333';
+process.env.INFERENCE_URL = 'http://localhost:11434';
+process.env.UNIVERSE_INFERENCE_URL = 'http://localhost:11434';
+
 // Map naming discrepancy between .env.local and code
 if (process.env.FIREBASE_ADMIN_CREDENTIALS && !process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
     process.env.FIREBASE_SERVICE_ACCOUNT_KEY = process.env.FIREBASE_ADMIN_CREDENTIALS;

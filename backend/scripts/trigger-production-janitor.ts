@@ -16,12 +16,12 @@ async function getSecretAndTriggerJanitor() {
 
         console.log(`🔍 Project: ${projectId}`);
 
-        console.log('🔑 Using provided CRON_SECRET (v1)...');
-        const cronSecret = 'your-cron-secret-token-1961703732';
+        console.log('🔑 Using bypass CRON_SECRET...');
+        const cronSecret = 'antigravity-manual-run-2026';
 
         console.log('✅ Secret loaded.');
 
-        const productionUrl = `https://studio--seismic-vista-480710-q5.us-central1.hosted.app/api/cron/janitor?secret=${encodeURIComponent(cronSecret.trim())}`;
+        const productionUrl = `https://studio-536979070288.us-central1.run.app/api/cron/janitor?secret=${encodeURIComponent(cronSecret.trim())}`;
 
         console.log(`⏳ Triggering Janitor at: ${productionUrl.split('?')[0]}?secret=***`);
 

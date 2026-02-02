@@ -192,6 +192,11 @@ env:
       - RUNTIME
 
   - variable: OPENAI_API_KEY
-    secret: openai-api-key
+    secret: llm-api-key
+    availability:
+      - RUNTIME
+
+  - variable: GOOGLE_API_KEY
+    secret: gemini-api-key
     availability:
       - RUNTIME
