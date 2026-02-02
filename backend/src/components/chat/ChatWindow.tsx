@@ -402,9 +402,9 @@ export function ChatWindow({ threadId, agentId = 'universe' }: ChatWindowProps) 
   }
 
   return (
-    <div className="flex h-full flex-col bg-background/30 backdrop-blur-md overflow-hidden border-x border-border/50">
+    <div className="flex h-full flex-col bg-card/50 overflow-hidden border-x border-border/80">
       {/* Header Info - Optional but adds premium feel */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-border/40 bg-background/40 backdrop-blur-sm z-10">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-border/80 bg-background/95 z-10">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-xl bg-primary/10">
             {agentId === 'builder' ? <Bot className="h-5 w-5 text-primary" /> : <BrainCircuit className="h-5 w-5 text-primary" />}

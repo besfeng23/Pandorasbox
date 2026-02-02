@@ -98,11 +98,10 @@ export async function POST(req: NextRequest) {
     const { message, agentId = 'universe', threadId, history = [], workspaceId } = body;
 
     const db = getFirestoreAdmin();
-    const userMessageRef = db.collection(`users/${userId}/agents/${agentId}/history`).doc();
+    const userMessageRef = db.collection(`users/${userId}/threads/${threadId}/messages`).doc();
     await userMessageRef.set({
       role: 'user',
       content: message,
-      threadId,
       workspaceId: workspaceId || null,
       createdAt: FieldValue.serverTimestamp(),
     });
@@ -256,7 +255,7 @@ User ID: ${userId}${context}`;
             console.log(`[Reflection] Result: ${verification.isAccurate ? 'PASS' : 'FAIL'} - ${verification.reasoning}`);
             console.log(`[Constitutional] Compliance: ${compliesWithPrinciples ? 'PASS' : 'RETRY'}`);
 
-            const assistantMessageRef = db.collection(`users/${userId}/agents/${agentId}/history`).doc();
+            const assistantMessageRef = db.collection(`users/${userId}/threads/${threadId}/messages`).doc();
 
             // Create a "faked" tool usage to show reasoning in the UI
             const toolUsages: any[] = [];
@@ -272,7 +271,6 @@ User ID: ${userId}${context}`;
             await assistantMessageRef.set({
               role: 'assistant',
               content: verification.isAccurate ? completion : (verification.correction || completion),
-              threadId,
               workspaceId: workspaceId || null,
               createdAt: FieldValue.serverTimestamp(),
               toolUsages,

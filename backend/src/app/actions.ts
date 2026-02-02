@@ -190,13 +190,9 @@ export async function getThread(threadId: string, userId: string): Promise<Threa
 export async function getMessages(threadId: string, userId: string): Promise<Message[]> {
     try {
         const db = getFirestoreAdmin();
-        const thread = await getThread(threadId, userId);
-        if (!thread) return [];
-        const agentId = thread.agent;
-
-        const historyRef = db.collection(`users/${userId}/agents/${agentId}/history`);
-        const snapshot = await historyRef
-            .where('threadId', '==', threadId)
+        // New Path: Nested under the thread document
+        const messagesRef = db.collection(`users/${userId}/threads/${threadId}/messages`);
+        const snapshot = await messagesRef
             .orderBy('createdAt', 'asc')
             .get();
 
@@ -284,11 +280,9 @@ export async function deleteThread(threadId: string, userId: string, agentId?: s
 
 export async function deleteMessage(threadId: string, messageId: string, userId: string) {
     try {
-        const thread = await getThread(threadId, userId);
-        if (!thread) return { success: false, message: 'Thread not found' };
         const db = getFirestoreAdmin();
-        const historyRef = db.collection(`users/${userId}/agents/${thread.agent}/history`);
-        await historyRef.doc(messageId).delete();
+        const messageRef = db.doc(`users/${userId}/threads/${threadId}/messages/${messageId}`);
+        await messageRef.delete();
         revalidatePath(`/chat/${threadId}`);
         return { success: true };
     } catch (error) {

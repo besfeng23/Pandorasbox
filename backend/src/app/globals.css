@@ -4,76 +4,60 @@
 
 @layer base {
   :root {
-    /* Apple-esque Light Mode */
-    --background: 240 5.3% 96.9%;
-    /* #F5F5F7 */
-    --foreground: 0 0% 0%;
-    /* #000000 */
+    /* Grounded Tactical Base */
+    --background: 210 20% 98%;
+    /* #F8FAFC */
+    --foreground: 222 47% 11%;
     --card: 0 0% 100%;
-    /* #FFFFFF */
-    --card-foreground: 240 4.3% 11.8%;
+    --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 240 4.3% 11.8%;
-    --primary: 211 100% 50%;
-    /* #007AFF (System Blue) */
-    --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 240 1.8% 44.1%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 240 1.8% 44.1%;
-    --accent: 211 100% 50%;
-    /* Using Primary as accent */
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 211 100% 50%;
-    --radius: 0.75rem;
+    --popover-foreground: 222 47% 11%;
+    --primary: 38 92% 50%;
+    /* Safety Amber #F59E0B */
+    --primary-foreground: 210 20% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 38 92% 50%;
+    --accent-foreground: 210 20% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 20% 98%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 38 92% 50%;
+    --radius: 0.5rem;
 
     /* Semantic Colors */
-    --success: 142 76% 36%;  /* Green */
+    --success: 142 76% 36%;
     --success-foreground: 355 100% 97%;
-    --warning: 38 92% 50%;   /* Amber */
+    --warning: 38 92% 50%;
     --warning-foreground: 48 96% 89%;
-    --info: 221 83% 53%;     /* Blue */
+    --info: 221 83% 53%;
     --info-foreground: 210 40% 98%;
-    /* 12px */
 
-    /* Charts (Apple Human Interface Colors) */
-    --chart-1: 211 100% 50%;
-    /* Blue */
-    --chart-2: 125 50% 50%;
-    /* Green */
-    --chart-3: 35 90% 50%;
-    /* Orange */
-    --chart-4: 0 90% 60%;
-    /* Red */
-    --chart-5: 280 60% 60%;
-    /* Purple */
-
-    --sidebar-background: 240 5.3% 96.9%;
-    --sidebar-foreground: 240 1.8% 44.1%;
-    --sidebar-primary: 211 100% 50%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 100%;
-    --sidebar-accent-foreground: 240 4.3% 11.8%;
-    --sidebar-border: 240 5.9% 90%;
-    --sidebar-ring: 211 100% 50%;
+    --sidebar-background: 210 20% 98%;
+    --sidebar-foreground: 215 25% 27%;
+    --sidebar-primary: 38 92% 50%;
+    --sidebar-primary-foreground: 210 20% 98%;
+    --sidebar-accent: 210 40% 92%;
+    --sidebar-accent-foreground: 222 47% 11%;
+    --sidebar-border: 214 32% 85%;
+    --sidebar-ring: 38 92% 50%;
   }
 
   .dark {
     /* Pandora's Box Dark Mode */
-    --background: 240 10% 3.9%; /* #09090b */
+    --background: 222 47% 7%; /* #0F172A */
     --foreground: 0 0% 98%;
 
-    --card: 240 10% 6%; /* Slightly lighter than bg */
+    --card: 222 47% 10%; /* #1E293B */
     --card-foreground: 0 0% 98%;
 
     --popover: 240 10% 3.9%;
     --popover-foreground: 0 0% 98%;
 
-    --primary: 211 100% 50%; /* #007AFF */
+    --primary: 38 92% 50%; /* Safety Amber */
     --primary-foreground: 0 0% 100%;
 
     --secondary: 240 4% 16%;
