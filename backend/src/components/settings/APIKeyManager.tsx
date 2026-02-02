@@ -28,18 +28,18 @@ export function APIKeyManager({ currentKey = '', onKeyUpdated }: APIKeyManagerPr
     startTransition(async () => {
       const token = await user.getIdToken();
       const result = await generateUserApiKey(token);
-
+      
       if (result.success && result.apiKey) {
         onKeyUpdated?.(result.apiKey);
-        toast({
-          title: 'API key generated',
-          description: 'Your new API key has been generated and saved. Keep it secret!'
+        toast({ 
+          title: 'API key generated', 
+          description: 'Your new API key has been generated and saved. Keep it secret!' 
         });
       } else {
-        toast({
-          variant: 'destructive',
-          title: 'Failed',
-          description: result.message || 'Could not generate API key.'
+        toast({ 
+          variant: 'destructive', 
+          title: 'Failed', 
+          description: result.message || 'Could not generate API key.' 
         });
       }
     });
@@ -47,7 +47,7 @@ export function APIKeyManager({ currentKey = '', onKeyUpdated }: APIKeyManagerPr
 
   const handleCopyKey = async () => {
     if (!currentKey) return;
-
+    
     try {
       await navigator.clipboard.writeText(currentKey);
       setHasCopiedKey(true);
@@ -64,40 +64,40 @@ export function APIKeyManager({ currentKey = '', onKeyUpdated }: APIKeyManagerPr
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-foreground/40 mb-1">Personal Substrate Key</div>
-          <div className="text-[11px] text-muted-foreground/40 font-mono tracking-tighter">
-            Integration identifier. Restricted access.
+          <div className="text-sm font-medium text-foreground">Personal API key</div>
+          <div className="text-xs text-muted-foreground">
+            Used for integrations. Keep it secret.
           </div>
         </div>
         <Button
-          variant="ghost"
           onClick={handleGenerateApiKey}
           disabled={isPending || !user}
-          className="h-9 px-4 text-[10px] uppercase font-bold tracking-widest text-primary/60 hover:text-primary hover:bg-muted"
+          aria-label="Generate API key"
+          data-testid="settings-generate-key"
         >
-          {isPending ? <Loader2 className="h-3 w-3 animate-spin mr-2 stroke-[1]" /> : <KeyRound className="h-3 w-3 mr-2 stroke-[1]" />}
-          Initialize New Key
+          {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
+          Generate
         </Button>
       </div>
 
-      <div className="flex items-center gap-2 p-1.5 rounded-lg border border-border/10 bg-muted/5 group">
-        <Input
-          value={currentKey ? maskKey(currentKey) : ''}
-          readOnly
-          placeholder="Substrate offline"
-          className="flex-1 bg-transparent border-none focus-visible:ring-0 font-mono text-xs text-foreground/60 h-8"
+      <div className="flex gap-2">
+        <Input 
+          value={currentKey ? maskKey(currentKey) : ''} 
+          readOnly 
+          placeholder="No key generated yet" 
+          className="font-mono text-sm"
         />
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={handleCopyKey}
+        <Button 
+          variant="outline" 
+          onClick={handleCopyKey} 
           disabled={!currentKey || hasCopiedKey}
-          className="h-8 w-8 text-foreground/20 hover:text-foreground opacity-40 group-hover:opacity-100 transition-opacity"
+          aria-label="Copy API key"
+          data-testid="settings-copy-key"
         >
-          {hasCopiedKey ? <Check className="h-3 w-3 stroke-[1]" /> : <Copy className="h-3 w-3 stroke-[1]" />}
+          {hasCopiedKey ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
         </Button>
       </div>
     </div>

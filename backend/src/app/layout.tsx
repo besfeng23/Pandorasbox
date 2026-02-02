@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { cn } from '@/lib/utils';
 import { Providers } from '@/components/providers';
+import { MobileNavigation } from '@/components/navigation/mobile-nav';
 
 export const metadata: Metadata = {
   title: "Pandora's Box",
@@ -32,6 +33,7 @@ export default function RootLayout({
         <Providers>
           <SafeEnvCheck>
             {children}
+            <MobileNavigation />
           </SafeEnvCheck>
         </Providers>
       </body>

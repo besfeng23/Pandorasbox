@@ -259,130 +259,136 @@ export function KnowledgeUpload({ userId, agentId = 'universe', onUploadComplete
   };
 
   return (
-    <div className="w-full">
+    <div className="w-full mb-8">
       <Tabs defaultValue="upload" className="w-full">
-        <TabsList className="flex gap-8 bg-transparent border-none p-0 mb-8 h-auto">
-          <TabsTrigger value="upload" className="bg-transparent border-none p-0 text-[10px] uppercase font-bold tracking-[0.2em] text-foreground/40 data-[state=active]:text-primary data-[state=active]:bg-transparent shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none">Substrate Ingestion</TabsTrigger>
-          <TabsTrigger value="connectors" className="bg-transparent border-none p-0 text-[10px] uppercase font-bold tracking-[0.2em] text-foreground/40 data-[state=active]:text-primary data-[state=active]:bg-transparent shadow-none border-b-2 border-transparent data-[state=active]:border-primary rounded-none">Remote Nodes</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="upload">File Upload</TabsTrigger>
+          <TabsTrigger value="connectors">Remote Connectors</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="upload" className="mt-0 outline-none">
+        <TabsContent value="upload">
           <div
             {...getRootProps()}
             className={cn(
-              'flex flex-col items-center justify-center w-full min-h-[200px] border border-dashed border-border/20 rounded-xl cursor-pointer transition-all hover:bg-muted/30 group',
-              isDragActive ? 'border-primary/40 bg-primary/5' : 'border-border/20',
+              'flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer transition-colors mt-2',
+              isDragActive ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/50',
               isPending && 'cursor-not-allowed opacity-50'
             )}
           >
+            {/* ... (existing dropzone content) ... */}
             <input {...getInputProps()} />
             {isPending || uploadProgress !== null ? (
-              <div className="flex flex-col items-center text-center w-full max-w-sm px-8">
+              <div className="flex flex-col items-center text-center w-full max-w-sm px-4">
                 {uploadProgress === 100 ? (
                   <>
-                    <CheckCircle className="h-6 w-6 text-primary mb-4 stroke-[1]" />
-                    <p className="text-xs font-bold uppercase tracking-widest text-foreground/80">Recollection Synced</p>
-                    <p className="text-[10px] text-muted-foreground/40 mt-1 truncate">{fileName}</p>
+                    <CheckCircle className="h-10 w-10 text-green-500 mb-2" />
+                    <p className="font-semibold text-lg">Indexing Complete!</p>
+                    <p className="text-sm text-muted-foreground truncate">{fileName}</p>
                   </>
                 ) : (
                   <>
-                    <File className="h-6 w-6 text-primary/40 mb-4 animate-pulse stroke-[1]" />
-                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary/60 mb-3 truncate">{fileName}</p>
-                    <div className="w-full h-[1px] bg-border/20 relative overflow-hidden">
-                      <div
-                        className="absolute inset-y-0 left-0 bg-primary transition-all duration-300"
-                        style={{ width: `${uploadProgress || 0}%` }}
-                      />
-                    </div>
-                    <p className="text-[10px] text-muted-foreground/40 mt-3 uppercase tracking-tighter">
-                      {statusMessage || 'Analyzing substrate...'}
+                    <File className="h-10 w-10 text-primary mb-2" />
+                    <p className="text-sm font-semibold text-primary mb-2 truncate">{fileName}</p>
+                    <Progress value={uploadProgress || 0} className="w-full h-2" />
+                    <p className="text-xs text-muted-foreground mt-2">
+                      {statusMessage || 'Processing document, please wait...'}
                     </p>
+                    {jobId && (
+                      <p className="text-xs text-muted-foreground/70 mt-1">
+                        Job ID: {jobId.substring(0, 8)}...
+                      </p>
+                    )}
                   </>
                 )}
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center py-10">
-                <UploadCloud className="w-6 h-6 mb-4 text-foreground/20 stroke-[1] group-hover:text-primary/40 transition-colors" />
-                <p className="text-[11px] font-bold uppercase tracking-widest text-foreground/40 group-hover:text-foreground/60">Drop Archive</p>
-                <p className="text-[9px] text-muted-foreground/30 mt-2 uppercase">PDF / TXT / MD Substrate</p>
+              <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                <UploadCloud className="w-10 h-10 mb-3 text-muted-foreground" />
+                <p className="mb-2 text-sm text-muted-foreground">
+                  <span className="font-semibold">Click to upload</span> or drag and drop
+                </p>
+                <p className="text-xs text-muted-foreground mb-4">PDF, TXT, or MD files</p>
+                <div className="flex items-center gap-1.5 px-3 py-1 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full text-[10px] font-medium border border-green-500/20">
+                  <ShieldCheck className="h-3 w-3" />
+                  <span>Encrypted & Private</span>
+                </div>
               </div>
             )}
           </div>
         </TabsContent>
 
-        <TabsContent value="connectors" className="mt-0 outline-none space-y-12">
-          {/* GitHub */}
-          <div className="space-y-6">
-            <div className="flex items-center gap-3">
-              <Github className="h-4 w-4 text-foreground/40 stroke-[1]" />
-              <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-foreground/60">GitHub Substrate</h3>
+        <TabsContent value="connectors">
+          <div className="space-y-4 mt-2">
+            {/* GitHub */}
+            <div className="border rounded-lg p-6 space-y-4 bg-card">
+              <div className="flex items-center gap-2 mb-2">
+                <Github className="h-5 w-5 text-primary" />
+                <h3 className="font-semibold">GitHub Connector</h3>
+              </div>
+              <div className="grid gap-2">
+                <p className="text-sm text-muted-foreground">
+                  Ingest a public repository to give Pandora context about your codebase.
+                </p>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="https://github.com/username/repo"
+                    value={repoUrl}
+                    onChange={(e) => setRepoUrl(e.target.value)}
+                    disabled={isSyncing}
+                  />
+                  <Button onClick={() => handleConnectorSync('github')} disabled={isSyncing}>
+                    {isSyncing && syncType === 'github' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Sync'}
+                  </Button>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-2 p-1 border border-border/10 rounded-lg group">
-              <Input
-                placeholder="https://github.com/..."
-                value={repoUrl}
-                onChange={(e) => setRepoUrl(e.target.value)}
-                disabled={isSyncing}
-                className="flex-1 bg-transparent border-none focus-visible:ring-0 text-xs text-foreground/80 h-9"
-              />
-              <Button
-                variant="ghost"
-                onClick={() => handleConnectorSync('github')}
-                disabled={isSyncing}
-                className="h-9 px-4 text-[10px] uppercase font-bold tracking-widest text-primary/60 hover:text-primary hover:bg-muted"
-              >
-                {isSyncing && syncType === 'github' ? <Loader2 className="h-3 w-3 animate-spin stroke-[1]" /> : 'Sync'}
-              </Button>
-            </div>
-          </div>
 
-          {/* PDF Watcher */}
-          <div className="space-y-6">
-            <div className="flex items-center gap-3">
-              <HardDrive className="h-4 w-4 text-foreground/40 stroke-[1]" />
-              <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-foreground/60">Local Directory Watcher</h3>
+            {/* PDF Watcher */}
+            <div className="border rounded-lg p-6 space-y-4 bg-card">
+              <div className="flex items-center gap-2 mb-2">
+                <HardDrive className="h-5 w-5 text-primary" />
+                <h3 className="font-semibold">Local PDF Watcher</h3>
+              </div>
+              <div className="grid gap-2">
+                <p className="text-sm text-muted-foreground">
+                  Scan a local directory for PDFs and auto-ingest new documents.
+                </p>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="C:\Users\Documents\Papers"
+                    value={pdfPath}
+                    onChange={(e) => setPdfPath(e.target.value)}
+                    disabled={isSyncing}
+                  />
+                  <Button onClick={() => handleConnectorSync('pdf')} disabled={isSyncing}>
+                    {isSyncing && syncType === 'pdf' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Scan'}
+                  </Button>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-2 p-1 border border-border/10 rounded-lg group">
-              <Input
-                placeholder="C:\\Substrate\\Data"
-                value={pdfPath}
-                onChange={(e) => setPdfPath(e.target.value)}
-                disabled={isSyncing}
-                className="flex-1 bg-transparent border-none focus-visible:ring-0 text-xs text-foreground/80 h-9"
-              />
-              <Button
-                variant="ghost"
-                onClick={() => handleConnectorSync('pdf')}
-                disabled={isSyncing}
-                className="h-9 px-4 text-[10px] uppercase font-bold tracking-widest text-primary/60 hover:text-primary hover:bg-muted"
-              >
-                {isSyncing && syncType === 'pdf' ? <Loader2 className="h-3 w-3 animate-spin stroke-[1]" /> : 'Monitor'}
-              </Button>
-            </div>
-          </div>
 
-          {/* YouTube */}
-          <div className="space-y-6">
-            <div className="flex items-center gap-3">
-              <Youtube className="h-4 w-4 text-foreground/40 stroke-[1]" />
-              <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-foreground/60">YouTube Transcriber</h3>
-            </div>
-            <div className="flex items-center gap-2 p-1 border border-border/10 rounded-lg group">
-              <Input
-                placeholder="https://youtube.com/..."
-                value={ytUrl}
-                onChange={(e) => setYtUrl(e.target.value)}
-                disabled={isSyncing}
-                className="flex-1 bg-transparent border-none focus-visible:ring-0 text-xs text-foreground/80 h-9"
-              />
-              <Button
-                variant="ghost"
-                onClick={() => handleConnectorSync('youtube')}
-                disabled={isSyncing}
-                className="h-9 px-4 text-[10px] uppercase font-bold tracking-widest text-primary/60 hover:text-primary hover:bg-muted"
-              >
-                {isSyncing && syncType === 'youtube' ? <Loader2 className="h-3 w-3 animate-spin stroke-[1]" /> : 'Digitize'}
-              </Button>
+            {/* YouTube */}
+            <div className="border rounded-lg p-6 space-y-4 bg-card">
+              <div className="flex items-center gap-2 mb-2">
+                <Youtube className="h-5 w-5 text-primary" />
+                <h3 className="font-semibold">YouTube Transcriber</h3>
+              </div>
+              <div className="grid gap-2">
+                <p className="text-sm text-muted-foreground">
+                  Paste a video URL to transcribe and index its content for chat.
+                </p>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    value={ytUrl}
+                    onChange={(e) => setYtUrl(e.target.value)}
+                    disabled={isSyncing}
+                  />
+                  <Button onClick={() => handleConnectorSync('youtube')} disabled={isSyncing}>
+                    {isSyncing && syncType === 'youtube' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Transcribe'}
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         </TabsContent>

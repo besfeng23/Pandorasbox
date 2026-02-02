@@ -12,7 +12,6 @@ import { Loader2, Bot, BrainCircuit, PanelRightOpen } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useVoice } from '@/hooks/use-voice';
 import { transcribeAndProcessMessage, getMessages, summarizeThread, getThread } from '@/app/actions';
-import { useChatStore } from '@/store/chat';
 
 export interface ChatMessage extends Partial<MessageType> {
   role: 'user' | 'assistant' | 'system';
@@ -33,8 +32,8 @@ interface ChatWindowProps {
 export function ChatWindow({ threadId, agentId = 'universe' }: ChatWindowProps) {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { isStreaming, setIsStreaming } = useChatStore();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [isStreaming, setIsStreaming] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [followUpSuggestions, setFollowUpSuggestions] = useState<string[]>([]);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -403,20 +402,31 @@ export function ChatWindow({ threadId, agentId = 'universe' }: ChatWindowProps) 
   }
 
   return (
-    <div className="flex h-full flex-col bg-background overflow-hidden">
-      {/* Zero-G Header */}
-      <div className="flex items-center justify-between px-4 md:px-8 py-6 border-none bg-transparent h-16 shrink-0 z-10">
+    <div className="flex h-full flex-col bg-background/30 backdrop-blur-md overflow-hidden border-x border-border/50">
+      {/* Header Info - Optional but adds premium feel */}
+      <div className="flex items-center justify-between px-6 py-4 border-b border-border/40 bg-background/40 backdrop-blur-sm z-10">
         <div className="flex items-center gap-3">
-          <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-foreground/40">{agentId} System</span>
+          <div className="p-2 rounded-xl bg-primary/10">
+            {agentId === 'builder' ? <Bot className="h-5 w-5 text-primary" /> : <BrainCircuit className="h-5 w-5 text-primary" />}
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold capitalize">{agentId} Agent</h2>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Pandora AI</p>
+          </div>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+            <span className="text-[10px] font-medium text-muted-foreground uppercase">Online</span>
+          </div>
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 rounded-full hover:bg-muted"
+            className="h-8 w-8"
             onClick={() => inspector.open(threadId)}
+            title="Open Inspector"
           >
-            <PanelRightOpen className="h-4 w-4 stroke-[1]" />
+            <PanelRightOpen className="h-4 w-4" />
           </Button>
         </div>
       </div>
@@ -431,7 +441,7 @@ export function ChatWindow({ threadId, agentId = 'universe' }: ChatWindowProps) 
       </div>
 
       {/* Chat Input */}
-      <div className="px-4 md:px-6 py-6 md:py-8 bg-gradient-to-t from-background via-background/95 to-transparent z-10">
+      <div className="px-6 py-8 bg-gradient-to-t from-background via-background/95 to-transparent z-10">
         <div className="max-w-4xl mx-auto">
           {/* Follow-up Suggestions */}
           <FollowUpChips

@@ -56,7 +56,7 @@ function FollowUpSuggestions({ userId, onSuggestionClick }: { userId: string, on
               <HelpCircle className="h-3 w-3" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent className="bg-background border border-border/10 text-foreground max-w-xs rounded-none shadow-none uppercase tracking-[0.1em] text-[10px] font-bold">
+          <TooltipContent className="glass-panel-strong border border-primary/20 text-foreground max-w-xs">
             <p>These suggestions are AI-generated based on your conversation context to help you continue the discussion.</p>
           </TooltipContent>
         </Tooltip>
@@ -79,10 +79,10 @@ function FollowUpSuggestions({ userId, onSuggestionClick }: { userId: string, on
                   size="sm"
                   variant="ghost"
                   className={cn(
-                    "text-[10px] h-8 sm:h-7 px-2 sm:px-3 rounded-none uppercase tracking-[0.2em] font-bold border transition-all whitespace-nowrap max-w-[200px] sm:max-w-none truncate",
+                    "text-xs h-8 sm:h-7 px-2 sm:px-3 touch-manipulation min-h-[36px] sm:min-h-0 glass-panel border transition-all whitespace-nowrap max-w-[200px] sm:max-w-none truncate",
                     isPinned
-                      ? "border-primary/40 bg-primary/5 text-primary shadow-none"
-                      : "border-border/10 hover:border-primary/30 bg-foreground/[0.02] text-foreground/40 hover:text-primary shadow-none"
+                      ? "border-yellow-400/40 hover:border-yellow-400/60 text-yellow-500 hover:text-yellow-600 shadow-sm"
+                      : "border-primary/20 hover:border-primary/30 hover:shadow-sm text-foreground/90 hover:text-primary"
                   )}
                   onClick={() => onSuggestionClick(suggestion)}
                   title={suggestion.length > 20 ? suggestion : undefined}
@@ -215,7 +215,7 @@ export function ChatInput({ userId, onMessageSubmit, isSending, onStop }: ChatIn
       <form
         ref={formRef}
         onSubmit={handleSubmit}
-        className="relative flex flex-col gap-2 bg-background rounded-none border border-border/10 shadow-none safe-area-pb"
+        className="relative flex flex-col gap-2 bg-background/60 backdrop-blur-xl rounded-[20px] border border-black/5 dark:border-white/10 shadow-sm safe-area-pb"
       >
         {imagePreview && (
           <div className="relative w-24 h-24 rounded-md overflow-hidden border">
@@ -268,7 +268,7 @@ export function ChatInput({ userId, onMessageSubmit, isSending, onStop }: ChatIn
             onChange={handleTextareaChange}
             onKeyDown={handleKeyDown}
             placeholder={isTranscribing ? "Transcribing audio..." : "Message Pandora..."}
-            className="w-full resize-none max-h-48 pr-20 sm:pr-24 pl-11 sm:pl-12 text-[15px] leading-relaxed rounded-none bg-transparent border-0 focus-visible:ring-0 focus-visible:outline-none text-foreground placeholder:text-muted-foreground/40 min-h-[44px] sm:min-h-[40px] py-3 no-scrollbar"
+            className="w-full resize-none max-h-48 pr-20 sm:pr-24 pl-11 sm:pl-12 text-[15px] leading-relaxed rounded-2xl bg-transparent border-0 focus-visible:ring-0 focus-visible:outline-none text-foreground placeholder:text-muted-foreground/70 min-h-[44px] sm:min-h-[40px] py-3 no-scrollbar"
             rows={1}
             disabled={isProcessing}
             aria-label="Chat message input"
@@ -319,7 +319,7 @@ export function ChatInput({ userId, onMessageSubmit, isSending, onStop }: ChatIn
                   </Button>
                 )}
               </TooltipTrigger>
-              <TooltipContent className="bg-background border border-border/10 text-foreground rounded-none shadow-none uppercase tracking-[0.1em] text-[10px] font-bold">
+              <TooltipContent className="glass-panel-strong border border-primary/20 text-foreground">
                 <p>{isSending ? "Stop generation" : "Send message"}</p>
               </TooltipContent>
             </Tooltip>

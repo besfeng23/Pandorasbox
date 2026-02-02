@@ -141,104 +141,83 @@ export default function IntegrationsPage() {
 
   return (
     <AppLayout>
-      <div className="flex-1 max-w-6xl mx-auto w-full py-12 md:py-20 px-8">
-        <header className="mb-16">
-          <span className="text-[10px] font-bold uppercase tracking-[0.4em] text-foreground/40 block underline decoration-primary/30 underline-offset-8 mb-4">Node Configuration</span>
-          <h1 className="text-4xl md:text-5xl font-light tracking-tight text-foreground/90">Sovereign Cluster</h1>
-          <p className="text-[13px] text-foreground/30 mt-6 max-w-xl leading-relaxed italic border-l border-foreground/5 pl-6">
-            Global monitoring of local dependency matrices. All nodes operating in isolated containment mode.
-          </p>
-        </header>
+      <div className="flex-1 space-y-6 p-8 pt-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Server className="h-8 w-8 text-primary" />
+            <div>
+              <h2 className="text-3xl font-bold tracking-tight">Local Services Status</h2>
+              <p className="text-sm text-muted-foreground">
+                Monitor your sovereign AI infrastructure
+              </p>
+            </div>
+          </div>
+        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-border/5 mb-20">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
           {services.map((service) => (
-            <div
+            <Card
               key={service.id}
               className={cn(
-                "group relative p-10 bg-background border border-border/5 transition-all duration-500 hover:border-primary/20",
-                service.status === 'online' ? "bg-primary/[0.005]" : "bg-red-400/[0.005]"
+                "relative overflow-hidden transition-all",
+                service.status === 'online' && "border-green-500/30",
+                service.status === 'offline' && "border-destructive/30"
               )}
             >
-              <header className="flex items-start justify-between mb-8">
-                <div className={cn(
-                  "p-4 border transition-colors flex items-center justify-center h-12 w-12",
-                  service.status === 'online' ? "bg-primary/5 border-primary/20 text-primary" : "bg-foreground/[0.03] border-foreground/5 text-foreground/20"
-                )}>
-                  {service.icon}
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div className={cn(
+                    "p-3 rounded-xl",
+                    service.status === 'online' ? "bg-green-500/10" : "bg-muted"
+                  )}>
+                    {service.icon}
+                  </div>
+                  {getStatusBadge(service.status)}
                 </div>
-                <span className={cn(
-                  "text-[9px] font-bold uppercase tracking-widest px-3 py-1 border",
-                  service.status === 'online' ? "text-primary border-primary/20 bg-primary/5" : "text-red-400 border-red-400/20 bg-red-400/5"
-                )}>
-                  {service.status.toUpperCase()}
-                </span>
-              </header>
-
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-[16px] font-medium text-foreground/80 group-hover:text-foreground transition-colors">{service.name}</h3>
-                  <p className="text-[11px] text-foreground/30 leading-relaxed font-light mt-2 line-clamp-2">
-                    {service.description}
-                  </p>
-                </div>
-
-                <div className="space-y-3 font-mono text-[10px] pt-4 border-t border-foreground/5">
+                <CardTitle className="mt-3">{service.name}</CardTitle>
+                <CardDescription className="line-clamp-2">
+                  {service.description}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2 text-sm">
                   {service.endpoint && (
-                    <div className="flex items-center justify-between text-foreground/30">
-                      <span className="uppercase tracking-widest">ENDPOINT</span>
-                      <span className="text-foreground/60 tabular-nums">{service.endpoint}</span>
+                    <div className="text-muted-foreground">
+                      <span className="font-medium">Endpoint:</span> {service.endpoint}
                     </div>
                   )}
                   {service.status === 'online' && service.latency !== undefined && (
-                    <div className="flex items-center justify-between text-foreground/30">
-                      <span className="uppercase tracking-widest">LATENCY</span>
-                      <span className="text-primary tabular-nums font-bold">{service.latency} MS</span>
+                    <div className="text-muted-foreground">
+                      <span className="font-medium">Latency:</span> {service.latency}ms
                     </div>
                   )}
                   {service.status === 'offline' && (
-                    <p className="text-red-400/60 uppercase tracking-tighter leading-tight italic">
-                      [CRITICAL_FAILURE]: Ensure container is active in docker-compose schema.
-                    </p>
+                    <div className="text-destructive text-sm">
+                      Service unavailable. Check docker-compose.yml and ensure the container is running.
+                    </div>
                   )}
                 </div>
-              </div>
-
-              <div className="mt-8 h-[2px] w-full bg-foreground/5 overflow-hidden">
-                <div
-                  className={cn(
-                    "h-full transition-all duration-1000",
-                    service.status === 'online' ? "bg-primary w-full" : "bg-foreground/10 w-0"
-                  )}
-                />
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
 
-        <section className="pt-16 border-t border-border/5">
-          <div className="flex items-center gap-4 mb-8">
-            <Server className="h-4 w-4 text-primary stroke-[1.5]" />
-            <h2 className="text-[11px] font-bold uppercase tracking-[0.3em] text-foreground/30">Sovereign Architecture Specification</h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
-            {[
-              { label: 'BRAIN', desc: 'Sovereign LLM inference via vLLM' },
-              { label: 'VAULT', desc: 'Encrypted semantic vector storage' },
-              { label: 'MAPPING', desc: 'Self-hosted embedding generation' },
-              { label: 'ECHO', desc: 'Offline audio transcription' },
-            ].map((item, idx) => (
-              <div key={idx} className="space-y-2">
-                <p className="text-[10px] font-bold text-foreground/30 tracking-[0.4em] uppercase">{item.label}</p>
-                <p className="text-[11px] text-foreground/20 leading-relaxed italic">{item.desc}</p>
-              </div>
-            ))}
-          </div>
-
-          <p className="mt-20 text-[10px] text-foreground/10 font-mono text-center uppercase tracking-[0.5em]">
-            Trust_Zero // Sovereign_Always // Data_Gravity_Critical
-          </p>
-        </section>
+        <Card className="border-blue-500/30">
+          <CardHeader>
+            <CardTitle>Sovereign Stack</CardTitle>
+            <CardDescription>
+              All AI processing runs 100% locally. No data leaves your infrastructure.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="list-disc space-y-2 pl-5 text-sm text-muted-foreground">
+              <li>vLLM: Local LLM inference (no OpenAI API calls)</li>
+              <li>Qdrant: Private vector database (no cloud embeddings)</li>
+              <li>Embeddings: Self-hosted embedding model</li>
+              <li>Whisper: Local audio transcription</li>
+            </ul>
+          </CardContent>
+        </Card>
       </div>
     </AppLayout>
   );

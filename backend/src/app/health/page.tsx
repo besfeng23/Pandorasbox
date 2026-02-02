@@ -69,67 +69,69 @@ export default function HealthPage() {
         return () => clearInterval(interval);
     }, []);
 
-    const ServiceMetric = ({ name, status, latency, icon: Icon, description }: any) => (
-        <div className="group relative p-8 bg-background border border-border/5 transition-all duration-500 hover:border-primary/20">
-            <header className="flex items-center justify-between mb-8">
-                <div className="h-10 w-10 border border-foreground/5 flex items-center justify-center bg-foreground/[0.02] group-hover:border-primary/20 transition-colors">
-                    <Icon className="h-5 w-5 text-foreground/40 group-hover:text-primary transition-colors stroke-[1]" />
-                </div>
-                <span className={cn(
-                    "text-[9px] font-bold uppercase tracking-[0.4em] px-2 py-0.5 border rounded-none",
-                    status === 'online' ? "text-primary border-primary/20 bg-primary/5" : "text-red-400 border-red-400/20 bg-red-400/5"
+    const ServiceCard = ({ name, status, latency, icon: Icon, description }: any) => (
+        <Card className="glass-panel-heavy border-white/10 rounded-2xl overflow-hidden group relative">
+            <div className="absolute top-4 right-4 z-10">
+                <div className={cn(
+                    "px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest border",
+                    status === 'online'
+                        ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.1)]"
+                        : "bg-red-500/10 text-red-400 border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.1)]"
                 )}>
                     {status}
-                </span>
-            </header>
-
-            <div className="space-y-6">
-                <div>
-                    <h3 className="text-[15px] font-medium text-foreground/80 group-hover:text-foreground transition-colors">{name}</h3>
-                    <p className="text-[11px] text-foreground/30 leading-relaxed font-light mt-1">{description}</p>
                 </div>
-
-                {latency !== undefined ? (
-                    <div className="flex items-baseline gap-2 pt-4">
-                        <span className="text-3xl font-light text-foreground/90 tabular-nums">{latency}</span>
-                        <span className="text-[10px] text-foreground/20 font-bold uppercase tracking-widest">ms</span>
-                    </div>
-                ) : (
-                    <div className="h-10 pt-4">
-                        <span className="text-[11px] font-mono text-foreground/10 uppercase tracking-[0.2em] italic">[NO_LATENCY_DATA]</span>
+            </div>
+            <CardHeader className="pb-3 pt-6">
+                <div className="p-3 rounded-xl bg-white/5 w-fit text-primary mb-4 group-hover:scale-110 group-hover:bg-primary/10 transition-all duration-500">
+                    <Icon className="h-7 w-7" />
+                </div>
+                <CardTitle className="text-xl font-headline tracking-tight">{name}</CardTitle>
+                <CardDescription className="text-xs text-white/40 mt-1">{description}</CardDescription>
+            </CardHeader>
+            <CardContent className="pb-8">
+                {latency !== undefined && (
+                    <div className="flex items-baseline gap-2">
+                        <span className="text-4xl font-bold font-mono text-white tracking-tighter">{latency}</span>
+                        <span className="text-xs text-white/30 font-bold uppercase">ms</span>
                     </div>
                 )}
-            </div>
-
-            <div className="mt-8 h-px w-full bg-foreground/5 overflow-hidden">
-                <div
-                    className={cn(
-                        "h-full transition-all duration-1000",
-                        status === 'online' ? "bg-primary w-full" : "bg-foreground/10 w-0"
-                    )}
-                />
-            </div>
-        </div>
+                {!latency && <div className="h-10" />} {/* Spacer for cards without latency */}
+                <div className="mt-8 h-[2px] w-full bg-white/5 rounded-full overflow-hidden">
+                    <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: status === 'online' ? '100% ' : '0%' }}
+                        transition={{ duration: 1.5, ease: "circOut" }}
+                        className={cn(
+                            "h-full rounded-full transition-all duration-1000",
+                            status === 'online'
+                                ? "bg-emerald-400 shadow-[0_0_15px_rgba(52,211,153,0.8)]"
+                                : "bg-white/10"
+                        )}
+                    />
+                </div>
+            </CardContent>
+        </Card>
     );
 
     return (
         <AppLayout>
-            <div className="flex-1 max-w-6xl mx-auto w-full py-12 md:py-20 px-8">
-                <header className="mb-20 flex flex-col md:flex-row justify-between items-start md:items-end gap-8">
-                    <div className="space-y-4">
-                        <span className="text-[10px] font-bold uppercase tracking-[0.4em] text-foreground/40 block underline decoration-primary/30 underline-offset-8">Infrastructure Matrix</span>
-                        <h1 className="text-4xl md:text-5xl font-light tracking-tight text-foreground/90">System Nexus</h1>
-                        <p className="text-[10px] text-foreground/10 font-mono flex items-center gap-2 uppercase tracking-[0.4em]">
-                            <Fingerprint className="h-3 w-3 stroke-[1]" />
-                            Instance_MD: <span className="text-foreground/40">node-alpha-01.pandora.local</span>
+            <div className="container mx-auto p-4 md:p-8 max-w-7xl h-full flex flex-col gap-8 overflow-y-auto no-scrollbar pb-20">
+                {/* Header Section */}
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+                    <div>
+                        <h1 className="text-5xl font-bold font-headline tracking-tighter text-white">
+                            System Nexus
+                        </h1>
+                        <p className="text-white/40 text-sm mt-2 flex items-center gap-2 font-medium">
+                            <Fingerprint className="h-4 w-4 text-primary" />
+                            Sovereign Instance: <span className="text-white/60">node-alpha-01.pandora.local</span>
                         </p>
                     </div>
-
-                    <div className="flex items-center gap-8 bg-foreground/[0.02] p-6 border border-border/5">
+                    <div className="flex items-center gap-6 bg-white/5 p-4 rounded-2xl border border-white/10 backdrop-blur-md">
                         <div className="text-right">
-                            <p className="text-[9px] uppercase tracking-[0.4em] text-foreground/10 font-bold mb-1">Temporal Sync</p>
-                            <p className="text-xl font-mono text-primary tabular-nums">
-                                {health?.timestamp ? new Date(health.timestamp).toLocaleTimeString([], { hour12: false }) : '--:--:--'}
+                            <p className="text-[10px] uppercase tracking-[0.3em] text-white/20 font-black mb-1">Last Synchronized</p>
+                            <p className="text-xl font-mono text-cyan-400 font-bold tracking-tight">
+                                {health?.timestamp ? new Date(health.timestamp).toLocaleTimeString([], { hour12: true }) : '--:--:--'}
                             </p>
                         </div>
                         <Button
@@ -137,151 +139,176 @@ export default function HealthPage() {
                             size="icon"
                             onClick={fetchHealth}
                             disabled={loading}
-                            className="rounded-none h-12 w-12 border-foreground/5 hover:border-primary/20 bg-transparent active:scale-95 transition-all shadow-none"
+                            className="rounded-xl h-12 w-12 border-white/10 hover:border-cyan-500/50 bg-white/5 active:scale-90 transition-all"
                         >
-                            <RefreshCw className={cn("h-4 w-4 stroke-[1]", loading && "animate-spin")} />
+                            <RefreshCw className={cn("h-5 w-5", loading && "animate-spin")} />
                         </Button>
                     </div>
-                </header>
+                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-border/5">
-                    <ServiceMetric
-                        name="The Architect (Inference)"
+                {/* Core Infrastructure Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <ServiceCard
+                        name="AI Brain (vLLM)"
                         status={health?.inference.status || 'checking'}
                         latency={health?.inference.latency}
                         icon={BrainCircuit}
-                        description="Core response synthesis engine"
+                        description="LLM core inference performance"
                     />
-                    <ServiceMetric
-                        name="The Vault (Qdrant)"
+                    <ServiceCard
+                        name="Neural Vault (Qdrant)"
                         status={health?.qdrant.status || 'checking'}
                         latency={health?.qdrant.latency}
                         icon={Database}
-                        description="Semantic retrieval latency"
+                        description="Vector database query latency"
                     />
-                    <ServiceMetric
-                        name="The Ledger (Firebase)"
+                    <ServiceCard
+                        name="Ledger (Firebase)"
                         status={health?.firebase.status || 'checking'}
                         icon={ShieldCheck}
-                        description="User persistence and identity"
+                        description="User state and auth persistence"
                     />
                 </div>
 
-                <div className="mt-20 space-y-px bg-border/5 border border-border/5">
-                    <div className="p-8 bg-background">
-                        <header className="flex justify-between items-center mb-10">
-                            <div className="space-y-1">
-                                <div className="flex items-center gap-3">
-                                    <Activity className="h-4 w-4 text-primary stroke-[1]" />
-                                    <h4 className="text-[11px] font-bold uppercase tracking-[0.4em] text-foreground/40">Latency Telemetry</h4>
-                                </div>
-                                <p className="text-[10px] text-foreground/10 font-mono uppercase tracking-[0.4em] pl-7">Real-time throughput metrics</p>
+                {/* Real-time Performance Graph */}
+                <Card className="glass-panel-heavy border-white/10 rounded-3xl overflow-hidden shadow-2xl">
+                    <CardHeader className="p-8 pb-0">
+                        <div className="flex justify-between items-center">
+                            <div>
+                                <CardTitle className="flex items-center gap-3 text-2xl font-headline tracking-tight">
+                                    <Activity className="h-6 w-6 text-cyan-400" />
+                                    Latency Telemetry
+                                </CardTitle>
+                                <CardDescription className="text-sm text-white/40 mt-1">Real-time performance monitoring of sovereign services</CardDescription>
                             </div>
-                        </header>
-
-                        <div className="h-[300px] w-full mt-4">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <AreaChart data={history}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.03)" vertical={false} />
-                                    <XAxis
-                                        dataKey="time"
-                                        stroke="rgba(0,0,0,0.1)"
-                                        fontSize={9}
-                                        tickLine={false}
-                                        axisLine={false}
-                                    />
-                                    <YAxis
-                                        stroke="rgba(0,0,0,0.1)"
-                                        fontSize={9}
-                                        tickLine={false}
-                                        axisLine={false}
-                                        tickFormatter={(value) => `${value}ms`}
-                                    />
-                                    <Tooltip
-                                        contentStyle={{
-                                            backgroundColor: '#fff',
-                                            border: '1px solid rgba(0,0,0,0.05)',
-                                            borderRadius: '0',
-                                            fontSize: '10px',
-                                            color: '#000',
-                                            boxShadow: 'none'
-                                        }}
-                                        labelStyle={{ fontWeight: 'bold', marginBottom: '4px' }}
-                                    />
-                                    <Area
-                                        type="stepAfter"
-                                        dataKey="inference"
-                                        name="Brain_MS"
-                                        stroke="#007AFF"
-                                        strokeWidth={1}
-                                        fill="#007AFF"
-                                        fillOpacity={0.05}
-                                        animationDuration={1000}
-                                    />
-                                </AreaChart>
-                            </ResponsiveContainer>
                         </div>
-                    </div>
+                    </CardHeader>
+                    <CardContent className="h-[350px] w-full p-8 pt-10">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={history} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                <defs>
+                                    <linearGradient id="colorInf" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#22d3ee" stopOpacity={0.4} />
+                                        <stop offset="95%" stopColor="#22d3ee" stopOpacity={0} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
+                                <XAxis
+                                    dataKey="time"
+                                    stroke="rgba(255,255,255,0.15)"
+                                    fontSize={10}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    dy={10}
+                                />
+                                <YAxis
+                                    stroke="rgba(255,255,255,0.15)"
+                                    fontSize={10}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    dx={-10}
+                                    tickFormatter={(value) => `${value}ms`}
+                                />
+                                <Tooltip
+                                    contentStyle={{
+                                        backgroundColor: 'rgba(10, 10, 10, 0.9)',
+                                        backdropFilter: 'blur(10px)',
+                                        border: '1px solid rgba(255,255,255,0.1)',
+                                        borderRadius: '12px',
+                                        fontSize: '12px',
+                                        boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
+                                    }}
+                                    itemStyle={{ fontSize: '12px', color: '#22d3ee' }}
+                                />
+                                <Area
+                                    type="monotone"
+                                    dataKey="inference"
+                                    name="Brain Latency"
+                                    stroke="#22d3ee"
+                                    strokeWidth={3}
+                                    fillOpacity={1}
+                                    fill="url(#colorInf)"
+                                    animationDuration={1500}
+                                />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </CardContent>
+                </Card>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-px bg-border/5">
-                        <div className="p-8 bg-background">
-                            <h5 className="text-[11px] font-bold uppercase tracking-[0.4em] text-foreground/40 mb-8 flex items-center gap-3">
-                                <Server className="h-4 w-4 stroke-[1]" /> Infrastructure Logs
-                            </h5>
-                            <div className="space-y-4 font-mono text-[10px]">
+                {/* System Logs / Console & Sovereign Load */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <Card className="glass-panel-heavy border-white/10 rounded-3xl overflow-hidden h-fit">
+                        <CardHeader className="p-8 pb-4">
+                            <CardTitle className="text-lg font-headline tracking-tight flex items-center gap-3">
+                                <Server className="h-5 w-5 text-emerald-400" />
+                                Infrastructure Console
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="px-8 pb-8 pt-4">
+                            <div className="space-y-3 font-mono text-[11px]">
                                 {[
-                                    { time: '08:12:04', log: 'SYNC_SUCCESS: QDRANT_NODE_01' },
-                                    { time: '08:14:15', log: 'INIT: INFERENCE_WARMUP(LLAMA_3)' },
-                                    { time: '08:14:22', log: 'JOB_DONE: MEMORY_CONSOLIDATION_428' },
-                                    { time: '08:14:25', log: 'STATUS: ALL_SYSTEMS_NOMINAL' },
+                                    { time: '08:12:04', log: 'QDRANT_NODE_01 synchronized successfully' },
+                                    { time: '08:14:15', log: 'INFERENCE_SERVICE warming up Llama-3-70B' },
+                                    { time: '08:14:22', log: 'MEMORY_FOLDING job #428 completed' },
+                                    { time: '08:14:25', log: 'HEALTH_CHECK passing for all services' },
                                 ].map((item, idx) => (
-                                    <div key={idx} className="flex gap-6 p-3 border-l-2 border-primary/20 bg-foreground/[0.02] transition-colors hover:bg-foreground/[0.04]">
-                                        <span className="text-foreground/20 font-bold tabular-nums">{item.time}</span>
-                                        <span className="text-foreground/50 uppercase tracking-tight">{item.log}</span>
+                                    <div key={idx} className="flex gap-4 p-3 bg-white/5 rounded-xl border border-white/5 opacity-70 hover:opacity-100 hover:bg-white/10 transition-all cursor-default">
+                                        <span className="text-white/20 shrink-0 font-bold">{item.time}</span>
+                                        <span className="text-white/80 uppercase tracking-tight">{item.log}</span>
                                     </div>
                                 ))}
                             </div>
-                        </div>
+                        </CardContent>
+                    </Card>
 
-                        <div className="p-8 bg-background">
-                            <h5 className="text-[11px] font-bold uppercase tracking-[0.3em] text-foreground/40 mb-8 flex items-center gap-3">
-                                <Cpu className="h-4 w-4 stroke-[1.5]" /> Sovereign Load
-                            </h5>
-                            <div className="space-y-10">
-                                <div className="space-y-4">
-                                    <div className="flex justify-between text-[10px] font-bold uppercase tracking-[0.4em] text-foreground/10">
-                                        <span>Brain Saturation</span>
-                                        <span className="text-primary tracking-tighter tabular-nums font-mono">
-                                            {health?.inference.status === 'online' ? '24%' : '0%'}
-                                        </span>
-                                    </div>
-                                    <div className="h-[2px] w-full bg-foreground/5 overflow-hidden">
-                                        <div
-                                            className="h-full bg-primary transition-all duration-1000"
-                                            style={{ width: health?.inference.status === 'online' ? '24%' : '0%' }}
-                                        />
-                                    </div>
+                    <Card className="glass-panel-heavy border-white/10 rounded-3xl overflow-hidden bg-gradient-to-br from-primary/5 to-transparent h-fit">
+                        <CardHeader className="p-8 pb-4">
+                            <CardTitle className="text-lg font-headline tracking-tight flex items-center gap-3">
+                                <Cpu className="h-5 w-5 text-purple-400" />
+                                Sovereign Load
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-8 pt-4 space-y-8">
+                            <div className="space-y-3">
+                                <div className="flex justify-between text-[11px] font-bold uppercase tracking-widest text-white/40">
+                                    <span>Brain Saturation</span>
+                                    <span className="text-cyan-400 underline underline-offset-4 decoration-cyan-400/30">
+                                        {health?.inference.status === 'online' ? '24%' : '0%'}
+                                    </span>
                                 </div>
-                                <div className="space-y-4">
-                                    <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-foreground/30">
-                                        <span>Vault Density</span>
-                                        <span className="text-foreground/80 tracking-tighter tabular-nums font-mono">15,420 PT</span>
-                                    </div>
-                                    <div className="h-[2px] w-full bg-foreground/5 overflow-hidden">
-                                        <div
-                                            className="h-full bg-foreground/10 transition-all duration-1000"
-                                            style={{ width: '68%' }}
-                                        />
-                                    </div>
+                                <div className="h-3 w-full bg-white/5 rounded-full overflow-hidden p-[2px]">
+                                    <motion.div
+                                        initial={{ width: 0 }}
+                                        animate={{ width: health?.inference.status === 'online' ? '24%' : '0%' }}
+                                        transition={{ duration: 2, ease: "circOut" }}
+                                        className="h-full rounded-full bg-cyan-400 shadow-[0_0_20px_rgba(34,211,238,0.7)]"
+                                    />
                                 </div>
-                                <div className="pt-8 border-t border-foreground/5">
-                                    <p className="text-[10px] text-foreground/20 italic leading-relaxed uppercase tracking-tighter">
-                                        Instance operating in local autonomy mode. Data persistence strictly local to host node. Private keys active.
+                            </div>
+                            <div className="space-y-3">
+                                <div className="flex justify-between text-[11px] font-bold uppercase tracking-widest text-white/40">
+                                    <span>Vault Density</span>
+                                    <span className="text-purple-400 underline underline-offset-4 decoration-purple-400/30">15,420 Points</span>
+                                </div>
+                                <div className="h-3 w-full bg-white/5 rounded-full overflow-hidden p-[2px]">
+                                    <motion.div
+                                        initial={{ width: 0 }}
+                                        animate={{ width: '68%' }}
+                                        transition={{ duration: 2, ease: "circOut" }}
+                                        className="h-full rounded-full bg-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.7)]"
+                                    />
+                                </div>
+                            </div>
+                            <div className="pt-6 border-t border-white/5">
+                                <div className="flex items-start gap-3">
+                                    <div className="h-2 w-2 rounded-full bg-emerald-500 mt-1 animate-pulse" />
+                                    <p className="text-[10px] text-white/30 italic leading-relaxed font-medium uppercase tracking-tight">
+                                        Your instance is running on optimized sovereign hardware. All data remains encrypted at rest and in transit. Private access only.
                                     </p>
                                 </div>
                             </div>
-                        </div>
-                    </div>
+                        </CardContent>
+                    </Card>
                 </div>
             </div>
         </AppLayout>

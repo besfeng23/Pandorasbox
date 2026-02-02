@@ -7,7 +7,7 @@ import { getFirebaseAuth } from '@/lib/firebase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, Plus } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -92,106 +92,81 @@ export default function SignUpPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-8">
-      <div className="w-full max-w-sm space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
-        <header className="text-center space-y-4">
-          <div className="flex justify-center mb-8">
-            <span className="h-12 w-12 border border-primary/20 flex items-center justify-center">
-              <Plus className="h-5 w-5 text-primary stroke-[1.5]" />
-            </span>
+    <div className="flex min-h-screen items-center justify-center bg-background p-4 relative overflow-hidden">
+      {/* Background Ambient Glow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/20 blur-[100px] rounded-full opacity-50 pointer-events-none" />
+
+      <div className="w-full max-w-md space-y-8 rounded-2xl border border-white/10 bg-card/50 backdrop-blur-xl p-8 shadow-2xl relative z-10 glass-panel">
+        <div className="text-center space-y-2">
+          <h1 className="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70">Create Account</h1>
+          <p className="text-sm text-muted-foreground">Begin your journey with Sovereign AI</p>
+          <div className="flex items-center justify-center gap-1.5 pt-2">
+            <span className="text-[10px] uppercase tracking-wider text-green-500 font-semibold bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/20">Private & Encrypted</span>
           </div>
-          <span className="text-[10px] font-bold uppercase tracking-[0.4em] text-foreground/30 block">Identity Construction</span>
-          <h1 className="text-3xl font-light tracking-tight text-foreground/90">Genetic Marker</h1>
-          <p className="text-[10px] uppercase tracking-widest text-primary/60 font-medium">Sovereign Encryption Enabled</p>
-        </header>
+        </div>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8" noValidate>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5" noValidate>
             {error && (
-              <div className="text-[11px] font-mono text-red-400 bg-red-400/5 p-3 border-l-2 border-red-400 animate-in-fade">
-                [REGISTRATION_VOID]: {error.toUpperCase()}
+              <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive font-medium border border-destructive/20 flex items-center animate-in-fade">
+                {error}
               </div>
             )}
 
-            <div className="space-y-6">
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem className="space-y-2">
-                    <FormLabel className="text-[10px] font-bold uppercase tracking-widest text-foreground/30">Neural Descriptor (Email)</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="name@fragment.io"
-                        type="email"
-                        {...field}
-                        className="rounded-none border-0 border-b border-foreground/10 bg-transparent focus-visible:ring-0 focus-visible:border-primary/50 text-[13px] h-10 transition-all"
-                      />
-                    </FormControl>
-                    <FormMessage className="text-[10px] text-red-400/60 font-mono" />
-                  </FormItem>
-                )}
-              />
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input placeholder="name@example.com" type="email" {...field} className="bg-background/50 border-white/10 focus-visible:ring-primary/20" />
+                  </FormControl>
+                  <FormMessage className="text-destructive font-medium" />
+                </FormItem>
+              )}
+            />
 
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem className="space-y-2">
-                    <FormLabel className="text-[10px] font-bold uppercase tracking-widest text-foreground/30">Cypher Sequence (6+ Chars)</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="••••••••"
-                        type="password"
-                        {...field}
-                        className="rounded-none border-0 border-b border-foreground/10 bg-transparent focus-visible:ring-0 focus-visible:border-primary/50 text-[13px] h-10 transition-all"
-                      />
-                    </FormControl>
-                    <FormMessage className="text-[10px] text-red-400/60 font-mono" />
-                  </FormItem>
-                )}
-              />
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Password</FormLabel>
+                  <FormControl>
+                    <Input placeholder="••••••••" type="password" {...field} className="bg-background/50 border-white/10 focus-visible:ring-primary/20" />
+                  </FormControl>
+                  <FormMessage className="text-destructive font-medium" />
+                </FormItem>
+              )}
+            />
 
-              <FormField
-                control={form.control}
-                name="confirmPassword"
-                render={({ field }) => (
-                  <FormItem className="space-y-2">
-                    <FormLabel className="text-[10px] font-bold uppercase tracking-widest text-foreground/30">Verify Sequence</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="••••••••"
-                        type="password"
-                        {...field}
-                        className="rounded-none border-0 border-b border-foreground/10 bg-transparent focus-visible:ring-0 focus-visible:border-primary/50 text-[13px] h-10 transition-all"
-                      />
-                    </FormControl>
-                    <FormMessage className="text-[10px] text-red-400/60 font-mono" />
-                  </FormItem>
-                )}
-              />
-            </div>
+            <FormField
+              control={form.control}
+              name="confirmPassword"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Confirm Password</FormLabel>
+                  <FormControl>
+                    <Input placeholder="••••••••" type="password" {...field} className="bg-background/50 border-white/10 focus-visible:ring-primary/20" />
+                  </FormControl>
+                  <FormMessage className="text-destructive font-medium" />
+                </FormItem>
+              )}
+            />
 
-            <div className="pt-4">
-              <Button
-                type="submit"
-                className="w-full h-12 rounded-none bg-primary text-white text-[11px] font-bold uppercase tracking-widest hover:bg-primary/90 transition-all disabled:bg-foreground/10"
-                disabled={isLoading}
-              >
-                {isLoading ? <Loader2 className="h-4 w-4 animate-spin stroke-[1]" /> : "Construct Identity"}
-              </Button>
-            </div>
+            <Button type="submit" className="w-full h-11 text-base shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all duration-300" disabled={isLoading}>
+              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Sign Up"}
+            </Button>
           </form>
         </Form>
 
-        <footer className="text-center pt-8 border-t border-foreground/5">
-          <p className="text-[11px] text-foreground/30 font-mono">
-            EXISTING_USER?{' '}
-            <Link href="/login" className="text-primary hover:underline italic">
-              INITIALIZE_SESSION
-            </Link>
-          </p>
-        </footer>
+        <p className="text-center text-sm text-muted-foreground">
+          Already have an account?{' '}
+          <Link href="/login" className="font-medium text-primary hover:text-primary/80 hover:underline transition-colors">
+            Log in
+          </Link>
+        </p>
       </div>
     </div>
   );

@@ -39,46 +39,68 @@ export default function DashboardPage() {
 
     return (
         <AppLayout>
-            <div className="flex-1 max-w-6xl mx-auto w-full py-16 md:py-28 px-8">
-                <header className="mb-20 space-y-4">
-                    <span className="text-[10px] font-bold uppercase tracking-[0.4em] text-foreground/40 block underline decoration-primary/30 underline-offset-8">Sovereign Core</span>
-                    <h1 className="text-4xl md:text-5xl font-light tracking-tight text-foreground/90 leading-tight">
-                        Pandora&apos;s Box <span className="text-foreground/20 font-mono text-xl ml-4">v1.2.4</span>
-                    </h1>
-                    <p className="text-[13px] text-foreground/40 max-w-xl leading-relaxed italic border-l border-foreground/10 pl-6 mt-8">
-                        &quot;Everything that is made is made by the mind.&quot; &mdash; Local autonomy mode active. Neural pathways clear.
-                    </p>
-                </header>
-
-                <section className="space-y-12">
-                    <div className="flex items-center gap-4">
-                        <PlusCircle className="h-4 w-4 text-primary stroke-[1.5]" />
-                        <h2 className="text-[11px] font-bold uppercase tracking-[0.3em] text-foreground/30">Initialization Protocols</h2>
+            <div className="flex-1 flex flex-col items-center justify-center min-h-[calc(100vh-64px)] p-6 animate-in-fade">
+                {/* Hero Section */}
+                <header className="text-center space-y-6 mb-12 max-w-2xl">
+                    <div className="flex justify-center mb-6">
+                        {/* Optional Logo Animation if desired, or simplified as per screenshot which has no logo but top bar logo */}
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-px bg-border/5">
+                    <motion.h1
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 }}
+                        className="text-4xl md:text-5xl font-bold tracking-tight text-white"
+                    >
+                        Welcome to Pandora&apos;s Box
+                    </motion.h1>
+
+                    <motion.p
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 }}
+                        className="text-lg text-zinc-400 max-w-lg mx-auto leading-relaxed"
+                    >
+                        Your personal AI companion for building and exploring. Let&apos;s get you started.
+                    </motion.p>
+                </header>
+
+                {/* Main Action Container */}
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.3, duration: 0.4 }}
+                    className="w-full max-w-3xl bg-[#121214] rounded-3xl p-8 md:p-12 border border-white/5 shadow-2xl shadow-black/40"
+                    style={{ backgroundColor: '#121214' }} // Fallback/Force specific dark gray from screenshot
+                >
+                    <div className="text-center space-y-2 mb-10">
+                        <h2 className="text-2xl font-bold text-white flex items-center justify-center gap-3">
+                            <PlusCircle className="h-6 w-6 text-zinc-400" />
+                            Create your first thread
+                        </h2>
+                        <p className="text-zinc-500 text-sm">
+                            Choose an agent to start a new conversation. Each agent has a unique purpose.
+                        </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <AgentCard
-                            title="The Architect (Builder)"
-                            description="Engineered for implementation, structural logic, and system synthesis. Use for recursive problem-solving and creation."
-                            buttonText="Initialize Architect"
+                            title="Builder Agent"
+                            description="The Builder agent helps you create and refine ideas. It's your collaborative partner for brainstorming, writing, and problem-solving."
+                            buttonText="Start with Builder"
                             icon={Bot}
                             onClick={() => handleCreateThread('builder')}
                         />
 
                         <AgentCard
-                            title="The All-Knowing (Universe)"
-                            description="Deep semantic retrieval and cross-domain knowledge synthesis. Use for discovery, research, and philosophical exploration."
-                            buttonText="Initialize Universe"
+                            title="Universe Agent"
+                            description="The Universe agent has access to a broad range of knowledge. Use it to learn new things, explore topics, and get answers to your questions."
+                            buttonText="Start with Universe"
                             icon={Sparkles}
                             onClick={() => handleCreateThread('universe')}
                         />
                     </div>
-                </section>
-
-                <footer className="mt-24 pt-8 border-t border-foreground/5 flex items-center justify-between text-[10px] text-foreground/20 font-mono uppercase tracking-widest">
-                    <span>Neural Network Status: Nominal</span>
-                    <span>Qdrant Connection: Synchronized</span>
-                </footer>
+                </motion.div>
             </div>
         </AppLayout>
     );

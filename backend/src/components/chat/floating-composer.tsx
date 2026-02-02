@@ -131,20 +131,20 @@ export function FloatingComposer({
     };
 
     return (
-        <div className={cn("relative w-full max-w-4xl mx-auto px-4 pb-4", className)}>
-            {/* Attachment Previews */}
+        <div className={cn("relative w-full max-w-4xl mx-auto px-4 pb-4 animate-in-up transition-all duration-500", className)}>
+            {/* Attachment Previews Floating above */}
             {attachments.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-3">
+                <div className="flex flex-wrap gap-3 mb-4 px-2">
                     {attachments.map((attachment, i) => (
-                        <div key={i} className="group relative h-14 w-14 rounded-lg overflow-hidden border border-border bg-muted">
-                            <img src={attachment.preview} alt="preview" className="h-full w-full object-cover" />
-                            <div className="absolute inset-0 bg-background/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <div key={i} className="group relative h-20 w-20 rounded-2xl overflow-hidden border border-white/10 shadow-2xl animate-in-zoom pointer-events-auto">
+                            <img src={attachment.preview} alt="preview" className="h-full w-full object-cover transition-transform group-hover:scale-110" />
+                            <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                 <button
                                     type="button"
                                     onClick={() => removeAttachment(i)}
-                                    className="bg-destructive text-white rounded-full p-1"
+                                    className="bg-red-500 rounded-full p-1 shadow-lg hover:bg-red-600 transition-colors"
                                 >
-                                    <X className="h-3 w-3" />
+                                    <X className="h-4 w-4 text-white" />
                                 </button>
                             </div>
                         </div>
@@ -153,19 +153,32 @@ export function FloatingComposer({
             )}
 
             {/* Main Container */}
-            <div className="input-container flex flex-col p-1.5 md:p-2">
+            <div className={cn(
+                "relative flex flex-col p-2 rounded-[32px] transition-all duration-500",
+                "bg-white/[0.03] dark:bg-black/[0.2] border border-white/10 backdrop-blur-2xl shadow-2xl",
+                "focus-within:bg-white/[0.05] dark:focus-within:bg-black/[0.3] focus-within:border-primary/30 focus-within:ring-4 focus-within:ring-primary/5",
+                isExpanded && "rounded-[24px]"
+            )}>
+
                 {/* Input Area */}
-                <div className="flex items-end gap-1 md:gap-2 pr-1">
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={disabled || isLoading}
-                        className="h-10 w-10 md:h-12 md:w-12 text-muted-foreground hover:bg-muted"
-                    >
-                        <Paperclip className="h-4 w-4 md:h-5 md:w-5 stroke-[1]" />
-                    </Button>
+                <div className="flex items-end gap-2 pr-2">
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => fileInputRef.current?.click()}
+                                    disabled={disabled || isLoading}
+                                    className="h-10 w-10 rounded-full mt-1 shrink-0 text-muted-foreground hover:text-primary transition-all hover:bg-primary/10"
+                                >
+                                    <Paperclip className="h-5 w-5" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top">Attach files</TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
 
                     <input
                         type="file"
@@ -176,7 +189,7 @@ export function FloatingComposer({
                         className="hidden"
                     />
 
-                    <div className="flex-1 min-h-[44px] flex items-center">
+                    <div className="flex-1 min-h-[44px] flex items-center py-1">
                         <Textarea
                             ref={textareaRef}
                             value={input}
@@ -185,41 +198,87 @@ export function FloatingComposer({
                             placeholder={placeholder}
                             disabled={disabled || isLoading}
                             rows={1}
-                            className="flex-1 bg-transparent border-none focus-visible:ring-0 resize-none py-2.5 px-2 text-[15px] md:text-base placeholder:text-muted-foreground/30"
+                            className={cn(
+                                'flex-1 bg-transparent border-none shadow-none focus-visible:ring-0 resize-none py-1.5 px-2 text-base leading-relaxed',
+                                'placeholder:text-muted-foreground/30 font-medium'
+                            )}
                         />
                     </div>
 
-                    <div className="flex items-center gap-1 md:gap-2">
-                        <div className="h-10 w-10 md:h-12 md:w-12 flex items-center justify-center">
-                            <VoiceInput
-                                userId={userId}
-                                onTranscriptionStatusChange={(status) => setIsRecording(status)}
-                                disabled={disabled || isLoading}
-                                onAudioSubmit={onSubmit}
-                            />
-                        </div>
+                    <div className="flex items-center gap-1 mb-1">
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <div>
+                                        <VoiceInput
+                                            userId={userId}
+                                            onTranscriptionStatusChange={(status) => setIsRecording(status)}
+                                            disabled={disabled || isLoading}
+                                            onAudioSubmit={onSubmit}
+                                        />
+                                    </div>
+                                </TooltipTrigger>
+                                <TooltipContent side="top">Voice Input</TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
 
                         <Button
                             type="button"
                             onClick={() => handleSubmit()}
                             disabled={(!input.trim() && attachments.length === 0) || disabled || isLoading}
-                            variant="ghost"
                             className={cn(
-                                "h-10 w-10 md:h-12 md:w-12 rounded-lg transition-colors",
+                                "h-10 w-10 rounded-full transition-all duration-500 shrink-0",
                                 (input.trim() || attachments.length > 0)
-                                    ? "text-primary hover:bg-primary/5"
-                                    : "text-muted-foreground opacity-30"
+                                    ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30"
+                                    : "bg-white/5 text-muted-foreground opacity-50 scale-90"
                             )}
                         >
                             {isLoading ? (
-                                <Loader2 className="h-4 w-4 md:h-5 md:w-5 animate-spin" />
+                                <Loader2 className="h-5 w-5 animate-spin" />
                             ) : (
-                                <Send className="h-4 w-4 md:h-5 md:w-5 stroke-[1]" />
+                                <Send className={cn("h-5 w-5 transition-transform", (input.trim() || attachments.length > 0) && "translate-x-0.5 -translate-y-0.5")} />
                             )}
                         </Button>
                     </div>
                 </div>
+
+                {/* Toolbar (Appears when focused or has content) */}
+                <div className={cn(
+                    "flex items-center justify-between px-2 overflow-hidden transition-all duration-500",
+                    (input.length > 0 || isExpanded) ? "h-10 opacity-100 mt-1 mb-1" : "h-0 opacity-0"
+                )}>
+                    <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="bg-white/5 border-white/10 text-[10px] py-0 px-2 flex items-center gap-1.5 font-medium text-muted-foreground">
+                            <Sparkles className="h-2.5 w-2.5 text-primary" />
+                            Sovereign Ingress
+                        </Badge>
+                        <div className="h-1 w-1 rounded-full bg-white/10" />
+                        <button className="text-[10px] font-semibold text-muted-foreground/60 hover:text-primary transition-colors flex items-center gap-1 uppercase tracking-tighter">
+                            <CommandIcon className="h-3 w-3" />
+                            Commands
+                        </button>
+                    </div>
+
+                    <div className="flex items-center gap-3 pr-2">
+                        <button className="text-muted-foreground/40 hover:text-primary transition-colors">
+                            <Smile className="h-4 w-4" />
+                        </button>
+                        <button
+                            onClick={() => {
+                                setInput('');
+                                setAttachments([]);
+                                setIsExpanded(false);
+                            }}
+                            className="text-xs font-bold text-muted-foreground/40 hover:text-red-500/60 transition-colors uppercase tracking-widest"
+                        >
+                            Clear
+                        </button>
+                    </div>
+                </div>
             </div>
+
+            {/* Shadow Glow Background */}
+            <div className="absolute -inset-1 bg-gradient-to-r from-primary/10 via-transparent to-accent/10 rounded-[34px] blur-xl opacity-0 focus-within:opacity-100 transition-opacity duration-700 pointer-events-none -z-10" />
         </div>
     );
 }

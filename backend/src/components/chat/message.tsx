@@ -83,30 +83,25 @@ export function Message({
   return (
     <div className="group/message">
       <div className={cn('flex items-start gap-4', isUser ? 'justify-end' : 'justify-start')}>
+        {!isUser && (
+          <Avatar className="h-8 w-8">
+            <AvatarFallback>
+              <Bot className="h-5 w-5" />
+            </AvatarFallback>
+          </Avatar>
+        )}
         <div
           className={cn(
-            'flex-1 transition-all duration-300',
+            'max-w-2xl w-full rounded-2xl px-5 py-3.5 transition-all duration-300',
             isUser
-              ? 'script-user bg-transparent'
-              : 'script-assistant bg-transparent relative'
+              ? 'rounded-tr-none chat-bubble-user'
+              : 'rounded-tl-none chat-bubble-assistant border-white/10 shadow-sm relative'
           )}
         >
-          {!isUser && (
-            <div className="flex items-center gap-2 mb-2">
-              <Bot className="h-4 w-4 text-primary stroke-[1]" />
-              <span className="text-[10px] font-bold uppercase tracking-[0.4em] text-foreground/20">Assistant</span>
-            </div>
-          )}
-          {isUser && (
-            <div className="flex items-center gap-2 mb-2">
-              <User className="h-4 w-4 text-foreground/20 stroke-[1]" />
-              <span className="text-[10px] font-bold uppercase tracking-[0.4em] text-foreground/20">User</span>
-            </div>
-          )}
           {hasMemoryRecall && (
-            <div className="absolute -top-3 left-4 px-2 py-0.5 rounded-none bg-primary/[0.03] border border-primary/10 flex items-center gap-1.5 underline decoration-primary/20 underline-offset-4">
-              <Sparkles className="h-3 w-3 text-primary stroke-[1]" />
-              <span className="text-[10px] font-bold text-primary/60 uppercase tracking-[0.4em]">Memory Substrate Linked</span>
+            <div className="absolute -top-3 left-4 px-2 py-0.5 rounded-full bg-purple-500/20 border border-purple-500/30 backdrop-blur-md flex items-center gap-1.5 shadow-sm">
+              <Sparkles className="h-3 w-3 text-purple-400" />
+              <span className="text-[10px] font-medium text-purple-300 uppercase tracking-widest">Memory Recall</span>
             </div>
           )}
           {isUser ? (
@@ -123,8 +118,8 @@ export function Message({
                 <div className="flex items-center gap-2 text-destructive-foreground/80 py-2">
                   <Cog className="h-4 w-4 animate-spin" />
                   <span className="text-sm">
-                    {isErrorState || message.isError
-                      ? 'Error: No response from AI. The inference server may be offline or unreachable. Check your VPC connector configuration.'
+                    {isErrorState || message.isError 
+                      ? 'Error: No response from AI. The inference server may be offline or unreachable. Check your VPC connector configuration.' 
                       : 'Waiting for response...'}
                   </span>
                 </div>
@@ -145,69 +140,57 @@ export function Message({
                     </div>
                   </AccordionTrigger>
                   <AccordionContent>
-                    <div className="space-y-4 p-4 border border-border/5 rounded-xl mt-2 overflow-hidden relative">
-                      <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-5 pointer-events-none"></div>
+                    <div className="space-y-4 p-2 bg-background/50 rounded-md mt-1">
                       {message.toolUsages.map((tool, index) => {
-                        const isReasoning = tool.toolName === 'Reasoning Engine';
+                        if (tool.toolName === 'web_retrieval' || tool.toolName === 'search_web') {
+                          return (
+                            <div key={index} className="text-xs border-t border-border pt-3 first:border-t-0 first:pt-0">
+                              <p className="font-semibold text-foreground text-sm mb-2 flex items-center gap-2"><Globe className="h-4 w-4" /> Web Results</p>
+                              <div className="mt-1 space-y-2">
+                                {(Array.isArray(tool.output) ? tool.output : []).map((citation: any, idx) => (
+                                  <div key={idx} className="p-2 bg-muted/50 rounded-md">
+                                    <a href={citation.source} target="_blank" rel="noopener noreferrer" className="text-primary font-medium hover:underline block truncate text-sm">{citation.title}</a>
+                                    <p className="text-muted-foreground text-xs mt-1">{citation.source}</p>
+                                    {citation.snippet && <p className="mt-2 text-foreground/90 italic">"{citation.snippet}"</p>}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )
+                        }
+
+                        // Handle Artifacts
+                        if (tool.toolName === 'generate_artifact') {
+                          const { title, type, content } = tool.input;
+                          const artifactContent = content || tool.output?.content || '';
+
+                          return (
+                            <div key={index} className="text-xs border-t border-border pt-3 first:border-t-0 first:pt-0">
+                              <p className="font-semibold text-foreground text-sm mb-2">Generated Artifact</p>
+                              <ArtifactViewer
+                                title={title || 'Untitled Artifact'}
+                                type={type || 'code'}
+                                content={artifactContent}
+                              />
+                            </div>
+                          );
+                        }
 
                         return (
-                          <div key={index} className={cn(
-                            "relative group/tool p-3 rounded-none border transition-all duration-300",
-                            isReasoning
-                              ? "bg-primary/[0.03] border-primary/20 shadow-none"
-                              : "bg-foreground/[0.02] border-foreground/5"
-                          )}>
-                            <div className="flex items-center justify-between mb-3">
-                              <div className="flex items-center gap-2">
-                                <div className={cn(
-                                  "p-1.5 rounded-none",
-                                  isReasoning ? "bg-primary/10 text-primary" : "bg-foreground/5 text-muted-foreground"
-                                )}>
-                                  {isReasoning ? <Sparkles className="h-4 w-4 stroke-[1]" /> : <Cog className="h-4 w-4 stroke-[1]" />}
-                                </div>
-                                <span className="font-bold text-[10px] uppercase tracking-[0.4em] tabular-nums text-foreground/40">
-                                  {isReasoning ? "Cognition Subsystem" : tool.toolName}
-                                </span>
+                          <div key={index} className="text-xs border-t border-border pt-3 first:border-t-0 first:pt-0">
+                            <p className="font-semibold text-foreground text-sm mb-2">{tool.toolName}</p>
+                            <div className="mt-1 space-y-3 p-2 bg-muted/50 rounded-md">
+                              <div>
+                                <p className="font-medium text-muted-foreground mb-1">Input</p>
+                                <ToolIoDisplay data={tool.input} />
                               </div>
-                              {isReasoning && (
-                                <div className="text-[10px] font-mono text-primary/60 border border-primary/20 px-1.5 py-0.5 rounded">
-                                  CONFIDENCE: {(tool.output?.confidence * 100).toFixed(0)}%
-                                </div>
-                              )}
+                              <div>
+                                <p className="font-medium text-muted-foreground mt-2 mb-1">Output</p>
+                                <ToolIoDisplay data={tool.output} />
+                              </div>
                             </div>
-
-                            {isReasoning ? (
-                              <div className="space-y-3">
-                                <div className="p-2.5 bg-background/40 rounded-none border border-foreground/5 italic text-sm text-foreground/70 leading-relaxed">
-                                  "{tool.output?.thinking}"
-                                </div>
-                                <div className="flex flex-wrap gap-2">
-                                  {tool.output?.steps?.map((step: string, sIdx: number) => (
-                                    <div key={sIdx} className="flex items-center gap-2 text-[10px] font-medium bg-white/5 px-2 py-1 rounded border border-white/5 text-muted-foreground transition-colors hover:border-primary/30">
-                                      <div className="w-1.5 h-1.5 rounded-full bg-primary/40 animate-pulse" />
-                                      {step}
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="grid grid-cols-2 gap-3">
-                                <div className="space-y-1">
-                                  <p className="text-[9px] font-bold text-muted-foreground uppercase">Input</p>
-                                  <div className="p-2 bg-black/20 rounded text-[11px] font-mono overflow-x-auto whitespace-pre">
-                                    {JSON.stringify(tool.input, null, 2)}
-                                  </div>
-                                </div>
-                                <div className="space-y-1">
-                                  <p className="text-[9px] font-bold text-muted-foreground uppercase">Output</p>
-                                  <div className="p-2 bg-black/20 rounded text-[11px] font-mono overflow-x-auto whitespace-pre">
-                                    {JSON.stringify(tool.output, null, 2)}
-                                  </div>
-                                </div>
-                              </div>
-                            )}
                           </div>
-                        );
+                        )
                       })}
                     </div>
                   </AccordionContent>
@@ -216,6 +199,13 @@ export function Message({
             </div>
           )}
         </div>
+        {isUser && (
+          <Avatar className="h-8 w-8">
+            <AvatarFallback>
+              <User className="h-5 w-5" />
+            </AvatarFallback>
+          </Avatar>
+        )}
       </div>
       {isLastAssistantMessage && (onRegenerate || onSpeak) && (
         <div className={cn('flex pt-2 gap-2 transition-opacity group-hover/message:opacity-100', isRegenerating ? 'opacity-100' : 'opacity-0', isUser ? 'justify-end' : 'justify-start pl-12')}>

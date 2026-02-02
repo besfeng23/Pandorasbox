@@ -84,92 +84,73 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-8">
-      <div className="w-full max-w-sm space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
-        <header className="text-center space-y-4">
-          <div className="flex justify-center mb-8">
-            <span className="h-12 w-12 border border-primary/20 flex items-center justify-center">
-              <LogIn className="h-5 w-5 text-primary stroke-[1.5]" />
-            </span>
+    <div className="flex min-h-screen items-center justify-center bg-background p-4 relative overflow-hidden">
+      {/* Background Ambient Glow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/20 blur-[100px] rounded-full opacity-50 pointer-events-none" />
+
+      <div className="w-full max-w-md space-y-8 rounded-2xl border border-white/10 bg-card/50 backdrop-blur-xl p-8 shadow-2xl relative z-10 glass-panel">
+        <div className="text-center space-y-2">
+          <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 mb-4">
+            <LogIn className="h-6 w-6 text-primary" />
           </div>
-          <span className="text-[10px] font-bold uppercase tracking-[0.4em] text-foreground/30 block">Credential Verification</span>
-          <h1 className="text-3xl font-light tracking-tight text-foreground/90">Identity Matrix</h1>
-        </header>
+          <h1 className="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70">Welcome Back</h1>
+          <p className="text-sm text-muted-foreground">Enter your credentials to access the Neural Vault</p>
+        </div>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
             {error && (
-              <div className="text-[11px] font-mono text-red-400 bg-red-400/5 p-3 border-l-2 border-red-400 animate-in-fade">
-                [SYSTEM_ERROR]: {error.toUpperCase()}
+              <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive font-medium border border-destructive/20 flex items-center animate-in-fade">
+                {error}
               </div>
             )}
 
-            <div className="space-y-6">
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem className="space-y-2">
-                    <FormLabel className="text-[10px] font-bold uppercase tracking-widest text-foreground/30">Neural Descriptor (Email)</FormLabel>
-                    <FormControl>
-                      <div className="relative group">
-                        <Mail className="absolute left-0 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-foreground/20 group-focus-within:text-primary transition-colors stroke-[1]" />
-                        <Input
-                          placeholder="name@fragment.io"
-                          type="email"
-                          {...field}
-                          className="pl-7 rounded-none border-0 border-b border-foreground/10 bg-transparent focus-visible:ring-0 focus-visible:border-primary/50 text-[13px] h-10 transition-all"
-                        />
-                      </div>
-                    </FormControl>
-                    <FormMessage className="text-[10px] text-red-400/60 font-mono" />
-                  </FormItem>
-                )}
-              />
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input placeholder="name@example.com" type="email" {...field} className="pl-9 bg-background/50 border-white/10 focus-visible:ring-primary/20" />
+                    </div>
+                  </FormControl>
+                  <FormMessage className="text-destructive font-medium" />
+                </FormItem>
+              )}
+            />
 
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem className="space-y-2">
-                    <FormLabel className="text-[10px] font-bold uppercase tracking-widest text-foreground/30">Cypher Sequence (Password)</FormLabel>
-                    <FormControl>
-                      <div className="relative group">
-                        <Lock className="absolute left-0 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-foreground/20 group-focus-within:text-primary transition-colors stroke-[1]" />
-                        <Input
-                          placeholder="••••••••"
-                          type="password"
-                          {...field}
-                          className="pl-7 rounded-none border-0 border-b border-foreground/10 bg-transparent focus-visible:ring-0 focus-visible:border-primary/50 text-[13px] h-10 transition-all"
-                        />
-                      </div>
-                    </FormControl>
-                    <FormMessage className="text-[10px] text-red-400/60 font-mono" />
-                  </FormItem>
-                )}
-              />
-            </div>
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Password</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input placeholder="••••••••" type="password" {...field} className="pl-9 bg-background/50 border-white/10 focus-visible:ring-primary/20" />
+                    </div>
+                  </FormControl>
+                  <FormMessage className="text-destructive font-medium" />
+                </FormItem>
+              )}
+            />
 
-            <div className="pt-4">
-              <Button
-                type="submit"
-                className="w-full h-12 rounded-none bg-primary text-white text-[11px] font-bold uppercase tracking-widest hover:bg-primary/90 transition-all disabled:bg-foreground/10"
-                disabled={isLoading}
-              >
-                {isLoading ? <Loader2 className="h-4 w-4 animate-spin stroke-[1]" /> : "Initialize Session"}
-              </Button>
-            </div>
+            <Button type="submit" className="w-full h-11 text-base shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all duration-300" disabled={isLoading}>
+              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Sign In"}
+            </Button>
           </form>
         </Form>
 
-        <footer className="text-center pt-8 border-t border-foreground/5">
-          <p className="text-[11px] text-foreground/30 font-mono">
-            NULL_SESSION?{' '}
-            <Link href="/signup" className="text-primary hover:underline italic">
-              GENERATE_IDENTITY
-            </Link>
-          </p>
-        </footer>
+        <p className="text-center text-sm text-muted-foreground">
+          Don&apos;t have an account?{' '}
+          <Link href="/signup" className="font-medium text-primary hover:text-primary/80 hover:underline transition-colors">
+            Sign up
+          </Link>
+        </p>
       </div>
     </div>
   );

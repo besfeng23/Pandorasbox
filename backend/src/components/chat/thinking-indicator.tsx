@@ -50,34 +50,29 @@ export function ThinkingIndicator({ logs, createdAt }: ThinkingIndicatorProps) {
   };
 
   return (
-    <div className="flex flex-col gap-3 py-4 max-w-xl">
-      <div className="flex items-center gap-3">
-        <div className="flex gap-1 h-3 items-center">
-          <motion.div
-            className="w-1 h-1 bg-primary/40 rounded-full"
-            animate={{ scale: [1, 1.5, 1], opacity: [0.4, 1, 0.4] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
-          />
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+        <div className="font-mono text-xs uppercase tracking-wider h-4 overflow-hidden flex-1">
+          <AnimatePresence mode="popLayout">
+            <motion.div
+              key={displayedLog}
+              initial={{ y: '100%', opacity: 0 }}
+              animate={{ y: '0%', opacity: 1 }}
+              exit={{ y: '-100%', opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 350, damping: 30, duration: 0.1 }}
+            >
+              {displayedLog || 'Processing...'}
+            </motion.div>
+          </AnimatePresence>
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/40 mb-1 flex items-center gap-2">
-            Intelligence Sequence
-            {elapsedSeconds > 0 && <span className="font-mono text-[9px] lowercase tracking-tighter opacity-50">({formatElapsedTime(elapsedSeconds)})</span>}
-          </div>
-          <div className="h-4 overflow-hidden relative">
-            <AnimatePresence mode="popLayout">
-              <motion.div
-                key={displayedLog}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 10 }}
-                transition={{ duration: 0.2 }}
-                className="text-[11px] text-foreground/60 font-medium truncate italic"
-              >
-                {displayedLog || 'Synthesizing...'}
-              </motion.div>
-            </AnimatePresence>
-          </div>
+        <div className="flex items-center gap-2 text-xs text-white/50">
+          {stepNumber && totalSteps && (
+            <span>Step {stepNumber}{totalSteps > stepNumber ? ` of ${totalSteps}` : ''}</span>
+          )}
+          {elapsedSeconds > 0 && (
+            <span>({formatElapsedTime(elapsedSeconds)})</span>
+          )}
         </div>
       </div>
 
@@ -87,17 +82,27 @@ export function ThinkingIndicator({ logs, createdAt }: ThinkingIndicatorProps) {
             <Button
               variant="ghost"
               size="sm"
-              className="h-auto p-0 text-[10px] uppercase font-bold tracking-widest text-foreground/20 hover:text-foreground/40 hover:bg-transparent"
+              className="h-6 text-xs text-white/60 hover:text-white/80 w-full justify-start"
             >
-              {isOpen ? 'Close Register' : `Expand Track (${logs.length} operations)`}
+              {isOpen ? (
+                <>
+                  <ChevronUp className="h-3 w-3 mr-1" />
+                  Hide details
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="h-3 w-3 mr-1" />
+                  Show details ({logs.length} steps)
+                </>
+              )}
             </Button>
           </CollapsibleTrigger>
-          <CollapsibleContent>
-            <div className="mt-4 space-y-2 border-l border-border/5 pl-4 max-h-48 overflow-y-auto no-scrollbar">
-              {logs.map((log, index) => (
-                <div key={index} className="flex gap-4 group">
-                  <span className="text-[9px] font-mono text-foreground/10 group-hover:text-foreground/30 transition-colors shrink-0">{(index + 1).toString().padStart(2, '0')}</span>
-                  <span className="text-[10px] text-foreground/40 leading-relaxed font-mono">{log}</span>
+          <CollapsibleContent className="mt-1">
+            <div className="space-y-1 max-h-40 overflow-y-auto text-xs font-mono bg-white/5 rounded p-2 border border-white/10">
+              {(logs || []).map((log, index) => (
+                <div key={index} className="text-white/70 py-1 border-b border-white/5 last:border-0">
+                  <span className="text-white/40 mr-2">[{index + 1}]</span>
+                  {log}
                 </div>
               ))}
             </div>
