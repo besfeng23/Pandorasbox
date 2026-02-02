@@ -71,19 +71,21 @@ export function CommandMenu() {
       open={open}
       onOpenChange={setOpen}
       label="Command Menu"
-      className="glass-panel-strong border border-primary/30"
+      className="bg-background border border-border/10 shadow-none rounded-none overflow-hidden max-w-2xl w-full"
     >
-      <Command.Input
-        value={query}
-        onValueChange={setQuery}
-        placeholder="Search memories, navigate, or type a command..."
-        className="glass-panel border border-primary/20 focus:border-primary/40 focus:ring-2 focus:ring-primary/20"
-      />
-      <Command.List>
-        {isSearching && query && <div className="p-4 flex justify-center"><Loader2 className="animate-spin text-primary" /></div>}
+      <div className="border-b border-border/10 p-4">
+        <Command.Input
+          value={query}
+          onValueChange={setQuery}
+          placeholder="Search substrate or run command..."
+          className="w-full bg-transparent border-none focus:ring-0 text-sm placeholder:text-foreground/10 tracking-[0.1em]"
+        />
+      </div>
+      <Command.List className="max-h-[60vh] overflow-y-auto p-1 no-scrollbar">
+        {isSearching && query && <div className="p-8 flex justify-center"><Loader2 className="animate-spin h-4 w-4 text-foreground/20 stroke-[1]" /></div>}
 
         {!query && (
-          <Command.Group heading="Navigation">
+          <Command.Group heading={<span className="px-4 py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/40">Navigation</span>}>
             {navigationItems.map(item => {
               const Icon = item.icon;
               return (
@@ -94,9 +96,10 @@ export function CommandMenu() {
                     setOpen(false);
                   }}
                   value={item.id}
+                  className="flex items-center gap-3 px-4 py-3 rounded-none cursor-pointer hover:bg-foreground/[0.03] aria-selected:bg-foreground/[0.05] transition-colors"
                 >
-                  <Icon className="mr-2 h-4 w-4 shrink-0" />
-                  <span>{item.label}</span>
+                  <Icon className="h-4 w-4 text-foreground/20 stroke-[1]" />
+                  <span className="text-sm text-foreground/80">{item.label}</span>
                 </Command.Item>
               );
             })}
@@ -104,7 +107,7 @@ export function CommandMenu() {
         )}
 
         {query && filteredNavItems.length > 0 && (
-          <Command.Group heading="Navigation">
+          <Command.Group heading={<span className="px-4 py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/40">Navigation</span>}>
             {filteredNavItems.map(item => {
               const Icon = item.icon;
               return (
@@ -115,9 +118,10 @@ export function CommandMenu() {
                     setOpen(false);
                   }}
                   value={item.id}
+                  className="flex items-center gap-3 px-4 py-3 rounded-none cursor-pointer hover:bg-foreground/[0.03] aria-selected:bg-foreground/[0.05] transition-colors"
                 >
-                  <Icon className="mr-2 h-4 w-4 shrink-0" />
-                  <span>{item.label}</span>
+                  <Icon className="h-4 w-4 text-foreground/20 stroke-[1]" />
+                  <span className="text-sm text-foreground/80">{item.label}</span>
                 </Command.Item>
               );
             })}
@@ -125,28 +129,29 @@ export function CommandMenu() {
         )}
 
         {query && user && (
-          <Command.Group heading="Memories">
+          <Command.Group heading={<span className="px-4 py-2 text-[10px] font-bold uppercase tracking-[0.4em] text-foreground/10">Memories</span>}>
             {isSearching ? (
-              <div className="p-4 flex justify-center"><Loader2 className="animate-spin text-primary" /></div>
+              <div className="p-8 flex justify-center"><Loader2 className="animate-spin h-4 w-4 text-foreground/10 stroke-[1]" /></div>
             ) : results.length === 0 ? (
-              <Command.Empty>No memories found.</Command.Empty>
+              <Command.Empty className="p-8 text-center text-[10px] font-bold uppercase tracking-[0.4em] text-foreground/10 italic">No recollections found.</Command.Empty>
             ) : (
               results.map(item => (
                 <Command.Item
                   key={item.id}
                   onSelect={() => copyToClipboard(item.text)}
                   value={item.id}
+                  className="flex items-start gap-3 px-4 py-4 rounded-none cursor-pointer hover:bg-foreground/[0.03] aria-selected:bg-foreground/[0.05] transition-colors border-b border-border/5 last:border-none"
                 >
-                  <Database className="mr-2 h-4 w-4 shrink-0 text-primary" />
-                  <div className="flex-1 truncate">
-                    <span>{item.text}</span>
+                  <Database className="mt-0.5 h-4 w-4 text-foreground/10 shrink-0 stroke-[1]" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-foreground/80 leading-relaxed line-clamp-2">{item.text}</p>
                     {item.timestamp && (
-                      <p className="text-xs text-muted-foreground mt-1">
+                      <p className="text-[10px] text-muted-foreground/10 mt-1.5 uppercase tracking-[0.4em] font-bold">
                         {formatDistanceToNow(new Date(item.timestamp), { addSuffix: true })}
                       </p>
                     )}
                   </div>
-                  <span className="text-xs text-muted-foreground ml-2">
+                  <span className="text-[10px] font-mono text-foreground/10 ml-2">
                     {item.score.toFixed(2)}
                   </span>
                 </Command.Item>
@@ -155,6 +160,6 @@ export function CommandMenu() {
           </Command.Group>
         )}
       </Command.List>
-    </Command.Dialog>
+    </Command.Dialog >
   );
 }

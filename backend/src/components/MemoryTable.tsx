@@ -3,7 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Loader2, PlusCircle, AlertCircle } from 'lucide-react';
+import { Loader2, PlusCircle, AlertCircle, Edit, Trash2 } from 'lucide-react';
 import { fetchMemories, deleteMemoryFromMemories, updateMemoryInMemories, createMemoryFromSettings } from '@/app/actions';
 import { toast } from 'sonner';
 
@@ -118,83 +118,83 @@ export function MemoryTable({ userId }: MemoryTableProps) {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex space-x-2">
+    <div className="space-y-12">
+      <div className="flex items-center gap-4 border-b border-border/5 pb-8">
         <Input
-          placeholder="Add a new memory..."
+          placeholder="Inject new recollection..."
           value={newMemoryContent}
           onChange={(e) => setNewMemoryContent(e.target.value)}
           onKeyPress={(e) => {
-            if (e.key === 'Enter') {
-              handleCreate();
-            }
+            if (e.key === 'Enter') handleCreate();
           }}
+          className="flex-1 bg-transparent border-none focus-visible:ring-0 text-lg placeholder:text-foreground/10 p-0"
         />
-        <Button onClick={handleCreate}>
-          <PlusCircle className="mr-2 h-4 w-4" /> Create
+        <Button onClick={handleCreate} variant="ghost" className="h-10 w-10 p-0 hover:bg-muted text-foreground/40 hover:text-primary">
+          <PlusCircle className="h-5 w-5 stroke-[1]" />
         </Button>
       </div>
 
       {memories.length === 0 ? (
-        <p className="text-muted-foreground">No memories found. Start by adding one above!</p>
+        <p className="text-xs text-muted-foreground/40 italic uppercase tracking-widest text-center py-20">No data points in current substrate.</p>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Content</TableHead>
-              <TableHead className="w-[150px]">Source</TableHead>
-              <TableHead className="w-[180px]">Created At</TableHead>
-              <TableHead className="w-[150px] text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+        <div className="space-y-4">
+          <div className="grid grid-cols-[1fr,120px,180px,100px] px-4 py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/30 border-b border-border/5">
+            <div>Content</div>
+            <div>Source</div>
+            <div>Timestamp</div>
+            <div className="text-right">Action</div>
+          </div>
+          <div className="space-y-1">
             {memories.map((memory) => (
-              <TableRow key={memory.id}>
-                <TableCell className="font-medium">
+              <div key={memory.id} className="grid grid-cols-[1fr,120px,180px,100px] items-center px-4 py-4 rounded-lg hover:bg-muted/30 transition-colors group">
+                <div className="text-sm text-foreground/80 leading-relaxed pr-8">
                   {editingMemoryId === memory.id ? (
                     <Input
+                      autoFocus
                       value={editingMemoryContent}
                       onChange={(e) => setEditingMemoryContent(e.target.value)}
+                      onBlur={() => handleUpdate(memory.id)}
                       onKeyPress={(e) => {
-                        if (e.key === 'Enter') {
-                          handleUpdate(memory.id);
-                        }
+                        if (e.key === 'Enter') handleUpdate(memory.id);
                       }}
+                      className="bg-transparent border-none p-0 focus-visible:ring-0 h-auto text-sm"
                     />
                   ) : (
                     memory.content
                   )}
-                </TableCell>
-                <TableCell>{memory.source}</TableCell>
-                <TableCell>{new Date(memory.createdAt).toLocaleString()}</TableCell>
-                <TableCell className="text-right">
+                </div>
+                <div className="text-[11px] text-muted-foreground/50 font-mono lower-case">
+                  {memory.source}
+                </div>
+                <div className="text-[11px] text-muted-foreground/50 font-mono">
+                  {new Date(memory.createdAt).toLocaleDateString()}
+                </div>
+                <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   {editingMemoryId === memory.id ? (
-                    <div className="flex justify-end space-x-2">
-                      <Button size="sm" variant="ghost" onClick={() => handleUpdate(memory.id)}>Save</Button>
-                      <Button size="sm" variant="ghost" onClick={() => setEditingMemoryId(null)}>Cancel</Button>
-                    </div>
+                    <Button size="sm" variant="ghost" onClick={() => handleUpdate(memory.id)} className="h-7 px-2 text-[10px] uppercase font-bold text-primary">Save</Button>
                   ) : (
-                    <div className="flex justify-end space-x-2">
+                    <>
                       <Button
-                        size="sm"
+                        size="icon"
                         variant="ghost"
                         onClick={() => {
                           setEditingMemoryId(memory.id);
                           setEditingMemoryContent(memory.content);
                         }}
+                        className="h-7 w-7 text-muted-foreground/40 hover:text-foreground"
                       >
-                        Edit
+                        <Edit className="h-3.5 w-3.5 stroke-[1]" />
                       </Button>
-                      <Button size="sm" variant="destructive" onClick={() => handleDelete(memory.id)}>
-                        Delete
+                      <Button size="icon" variant="ghost" onClick={() => handleDelete(memory.id)} className="h-7 w-7 text-muted-foreground/20 hover:text-destructive">
+                        <Trash2 className="h-3.5 w-3.5 stroke-[1]" />
                       </Button>
-                    </div>
+                    </>
                   )}
-                </TableCell>
-              </TableRow>
+                </div>
+              </div>
             ))}
-          </TableBody>
-        </Table>
+          </div>
+        </div>
       )}
     </div>
   );

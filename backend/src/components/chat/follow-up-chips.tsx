@@ -22,13 +22,12 @@ export function FollowUpChips({
 
     return (
         <div className={cn("flex flex-wrap gap-2 py-2", className)}>
-            <Sparkles className="h-4 w-4 text-muted-foreground mt-1.5" />
             {suggestions.map((suggestion, index) => (
                 <Button
                     key={index}
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
-                    className="h-auto py-1.5 px-3 text-xs font-normal rounded-full border-dashed hover:border-solid hover:bg-primary/5 transition-all"
+                    className="h-auto py-1 px-3 text-[11px] font-medium uppercase tracking-wider rounded-md border border-border/50 hover:border-border hover:bg-muted/50 transition-colors text-foreground/60"
                     onClick={() => onSelect(suggestion)}
                 >
                     {suggestion}

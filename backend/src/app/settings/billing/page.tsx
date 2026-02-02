@@ -6,28 +6,43 @@ import { Badge } from '@/components/ui/badge';
 
 export default function BillingPage() {
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Billing</CardTitle>
-                <CardDescription>Billing is disabled in Sovereign mode.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-                <div className="flex items-center justify-between rounded-lg border p-4">
-                    <div>
-                        <h3 className="text-lg font-semibold">Current Plan</h3>
-                        <p className="text-sm text-muted-foreground">Local-only deployment (no subscriptions).</p>
+        <div className="space-y-12 animate-in fade-in slide-in-from-bottom-2 duration-500">
+            <section className="space-y-8">
+                <div>
+                    <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-primary/60 mb-2 block">Economic Configuration</span>
+                    <h2 className="text-xl font-light tracking-tight text-foreground/90">Sovereign Billing</h2>
+                </div>
+
+                <div className="p-8 border border-border/5 bg-transparent space-y-8">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/20 mb-1">Current Protocol</p>
+                            <p className="text-lg font-light tracking-tight text-foreground/80">Local Autonomy Mode</p>
+                        </div>
+                        <span className="text-[9px] font-bold uppercase tracking-widest text-primary/40 px-3 py-1 border border-primary/20">Active</span>
                     </div>
-                    <Badge variant="outline">Sovereign</Badge>
+
+                    <div className="space-y-4 pt-4 border-t border-border/5">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/20">Subsistence Matrix</p>
+                        <div className="grid gap-3">
+                            {[
+                                'Unbounded local inference',
+                                'Private Qdrant memory vault',
+                                'Zero-intermediary transaction layer'
+                            ].map((item, i) => (
+                                <div key={i} className="flex items-center gap-3 text-[12px] text-foreground/50">
+                                    <span className="h-0.5 w-2 bg-primary/30"></span>
+                                    {item}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                 </div>
-                <div className="space-y-2">
-                    <h4 className="font-semibold">Plan Details</h4>
-                    <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
-                        <li>Unlimited local usage (bounded by your hardware)</li>
-                        <li>Memory + retrieval via your local Qdrant</li>
-                        <li>No external billing provider</li>
-                    </ul>
-                </div>
-            </CardContent>
-        </Card>
+
+                <p className="text-[11px] text-foreground/30 italic font-mono leading-relaxed max-w-sm">
+                    Billing processes are deactivated in Sovereign mode. System operation is powered entirely by your infrastructure.
+                </p>
+            </section>
+        </div>
     );
 }

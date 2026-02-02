@@ -4,264 +4,162 @@
 
 @layer base {
   :root {
-    /* Apple-esque Light Mode */
-    --background: 240 5.3% 96.9%;
-    /* #F5F5F7 */
-    --foreground: 0 0% 0%;
-    /* #000000 */
+    /* Anti-Gravity Day Mode */
+    --background: 0 0% 100%;
+    --foreground: 240 5.9% 10%; /* #1D1D1F Jet Black */
+    
     --card: 0 0% 100%;
-    /* #FFFFFF */
-    --card-foreground: 240 4.3% 11.8%;
+    --card-foreground: 240 5.9% 10%;
+    
     --popover: 0 0% 100%;
-    --popover-foreground: 240 4.3% 11.8%;
-    --primary: 211 100% 50%;
-    /* #007AFF (System Blue) */
-    --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 240 1.8% 44.1%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 240 1.8% 44.1%;
-    --accent: 211 100% 50%;
-    /* Using Primary as accent */
-    --accent-foreground: 0 0% 100%;
+    --popover-foreground: 240 5.9% 10%;
+    
+    --primary: 210.4 100% 44.5%; /* #0071E3 Apple Blue */
+    --primary-foreground: 210 40% 98%;
+    
+    --secondary: 240 4.8% 95.9%; /* #F5F5F7 Surface */
+    --secondary-foreground: 240 5.9% 10%;
+    
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    
+    --accent: 210.4 100% 44.5%;
+    --accent-foreground: 210 40% 98%;
+    
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive-foreground: 210 40% 98%;
+    
     --border: 240 5.9% 90%;
     --input: 240 5.9% 90%;
-    --ring: 211 100% 50%;
-    --radius: 0.75rem;
-
-    /* Semantic Colors */
-    --success: 142 76% 36%;  /* Green */
-    --success-foreground: 355 100% 97%;
-    --warning: 38 92% 50%;   /* Amber */
-    --warning-foreground: 48 96% 89%;
-    --info: 221 83% 53%;     /* Blue */
-    --info-foreground: 210 40% 98%;
-    /* 12px */
-
-    /* Charts (Apple Human Interface Colors) */
-    --chart-1: 211 100% 50%;
-    /* Blue */
-    --chart-2: 125 50% 50%;
-    /* Green */
-    --chart-3: 35 90% 50%;
-    /* Orange */
-    --chart-4: 0 90% 60%;
-    /* Red */
-    --chart-5: 280 60% 60%;
-    /* Purple */
-
-    --sidebar-background: 240 5.3% 96.9%;
-    --sidebar-foreground: 240 1.8% 44.1%;
-    --sidebar-primary: 211 100% 50%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 100%;
-    --sidebar-accent-foreground: 240 4.3% 11.8%;
-    --sidebar-border: 240 5.9% 90%;
-    --sidebar-ring: 211 100% 50%;
+    --ring: 210.4 100% 44.5%;
+    
+    --radius: 0px;
+    --sidebar-width: 260px;
   }
 
   .dark {
-    /* Pandora's Box Dark Mode */
-    --background: 240 10% 3.9%; /* #09090b */
-    --foreground: 0 0% 98%;
-
-    --card: 240 10% 6%; /* Slightly lighter than bg */
-    --card-foreground: 0 0% 98%;
-
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-
-    --primary: 211 100% 50%; /* #007AFF */
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 240 4% 16%;
+    /* Anti-Gravity Night Mode */
+    --background: 240 10% 4%; /* #0A0A0B */
+    --foreground: 0 0% 93%; /* #E8E8ED Off-white */
+    
+    --card: 240 10% 4%;
+    --card-foreground: 0 0% 93%;
+    
+    --popover: 240 10% 4%;
+    --popover-foreground: 0 0% 93%;
+    
+    --primary: 210.4 100% 44.5%;
+    --primary-foreground: 210 40% 98%;
+    
+    --secondary: 240 3.7% 15.9%;
     --secondary-foreground: 0 0% 98%;
-
-    --muted: 240 4% 16%;
+    
+    --muted: 240 3.7% 15.9%;
     --muted-foreground: 240 5% 64.9%;
-
-    --accent: 211 100% 50%;
-    --accent-foreground: 0 0% 100%;
-
+    
+    --accent: 210.4 100% 44.5%;
+    --accent-foreground: 210 40% 98%;
+    
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-
-    --border: 240 4% 16%;
-    --input: 240 4% 16%;
-    --ring: 211 100% 50%;
-
-    /* Semantic Colors (Dark) */
-    --success: 142 70% 50%;
-    --success-foreground: 144 100% 97%;
-    --warning: 48 96% 89%;
-    --warning-foreground: 38 92% 50%;
-    --info: 217 91% 60%;
-    --info-foreground: 222 47% 11%;
-
-    --chart-1: 211 100% 50%;
-    --chart-2: 125 50% 50%;
-    --chart-3: 35 90% 50%;
-    --chart-4: 0 90% 60%;
-    --chart-5: 280 60% 60%;
-
-    --sidebar-background: 240 10% 3.9%;
-    --sidebar-foreground: 240 5% 64.9%;
-    --sidebar-primary: 211 100% 50%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 4% 16%;
-    --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 240 4% 16%;
-    --sidebar-ring: 211 100% 50%;
+    --destructive-foreground: 210 40% 98%;
+    
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 210.4 100% 44.5%;
+    --radius: 0px;
   }
 }
 
 @layer base {
   * {
     @apply border-border;
+    box-shadow: none !important; /* Kill the Glow globally */
+    border-radius: 0 !important; /* Enforce Zero-G sharpness */
   }
 
   body {
-    @apply bg-background text-foreground font-sans antialiased;
+    @apply bg-background text-foreground antialiased selection:bg-primary selection:text-white;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
   }
 }
 
 @layer utilities {
-
-  /* Design System: Glassmorphism utilities */
-  /* Design System: Glassmorphism utilities - Apple Style */
-  /* Design System: Glassmorphism utilities - Apple Style */
-  .glass-surface {
-    @apply backdrop-blur-2xl bg-white/70 saturate-150 border border-white/20 dark:bg-zinc-900/60 dark:border-white/10 shadow-sm supports-[backdrop-filter]:bg-white/60 supports-[backdrop-filter]:dark:bg-zinc-900/60;
+  .caption {
+    font-size: 11px;
+    @apply uppercase tracking-[0.4em] font-bold text-muted-foreground;
   }
 
-  .glass-surface-strong {
-    @apply backdrop-blur-2xl bg-white/90 saturate-150 border border-white/40 dark:bg-zinc-900/80 dark:border-white/10 supports-[backdrop-filter]:bg-white/80 supports-[backdrop-filter]:dark:bg-zinc-900/80;
+  /* Anti-Gravity Zero-G Surface */
+  .zero-g-surface {
+    @apply bg-background border-none shadow-none;
   }
 
-  .glass-panel {
-    @apply bg-gradient-to-br from-white/90 to-white/50 dark:from-zinc-900/90 dark:to-zinc-900/50 backdrop-blur-xl border border-white/20 dark:border-white/5 shadow-glass rounded-2xl;
+  .zero-g-panel {
+    @apply bg-secondary/50 dark:bg-secondary/20 border-border/10;
   }
 
-  /* Scrollbar - Premium thin style */
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+  /* Chat Reset */
+  .chat-bubble {
+    @apply bg-transparent shadow-none border-none p-0 mb-8 w-full;
   }
 
-  ::-webkit-scrollbar-track {
-    background: transparent;
+  .script-user {
+    @apply pr-4 text-foreground/80;
+    padding-left: clamp(1rem, 10vw, 3rem);
   }
 
-  ::-webkit-scrollbar-thumb {
-    background: theme('colors.muted.foreground' / 0.3);
-    border-radius: 10px;
+  .script-assistant {
+    @apply pl-4 font-normal;
+    padding-right: clamp(1rem, 10vw, 3rem);
   }
 
-  ::-webkit-scrollbar-thumb:hover {
-    background: theme('colors.muted.foreground' / 0.5);
+  /* Input Refactor */
+  .input-container {
+    @apply border border-border bg-background rounded-none transition-colors duration-200 focus-within:border-primary;
+    box-shadow: none !important;
   }
 
-  .no-scrollbar::-webkit-scrollbar {
-    display: none;
+  /* Progress Line */
+  .inference-progress {
+    @apply fixed top-0 left-0 right-0 h-[2px] bg-primary/10 overflow-hidden z-[100];
   }
 
-  .no-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+  .inference-progress-bar {
+    @apply h-full bg-primary;
+    animation: progress-slide 2s infinite ease-in-out;
   }
 
-  /* Focus Rings - Apple Style */
-  .focus-ring-accent {
-    @apply focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20 transition-shadow duration-200;
+  @keyframes progress-slide {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
   }
 
-  .focus-ring-primary {
-    @apply focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20 transition-shadow duration-200;
+  /* Safe Area Utilities */
+  .p-safe {
+    padding-top: env(safe-area-inset-top);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
   }
-
-  .ios-press {
-    @apply transition-transform duration-200 ease-out active:scale-95 touch-manipulation;
-  }
-
-  /* Design System: Side padding */
-  .side-padding-desktop {
-    @apply px-6;
-    /* 24px */
-  }
-
-  .side-padding-tablet {
-    @apply px-4;
-    /* 16px */
-  }
-
-  .side-padding-mobile {
-    @apply px-4;
-  }
-
-  /* Safe Area for iOS Notch/Home Indicator */
-  .safe-area-pb {
+  
+  .pb-safe {
     padding-bottom: env(safe-area-inset-bottom);
   }
 
-  .safe-area-pt {
+  .pt-safe {
     padding-top: env(safe-area-inset-top);
   }
 
-  /* Premium Chat UI Utilities */
-  .chat-bubble-user {
-    @apply bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg shadow-primary/20 transition-all duration-300;
+  /* Scrollbar - Hidden or minimal */
+  ::-webkit-scrollbar {
+    width: 2px;
   }
-
-  .chat-bubble-assistant {
-    @apply glass-surface shadow-sm transition-all duration-300;
+  ::-webkit-scrollbar-track {
+    background: transparent;
   }
-
-  .animate-in-slide {
-    animation: slide-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  }
-
-  .animate-in-fade {
-    animation: fade-in 0.4s ease-out forwards;
-  }
-
-  @keyframes slide-in {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  @keyframes fade-in {
-    from {
-      opacity: 0;
-    }
-
-    to {
-      opacity: 1;
-    }
-  }
-
-  /* Pulse animation for loading states */
-  .animate-pulse-subtle {
-    animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  }
-
-  @keyframes pulse-subtle {
-
-    0%,
-    100% {
-      opacity: 1;
-    }
-
-    50% {
-      opacity: 0.7;
-    }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-foreground/5;
   }
 }

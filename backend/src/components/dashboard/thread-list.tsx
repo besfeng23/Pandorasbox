@@ -69,9 +69,9 @@ export function ThreadList({ threads, activeThreadId, onNavigate, onThreadsChang
                         <motion.div key={thread.id} variants={staggerItem}>
                             <SidebarMenuItem>
                                 <Link href={`/chat/${thread.id}`} className="w-full" onClick={onNavigate}>
-                                    <SidebarMenuButton isActive={activeThreadId === thread.id} className="w-full justify-start ios-press">
-                                        <MessageSquare />
-                                        <span>{thread.name}</span>
+                                    <SidebarMenuButton isActive={activeThreadId === thread.id} className="w-full justify-start hover:bg-muted text-[13px] font-medium ios-press">
+                                        <MessageSquare className="h-4 w-4 stroke-[1] text-muted-foreground/60" />
+                                        <span className="truncate">{thread.name}</span>
                                     </SidebarMenuButton>
                                 </Link>
                                 <DropdownMenu>

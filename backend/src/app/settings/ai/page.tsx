@@ -44,62 +44,61 @@ export default function AISettingsPage() {
     };
 
     return (
-        <div className="space-y-6">
-            <Card>
-                <CardHeader>
-                    <div className="flex items-center gap-2">
-                        <Brain className="h-5 w-5 text-primary" />
-                        <CardTitle>AI Configuration</CardTitle>
-                    </div>
-                    <CardDescription>
-                        Customize how the Sovereign Brain behaves and what models are used.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    <div className="flex items-center justify-between space-x-2 border-b pb-4">
-                        <div className="flex flex-col space-y-1">
-                            <Label htmlFor="vision-mode" className="flex items-center gap-2">
-                                <Eye className="h-4 w-4" />
-                                <span>Vision Model (Llava)</span>
+        <div className="space-y-12 animate-in fade-in slide-in-from-bottom-2 duration-500">
+            <section className="space-y-8">
+                <div>
+                    <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-primary/60 mb-2 block">Cognitive Configuration</span>
+                    <h2 className="text-xl font-light tracking-tight text-foreground/90">Sovereign Brain</h2>
+                </div>
+
+                <div className="space-y-6">
+                    <div className="flex items-center justify-between py-6 border-b border-border/5">
+                        <div className="space-y-1">
+                            <Label htmlFor="vision-mode" className="text-[13px] font-medium text-foreground/80 flex items-center gap-2">
+                                <Eye className="h-3.5 w-3.5 stroke-[1]" />
+                                Vision Model (Llava)
                             </Label>
-                            <p className="text-sm text-muted-foreground">
-                                Allow the AI to see and describe images. Uses a local Vision-Language Model.
+                            <p className="text-[11px] text-foreground/30 max-w-sm">
+                                Enable visual perception for local VLM agents.
                             </p>
                         </div>
                         <Switch
                             id="vision-mode"
                             checked={visionEnabled}
                             onCheckedChange={setVisionEnabled}
+                            className="scale-90"
                         />
                     </div>
 
-                    <div className="space-y-4">
-                        <h4 className="text-sm font-medium">Advanced Features</h4>
-                        <div className="grid gap-4">
-                            <div className="flex items-center justify-between border p-3 rounded-lg">
-                                <div>
-                                    <span className="text-sm font-medium">Extended Thinking (Chain of Thought)</span>
-                                    <p className="text-xs text-muted-foreground mt-1">Available via agent routing in chat</p>
+                    <div className="space-y-4 pt-4">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/20">Operational Modules</p>
+                        <div className="grid gap-2">
+                            {[
+                                { name: 'Extended Thinking', desc: 'Chain-of-Thought reasoning logs', status: 'Active' },
+                                { name: 'Knowledge Synthesis', desc: 'Automatic RAG vector retrieval', status: 'Active' }
+                            ].map((mod, i) => (
+                                <div key={i} className="flex items-center justify-between text-[12px] py-1">
+                                    <span className="text-foreground/60">{mod.name}</span>
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-foreground/20 italic font-mono text-[10px]">{mod.desc}</span>
+                                        <span className="h-1 w-1 rounded-full bg-primary/40"></span>
+                                    </div>
                                 </div>
-                                <Badge variant="outline">Active</Badge>
-                            </div>
-                            <div className="flex items-center justify-between border p-3 rounded-lg">
-                                <div>
-                                    <span className="text-sm font-medium">Knowledge Base Search</span>
-                                    <p className="text-xs text-muted-foreground mt-1">Automatic RAG from Qdrant memory</p>
-                                </div>
-                                <Badge variant="outline">Active</Badge>
-                            </div>
+                            ))}
                         </div>
                     </div>
-                </CardContent>
-                <CardFooter>
-                    <Button onClick={handleSave} disabled={isSubmitting}>
-                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Save AI Preferences
+                </div>
+
+                <div className="pt-8">
+                    <Button
+                        onClick={handleSave}
+                        disabled={isSubmitting}
+                        className="h-10 px-8 text-[11px] font-bold uppercase tracking-widest rounded-none bg-primary hover:bg-primary/90 text-white transition-all"
+                    >
+                        {isSubmitting ? <Loader2 className="mr-2 h-3 w-3 animate-spin stroke-[1]" /> : 'Initialize Changes'}
                     </Button>
-                </CardFooter>
-            </Card>
+                </div>
+            </section>
         </div>
     );
 }

@@ -22,29 +22,34 @@ export function AgentCard({
     return (
         <div
             className={cn(
-                'group relative overflow-hidden rounded-2xl border border-white/5 bg-zinc-900/50 p-6 transition-all hover:-translate-y-1 hover:border-white/10 hover:shadow-2xl hover:shadow-black/50',
+                'group relative flex flex-col p-8 bg-background border border-border/5 transition-all duration-500 hover:border-primary/20',
                 className
             )}
         >
-            <div className="relative z-10 flex flex-col items-center text-center space-y-4">
-                <div>
-                    <h3 className="text-xl font-semibold text-white">{title}</h3>
-                    <p className="mt-2 text-sm text-zinc-400 leading-relaxed max-w-[280px]">
+            <div className="flex-1 space-y-6">
+                <div className="flex items-center justify-between">
+                    <div className="h-10 w-10 border border-foreground/5 flex items-center justify-center bg-foreground/[0.02] group-hover:border-primary/20 transition-colors">
+                        {Icon && <Icon className="h-5 w-5 text-foreground/40 group-hover:text-primary transition-colors stroke-[1]" />}
+                    </div>
+                </div>
+
+                <div className="space-y-2">
+                    <h3 className="text-[15px] font-medium text-foreground/80 group-hover:text-foreground transition-colors">{title}</h3>
+                    <p className="text-[11px] text-foreground/30 leading-relaxed font-light">
                         {description}
                     </p>
                 </div>
-
-                <Button
-                    onClick={onClick}
-                    className="w-full bg-[#007AFF] hover:bg-[#0069d9] text-white font-medium rounded-xl h-12 shadow-lg shadow-blue-500/20 transition-all group-hover:shadow-blue-500/30 flex items-center justify-center gap-2"
-                >
-                    {Icon && <Icon className="h-5 w-5" />}
-                    {buttonText}
-                </Button>
             </div>
 
-            {/* Subtle Background Gradient */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="mt-10 pt-6 border-t border-border/5">
+                <Button
+                    onClick={onClick}
+                    className="w-full h-11 rounded-none bg-foreground/5 text-foreground/60 text-[10px] font-bold uppercase tracking-[0.2em] hover:bg-primary hover:text-white transition-all shadow-none flex items-center justify-center gap-3"
+                >
+                    {buttonText}
+                    <ArrowRight className="h-3 w-3 stroke-[1.5]" />
+                </Button>
+            </div>
         </div>
     );
 }

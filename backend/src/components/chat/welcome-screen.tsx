@@ -39,48 +39,47 @@ export function WelcomeScreen({ onThreadCreated }: WelcomeScreenProps) {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center text-center p-4">
-      <h1 className="font-headline text-4xl font-bold tracking-tight">Welcome to Pandora's Box</h1>
-      <p className="mt-4 text-lg text-muted-foreground max-w-2xl">
-        Your personal AI companion for building and exploring. Let's get you started.
+    <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-8 max-w-5xl mx-auto">
+      <div className="mb-8">
+        <span className="text-[10px] font-bold uppercase tracking-[0.4em] text-foreground/40 mb-4 block">Sovereign OS v1.0</span>
+        <h1 className="text-4xl md:text-5xl font-light tracking-tight text-foreground/90">Pandora's Box</h1>
+      </div>
+
+      <p className="mb-16 text-base text-muted-foreground/60 max-w-md leading-relaxed">
+        Personal intelligence, private by default. Choose your interface to begin.
       </p>
-      <Card className="mt-8 w-full max-w-4xl">
-        <CardHeader>
-          <CardTitle className="flex items-center justify-center gap-2">
-            <PlusCircle className="h-6 w-6 text-primary" />
-            Create your first thread
-          </CardTitle>
-          <CardDescription>
-            Choose an agent to start a new conversation. Each agent has a unique purpose.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-6 md:grid-cols-2">
-          <div className="flex flex-col space-y-3 rounded-lg border p-6 text-left hover:bg-accent/50 transition-colors">
-            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center mb-2">
-              <Bot className="h-6 w-6 text-primary" />
-            </div>
-            <h3 className="font-semibold text-lg">Builder Agent</h3>
-            <p className="flex-grow text-sm text-muted-foreground">
-              The Builder agent helps you create and refine ideas. It's your collaborative partner for brainstorming, writing, and problem-solving.
-            </p>
-            <Button onClick={() => handleCreateThread('builder')} className="mt-auto">
-              Start with Builder
-            </Button>
+
+      <div className="grid gap-12 md:grid-cols-2 w-full px-4">
+        <div className="flex flex-col items-center space-y-6 group cursor-pointer" onClick={() => handleCreateThread('builder')}>
+          <div className="h-16 w-16 rounded-full border border-border/40 flex items-center justify-center transition-all group-hover:border-primary/40 group-hover:bg-primary/5">
+            <Bot className="h-6 w-6 text-foreground/40 group-hover:text-primary stroke-[1]" />
           </div>
-          <div className="flex flex-col space-y-3 rounded-lg border p-6 text-left hover:bg-accent/50 transition-colors">
-            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center mb-2">
-              <BrainCircuit className="h-6 w-6 text-primary" />
-            </div>
-            <h3 className="font-semibold text-lg">Universe Agent</h3>
-            <p className="flex-grow text-sm text-muted-foreground">
-              The Universe agent has access to a broad range of knowledge. Use it to learn new things, explore topics, and get answers to your questions.
+          <div className="space-y-2">
+            <h3 className="text-sm font-bold uppercase tracking-widest text-foreground/80">Builder</h3>
+            <p className="text-xs text-muted-foreground/50 max-w-[240px] leading-normal">
+              Code generation, structural thinking, and engineering tasks.
             </p>
-            <Button onClick={() => handleCreateThread('universe')} className="mt-auto">
-              Start with Universe
-            </Button>
           </div>
-        </CardContent>
-      </Card>
+          <Button variant="ghost" className="text-[10px] uppercase tracking-widest font-bold text-primary/60 hover:text-primary hover:bg-transparent">
+            Initialize Lane
+          </Button>
+        </div>
+
+        <div className="flex flex-col items-center space-y-6 group cursor-pointer" onClick={() => handleCreateThread('universe')}>
+          <div className="h-16 w-16 rounded-full border border-border/40 flex items-center justify-center transition-all group-hover:border-primary/40 group-hover:bg-primary/5">
+            <BrainCircuit className="h-6 w-6 text-foreground/40 group-hover:text-primary stroke-[1]" />
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-sm font-bold uppercase tracking-widest text-foreground/80">Universe</h3>
+            <p className="text-xs text-muted-foreground/50 max-w-[240px] leading-normal">
+              General knowledge, creative synthesis, and archival recall.
+            </p>
+          </div>
+          <Button variant="ghost" className="text-[10px] uppercase tracking-widest font-bold text-primary/60 hover:text-primary hover:bg-transparent">
+            Open Substrate
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

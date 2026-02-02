@@ -117,60 +117,59 @@ export function ChatInput({
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="relative flex items-end gap-3 p-2 rounded-[26px] glass-surface-strong shadow-lg border-white/20 transition-all duration-300 focus-within:shadow-primary/10 focus-within:border-primary/30">
-        <input
-          type="file"
-          ref={fileInputRef}
-          onChange={handleFileChange}
-          accept="image/*"
-          multiple
-          className="hidden"
-        />
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={disabled || isLoading}
-          className="h-10 w-10 rounded-full shrink-0 text-muted-foreground hover:text-primary transition-colors"
-        >
-          <Paperclip className="h-5 w-5" />
-          <span className="sr-only">Attach file</span>
-        </Button>
-
-        <div className="relative flex-1 min-h-[48px] flex items-center">
-          <Textarea
-            ref={textareaRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={placeholder}
-            disabled={disabled || isLoading}
-            rows={1}
-            className={cn(
-              'flex-1 bg-transparent border-none shadow-none focus-visible:ring-0 resize-none py-3 px-4 text-sm md:text-base selection:bg-primary/20',
-              'placeholder:text-muted-foreground/50'
-            )}
+      <div className="relative w-full max-w-4xl mx-auto px-4 pb-8">
+        <form onSubmit={handleSubmit} className="input-container flex items-end gap-2 p-1">
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            accept="image/*"
+            multiple
+            className="hidden"
           />
-        </div>
-        <Button
-          type="submit"
-          size="icon"
-          disabled={(!input.trim() && attachments.length === 0) || disabled || isLoading}
-          className={cn(
-            "h-10 w-10 rounded-full shrink-0 transition-all duration-300",
-            (input.trim() || attachments.length > 0) ? "bg-primary shadow-md shadow-primary/30 scale-100" : "bg-muted text-muted-foreground scale-90"
-          )}
-        >
-          {isLoading ? (
-            <Loader2 className="h-5 w-5 animate-spin" />
-          ) : (
-            <Send className={cn("h-5 w-5 transition-transform duration-300", (input.trim() || attachments.length > 0) && "translate-x-0.5 -translate-y-0.5")} />
-          )}
-          <span className="sr-only">Send message</span>
-        </Button>
-      </form>
-      <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/20 to-accent/20 rounded-[28px] blur opacity-0 group-focus-within:opacity-100 transition duration-1000 group-hover:duration-200 pointer-events-none -z-10" />
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={disabled || isLoading}
+            className="h-10 w-10 text-muted-foreground hover:bg-muted"
+          >
+            <Paperclip className="h-4 w-4 stroke-[1.5]" />
+            <span className="sr-only">Attach</span>
+          </Button>
+
+          <div className="flex-1 flex items-center">
+            <Textarea
+              ref={textareaRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={placeholder}
+              disabled={disabled || isLoading}
+              rows={1}
+              className="flex-1 bg-transparent border-none focus-visible:ring-0 resize-none py-2.5 px-2 text-base md:text-sm placeholder:text-muted-foreground/40"
+            />
+          </div>
+          <Button
+            type="submit"
+            size="icon"
+            variant="ghost"
+            disabled={(!input.trim() && attachments.length === 0) || disabled || isLoading}
+            className={cn(
+              "h-10 w-10 rounded-md transition-all",
+              (input.trim() || attachments.length > 0) ? "text-primary" : "text-muted-foreground"
+            )}
+          >
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4 stroke-[1.5]" />
+            )}
+            <span className="sr-only">Send</span>
+          </Button>
+        </form>
+      </div>
     </div>
   );
 }

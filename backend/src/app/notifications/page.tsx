@@ -145,132 +145,140 @@ export default function NotificationsPage() {
 
     return (
         <AppLayout>
-            <div className="flex-1 space-y-4 p-8 pt-6">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <Bell className="h-8 w-8 text-primary" />
-                        <div>
-                            <h2 className="text-3xl font-bold tracking-tight">Notifications</h2>
+            <div className="flex-1 max-w-6xl mx-auto w-full py-12 md:py-20 px-8">
+                <header className="mb-16 flex flex-col md:flex-row justify-between items-start md:items-end gap-8">
+                    <div className="space-y-4">
+                        <span className="text-[10px] font-bold uppercase tracking-[0.4em] text-foreground/40 block underline decoration-primary/30 underline-offset-8">Signal Flow</span>
+                        <h1 className="text-4xl md:text-5xl font-light tracking-tight text-foreground/90 flex items-center gap-6">
+                            Notifications
                             {unreadCount > 0 && (
-                                <p className="text-sm text-muted-foreground">
-                                    {unreadCount} unread notification{unreadCount !== 1 ? 's' : ''}
-                                </p>
+                                <span className="text-[11px] font-mono text-primary bg-primary/5 px-3 py-1 border border-primary/10 tracking-widest uppercase tabular-nums">
+                                    {unreadCount} UNREAD_FLAGS
+                                </span>
                             )}
-                        </div>
+                        </h1>
                     </div>
-                    <div className="flex items-center gap-2">
+
+                    <div className="flex items-center gap-3">
                         <Button
                             variant="outline"
-                            size="sm"
                             onClick={markAllAsRead}
                             disabled={unreadCount === 0}
+                            className="h-10 rounded-none border-foreground/5 bg-transparent text-[10px] font-bold uppercase tracking-widest hover:border-primary/40 hover:bg-primary/5 transition-all shadow-none px-6"
                         >
-                            <CheckCheck className="h-4 w-4 mr-2" />
-                            Mark all read
+                            <CheckCheck className="h-4 w-4 mr-3 stroke-[1.5]" />
+                            Sync Signal State
                         </Button>
                         <Button
                             variant="outline"
-                            size="sm"
                             onClick={clearAll}
                             disabled={notifications.length === 0}
+                            className="h-10 rounded-none border-foreground/5 bg-transparent text-[10px] font-bold uppercase tracking-widest hover:border-red-400/40 hover:bg-red-400/5 transition-all shadow-none px-6"
                         >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Clear all
+                            <Trash2 className="h-4 w-4 mr-3 stroke-[1.5]" />
+                            Clear Feed
                         </Button>
                     </div>
-                </div>
+                </header>
 
-                <div className="flex gap-2 mb-4">
-                    <Button
-                        variant={filter === 'all' ? 'default' : 'outline'}
-                        size="sm"
+                <nav className="flex gap-8 mb-16 border-b border-foreground/5">
+                    <button
                         onClick={() => setFilter('all')}
+                        className={cn(
+                            "pb-4 text-[10px] font-bold uppercase tracking-[0.3em] transition-all border-b-2",
+                            filter === 'all'
+                                ? "text-primary border-primary shadow-[0_4px_0_-2px_rgba(0,122,255,0.4)]"
+                                : "text-foreground/20 border-transparent hover:text-foreground/40"
+                        )}
                     >
-                        All ({notifications.length})
-                    </Button>
-                    <Button
-                        variant={filter === 'unread' ? 'default' : 'outline'}
-                        size="sm"
+                        Index_Full ({notifications.length})
+                    </button>
+                    <button
                         onClick={() => setFilter('unread')}
+                        className={cn(
+                            "pb-4 text-[10px] font-bold uppercase tracking-[0.3em] transition-all border-b-2",
+                            filter === 'unread'
+                                ? "text-primary border-primary shadow-[0_4px_0_-2px_rgba(0,122,255,0.4)]"
+                                : "text-foreground/20 border-transparent hover:text-foreground/40"
+                        )}
                     >
-                        Unread ({unreadCount})
-                    </Button>
-                </div>
+                        Active_Signals ({unreadCount})
+                    </button>
+                </nav>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Recent Activity</CardTitle>
-                        <CardDescription>
-                            Updates about your documents, memories, and system status
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {loading ? (
-                            <div className="flex items-center justify-center py-8">
-                                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                            </div>
-                        ) : filteredNotifications.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-12 text-center">
-                                <Bell className="h-12 w-12 text-muted-foreground/20 mb-4" />
-                                <p className="text-muted-foreground">No notifications</p>
-                                <p className="text-sm text-muted-foreground/60">
-                                    {filter === 'unread' ? 'All caught up!' : 'Activity will appear here'}
+                <div className="space-y-px bg-border/5">
+                    {loading ? (
+                        <div className="flex flex-col items-center justify-center py-24 bg-background border border-border/5">
+                            <Loader2 className="h-8 w-8 animate-spin text-foreground/10 stroke-[1]" />
+                        </div>
+                    ) : filteredNotifications.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-32 bg-background border border-border/5 text-center gap-6">
+                            <Bell className="h-12 w-12 text-foreground/5 stroke-[1]" />
+                            <div className="space-y-1">
+                                <p className="text-[13px] font-medium text-foreground/20 uppercase tracking-widest">Feed Exhausted</p>
+                                <p className="text-[10px] text-foreground/10 font-mono tracking-tighter uppercase">
+                                    {filter === 'unread' ? '[ALL_SIGNAL_MAPPING_COMPLETE]' : '[NO_ACTIVITY_LOGGED]'}
                                 </p>
                             </div>
-                        ) : (
-                            <ScrollArea className="h-[500px]">
-                                <div className="space-y-2">
-                                    {filteredNotifications.map((notification) => (
-                                        <div
-                                            key={notification.id}
-                                            className={cn(
-                                                "flex items-start gap-4 p-4 rounded-lg border transition-colors cursor-pointer",
-                                                notification.read
-                                                    ? "bg-card hover:bg-muted/50"
-                                                    : "bg-primary/5 border-primary/20 hover:bg-primary/10"
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 gap-px">
+                            {filteredNotifications.map((notification) => (
+                                <div
+                                    key={notification.id}
+                                    className={cn(
+                                        "group flex items-start gap-8 p-10 bg-background border border-border/5 transition-all duration-500",
+                                        !notification.read ? "bg-primary/[0.01] border-primary/10" : "hover:bg-foreground/[0.01]"
+                                    )}
+                                    onClick={() => markAsRead(notification.id)}
+                                >
+                                    <div className={cn(
+                                        "p-4 border shrink-0 transition-colors flex items-center justify-center h-12 w-12",
+                                        !notification.read ? "bg-primary/5 border-primary/20 text-primary" : "bg-foreground/[0.03] border-foreground/5 text-foreground/20"
+                                    )}>
+                                        {getIcon(notification.type, notification.category)}
+                                    </div>
+
+                                    <div className="flex-1 min-w-0 space-y-3">
+                                        <div className="flex items-center gap-4">
+                                            <h4 className="text-[15px] font-medium text-foreground/80 group-hover:text-foreground transition-colors tabular-nums tracking-tight">
+                                                {notification.title}
+                                            </h4>
+                                            {!notification.read && (
+                                                <span className="text-[9px] font-bold text-primary bg-primary/10 border border-primary/20 px-2 rounded-none uppercase tracking-widest">
+                                                    Unread_Signal
+                                                </span>
                                             )}
-                                            onClick={() => markAsRead(notification.id)}
-                                        >
-                                            <div className={cn(
-                                                "p-2 rounded-lg shrink-0",
-                                                getIconColor(notification.type)
-                                            )}>
-                                                {getIcon(notification.type, notification.category)}
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <p className="font-medium text-sm">{notification.title}</p>
-                                                    {!notification.read && (
-                                                        <Badge variant="secondary" className="text-[10px] h-4">
-                                                            New
-                                                        </Badge>
-                                                    )}
-                                                </div>
-                                                <p className="text-sm text-muted-foreground line-clamp-2">
-                                                    {notification.message}
-                                                </p>
-                                                <p className="text-xs text-muted-foreground/60 mt-2">
-                                                    {formatTime(notification.createdAt)}
-                                                </p>
-                                            </div>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-8 w-8 shrink-0 opacity-0 group-hover:opacity-100"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    deleteNotification(notification.id);
-                                                }}
-                                            >
-                                                <Trash2 className="h-4 w-4 text-muted-foreground" />
-                                            </Button>
                                         </div>
-                                    ))}
+                                        <p className="text-[12px] text-foreground/40 leading-relaxed max-w-2xl border-l border-foreground/5 pl-6 ml-1">
+                                            {notification.message}
+                                        </p>
+                                        <div className="flex items-center gap-6 pt-2">
+                                            <span className="text-[10px] text-foreground/20 font-mono uppercase tracking-widest">
+                                                T_DELAY: {formatTime(notification.createdAt).toUpperCase()}
+                                            </span>
+                                            <span className="text-[10px] text-foreground/20 font-mono uppercase tracking-widest px-2 bg-foreground/[0.03]">
+                                                TAG: {notification.category}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-10 w-10 text-foreground/20 hover:text-red-400 hover:bg-red-400/5 transition-all opacity-0 group-hover:opacity-100 rounded-none shrink-0"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            deleteNotification(notification.id);
+                                        }}
+                                    >
+                                        <Trash2 className="h-4 w-4 stroke-[1.5]" />
+                                    </Button>
                                 </div>
-                            </ScrollArea>
-                        )}
-                    </CardContent>
-                </Card>
+                            ))}
+                        </div>
+                    )}
+                </div>
             </div>
         </AppLayout>
     );
