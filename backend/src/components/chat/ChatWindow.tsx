@@ -402,27 +402,21 @@ export function ChatWindow({ threadId, agentId = 'universe' }: ChatWindowProps) 
   }
 
   return (
-    <div className="flex h-full flex-col bg-card/50 overflow-hidden border-x border-border/80">
-      {/* Header Info - Optional but adds premium feel */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-border/80 bg-background/95 z-10">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-primary/10">
-            {agentId === 'builder' ? <Bot className="h-5 w-5 text-primary" /> : <BrainCircuit className="h-5 w-5 text-primary" />}
-          </div>
-          <div>
-            <h2 className="text-sm font-semibold capitalize">{agentId} Agent</h2>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Pandora AI</p>
-          </div>
+    <div className="flex h-full flex-col bg-background relative">
+      {/* Header Info - Minimal */}
+      <div className="flex items-center justify-between px-4 py-3 bg-background/80 backdrop-blur-sm sticky top-0 z-10">
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" className="h-auto p-0 hover:bg-transparent font-semibold text-lg flex items-center gap-1">
+            {agentId === 'builder' ? 'Builder' : 'Universe'} <Bot className="h-4 w-4 ml-1 opacity-50" />
+          </Button>
+          <span className="bg-primary/5 text-primary text-[10px] px-2 py-0.5 rounded-full font-medium">Plus</span>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-            <span className="text-[10px] font-medium text-muted-foreground uppercase">Online</span>
-          </div>
+
+        <div className="flex items-center gap-2">
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8"
+            className="h-8 w-8 text-muted-foreground hover:text-foreground"
             onClick={() => inspector.open(threadId)}
             title="Open Inspector"
           >
@@ -432,7 +426,7 @@ export function ChatWindow({ threadId, agentId = 'universe' }: ChatWindowProps) 
       </div>
 
       {/* Message List */}
-      <div className="flex-1 overflow-y-auto no-scrollbar scroll-smooth">
+      <div className="flex-1 overflow-y-auto no-scrollbar scroll-smooth w-full max-w-3xl mx-auto px-4">
         <MessageList
           messages={messages as MessageType[]}
           onSpeak={(content: string) => speak(content)}
@@ -441,25 +435,23 @@ export function ChatWindow({ threadId, agentId = 'universe' }: ChatWindowProps) 
       </div>
 
       {/* Chat Input */}
-      <div className="px-6 py-8 bg-gradient-to-t from-background via-background/95 to-transparent z-10">
-        <div className="max-w-4xl mx-auto">
-          {/* Follow-up Suggestions */}
-          <FollowUpChips
-            suggestions={followUpSuggestions}
-            onSelect={(suggestion) => handleSubmit(suggestion)}
-            isLoading={isStreaming}
-            className="mb-4"
-          />
-          <FloatingComposer
-            userId={user.uid}
-            onSubmit={handleSubmit}
-            disabled={isStreaming}
-            isLoading={isStreaming}
-          />
-          <p className="text-[10px] text-center text-muted-foreground/50 mt-4 uppercase tracking-tighter">
-            Pandora can make mistakes. Verify important information.
-          </p>
-        </div>
+      <div className="py-6 bg-background z-10 w-full max-w-3xl mx-auto px-4">
+        {/* Follow-up Suggestions */}
+        <FollowUpChips
+          suggestions={followUpSuggestions}
+          onSelect={(suggestion) => handleSubmit(suggestion)}
+          isLoading={isStreaming}
+          className="mb-4"
+        />
+        <FloatingComposer
+          userId={user.uid}
+          onSubmit={handleSubmit}
+          disabled={isStreaming}
+          isLoading={isStreaming}
+        />
+        <p className="text-[10px] text-center text-muted-foreground/40 mt-3">
+          Pandora can make mistakes. Verify important information.
+        </p>
       </div>
 
       {/* Inspector Drawer */}
