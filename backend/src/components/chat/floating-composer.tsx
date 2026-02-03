@@ -200,7 +200,7 @@ export function FloatingComposer({
                             rows={1}
                             className={cn(
                                 'flex-1 bg-transparent border-none shadow-none focus-visible:ring-0 resize-none py-1.5 px-2 text-base leading-relaxed',
-                                'placeholder:text-muted-foreground/30 font-medium'
+                                'text-foreground placeholder:text-muted-foreground/60 font-medium'
                             )}
                         />
                     </div>
@@ -230,7 +230,7 @@ export function FloatingComposer({
                                 "h-10 w-10 rounded-full transition-all duration-500 shrink-0",
                                 (input.trim() || attachments.length > 0)
                                     ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30"
-                                    : "bg-white/5 text-muted-foreground opacity-50 scale-90"
+                                    : "bg-white/10 text-muted-foreground hover:bg-white/20 hover:text-foreground"
                             )}
                         >
                             {isLoading ? (
@@ -248,19 +248,19 @@ export function FloatingComposer({
                     (input.length > 0 || isExpanded) ? "h-10 opacity-100 mt-1 mb-1" : "h-0 opacity-0"
                 )}>
                     <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="bg-white/5 border-white/10 text-[10px] py-0 px-2 flex items-center gap-1.5 font-medium text-muted-foreground">
+                        <Badge variant="outline" className="bg-white/5 border-white/10 text-[10px] py-0 px-2 flex items-center gap-1.5 font-medium text-muted-foreground/80">
                             <Sparkles className="h-2.5 w-2.5 text-primary" />
                             Sovereign Ingress
                         </Badge>
                         <div className="h-1 w-1 rounded-full bg-white/10" />
-                        <button className="text-[10px] font-semibold text-muted-foreground/60 hover:text-primary transition-colors flex items-center gap-1 uppercase tracking-tighter">
+                        <button className="text-[10px] font-semibold text-muted-foreground/80 hover:text-primary transition-colors flex items-center gap-1 uppercase tracking-tighter">
                             <CommandIcon className="h-3 w-3" />
                             Commands
                         </button>
                     </div>
 
                     <div className="flex items-center gap-3 pr-2">
-                        <button className="text-muted-foreground/40 hover:text-primary transition-colors">
+                        <button className="text-muted-foreground/70 hover:text-primary transition-colors">
                             <Smile className="h-4 w-4" />
                         </button>
                         <button
@@ -269,7 +269,7 @@ export function FloatingComposer({
                                 setAttachments([]);
                                 setIsExpanded(false);
                             }}
-                            className="text-xs font-bold text-muted-foreground/40 hover:text-red-500/60 transition-colors uppercase tracking-widest"
+                            className="text-xs font-bold text-muted-foreground/70 hover:text-red-500 transition-colors uppercase tracking-widest"
                         >
                             Clear
                         </button>
