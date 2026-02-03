@@ -132,6 +132,8 @@ export async function POST(req: NextRequest) {
       console.log(`[ActiveLearning] Ambiguity detected: ${activeLearningQuestion}`);
     }
 
+    let planData: any = null;
+
     // PHASE 2.1: Smart Model Orchestration
     const routeInfo = await selectModel(message, intent as any);
     console.log(`[Orchestration] Routing ${intent} to ${routeInfo.provider}:${routeInfo.modelId}`);
@@ -204,6 +206,14 @@ export async function POST(req: NextRequest) {
           }
         }
 
+        // PHASE 1.2: Advanced Planning (For BUILD/SOLVE intents)
+        if (intent === 'BUILD' || intent === 'SOLVE' || message.length > 150) {
+          console.log(`[Intelligence] Generating Execution Plan...`);
+          const plan = await generatePlan(message, context);
+          planData = plan;
+          context += `\n\n### 🗺️ STRATEGIC PLAN:\nGoal: ${plan.goal}\nSteps:\n${plan.steps.map(s => `[${s.agent}] ${s.description}`).join('\n')}`;
+        }
+
       } catch (e: any) { console.error(`[${requestId}] Intelligence Error:`, e.message); }
     }
 
@@ -219,6 +229,12 @@ ${agentId === 'builder' || intent === 'BUILD' ? `
 ### Role: THE UNIVERSE 🌌
 - **Expertise**: Creative synthesis.
 `}
+${activeLearningQuestion ? `
+### ⚠️ AMBIGUITY DETECTED
+The user's request is ambiguous. You MUST ask for clarification.
+Clarifying Question: "${activeLearningQuestion}"
+STOP: Do not try to answer the query yet. Ask the question.
+` : ''}
 ${routingInfo}
 User ID: ${userId}${context}`;
 
@@ -268,6 +284,14 @@ User ID: ${userId}${context}`;
                 toolName: 'Reasoning Engine',
                 input: { goal: 'Chain-of-Thought Decomposition' },
                 output: { thinking: reasoningData.thinking, steps: reasoningData.decomposition, confidence: reasoningData.confidence }
+              });
+            }
+
+            if (planData) {
+              toolUsages.push({
+                toolName: 'Strategic Planner',
+                input: { goal: planData.goal },
+                output: { steps: planData.steps }
               });
             }
 
