@@ -207,79 +207,94 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
 
   return (
     <>
-      <SidebarContent className="gap-1 px-2 pt-4">
-        <div className="flex items-center justify-between px-2 mb-4">
-          <span className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider">Menu</span>
-        </div>
-
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              isActive={pathname === '/'}
-              onClick={() => router.push('/')}
-              className="text-sidebar-foreground/80 hover:text-sidebar-foreground"
-            >
-              <Home className="h-4 w-4" />
-              <span>Home</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              isActive={pathname.startsWith('/memory')}
-              onClick={() => router.push('/memory')}
-              className="text-sidebar-foreground/80 hover:text-sidebar-foreground"
-            >
-              <BrainCircuit className="h-4 w-4" />
-              <span>Memory</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              isActive={pathname.startsWith('/artifacts')}
-              onClick={() => router.push('/artifacts')}
-              className="text-sidebar-foreground/80 hover:text-sidebar-foreground"
-            >
-              <Book className="h-4 w-4" />
-              <span>Artifacts</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-
-        <SidebarSeparator className="my-2 opacity-50" />
-
-        <div className="px-4 py-2 flex items-center justify-between">
-          <span className="text-xs font-medium text-sidebar-foreground/50">Recent</span>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-4 w-4 text-sidebar-foreground/50 hover:text-sidebar-foreground"
-            onClick={handleCreateThread}
-            title="New Chat"
-          >
-            <PlusCircle className="h-4 w-4" />
-          </Button>
-        </div>
-
-        <SidebarGroup className="p-0">
-          {loadingThreads ? (
-            <div className="flex justify-center p-4">
-              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-            </div>
-          ) : (
-            <ThreadList
-              threads={threads}
-              activeThreadId={threadId}
-              onNavigate={handleNavClick}
-              onThreadsChanged={async () => {
-                if (user) {
-                  const t = await getRecentThreads(user.uid, agent, workspaceId || undefined);
-                  setThreads(t);
-                }
-              }}
-            />
-          )}
+      <SidebarContent className="gap-0 pt-2">
+        <SidebarGroup>
+          <SidebarGroupLabel>Menu</SidebarGroupLabel>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                isActive={pathname === '/'}
+                onClick={() => router.push('/')}
+                tooltip="Home"
+              >
+                <Home className="h-4 w-4" />
+                <span>Home</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                isActive={pathname.startsWith('/memory')}
+                onClick={() => router.push('/memory')}
+                tooltip="Memory"
+              >
+                <BrainCircuit className="h-4 w-4" />
+                <span>Memory</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                isActive={pathname.startsWith('/artifacts')}
+                onClick={() => router.push('/artifacts')}
+                tooltip="Artifacts"
+              >
+                <Book className="h-4 w-4" />
+                <span>Artifacts</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
         </SidebarGroup>
-      </SidebarContent >
+
+        <SidebarSeparator className="mx-2 my-2 opacity-20" />
+
+        <SidebarGroup>
+          <SidebarGroupLabel className="justify-between pr-0">
+            Recent
+            <SidebarGroupAction onClick={handleCreateThread} title="New Chat">
+              <PlusCircle className="h-4 w-4" />
+            </SidebarGroupAction>
+          </SidebarGroupLabel>
+
+          <SidebarGroupContent className="p-0">
+            {loadingThreads ? (
+              <div className="flex justify-center p-4">
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <ThreadList
+                threads={threads}
+                activeThreadId={threadId}
+                onNavigate={handleNavClick}
+                onThreadsChanged={async () => {
+                  if (user) {
+                    const t = await getRecentThreads(user.uid, agent, workspaceId || undefined);
+                    setThreads(t);
+                  }
+                }}
+              />
+            )}
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+      <SidebarGroup className="p-0">
+        {loadingThreads ? (
+          <div className="flex justify-center p-4">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <ThreadList
+            threads={threads}
+            activeThreadId={threadId}
+            onNavigate={handleNavClick}
+            onThreadsChanged={async () => {
+              if (user) {
+                const t = await getRecentThreads(user.uid, agent, workspaceId || undefined);
+                setThreads(t);
+              }
+            }}
+          />
+        )}
+      </SidebarGroup>
+    </SidebarContent >
 
       <SidebarFooter className="p-2 border-t border-sidebar-border/50">
         <DropdownMenu>
