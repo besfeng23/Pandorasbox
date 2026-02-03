@@ -131,37 +131,32 @@ export function FloatingComposer({
     };
 
     return (
-        <div className={cn("relative w-full max-w-4xl mx-auto px-4 pb-4 animate-in-up transition-all duration-500", className)}>
-            {/* Attachment Previews Floating above */}
+        <div className={cn("fixed bottom-0 left-0 right-0 z-50 bg-black/85 backdrop-blur-xl border-t border-white/10 transition-all duration-300", className)}>
+
+            {/* Attachment Previews (Floating above the bar) */}
             {attachments.length > 0 && (
-                <div className="flex flex-wrap gap-3 mb-4 px-2">
-                    {attachments.map((attachment, i) => (
-                        <div key={i} className="group relative h-20 w-20 rounded-2xl overflow-hidden border border-white/10 shadow-2xl animate-in-zoom pointer-events-auto">
-                            <img src={attachment.preview} alt="preview" className="h-full w-full object-cover transition-transform group-hover:scale-110" />
-                            <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <div className="absolute bottom-full left-0 right-0 p-4 bg-gradient-to-t from-black/50 to-transparent">
+                    <div className="flex flex-wrap gap-3 max-w-3xl mx-auto">
+                        {attachments.map((attachment, i) => (
+                            <div key={i} className="group relative h-16 w-16 rounded-xl overflow-hidden border border-white/10 shadow-lg bg-black/50">
+                                <img src={attachment.preview} alt="preview" className="h-full w-full object-cover" />
                                 <button
                                     type="button"
                                     onClick={() => removeAttachment(i)}
-                                    className="bg-red-500 rounded-full p-1 shadow-lg hover:bg-red-600 transition-colors"
+                                    className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                                 >
                                     <X className="h-4 w-4 text-white" />
                                 </button>
                             </div>
-                        </div>
-                    ))}
+                        ))}
+                    </div>
                 </div>
             )}
 
-            {/* Main Container */}
-            <div className={cn(
-                "relative flex flex-col p-2 rounded-[26px] transition-all duration-500",
-                "bg-black/60 border border-white/10 backdrop-blur-xl shadow-2xl",
-                "focus-within:bg-black/80 focus-within:border-white/20 focus-within:ring-1 focus-within:ring-white/10",
-                isExpanded && "rounded-[24px]"
-            )}>
-
-                {/* Input Area */}
-                <div className="flex items-end gap-2 pr-2">
+            <div className="max-w-3xl mx-auto p-2 md:p-4 safe-area-pb">
+                {/* Main Input Row */}
+                <div className="flex items-end gap-2">
+                    {/* Attach Button */}
                     <TooltipProvider>
                         <Tooltip>
                             <TooltipTrigger asChild>
@@ -171,7 +166,7 @@ export function FloatingComposer({
                                     size="icon"
                                     onClick={() => fileInputRef.current?.click()}
                                     disabled={disabled || isLoading}
-                                    className="h-10 w-10 rounded-full mt-1 shrink-0 text-muted-foreground hover:text-primary transition-all hover:bg-primary/10"
+                                    className="h-10 w-10 shrink-0 text-muted-foreground hover:text-foreground hover:bg-white/10 rounded-full"
                                 >
                                     <Paperclip className="h-5 w-5" />
                                 </Button>
@@ -189,7 +184,11 @@ export function FloatingComposer({
                         className="hidden"
                     />
 
-                    <div className="flex-1 min-h-[44px] flex items-center py-1">
+                    {/* Input Pill Container */}
+                    <div className={cn(
+                        "flex-1 flex items-end min-h-[44px] bg-white/5 border border-white/10 rounded-[24px] px-3 py-1 transition-colors",
+                        "focus-within:bg-white/10 focus-within:border-white/20"
+                    )}>
                         <Textarea
                             ref={textareaRef}
                             value={input}
@@ -199,86 +198,68 @@ export function FloatingComposer({
                             disabled={disabled || isLoading}
                             rows={1}
                             className={cn(
-                                'flex-1 bg-transparent border-none shadow-none focus-visible:ring-0 resize-none py-1.5 px-2 text-base leading-relaxed',
-                                'text-foreground placeholder:text-muted-foreground/60 font-medium'
+                                'flex-1 bg-transparent border-none shadow-none focus-visible:ring-0 resize-none py-2.5 px-0 text-base leading-relaxed max-h-[200px]',
+                                'text-foreground placeholder:text-muted-foreground/50'
                             )}
                         />
+
+                        {/* Voice & Send In-Pill (Desktop) or Outside? 
+                             User Design: [ + ] [ Input w/ internal controls? ]
+                             Let's put Transcribe inside the pill right side, or outside?
+                             Common pattern: Input takes full pill width, actions are right of pill or inside right edge.
+                             Let's put Voice inside the pill text flow? No, looks messy.
+                             Standard: [ + ] [ Input Pill ] [ Voice ] [ Send ]
+                             OR: [ + ] [ Input Pill ...... [Voice][Send] ]
+                             The user CSS had `align-items: center` for bar.
+                             Let's place Voice and Send INSIDE the Pill for a clean contained look.
+                         */}
                     </div>
 
-                    <div className="flex items-center gap-1 mb-1">
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <div>
-                                        <VoiceInput
-                                            userId={userId}
-                                            onTranscriptionStatusChange={(status) => setIsRecording(status)}
-                                            disabled={disabled || isLoading}
-                                            onAudioSubmit={onSubmit}
-                                        />
-                                    </div>
-                                </TooltipTrigger>
-                                <TooltipContent side="top">Voice Input</TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
+                    {/* Right Actions (Voice / Send) */}
+                    <div className="flex items-center gap-1 shrink-0">
+                        <VoiceInput
+                            userId={userId}
+                            onTranscriptionStatusChange={(status) => setIsRecording(status)}
+                            disabled={disabled || isLoading}
+                            onAudioSubmit={onSubmit}
+                        />
 
                         <Button
                             type="button"
                             onClick={() => handleSubmit()}
                             disabled={(!input.trim() && attachments.length === 0) || disabled || isLoading}
                             className={cn(
-                                "h-10 w-10 rounded-full transition-all duration-500 shrink-0",
+                                "h-10 w-10 rounded-full transition-all duration-300",
                                 (input.trim() || attachments.length > 0)
-                                    ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30"
-                                    : "bg-white/10 text-muted-foreground hover:bg-white/20 hover:text-foreground"
+                                    ? "bg-primary text-primary-foreground shadow-lg"
+                                    : "bg-white/5 text-muted-foreground hover:bg-white/10"
                             )}
                         >
                             {isLoading ? (
                                 <Loader2 className="h-5 w-5 animate-spin" />
                             ) : (
-                                <Send className={cn("h-5 w-5 transition-transform", (input.trim() || attachments.length > 0) && "translate-x-0.5 -translate-y-0.5")} />
+                                <Send className="h-5 w-5" />
                             )}
                         </Button>
                     </div>
                 </div>
 
-                {/* Toolbar (Appears when focused or has content) */}
-                <div className={cn(
-                    "flex items-center justify-between px-2 overflow-hidden transition-all duration-500",
-                    (input.length > 0 || isExpanded) ? "h-10 opacity-100 mt-1 mb-1" : "h-0 opacity-0"
-                )}>
+                {/* Footer / Toolbar - Hidden on mobile if cramped, or simple text */}
+                <div className="hidden md:flex items-center justify-between mt-2 px-2 text-[10px] text-muted-foreground/60">
                     <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="bg-white/5 border-white/10 text-[10px] py-0 px-2 flex items-center gap-1.5 font-medium text-muted-foreground/80">
-                            <Sparkles className="h-2.5 w-2.5 text-primary" />
+                        <Badge variant="outline" className="border-white/10 bg-transparent text-muted-foreground/60 text-[10px] h-5 px-1.5 font-normal">
                             Sovereign Ingress
                         </Badge>
-                        <div className="h-1 w-1 rounded-full bg-white/10" />
-                        <button className="text-[10px] font-semibold text-muted-foreground/80 hover:text-primary transition-colors flex items-center gap-1 uppercase tracking-tighter">
-                            <CommandIcon className="h-3 w-3" />
-                            Commands
-                        </button>
+                        <span>•</span>
+                        <span className="flex items-center gap-1">
+                            <CommandIcon className="h-3 w-3" /> Commands
+                        </span>
                     </div>
-
-                    <div className="flex items-center gap-3 pr-2">
-                        <button className="text-muted-foreground/70 hover:text-primary transition-colors">
-                            <Smile className="h-4 w-4" />
-                        </button>
-                        <button
-                            onClick={() => {
-                                setInput('');
-                                setAttachments([]);
-                                setIsExpanded(false);
-                            }}
-                            className="text-xs font-bold text-muted-foreground/70 hover:text-red-500 transition-colors uppercase tracking-widest"
-                        >
-                            Clear
-                        </button>
+                    <div className="flex items-center gap-2">
+                        <span>Enter to send, Shift+Enter to newline</span>
                     </div>
                 </div>
             </div>
-
-            {/* Shadow Glow Background */}
-            <div className="absolute -inset-1 bg-gradient-to-r from-primary/10 via-transparent to-accent/10 rounded-[34px] blur-xl opacity-0 focus-within:opacity-100 transition-opacity duration-700 pointer-events-none -z-10" />
         </div>
     );
 }

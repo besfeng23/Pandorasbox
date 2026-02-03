@@ -425,34 +425,32 @@ export function ChatWindow({ threadId, agentId = 'universe' }: ChatWindowProps) 
         </div>
       </div>
 
-      {/* Message List */}
-      <div className="flex-1 overflow-y-auto no-scrollbar scroll-smooth w-full max-w-3xl mx-auto px-4">
+      {/* MessageList Container */}
+      <div className="flex-1 overflow-y-auto no-scrollbar scroll-smooth w-full max-w-3xl mx-auto px-4 pb-32">
         <MessageList
           messages={messages as MessageType[]}
           onSpeak={(content: string) => speak(content)}
         />
+        {/* Follow-up Suggestions at bottom of chat */}
+        {followUpSuggestions.length > 0 && (
+          <div className="py-4">
+            <FollowUpChips
+              suggestions={followUpSuggestions}
+              onSelect={(suggestion) => handleSubmit(suggestion)}
+              isLoading={isStreaming}
+            />
+          </div>
+        )}
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Chat Input */}
-      <div className="py-6 bg-background z-10 w-full max-w-3xl mx-auto px-4">
-        {/* Follow-up Suggestions */}
-        <FollowUpChips
-          suggestions={followUpSuggestions}
-          onSelect={(suggestion) => handleSubmit(suggestion)}
-          isLoading={isStreaming}
-          className="mb-4"
-        />
-        <FloatingComposer
-          userId={user.uid}
-          onSubmit={handleSubmit}
-          disabled={isStreaming}
-          isLoading={isStreaming}
-        />
-        <p className="text-[10px] text-center text-muted-foreground/40 mt-3">
-          Pandora can make mistakes. Verify important information.
-        </p>
-      </div>
+      {/* Fixed Chat Input */}
+      <FloatingComposer
+        userId={user.uid}
+        onSubmit={handleSubmit}
+        disabled={isStreaming}
+        isLoading={isStreaming}
+      />
 
       {/* Inspector Drawer */}
       <InspectorDrawer
