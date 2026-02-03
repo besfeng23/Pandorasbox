@@ -82,9 +82,9 @@ export function Message({
 
   return (
     <div className="group/message">
-      <div className={cn('flex items-start gap-4', isUser ? 'justify-end' : 'justify-start')}>
+      <div className={cn('flex items-start gap-3 md:gap-4', isUser ? 'justify-end' : 'justify-start w-full')}>
         {!isUser && (
-          <Avatar className="h-8 w-8">
+          <Avatar className="h-8 w-8 mt-1 shrink-0">
             <AvatarFallback>
               <Bot className="h-5 w-5" />
             </AvatarFallback>
@@ -92,10 +92,10 @@ export function Message({
         )}
         <div
           className={cn(
-            'max-w-2xl w-full rounded-2xl px-5 py-3.5 transition-all duration-300',
+            'relative max-w-[90%] md:max-w-2xl w-full rounded-2xl px-4 py-3 md:px-5 md:py-3.5 transition-all duration-300',
             isUser
               ? 'rounded-tr-none chat-bubble-user'
-              : 'rounded-tl-none chat-bubble-assistant border-white/10 shadow-sm relative'
+              : 'rounded-tl-none chat-bubble-assistant border-white/10 shadow-sm'
           )}
         >
           {hasMemoryRecall && (
@@ -118,8 +118,8 @@ export function Message({
                 <div className="flex items-center gap-2 text-destructive-foreground/80 py-2">
                   <Cog className="h-4 w-4 animate-spin" />
                   <span className="text-sm">
-                    {isErrorState || message.isError 
-                      ? 'Error: No response from AI. The inference server may be offline or unreachable. Check your VPC connector configuration.' 
+                    {isErrorState || message.isError
+                      ? 'Error: No response from AI. The inference server may be offline or unreachable. Check your VPC connector configuration.'
                       : 'Waiting for response...'}
                   </span>
                 </div>
@@ -200,7 +200,7 @@ export function Message({
           )}
         </div>
         {isUser && (
-          <Avatar className="h-8 w-8">
+          <Avatar className="h-8 w-8 mt-1 shrink-0">
             <AvatarFallback>
               <User className="h-5 w-5" />
             </AvatarFallback>

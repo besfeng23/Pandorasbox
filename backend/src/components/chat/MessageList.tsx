@@ -40,7 +40,7 @@ export function MessageList({
   const lastAssistantMessage = [...messages].reverse().find(m => m.role === 'assistant');
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-4 p-0 md:gap-6 md:p-6">
       {messages.map((message, i) => (
         <div key={message.id} className="animate-in-up" style={{ animationDelay: `${i * 0.05}s` }}>
           <Message
