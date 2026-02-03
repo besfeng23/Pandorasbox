@@ -412,7 +412,7 @@ export function AppLayout({ children, threadId }: { children: React.ReactNode; t
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full bg-background overflow-hidden selection:bg-primary/20 selection:text-primary">
+      <div className="flex min-h-[100dvh] w-full bg-background overflow-hidden selection:bg-primary/20 selection:text-primary">
         <CommandMenu />
 
         {/* Mobile Header - Visible only on mobile */}
