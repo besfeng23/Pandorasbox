@@ -153,7 +153,7 @@ export function FloatingComposer({
                 </div>
             )}
 
-            <div className="max-w-3xl mx-auto p-2 md:p-4 safe-area-pb">
+            <div className="w-full md:max-w-3xl mx-auto p-1 md:p-4 safe-area-pb">
                 {/* Main Input Row */}
                 <div className="flex items-end gap-2">
                     {/* Attach Button */}
