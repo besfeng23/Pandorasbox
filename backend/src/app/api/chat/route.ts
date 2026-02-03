@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
     const userId = decodedToken.uid;
 
     const body = await req.json();
-    const { message, agentId = 'universe', threadId, history = [], workspaceId } = body;
+    const { message, agentId = 'universe', threadId, history = [], workspaceId, attachments } = body;
 
     const db = getFirestoreAdmin();
     const userMessageRef = db.collection(`users/${userId}/threads/${threadId}/messages`).doc();
@@ -240,9 +240,23 @@ User ID: ${userId}${context}`;
 
     const cleanHistory = Array.isArray(history) ? history.filter(m => m.role && m.content) : [];
 
+    // Construct User Content (Multimodal)
+    let userContent: any = message;
+    if (attachments && Array.isArray(attachments) && attachments.length > 0) {
+      userContent = [
+        { type: 'text', text: message },
+        ...attachments
+          .filter((a: any) => a.type.startsWith('image/') && a.base64)
+          .map((a: any) => ({
+            type: 'image',
+            image: a.base64.split(',')[1] || a.base64
+          }))
+      ];
+    }
+
     const uiMessages = [
       ...cleanHistory.map(m => ({ role: m.role, content: m.content })),
-      { role: 'user', content: message }
+      { role: 'user', content: userContent }
     ];
 
     try {
