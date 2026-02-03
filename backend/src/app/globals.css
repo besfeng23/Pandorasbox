@@ -37,10 +37,10 @@
 
     /* Sidebar specific - Jet Black */
     --sidebar-background: 0 0% 0%; /* Complete black */
-    --sidebar-foreground: 0 0% 60%; /* Muted text */
+    --sidebar-foreground: 0 0% 88%; /* Brightened text for readability */
     --sidebar-primary: 0 0% 100%;
     --sidebar-primary-foreground: 0 0% 0%;
-    --sidebar-accent: 0 0% 10%; /* Subtle hover */
+    --sidebar-accent: 0 0% 12%; /* Subtle hover */
     --sidebar-accent-foreground: 0 0% 100%;
     --sidebar-border: 0 0% 12%;
     --sidebar-ring: 0 0% 100%;
@@ -64,7 +64,7 @@
     --secondary-foreground: 0 0% 100%;
  
     --muted: 0 0% 12%;
-    --muted-foreground: 0 0% 60%;
+    --muted-foreground: 0 0% 70%;
  
     --accent: 0 0% 12%;
     --accent-foreground: 0 0% 100%;
@@ -77,10 +77,10 @@
     --ring: 0 0% 100%;
 
     --sidebar-background: 0 0% 0%;
-    --sidebar-foreground: 0 0% 60%;
+    --sidebar-foreground: 0 0% 88%;
     --sidebar-primary: 0 0% 100%;
     --sidebar-primary-foreground: 0 0% 0%;
-    --sidebar-accent: 0 0% 10%;
+    --sidebar-accent: 0 0% 12%;
     --sidebar-accent-foreground: 0 0% 100%;
     --sidebar-border: 0 0% 12%;
     --sidebar-ring: 0 0% 100%;
