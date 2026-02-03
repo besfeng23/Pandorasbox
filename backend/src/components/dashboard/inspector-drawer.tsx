@@ -139,11 +139,7 @@ export function InspectorDrawer({ open, onClose, threadId, className, sources = 
 
                     <ScrollArea className="h-[calc(100vh-180px)]">
                         <TabsContent value="context" className="p-6 space-y-4 mt-0">
-                            {loading ? (
-                                <div className="flex items-center justify-center py-8">
-                                    <div className="animate-pulse text-muted-foreground">Loading context...</div>
-                                </div>
-                            ) : contextItems.length === 0 ? (
+                            {contextItems.length === 0 ? (
                                 <div className="text-center py-8 text-muted-foreground">
                                     <Brain className="h-12 w-12 mx-auto mb-4 opacity-20" />
                                     <p>No context retrieved yet.</p>
