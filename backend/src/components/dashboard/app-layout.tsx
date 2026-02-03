@@ -68,6 +68,7 @@ import {
   Plug,
   BrainCircuit,
   MoreHorizontal,
+  Home,
   Edit,
   Trash2,
   Bot,
@@ -206,127 +207,88 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
 
   return (
     <>
-      <SidebarHeader className="border-b border-white/5 pb-4">
-        <div className="flex items-center gap-3 px-2 py-2">
-          <PandoraBoxIcon className="h-6 w-6 text-white bg-transparent" />
-          <span className="text-sm font-semibold text-white tracking-wide">
-            Pandora&apos;s Box
-          </span>
-        </div>
-
+      <SidebarHeader className="h-14 flex items-center px-4 border-b border-sidebar-border/50">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="w-full justify-between bg-zinc-900 border-zinc-800 hover:bg-zinc-800 text-zinc-300 group transition-all">
-              <div className="flex items-center gap-2 overflow-hidden">
-                <div className="h-5 w-5 rounded bg-blue-500/20 flex items-center justify-center shrink-0">
-                  <Building className="h-3 w-3 text-blue-400" />
-                </div>
-                <span className="truncate text-xs font-medium">
-                  {workspaceId ? workspaces.find(w => w.id === workspaceId)?.name || 'Loading...' : 'Personal Vault'}
-                </span>
-              </div>
-              <MoreHorizontal className="h-3 w-3 opacity-50 group-hover:opacity-100" />
+            <Button variant="ghost" className="h-auto p-0 hover:bg-transparent text-sidebar-foreground hover:text-sidebar-primary font-semibold text-sm flex items-center gap-2">
+              <span>{workspaceId ? workspaces.find(w => w.id === workspaceId)?.name : 'Pandora'}</span>
+              <MoreHorizontal className="h-3 w-3 opacity-50" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-56" align="start">
-            <DropdownMenuLabel className="text-[10px] uppercase text-muted-foreground">Switch Workspace</DropdownMenuLabel>
-            <DropdownMenuItem
-              className={cn("text-xs", !workspaceId && "bg-primary/10")}
-              onClick={() => {
-                setWorkspaceId(null);
-                localStorage.removeItem('activeWorkspaceId');
-              }}
-            >
+            <DropdownMenuLabel className="text-xs text-muted-foreground">Switch Workspace</DropdownMenuLabel>
+            <DropdownMenuItem onClick={() => { setWorkspaceId(null); localStorage.removeItem('activeWorkspaceId'); }}>
               Personal Vault
             </DropdownMenuItem>
             {workspaces?.map(ws => (
-              <DropdownMenuItem
-                key={ws.id}
-                className={cn("text-xs", workspaceId === ws.id && "bg-primary/10")}
-                onClick={() => {
-                  setWorkspaceId(ws.id);
-                  localStorage.setItem('activeWorkspaceId', ws.id);
-                }}
-              >
+              <DropdownMenuItem key={ws.id} onClick={() => { setWorkspaceId(ws.id); localStorage.setItem('activeWorkspaceId', ws.id); }}>
                 {ws.name}
               </DropdownMenuItem>
             ))}
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-xs" onClick={() => router.push('/workspaces')}>
-              <PlusCircle className="mr-2 h-3 w-3" />
-              Manage Workspaces
+            <DropdownMenuItem onClick={() => router.push('/workspaces')}>
+              <PlusCircle className="mr-2 h-3 w-3" /> Manage Workspaces
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarHeader>
 
-      <SidebarContent className="p-2 gap-4">
-        <SidebarGroup>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <Link href="/memory" className="w-full" onClick={handleNavClick}>
-                <SidebarMenuButton isActive={pathname.startsWith('/memory')} className="w-full justify-start text-muted-foreground hover:text-white data-[active=true]:text-white">
-                  <BrainCircuit className="h-4 w-4" />
-                  <span>Memory</span>
-                </SidebarMenuButton>
-              </Link>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <Link href="/connectors" className="w-full" onClick={handleNavClick}>
-                <SidebarMenuButton isActive={pathname.startsWith('/connectors')} className="w-full justify-start text-muted-foreground hover:text-white data-[active=true]:text-white">
-                  <Plug className="h-4 w-4" />
-                  <span>Data Connectors</span>
-                </SidebarMenuButton>
-              </Link>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <Link href="/agents" className="w-full" onClick={handleNavClick}>
-                <SidebarMenuButton isActive={pathname.startsWith('/agents')} className="w-full justify-start text-muted-foreground hover:text-white data-[active=true]:text-white">
-                  <Bot className="h-4 w-4" />
-                  <span>Agents</span>
-                </SidebarMenuButton>
-              </Link>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarGroup>
-
-        <div className="px-2 py-4">
-          <Tabs value={agent} onValueChange={(value) => setAgent(value as 'builder' | 'universe')} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 bg-zinc-800/50 p-1 rounded-lg h-9">
-              <TabsTrigger
-                value="builder"
-                className="text-xs font-medium py-1 data-[state=active]:bg-zinc-700 data-[state=active]:text-white text-zinc-400"
-              >
-                Builder
-              </TabsTrigger>
-              <TabsTrigger
-                value="universe"
-                className="text-xs font-medium py-1 data-[state=active]:bg-zinc-700 data-[state=active]:text-white text-zinc-400"
-              >
-                Universe
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-
+      <SidebarContent className="gap-1 px-2 pt-2">
+        {/* Main Actions */}
+        <div className="flex gap-2 mb-4 px-2">
           <Button
             variant="outline"
-            className="w-full mt-4 justify-center gap-2 border-zinc-800 bg-transparent hover:bg-zinc-800 text-white h-10"
+            className="w-full justify-start gap-2 bg-background border-border/50 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground shadow-none"
             onClick={handleCreateThread}
           >
-            <PlusCircle className="h-4 w-4 text-zinc-400" />
-            <span>New Thread</span>
+            <PlusCircle className="h-4 w-4" />
+            <span>New Chat</span>
           </Button>
         </div>
 
-        <SidebarSeparator className="mx-2" />
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              isActive={pathname === '/'}
+              onClick={() => router.push('/')}
+              className="text-sidebar-foreground/80 hover:text-sidebar-foreground"
+            >
+              <Home className="h-4 w-4" />
+              <span>Home</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              isActive={pathname.startsWith('/memory')}
+              onClick={() => router.push('/memory')}
+              className="text-sidebar-foreground/80 hover:text-sidebar-foreground"
+            >
+              <BrainCircuit className="h-4 w-4" />
+              <span>Memory</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              isActive={pathname.startsWith('/artifacts')}
+              onClick={() => router.push('/artifacts')}
+              className="text-sidebar-foreground/80 hover:text-sidebar-foreground"
+            >
+              <Book className="h-4 w-4" />
+              <span>Artifacts</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
 
+        <SidebarSeparator className="my-2 opacity-50" />
 
+        <div className="px-4 py-2">
+          <span className="text-xs font-medium text-sidebar-foreground/50">Recent</span>
+        </div>
 
-
-        <SidebarGroup className="mt-4 p-0">
+        <SidebarGroup className="p-0">
           {loadingThreads ? (
             <div className="flex justify-center p-4">
-              <Loader2 className="h-5 w-5 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
             </div>
           ) : (
             <ThreadList
@@ -344,63 +306,15 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
         </SidebarGroup>
       </SidebarContent >
 
-      <SidebarFooter>
-
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="w-full justify-start gap-3 p-2 h-auto hover:bg-zinc-800">
-              <Avatar className="h-8 w-8 rounded-full bg-zinc-700">
-                {user?.photoURL && <AvatarImage src={user.photoURL} alt={user.displayName || user.email || 'User'} />}
-                <AvatarFallback>
-                  <User className="h-4 w-4 text-zinc-300" />
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex flex-col items-start min-w-0">
-                <span className="text-sm font-medium text-white truncate max-w-[140px]">
-                  {user?.displayName || user?.email || 'User'}
-                </span>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className={cn("w-2 h-2 rounded-full shadow-sm transition-colors duration-300", getStatusColor(inferenceStatus))}></span>
-                      </TooltipTrigger>
-                      <TooltipContent side="right" className="text-[10px] bg-black border-white/10">Inference (Brain): {inferenceStatus}</TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className={cn("w-2 h-2 rounded-full shadow-sm transition-colors duration-300", getStatusColor(memoryStatus))}></span>
-                      </TooltipTrigger>
-                      <TooltipContent side="right" className="text-[10px] bg-black border-white/10">Memory (Qdrant): {memoryStatus}</TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-
-                  <span className="text-[10px] font-medium text-zinc-500 tracking-wider">SYSTEM</span>
-                </div>
-              </div>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent side="top" align="start" className="w-56">
-            <DropdownMenuLabel>My Account</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => { handleNavClick(); router.push('/settings'); }}>
-              <Settings className="mr-2 h-4 w-4" />
-              <span>Settings</span>
-            </DropdownMenuItem>
-            <div className="flex items-center justify-between px-2 py-1.5">
-              <Label>Theme</Label>
-              <ThemeToggle />
-            </div>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={logout}>
-              <LogOut className="mr-2 h-4 w-4" />
-              <span>Log out</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+      <SidebarFooter className="p-2 border-t border-sidebar-border/50">
+        <Button variant="ghost" className="w-full justify-start gap-2 text-sidebar-foreground/70 hover:text-sidebar-foreground" onClick={() => router.push('/settings')}>
+          <Settings className="h-4 w-4" />
+          <span>Settings</span>
+        </Button>
+        <Button variant="ghost" className="w-full justify-start gap-2 text-sidebar-foreground/70 hover:text-sidebar-foreground" onClick={logout}>
+          <LogOut className="h-4 w-4" />
+          <span>Log out</span>
+        </Button>
       </SidebarFooter>
     </>
   );
@@ -412,34 +326,26 @@ export function AppLayout({ children, threadId }: { children: React.ReactNode; t
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-[100dvh] w-full bg-background overflow-hidden selection:bg-primary/20 selection:text-primary">
+      <div className="flex min-h-[100dvh] w-full bg-background overflow-hidden">
         <CommandMenu />
-
-        {/* Mobile Header - Visible only on mobile */}
         <MobileHeader />
 
-        {/* Desktop Sidebar - Rendered as Sheet on Mobile */}
         <div className="h-full">
-          <Sidebar className="border-r-0 glass-surface-strong" collapsible="icon">
+          <Sidebar className="border-r border-sidebar-border bg-sidebar" collapsible="icon">
             <SidebarContentInternal threadId={threadId} />
           </Sidebar>
         </div>
 
-        <SidebarInset className="flex flex-col flex-1 overflow-hidden p-0 bg-gradient-to-br from-background to-muted/50 dark:to-muted/10">
-          {/* Mobile Tab Bar - Disabled for new Header design
-           <BottomTabBar /> 
-          */}
-
+        <SidebarInset className="flex flex-col flex-1 overflow-hidden bg-background">
           <div className={cn(
             "flex flex-col flex-1 min-w-0 transition-all duration-300 ease-in-out h-full overflow-y-auto",
             isOpen ? "hidden md:flex" : "flex"
           )}>
-            {/* Note: Mobile Header is now per-page, so we remove the global one here */}
             {children}
           </div>
 
           {isOpen && (
-            <div className="hidden md:block w-full md:w-auto h-full border-l border-border bg-background z-20">
+            <div className="hidden md:block w-full md:w-auto h-full border-l border-border bg-background z-20 shadow-xl">
               <ArtifactPanel />
             </div>
           )}
