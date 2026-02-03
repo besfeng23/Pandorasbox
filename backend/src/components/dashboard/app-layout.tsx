@@ -278,26 +278,6 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarGroup className="p-0">
-        {loadingThreads ? (
-          <div className="flex justify-center p-4">
-            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-          </div>
-        ) : (
-          <ThreadList
-            threads={threads}
-            activeThreadId={threadId}
-            onNavigate={handleNavClick}
-            onThreadsChanged={async () => {
-              if (user) {
-                const t = await getRecentThreads(user.uid, agent, workspaceId || undefined);
-                setThreads(t);
-              }
-            }}
-          />
-        )}
-      </SidebarGroup>
-    </SidebarContent >
 
       <SidebarFooter className="p-2 border-t border-sidebar-border/50">
         <DropdownMenu>
