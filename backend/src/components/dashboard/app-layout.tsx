@@ -207,43 +207,9 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
 
   return (
     <>
-      <SidebarHeader className="h-14 flex items-center px-4 border-b border-sidebar-border/50">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-auto p-0 hover:bg-transparent text-sidebar-foreground hover:text-sidebar-primary font-semibold text-sm flex items-center gap-2">
-              <span>{workspaceId ? workspaces.find(w => w.id === workspaceId)?.name : 'Pandora'}</span>
-              <MoreHorizontal className="h-3 w-3 opacity-50" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56" align="start">
-            <DropdownMenuLabel className="text-xs text-muted-foreground">Switch Workspace</DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => { setWorkspaceId(null); localStorage.removeItem('activeWorkspaceId'); }}>
-              Personal Vault
-            </DropdownMenuItem>
-            {workspaces?.map(ws => (
-              <DropdownMenuItem key={ws.id} onClick={() => { setWorkspaceId(ws.id); localStorage.setItem('activeWorkspaceId', ws.id); }}>
-                {ws.name}
-              </DropdownMenuItem>
-            ))}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => router.push('/workspaces')}>
-              <PlusCircle className="mr-2 h-3 w-3" /> Manage Workspaces
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </SidebarHeader>
-
-      <SidebarContent className="gap-1 px-2 pt-2">
-        {/* Main Actions */}
-        <div className="flex gap-2 mb-4 px-2">
-          <Button
-            variant="outline"
-            className="w-full justify-start gap-2 bg-background border-border/50 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground shadow-none"
-            onClick={handleCreateThread}
-          >
-            <PlusCircle className="h-4 w-4" />
-            <span>New Chat</span>
-          </Button>
+      <SidebarContent className="gap-1 px-2 pt-4">
+        <div className="flex items-center justify-between px-2 mb-4">
+          <span className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider">Menu</span>
         </div>
 
         <SidebarMenu>
@@ -281,8 +247,17 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
 
         <SidebarSeparator className="my-2 opacity-50" />
 
-        <div className="px-4 py-2">
+        <div className="px-4 py-2 flex items-center justify-between">
           <span className="text-xs font-medium text-sidebar-foreground/50">Recent</span>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-4 w-4 text-sidebar-foreground/50 hover:text-sidebar-foreground"
+            onClick={handleCreateThread}
+            title="New Chat"
+          >
+            <PlusCircle className="h-4 w-4" />
+          </Button>
         </div>
 
         <SidebarGroup className="p-0">
@@ -307,14 +282,32 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
       </SidebarContent >
 
       <SidebarFooter className="p-2 border-t border-sidebar-border/50">
-        <Button variant="ghost" className="w-full justify-start gap-2 text-sidebar-foreground/70 hover:text-sidebar-foreground" onClick={() => router.push('/settings')}>
-          <Settings className="h-4 w-4" />
-          <span>Settings</span>
-        </Button>
-        <Button variant="ghost" className="w-full justify-start gap-2 text-sidebar-foreground/70 hover:text-sidebar-foreground" onClick={logout}>
-          <LogOut className="h-4 w-4" />
-          <span>Log out</span>
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="w-full justify-start gap-2 text-sidebar-foreground/70 hover:text-sidebar-foreground p-2 h-auto">
+              <Avatar className="h-6 w-6 rounded-md">
+                <AvatarImage src={user?.photoURL || ''} />
+                <AvatarFallback><User className="h-4 w-4" /></AvatarFallback>
+              </Avatar>
+              <span className="text-xs truncate font-medium">{user?.displayName || 'User'}</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-56">
+            <DropdownMenuItem onClick={() => router.push('/settings')}>Settings</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel className="text-xs text-muted-foreground">Workspace</DropdownMenuLabel>
+            <DropdownMenuItem onClick={() => { setWorkspaceId(null); localStorage.removeItem('activeWorkspaceId'); }}>
+              Personal Vault
+            </DropdownMenuItem>
+            {workspaces?.map(ws => (
+              <DropdownMenuItem key={ws.id} onClick={() => { setWorkspaceId(ws.id); localStorage.setItem('activeWorkspaceId', ws.id); }}>
+                {ws.name}
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={logout}>Log out</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </SidebarFooter>
     </>
   );
@@ -330,10 +323,14 @@ export function AppLayout({ children, threadId }: { children: React.ReactNode; t
         <CommandMenu />
         <MobileHeader />
 
-        <div className="h-full">
+        <div className="h-full flex">
           <Sidebar className="border-r border-sidebar-border bg-sidebar" collapsible="icon">
             <SidebarContentInternal threadId={threadId} />
           </Sidebar>
+
+          <div className="hidden md:flex items-center pt-2 pl-2 absolute z-50">
+            <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
+          </div>
         </div>
 
         <SidebarInset className="flex flex-col flex-1 overflow-hidden bg-background">
