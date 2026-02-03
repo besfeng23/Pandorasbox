@@ -92,7 +92,7 @@ export function Message({
         )}
         <div
           className={cn(
-            'relative max-w-[90%] md:max-w-2xl w-full rounded-2xl px-4 py-3 md:px-5 md:py-3.5 transition-all duration-300',
+            'relative max-w-[95%] md:max-w-2xl w-full rounded-2xl px-3.5 py-2.5 md:px-5 md:py-3.5 transition-all duration-300',
             isUser
               ? 'rounded-tr-none chat-bubble-user'
               : 'rounded-tl-none chat-bubble-assistant border-white/10 shadow-sm'
