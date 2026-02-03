@@ -22,6 +22,9 @@ import {
   SidebarTrigger,
   SidebarGroup,
   SidebarSeparator,
+  SidebarGroupLabel,
+  SidebarGroupAction,
+  SidebarGroupContent,
   useSidebar,
 } from '@/components/ui/sidebar';
 import {
