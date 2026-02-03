@@ -20,6 +20,7 @@ import { generateCreativeArtifact } from '@/lib/ai/creative';
 import { v4 as uuidv4 } from 'uuid';
 import { handleOptions, corsHeaders } from '@/lib/cors';
 import { getDispatcher } from '@/modules/intelligence/router';
+import { summarizeThreadTitle } from '@/lib/ai/summarizer';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -107,6 +108,7 @@ export async function POST(req: NextRequest) {
     });
 
     let context = '';
+    let recalledSources: any[] = [];
 
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -167,6 +169,7 @@ export async function POST(req: NextRequest) {
     if (message.length > 5) {
       try {
         const searchResults = await hybridSearch(message, userId, agentId, workspaceId, 5);
+        recalledSources = searchResults;
         context = `\n\n### 🧠 RECALLED CONTEXT:\n${searchResults.map(r => r.payload?.content).join('\n---\n')}`;
 
         // PHASE 4: AI Intelligence (Reasoning & Planning)
@@ -266,6 +269,23 @@ User ID: ${userId}${context}`;
                 input: { goal: 'Chain-of-Thought Decomposition' },
                 output: { thinking: reasoningData.thinking, steps: reasoningData.decomposition, confidence: reasoningData.confidence }
               });
+            }
+
+            if (recalledSources.length > 0) {
+              toolUsages.push({
+                toolName: 'Memory Recall',
+                input: { query: message, count: recalledSources.length },
+                output: recalledSources.map(r => ({
+                  title: r.payload?.source || 'Knowledge Base',
+                  snippet: r.payload?.content?.substring(0, 100) + '...',
+                  score: r.score
+                }))
+              });
+            }
+
+            // Auto-Title Trigger (Sovereign GPU)
+            if (cleanHistory.length <= 2) {
+              summarizeThreadTitle(threadId, userId, message + "\n" + (completion || ""));
             }
 
             await assistantMessageRef.set({
