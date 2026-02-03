@@ -97,7 +97,6 @@
   }
 }
 
-/* Glass & Utilities */
 @layer utilities {
   .no-scrollbar::-webkit-scrollbar {
     display: none;
@@ -105,6 +104,57 @@
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+  
+  .safe-area-pb {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  /* Motion & Animation */
+  .animate-in-fade {
+    animation: fade-in 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  }
+
+  .animate-in-up {
+    animation: slide-up-fade 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  }
+
+  .animate-pulse-subtle {
+    animation: pulse-subtle 3s infinite ease-in-out;
+  }
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes slide-up-fade {
+    from { 
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to { 
+      opacity: 1; 
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes pulse-subtle {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
+
+  /* Etched Glass Code Blocks */
+  pre {
+    @apply bg-white/5 border border-white/10 rounded-xl overflow-hidden backdrop-blur-sm my-4;
+  }
+  code {
+    @apply font-mono text-sm;
+  }
+  
+  /* Selection */
+  ::selection {
+    @apply bg-white/20 text-white;
   }
   
   .glass-panel {
