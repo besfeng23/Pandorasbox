@@ -28,7 +28,7 @@ export default function RootLayout({
         />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
       </head>
-      <body className={cn('font-body antialiased bg-background dark:bg-grid-black bg-grid-white max-w-[100vw] overflow-x-hidden')}>
+      <body className={cn('font-sans antialiased bg-background tracking-tight max-w-[100vw] overflow-x-hidden selection:bg-white/20')}>
         <Providers>
           <SafeEnvCheck>
             {children}

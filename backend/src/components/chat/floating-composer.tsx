@@ -154,9 +154,9 @@ export function FloatingComposer({
 
             {/* Main Container */}
             <div className={cn(
-                "relative flex flex-col p-2 rounded-[32px] transition-all duration-500",
-                "bg-white/[0.03] dark:bg-black/[0.2] border border-white/10 backdrop-blur-2xl shadow-2xl",
-                "focus-within:bg-white/[0.05] dark:focus-within:bg-black/[0.3] focus-within:border-primary/30 focus-within:ring-4 focus-within:ring-primary/5",
+                "relative flex flex-col p-2 rounded-[26px] transition-all duration-500",
+                "bg-black/60 border border-white/10 backdrop-blur-xl shadow-2xl",
+                "focus-within:bg-black/80 focus-within:border-white/20 focus-within:ring-1 focus-within:ring-white/10",
                 isExpanded && "rounded-[24px]"
             )}>
 

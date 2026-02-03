@@ -41,15 +41,16 @@ export function MessageList({
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      {messages.map((message) => (
-        <Message
-          key={message.id}
-          message={message}
-          onRegenerate={onRegenerate}
-          isLastAssistantMessage={message.id === lastAssistantMessage?.id}
-          isRegenerating={isRegenerating}
-          onSpeak={onSpeak ? () => onSpeak(message.content) : undefined}
-        />
+      {messages.map((message, i) => (
+        <div key={message.id} className="animate-in-up" style={{ animationDelay: `${i * 0.05}s` }}>
+          <Message
+            message={message}
+            onRegenerate={onRegenerate}
+            isLastAssistantMessage={message.id === lastAssistantMessage?.id}
+            isRegenerating={isRegenerating}
+            onSpeak={onSpeak ? () => onSpeak(message.content) : undefined}
+          />
+        </div>
       ))}
     </div>
   );
