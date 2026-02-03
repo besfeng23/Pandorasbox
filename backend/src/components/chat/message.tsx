@@ -81,21 +81,14 @@ export function Message({
   }, [safeContent, isLastAssistantMessage]);
 
   return (
-    <div className="group/message">
-      <div className={cn('flex items-start gap-3 md:gap-4', isUser ? 'justify-end' : 'justify-start w-full')}>
-        {!isUser && (
-          <Avatar className="h-8 w-8 mt-1 shrink-0">
-            <AvatarFallback>
-              <Bot className="h-5 w-5" />
-            </AvatarFallback>
-          </Avatar>
-        )}
+    <div className="group/message w-full">
+      <div className={cn('flex w-full', isUser ? 'justify-end' : 'justify-start')}>
         <div
           className={cn(
-            'relative max-w-[95%] md:max-w-2xl w-full rounded-2xl px-3.5 py-2.5 md:px-5 md:py-3.5 transition-all duration-300',
+            'relative max-w-[90%] md:max-w-2xl rounded-2xl px-4 py-3 md:px-5 md:py-3.5 transition-all duration-300',
             isUser
-              ? 'rounded-tr-none chat-bubble-user'
-              : 'rounded-tl-none chat-bubble-assistant border-white/10 shadow-sm'
+              ? 'rounded-br-sm bg-primary/20 text-foreground border border-primary/20'
+              : 'rounded-bl-sm bg-white/5 border border-white/10 shadow-sm'
           )}
         >
           {hasMemoryRecall && (
@@ -199,13 +192,6 @@ export function Message({
             </div>
           )}
         </div>
-        {isUser && (
-          <Avatar className="h-8 w-8 mt-1 shrink-0">
-            <AvatarFallback>
-              <User className="h-5 w-5" />
-            </AvatarFallback>
-          </Avatar>
-        )}
       </div>
       {isLastAssistantMessage && (onRegenerate || onSpeak) && (
         <div className={cn('flex pt-2 gap-2 transition-opacity group-hover/message:opacity-100', isRegenerating ? 'opacity-100' : 'opacity-0', isUser ? 'justify-end' : 'justify-start pl-12')}>

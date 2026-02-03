@@ -186,7 +186,7 @@ export function FloatingComposer({
 
                     {/* Input Pill Container */}
                     <div className={cn(
-                        "flex-1 flex items-end min-h-[44px] bg-white/5 border border-white/10 rounded-[24px] px-3 py-1 transition-colors",
+                        "flex-1 flex items-end min-h-[44px] bg-white/5 border border-white/10 rounded-[24px] px-2 py-1 transition-colors relative",
                         "focus-within:bg-white/10 focus-within:border-white/20"
                     )}>
                         <Textarea
@@ -198,49 +198,35 @@ export function FloatingComposer({
                             disabled={disabled || isLoading}
                             rows={1}
                             className={cn(
-                                'flex-1 bg-transparent border-none shadow-none focus-visible:ring-0 resize-none py-2.5 px-0 text-base leading-relaxed max-h-[200px]',
+                                'flex-1 bg-transparent border-none shadow-none focus-visible:ring-0 resize-none py-2.5 px-2 text-base leading-relaxed max-h-[200px]',
                                 'text-foreground placeholder:text-muted-foreground/50'
                             )}
                         />
 
-                        {/* Voice & Send In-Pill (Desktop) or Outside? 
-                             User Design: [ + ] [ Input w/ internal controls? ]
-                             Let's put Transcribe inside the pill right side, or outside?
-                             Common pattern: Input takes full pill width, actions are right of pill or inside right edge.
-                             Let's put Voice inside the pill text flow? No, looks messy.
-                             Standard: [ + ] [ Input Pill ] [ Voice ] [ Send ]
-                             OR: [ + ] [ Input Pill ...... [Voice][Send] ]
-                             The user CSS had `align-items: center` for bar.
-                             Let's place Voice and Send INSIDE the Pill for a clean contained look.
-                         */}
-                    </div>
-
-                    {/* Right Actions (Voice / Send) */}
-                    <div className="flex items-center gap-1 shrink-0">
-                        <VoiceInput
-                            userId={userId}
-                            onTranscriptionStatusChange={(status) => setIsRecording(status)}
-                            disabled={disabled || isLoading}
-                            onAudioSubmit={onSubmit}
-                        />
-
-                        <Button
-                            type="button"
-                            onClick={() => handleSubmit()}
-                            disabled={(!input.trim() && attachments.length === 0) || disabled || isLoading}
-                            className={cn(
-                                "h-10 w-10 rounded-full transition-all duration-300",
-                                (input.trim() || attachments.length > 0)
-                                    ? "bg-primary text-primary-foreground shadow-lg"
-                                    : "bg-white/5 text-muted-foreground hover:bg-white/10"
-                            )}
-                        >
-                            {isLoading ? (
-                                <Loader2 className="h-5 w-5 animate-spin" />
+                        {/* Right Actions (Inside Pill) */}
+                        <div className="flex items-center gap-1 pb-1 pr-1">
+                            {!input.trim() && attachments.length === 0 ? (
+                                <VoiceInput
+                                    userId={userId}
+                                    onTranscriptionStatusChange={(status) => setIsRecording(status)}
+                                    disabled={disabled || isLoading}
+                                    onAudioSubmit={onSubmit}
+                                />
                             ) : (
-                                <Send className="h-5 w-5" />
+                                <Button
+                                    type="button"
+                                    onClick={() => handleSubmit()}
+                                    disabled={disabled || isLoading}
+                                    className="h-8 w-8 rounded-full bg-primary text-primary-foreground shadow-sm hover:opacity-90 transition-all p-0 flex items-center justify-center"
+                                >
+                                    {isLoading ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <Send className="h-4 w-4" />
+                                    )}
+                                </Button>
                             )}
-                        </Button>
+                        </div>
                     </div>
                 </div>
 
