@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useUser, useAuthActions } from '@/firebase';
 import type { Thread } from '@/lib/types';
-import MobileHeader from '@/components/mobile-header';
 import { ThreadList } from '@/components/dashboard/thread-list';
 import {
   Sidebar,
@@ -319,14 +318,12 @@ export function AppLayout({ children, threadId }: { children: React.ReactNode; t
     <SidebarProvider>
       <div className="flex min-h-[100dvh] w-full bg-background overflow-hidden">
         <CommandMenu />
-        <MobileHeader />
-
         <div className="h-full flex">
           <Sidebar className="border-r border-sidebar-border bg-sidebar" collapsible="icon">
             <SidebarContentInternal threadId={threadId} />
           </Sidebar>
 
-          <div className="hidden md:flex items-center pt-2 pl-2 absolute z-50">
+          <div className="flex items-center pt-2 pl-2 absolute z-50">
             <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
           </div>
         </div>
