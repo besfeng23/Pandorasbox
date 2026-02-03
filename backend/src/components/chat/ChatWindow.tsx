@@ -457,6 +457,12 @@ export function ChatWindow({ threadId, agentId = 'universe' }: ChatWindowProps) 
         open={inspector.isOpen}
         onClose={inspector.close}
         threadId={threadId}
+        sources={messages
+          .flatMap(m => m.toolUsages || [])
+          .filter(t => t.toolName === 'Memory Recall')
+          .flatMap(t => Array.isArray(t.output) ? t.output : [])
+          .reverse() // Show newest first? Or oldest? Usually most relevant first.
+        }
       />
     </div>
   );

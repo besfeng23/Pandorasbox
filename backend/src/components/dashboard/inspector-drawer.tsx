@@ -34,45 +34,33 @@ interface InspectorDrawerProps {
     onClose: () => void;
     threadId?: string;
     className?: string;
+    sources?: any[];
 }
 
-export function InspectorDrawer({ open, onClose, threadId, className }: InspectorDrawerProps) {
-    const { user } = useUser();
+export function InspectorDrawer({ open, onClose, threadId, className, sources = [] }: InspectorDrawerProps) {
     const [activeTab, setActiveTab] = useState('context');
     const [contextItems, setContextItems] = useState<ContextItem[]>([]);
-    const [loading, setLoading] = useState(false);
     const [copiedId, setCopiedId] = useState<string | null>(null);
+    // Removed loading state as data is passed via props
 
-    // Fetch context when drawer opens
+    // Sync sources to context items
     useEffect(() => {
-        if (open && user && threadId) {
-            fetchContext();
+        if (sources && sources.length > 0) {
+            const items: ContextItem[] = sources.map((s, i) => ({
+                id: `src-${i}-${Date.now()}`,
+                type: 'memory',
+                title: s.title || 'Knowledge Source',
+                content: s.snippet || 'No content preview available.',
+                score: s.score,
+                source: s.title,
+                createdAt: new Date().toISOString()
+            }));
+            // Deduplicate by content or title? For now simple map.
+            setContextItems(items);
+        } else {
+            setContextItems([]);
         }
-    }, [open, user, threadId]);
-
-    const fetchContext = async () => {
-        if (!user) return;
-        setLoading(true);
-
-        try {
-            // For now, use placeholder data - would connect to an API
-            // that returns recent memories/context used in the chat
-            setContextItems([
-                {
-                    id: '1',
-                    type: 'memory',
-                    title: 'Previous Conversation Context',
-                    content: 'This is an example of retrieved context that would appear here during a real conversation.',
-                    score: 0.92,
-                    createdAt: new Date().toISOString(),
-                },
-            ]);
-        } catch (error) {
-            console.error('Failed to fetch context:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
+    }, [sources]);
 
     const handleCopy = async (content: string, id: string) => {
         await navigator.clipboard.writeText(content);
