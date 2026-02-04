@@ -16,7 +16,9 @@ import { getFewShotPrompt } from '@/lib/ai/few-shot';
 import { selectModel } from '@/lib/ai/model-selector';
 import { reconstructTimeline, generateNarrative } from '@/lib/ai/episodic-memory';
 import { exploreTreeOfThoughts } from '@/lib/ai/tree-of-thoughts';
-import { generateCreativeArtifact } from '@/lib/ai/creative';
+import { generateCreativeArtifact, generateStoryOutline, writeChapter } from '@/lib/ai/creative';
+import { generateCode } from '@/lib/ai/codegen';
+import { generateDiagram } from '@/lib/ai/artifacts';
 import { v4 as uuidv4 } from 'uuid';
 import { handleOptions, corsHeaders } from '@/lib/cors';
 import { getDispatcher } from '@/modules/intelligence/router';
@@ -212,6 +214,41 @@ export async function POST(req: NextRequest) {
           const plan = await generatePlan(message, context);
           planData = plan;
           context += `\n\n### 🗺️ STRATEGIC PLAN:\nGoal: ${plan.goal}\nSteps:\n${plan.steps.map(s => `[${s.agent}] ${s.description}`).join('\n')}`;
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // PHASE 5: CREATIVE & GENERATIVE
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        // 5.1 Creative Writing Engine
+        if (message.toLowerCase().includes('story') || message.toLowerCase().includes('novel') || message.toLowerCase().includes('chapter')) {
+          console.log(`[Phase 5] Creative Engine Activated`);
+          if (message.toLowerCase().includes('outline')) {
+            const outline = await generateStoryOutline(message);
+            context += `\n\n### 📖 GENERATED STORY OUTLINE:\nTitle: ${outline.title}\nPremise: ${outline.premise}\nBeats:\n${outline.beats.join('\n')}`;
+          } else {
+            context += `\n\n### 🎨 CREATIVE MODE ENGAGED:\nUser is requesting narrative content. Apply 'Show, Don't Tell' and sensory richness.`;
+          }
+        }
+
+        // 5.2 Code Generator
+        if (intent === 'BUILD' || message.toLowerCase().includes('generate code')) {
+          if (message.includes('react') || message.includes('component') || message.includes('function')) {
+            console.log(`[Phase 5] Code Generator Activated`);
+            const subSpec = { language: 'typescript', requirements: [message], type: 'component' as const };
+            try {
+              const genCode = await generateCode(subSpec);
+              context += `\n\n### 💻 GENERATED CODE DRAFT (Reference):\n${genCode.explanation}\n\`\`\`typescript\n${genCode.code}\n\`\`\``;
+            } catch (e) {
+              console.warn('Codegen failed, falling back to standard gen.');
+            }
+          }
+        }
+
+        // 5.3 Artifacts
+        if (message.toLowerCase().includes('diagram') && message.toLowerCase().includes('mermaid')) {
+          const diagram = await generateDiagram(message, 'mermaid');
+          context += `\n\n### 📊 GENERATED DIAGRAM:\n\`\`\`mermaid\n${diagram}\n\`\`\``;
         }
 
       } catch (e: any) { console.error(`[${requestId}] Intelligence Error:`, e.message); }
