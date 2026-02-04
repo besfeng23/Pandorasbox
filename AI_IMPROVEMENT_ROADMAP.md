@@ -228,13 +228,7 @@ Focus on enhancing the core AI capabilities of Pandora's Box.
   - Action planning
   - Result interpretation
 
-### 8.3 Constitutional AI
-- **Self-Governance**: AI follows principles
-- **Location**: `src/lib/ai/constitutional.ts`
-- **Features**:
-  - Principle enforcement
-  - Ethical reasoning
-  - Safety checks
+
 
 ---
 
