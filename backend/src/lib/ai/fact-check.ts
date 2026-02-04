@@ -1,4 +1,5 @@
 import { completeInference, ChatMessage } from '@/lib/sovereign/inference';
+import { tavily } from '@tavily/core';
 
 export interface FactCheckResult {
     isSupported: boolean;
@@ -8,21 +9,39 @@ export interface FactCheckResult {
 }
 
 /**
- * Verifies if a claim is supported by the provided context (RAG).
+ * Verifies a claim against internal context (RAG) and external web search (Tavily).
  */
 export async function verifyClaim(claim: string, context: string): Promise<FactCheckResult> {
+    let externalContext = "";
+
+    // 1. External Search (if enabled)
+    if (process.env.TAVILY_API_KEY) {
+        try {
+            const tv = tavily({ apiKey: process.env.TAVILY_API_KEY });
+            const searchResult = await tv.search(claim, {
+                searchDepth: "basic",
+                maxResults: 3
+            });
+            externalContext = `\nexternal_search_results:\n${searchResult.results.map((r: any) => `- ${r.content} (${r.url})`).join('\n')}`;
+            console.log('[FactCheck] Included external sources.');
+        } catch (e) {
+            console.warn('[FactCheck] Tavily search failed:', e);
+        }
+    }
+
     const prompt: ChatMessage[] = [
         {
             role: 'system',
-            content: `You are a Fact Checker. Verify the Claim against the Context.
-Context:
+            content: `You are a Fact Checker. Verify the Claim against the provided Evidence.
+evidence:
 ${context}
+${externalContext}
 
 Claim: "${claim}"
 
 Task:
-1. Determine if the claim is supported by the context.
-2. If unsupported or contradicted, provide a specific correction based ONLY on the context.
+1. Determine if the claim is supported by the evidence.
+2. If unsupported or contradicted, provide a specific correction.
 3. Assign a confidence score (0-100).
 
 FORMAT JSON:
