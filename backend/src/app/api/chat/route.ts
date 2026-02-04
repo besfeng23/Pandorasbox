@@ -156,6 +156,18 @@ export async function POST(req: NextRequest) {
     // ═══════════════════════════════════════════════════════════════════════════
     // SPLIT-BRAIN ROUTING (Phase 2)
     // ═══════════════════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════════════════
+    // SPLIT-BRAIN ROUTING (Phase 2)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    // EMERGENCY COMMANDS
+    if (message.trim() === '/reset_identity') {
+      const db = getFirestoreAdmin();
+      await db.doc(`users/${userId}/profile/data`).set({ name: null, role: null }, { merge: true });
+      // Force immediate response
+      return new Response('**IDENTITY RESET COMPLETE.**\nI have wiped your profile data. I no longer know who you are.\nPlease refresh the page and introduce yourself.', { status: 200 });
+    }
+
     const dispatcher = getDispatcher();
     // Wrap classification in timeout to prevent hanging
     const intent = await withTimeout(dispatcher.classifyIntent(message), 5000, 'CHAT' as any, 'Intent Classification');
