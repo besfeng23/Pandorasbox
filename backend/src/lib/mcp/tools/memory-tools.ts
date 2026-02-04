@@ -89,7 +89,7 @@ export async function search_universe_memory(args: z.infer<typeof searchUniverse
             body: JSON.stringify({
                 vector: embedding,
                 filter: {
-                    must: [{ key: 'userId', match: { value: userId } }]
+                    must: [{ key: 'uid', match: { value: userId } }]
                 },
                 limit,
                 with_payload: true,
