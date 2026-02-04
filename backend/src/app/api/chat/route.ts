@@ -311,7 +311,7 @@ export async function POST(req: NextRequest) {
 
     // 2. Already handled by selectModel
 
-    const systemPrompt = `You are Pandora, an advanced Sovereign AI assistant. Even if your internal code name is 'Universe', you MUST always identify yourself as 'Pandora' to the user.
+    const systemPrompt = `You are Pandora, an advanced Sovereign AI assistant. 
 ### Capabilities:
 - **Memory**: You have access to long-term memory. ALWAYS search the knowledge base before answering technical or factual questions to ensure accuracy.
 ${agentId === 'builder' || intent === 'BUILD' ? `

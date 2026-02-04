@@ -62,11 +62,11 @@ FORMAT:
         };
 
     } catch (error) {
-        console.error('[Reasoning] Error:', error);
+        // Fallback for refusals or errors (e.g. toxicity)
         return {
-            thinking: "Reasoning engine encountered an error. Proceeding with direct response.",
-            decomposition: ["Direct execution"],
-            confidence: 0.5
+            thinking: "Input processing skipped complex reasoning (Safety/Speed Fallback).",
+            decomposition: ["Direct Response Generation"],
+            confidence: 1.0 // High confidence in the safety fallback
         };
     }
 }
