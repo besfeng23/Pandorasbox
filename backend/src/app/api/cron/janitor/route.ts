@@ -156,26 +156,54 @@ export async function GET(request: NextRequest) {
  * Run memory janitor for a specific user (manual trigger)
  */
 export async function POST(request: NextRequest) {
-  // Verify authentication
-  if (!verifyCronSecret(request)) {
-    return NextResponse.json(
-      { error: 'Unauthorized', message: 'Valid CRON_SECRET required' },
-      { status: 401 }
-    );
+  let authenticatedUserId: string | null = null;
+  let isCronAuthenticated = false;
+
+  // 1. Try Firebase Auth (User Initiated)
+  const authHeader = request.headers.get('Authorization');
+  if (authHeader?.startsWith('Bearer ')) {
+    const token = authHeader.split('Bearer ')[1];
+    try {
+      const { getAuthAdmin } = await import('@/lib/firebase-admin');
+      const auth = getAuthAdmin();
+      const decodedToken = await auth.verifyIdToken(token);
+      authenticatedUserId = decodedToken.uid;
+    } catch (e) {
+      console.warn('[Janitor] Invalid ID token provided:', e);
+    }
+  }
+
+  // 2. Try Cron Secret (System Initiated)
+  if (!authenticatedUserId) {
+    if (verifyCronSecret(request)) {
+      isCronAuthenticated = true;
+    } else {
+      return NextResponse.json(
+        { error: 'Unauthorized', message: 'Valid Auth Token or CRON_SECRET required' },
+        { status: 401 }
+      );
+    }
   }
 
   try {
     const body = await request.json();
-    const { userId, agentId = 'universe' } = body;
+    let { userId, agentId = 'universe' } = body;
 
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'Bad Request', message: 'userId is required' },
-        { status: 400 }
-      );
+    // SECURITY ENFORCEMENT
+    if (authenticatedUserId) {
+      // User can ONLY clean their own memory
+      userId = authenticatedUserId;
+      console.log(`[Janitor] Authenticated User ${userId} triggering clean.`);
+    } else if (isCronAuthenticated) {
+      // Cron/Admin can clean any user specified
+      if (!userId) {
+        return NextResponse.json(
+          { error: 'Bad Request', message: 'userId is required for Admin requests' },
+          { status: 400 }
+        );
+      }
+      console.log(`[Janitor] Admin/Cron triggering clean for ${userId}.`);
     }
-
-    console.log(`[Janitor Cron] Manual run for user: ${userId}, agent: ${agentId}`);
 
     const janitor = getMemoryJanitor();
     const result = await janitor.run(userId, agentId);

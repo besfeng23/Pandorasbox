@@ -68,9 +68,9 @@ export default function MemoryPalacePage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer antigravity-manual-run-2026` // Using the bypass secret I added earlier
+          'Authorization': `Bearer ${token}` // Securely authenticated via Firebase ID Token
         },
-        body: JSON.stringify({ userId: user.uid })
+        body: JSON.stringify({ userId: user.uid }) // Redundant but kept for schema compatibility (ignored by backend if auth'd)
       });
 
       const data = await response.json();
