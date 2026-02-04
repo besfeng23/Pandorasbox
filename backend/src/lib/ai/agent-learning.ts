@@ -1,54 +1,84 @@
+import { getFirestoreAdmin } from '@/lib/firebase-admin';
 
 export interface AgentPerformance {
     agentId: string;
     successfulTasks: number;
     failedTasks: number;
     averageScore: number; // 0-1
+    lastUpdated?: number;
 }
 
-// In-memory cache for now (Mocking persistence)
-const PERFORMANCE_CACHE: Record<string, AgentPerformance> = {
-    'builder': { agentId: 'builder', successfulTasks: 10, failedTasks: 0, averageScore: 0.95 },
-    'analyst': { agentId: 'analyst', successfulTasks: 8, failedTasks: 1, averageScore: 0.88 },
-    'universe': { agentId: 'universe', successfulTasks: 15, failedTasks: 2, averageScore: 0.92 },
-};
+const COLLECTION_NAME = 'system/agent-learning/stats';
 
 /**
- * Agent Learning: Tracks performance to optimize delegation.
+ * Tracks agent performance and persists to Firestore.
  */
 export async function trackPerformance(agentId: string, success: boolean, score: number = 1.0) {
-    const current = PERFORMANCE_CACHE[agentId] || { agentId, successfulTasks: 0, failedTasks: 0, averageScore: 0.5 };
+    const db = getFirestoreAdmin();
+    const docRef = db.doc(`${COLLECTION_NAME}/${agentId}`);
 
-    if (success) {
-        current.successfulTasks++;
-    } else {
-        current.failedTasks++;
+    try {
+        await db.runTransaction(async (t) => {
+            const doc = await t.get(docRef);
+            const current: AgentPerformance = doc.exists ? doc.data() as AgentPerformance : {
+                agentId,
+                successfulTasks: 0,
+                failedTasks: 0,
+                averageScore: 0.5
+            };
+
+            if (success) {
+                current.successfulTasks++;
+            } else {
+                current.failedTasks++;
+            }
+
+            // Weighted moving average (favoring recent 50 interactions)
+            const weight = 0.1;
+            current.averageScore = (current.averageScore * (1 - weight)) + (score * weight);
+            current.lastUpdated = Date.now();
+
+            t.set(docRef, current);
+        });
+    } catch (error) {
+        console.error(`[AgentLearning] Failed to track performance for ${agentId}:`, error);
     }
-
-    // Simple moving average
-    const total = current.successfulTasks + current.failedTasks;
-    current.averageScore = ((current.averageScore * (total - 1)) + score) / total;
-
-    PERFORMANCE_CACHE[agentId] = current;
-    // TODO: Persist to Firestore
 }
 
-export function getAgentCapabilities(agentId: string): string[] {
-    const stats = PERFORMANCE_CACHE[agentId];
-    if (!stats) return ['Generalist'];
+/**
+ * Retrieves agent capabilities based on historical performance.
+ */
+export async function getAgentCapabilities(agentId: string): Promise<string[]> {
+    const db = getFirestoreAdmin();
+    try {
+        const doc = await db.doc(`${COLLECTION_NAME}/${agentId}`).get();
+        if (!doc.exists) return ['Generalist'];
 
-    const caps: string[] = [];
-    if (stats.averageScore > 0.9) caps.push('Expert');
-    else if (stats.averageScore > 0.7) caps.push('Competent');
-    else caps.push('Novice');
+        const stats = doc.data() as AgentPerformance;
+        const caps: string[] = [];
 
-    return caps;
+        if (stats.averageScore > 0.9) caps.push('Expert');
+        else if (stats.averageScore > 0.7) caps.push('Competent');
+        else caps.push('Novice');
+
+        if (stats.successfulTasks > 50) caps.push('Veteran');
+
+        return caps;
+    } catch (error) {
+        console.warn(`[AgentLearning] Failed to fetch capabilities for ${agentId}`, error);
+        return ['Generalist'];
+    }
 }
 
 export async function adaptStrategy(agentId: string, task: string): Promise<string> {
-    const caps = getAgentCapabilities(agentId);
+    const caps = await getAgentCapabilities(agentId);
+
     if (caps.includes('Expert')) {
-        return `As an Expert ${agentId}, assume autonomy and execute complex reasoning for: ${task}`;
+        return `As an Expert ${agentId} (Score: High), you have full autonomy. Execute complex strategic reasoning for: ${task}`;
     }
-    return `As a developing ${agentId}, verify your steps carefully for: ${task}`;
+    if (caps.includes('Veteran')) {
+        return `As a Veteran ${agentId}, rely on your extensive experience to solve: ${task}`;
+    }
+
+    return `As a developing ${agentId}, verify your steps carefully and show your work for: ${task}`;
 }

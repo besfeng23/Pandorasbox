@@ -8,34 +8,42 @@ export interface ThoughtBranch {
 
 /**
  * Explores multiple reasoning paths in parallel to find the most robust solution.
- * Excellent for debugging, mathematical proofs, or complex architectural decisions.
+ * Uses JSON-enforced output for reliability.
  */
 export async function exploreTreeOfThoughts(query: string): Promise<ThoughtBranch[]> {
     const totPrompt: ChatMessage[] = [
         {
             role: 'system',
-            content: `You are the Multi-Path Reasoner for Pandora's Box.
-Generate 3 distinct logical paths to solve the user's problem.
-For each path, provide a brief critique and a success score (0-100).
+            content: `You are the Multi-Path Reasoner.
+Generate 3 distinct logical approaches to solve the user's inquiry.
+Critique each approach and assign a confidence score (0-100).
 
-FORMAT:
-PATH 1: [Logic] | SCORE: [N] | CRITIQUE: [Why this might fail]
-PATH 2: ...
-PATH 3: ...`
+RETURN ONLY JSON ARRAY:
+[
+  { "path": "Description of approach 1", "score": 85, "critique": "Pros/Cons" },
+  ...
+]
+`
         },
         { role: 'user', content: query }
     ];
 
     try {
-        const rawResponse = await completeInference(totPrompt, 0.6);
-        const lines = rawResponse.split('\n').filter(l => l.startsWith('PATH'));
+        const rawResponse = await completeInference(totPrompt, 0.4);
 
-        return lines.map(line => {
-            const path = line.match(/PATH \d: (.*?) \|/)?.[1] || "";
-            const score = parseInt(line.match(/SCORE: (\d+)/)?.[1] || "0");
-            const critique = line.match(/CRITIQUE: (.*)/)?.[1] || "";
-            return { path, score, critique };
-        });
+        // Robust JSON extraction
+        const jsonMatch = rawResponse.match(/\[[\s\S]*\]/);
+        if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            return parsed.map((item: any) => ({
+                path: item.path || "Unknown path",
+                score: typeof item.score === 'number' ? item.score : 50,
+                critique: item.critique || "No critique"
+            })).sort((a: any, b: any) => b.score - a.score);
+        }
+
+        console.warn('[ToT] Failed to parse JSON, falling back to empty.');
+        return [];
 
     } catch (error) {
         console.error('[ToT] Error:', error);
