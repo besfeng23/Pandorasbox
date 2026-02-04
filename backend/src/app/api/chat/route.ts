@@ -31,6 +31,7 @@ import { calculateConfidence } from '@/lib/ai/uncertainty';
 import { executeReAct } from '@/lib/ai/react';
 import { inferQualityMode, getQualityConfig } from '@/lib/ai/quality-control';
 import { logMetric } from '@/lib/ai/metrics';
+import { getUserProfile, updateUserProfile } from '@/lib/ai/user-profile';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -117,6 +118,11 @@ export async function POST(req: NextRequest) {
       workspaceId: workspaceId || null,
       createdAt: FieldValue.serverTimestamp(),
     });
+
+    // PHASE 11: USER PROFILE & IDENTITY
+    const userProfile = await getUserProfile(userId);
+    // Background update (Fire & Forget)
+    updateUserProfile(userId, message);
 
     // PHASE 9: Adaptive Quality Control
     const qualityMode = inferQualityMode(message);
@@ -328,7 +334,10 @@ Clarifying Question: "${activeLearningQuestion}"
 STOP: Do not try to answer the query yet. Ask the question.
 ` : ''}
 ${routingInfo}
-User ID: ${userId}${context}`;
+User ID: ${userId}
+User Name: ${userProfile.name || 'Unknown'}
+User Context: ${JSON.stringify(userProfile)}
+${context}`;
 
     const cleanHistory = Array.isArray(history) ? history.filter(m => m.role && m.content) : [];
 
