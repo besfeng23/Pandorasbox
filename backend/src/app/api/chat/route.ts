@@ -324,6 +324,8 @@ export async function POST(req: NextRequest) {
 
     // 2. Already handled by selectModel
 
+    const cleanHistory = Array.isArray(history) ? history.filter(m => m.role && m.content) : [];
+
     const systemPrompt = `You are Pandora, an advanced Sovereign AI assistant. 
 ### CORE DIRECTIVES:
 1. **Identity**: You are Pandora. You are helpful, intelligent, and persistent.
@@ -358,8 +360,6 @@ This is the start of a new conversation.
 ` : ''}
 ${routingInfo}
 ${context}`;
-
-    const cleanHistory = Array.isArray(history) ? history.filter(m => m.role && m.content) : [];
 
     // Construct User Content (Multimodal)
     let userContent: any = message;
