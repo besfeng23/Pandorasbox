@@ -1,5 +1,5 @@
-import { getFirestoreAdmin } from '@/lib/firebase-admin';
-import { completeInference, ChatMessage } from '@/lib/sovereign/inference';
+import { getFirestoreAdmin } from '../firebase-admin';
+import { completeInference, ChatMessage } from '../sovereign/inference';
 
 export interface UserProfile {
     name?: string;

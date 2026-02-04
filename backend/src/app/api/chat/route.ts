@@ -121,8 +121,15 @@ export async function POST(req: NextRequest) {
 
     // PHASE 11: USER PROFILE & IDENTITY
     const userProfile = await getUserProfile(userId);
-    // Background update (Fire & Forget)
-    updateUserProfile(userId, message);
+
+    // CRITICAL: We MUST await this, otherwise Vercel/Next.js freezes the lambda 
+    // before the write completes. The latency cost is worth the reliability.
+    try {
+      await updateUserProfile(userId, message);
+    } catch (e) {
+      console.error('Profile update failed:', e);
+    }
+
 
     // PHASE 9: Adaptive Quality Control
     const qualityMode = inferQualityMode(message);
