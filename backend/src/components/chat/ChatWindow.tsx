@@ -404,15 +404,11 @@ export function ChatWindow({ threadId, agentId = 'universe' }: ChatWindowProps) 
   return (
     <div className="flex h-full flex-col bg-background relative">
       {/* Header Info - Minimal */}
-      <div className="flex items-center justify-between px-4 py-3 bg-background/80 backdrop-blur-sm sticky top-0 z-10">
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" className="h-auto p-0 hover:bg-transparent font-semibold text-lg flex items-center gap-1">
-            {agentId === 'builder' ? 'Builder' : 'Universe'} <Bot className="h-4 w-4 ml-1 opacity-50" />
-          </Button>
-          <span className="bg-primary/5 text-primary text-[10px] px-2 py-0.5 rounded-full font-medium">Plus</span>
-        </div>
+      {/* Header Info - Clean / Spacer */}
+      <div className="flex items-center justify-between px-4 py-2 bg-transparent sticky top-0 z-10 pointer-events-none">
+        <div /> {/* Empty Left */}
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 pointer-events-auto opacity-50 hover:opacity-100 transition-opacity">
           <Button
             variant="ghost"
             size="icon"
