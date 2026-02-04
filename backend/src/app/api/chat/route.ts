@@ -1,34 +1,58 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { streamText, convertToCoreMessages, tool } from 'ai';
-import { createOpenAI } from '@ai-sdk/openai';
-import { z } from 'zod';
-import { getAuthAdmin, getFirestoreAdmin } from '@/lib/firebase-admin';
-import { FieldValue } from 'firebase-admin/firestore';
-import { embedText } from '@/lib/ai/embedding';
-import { searchPoints, upsertPoint } from '@/lib/sovereign/qdrant-client';
-import { completeInference } from '@/lib/sovereign/inference';
-import { hybridSearch } from '@/lib/hybrid/search';
-import { generateReasoning } from '@/lib/ai/reasoning';
-import { generatePlan } from '@/lib/ai/planner';
-import { selfVerify } from '@/lib/ai/reflection';
-import { detectAmbiguity } from '@/lib/ai/active-learning';
-import { getFewShotPrompt } from '@/lib/ai/few-shot';
-import { selectModel } from '@/lib/ai/model-selector';
-import { reconstructTimeline, generateNarrative } from '@/lib/ai/episodic-memory';
-import { exploreTreeOfThoughts } from '@/lib/ai/tree-of-thoughts';
-import { generateCreativeArtifact, generateStoryOutline, writeChapter } from '@/lib/ai/creative';
-import { generateCode } from '@/lib/ai/codegen';
-import { generateDiagram } from '@/lib/ai/artifacts';
-import { collaborativeSolve } from '@/lib/ai/agent-collaboration';
-import { trackPerformance } from '@/lib/ai/agent-learning';
-import { v4 as uuidv4 } from 'uuid';
-import { handleOptions, corsHeaders } from '@/lib/cors';
-import { getDispatcher } from '@/modules/intelligence/router';
-import { summarizeThreadTitle } from '@/lib/ai/summarizer';
-import { verifyClaim, detectContradiction } from '@/lib/ai/fact-check';
-import { validateLogic, autoCorrect } from '@/lib/ai/self-correction';
-import { calculateConfidence } from '@/lib/ai/uncertainty';
+import { inferQualityMode, getQualityConfig } from '@/lib/ai/quality-control';
+import { logMetric } from '@/lib/ai/metrics';
 import { executeReAct } from '@/lib/ai/react';
+import { inferQualityMode, getQualityConfig } from '@/lib/ai/quality-control';
+import { logMetric } from '@/lib/ai/metrics';
+
+export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
+
+// ... imports ...
+
+export async function POST(req: NextRequest) {
+  const requestId = uuidv4();
+  const startTime = Date.now();
+
+  try {
+    // ... (Auth & Body parsing) ...
+    const body = await req.json();
+    const { message, agentId = 'universe', threadId, history = [], workspaceId, attachments } = body;
+
+    // PHASE 9: Adaptive Quality Control
+    const qualityMode = inferQualityMode(message);
+    const qualityParams = getQualityConfig(qualityMode);
+    console.log(`[Phase 9] Adaptive Quality: ${qualityMode.toString()} (Temp: ${qualityParams.temperature})`);
+
+    // ... (DB Init) ...
+
+    // ... (Routing & Intent) ... (Use qualityParam.modelModel if possible, or stick to routeInfo)
+
+    // Update streamText call later in file to use `qualityParams.temperature`
+
+    // ...
+
+    // At the end of sucessful generation (inside onFinish or after await)
+    // Since streamText is streaming, we hook into 'onFinish' callback provided by streamText?
+    // streamText doesn't natively expose onFinish in the return value of route, 
+    // but recent AI SDK versions do.
+    // Alternatively, we estimate tokens based on message length + output?
+    // We'll log what we know.
+
+    logMetric({
+      traceId: requestId,
+      agentId,
+      intent: intent as string,
+      latencyMs: Date.now() - startTime,
+      tokensIn: message.length / 4, // Approx
+      tokensOut: 0, // Cannot ascertain in stream start
+      qualityMode: qualityMode.toString(),
+      wasSuccess: true,
+      timestamp: Date.now()
+    });
+
+    // ... return result ...
+  }
+}
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -113,6 +137,26 @@ export async function POST(req: NextRequest) {
       content: message,
       workspaceId: workspaceId || null,
       createdAt: FieldValue.serverTimestamp(),
+    });
+
+    const startTime = Date.now();
+
+    // PHASE 9: Adaptive Quality Control
+    const qualityMode = inferQualityMode(message);
+    const qualityParams = getQualityConfig(qualityMode);
+    console.log(`[Phase 9] Adaptive Quality: ${qualityMode.toString()} (Temp: ${qualityParams.temperature})`);
+
+    // Log intent metric (Fire & Forget)
+    logMetric({
+      traceId: requestId,
+      agentId,
+      intent: 'PENDING_CLASSIFICATION',
+      latencyMs: 0,
+      tokensIn: message.length / 4,
+      tokensOut: 0,
+      qualityMode: qualityMode.toString(),
+      wasSuccess: true,
+      timestamp: Date.now()
     });
 
     let context = '';
