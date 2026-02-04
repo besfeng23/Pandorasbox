@@ -50,7 +50,7 @@ export function FloatingComposer({
     onSubmit,
     disabled = false,
     isLoading = false,
-    placeholder = 'Message Universe...',
+    placeholder = 'Message Pandora...',
     className
 }: FloatingComposerProps) {
     const [input, setInput] = useState('');
