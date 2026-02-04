@@ -48,14 +48,22 @@ Example: "My name is Alice" -> {"name": "Alice"}
     ];
 
     try {
+        console.log('[UserProfile] Requesting inference for:', message);
         const response = await completeInference(prompt, 0.1);
+        console.log('[UserProfile] Raw Response:', response);
+
         const jsonMatch = response.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) return;
+        if (!jsonMatch) {
+            console.warn('[UserProfile] No JSON found in response');
+            return;
+        }
 
         const updates = JSON.parse(jsonMatch[0]);
+
         if (Object.keys(updates).length === 0) return;
 
         const db = getFirestoreAdmin();
+
         const docRef = db.doc(`users/${userId}/profile/data`);
 
         await db.runTransaction(async (t) => {
