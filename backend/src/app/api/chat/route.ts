@@ -28,6 +28,7 @@ import { summarizeThreadTitle } from '@/lib/ai/summarizer';
 import { verifyClaim, detectContradiction } from '@/lib/ai/fact-check';
 import { validateLogic, autoCorrect } from '@/lib/ai/self-correction';
 import { calculateConfidence } from '@/lib/ai/uncertainty';
+import { executeReAct } from '@/lib/ai/react';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -270,6 +271,18 @@ export async function POST(req: NextRequest) {
           collaboration.agentContributions.forEach(async (c) => {
             await trackPerformance(c.agent, true, 0.9);
           });
+        }
+
+        // PHASE 8: ReAct Engine
+        if (message.toLowerCase().startsWith('research') || message.toLowerCase().includes('investigate') || message.toLowerCase().includes('reason')) {
+          console.log(`[Phase 8] ReAct Engine Triggered`);
+          // Mock Tools for now
+          const tools = [
+            { name: 'Search', description: 'Search the knowledge base', execute: async (q: string) => `Found 5 articles about ${q}` },
+            { name: 'Calculator', description: 'Perform math', execute: async (q: string) => `Result: 42` }
+          ];
+          const reactResult = await executeReAct(message, tools);
+          context += `\n\n### 🔄 REACT EXECUTION LOG:\n${reactResult.steps.map(s => `> Thought: ${s.thought}\n> Action: ${s.action}\n> Obs: ${s.observation}`).join('\n')}\n\nFinal Answer: ${reactResult.answer}`;
         }
 
       } catch (e: any) { console.error(`[${requestId}] Intelligence Error:`, e.message); }
