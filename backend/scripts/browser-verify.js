@@ -2,184 +2,160 @@
 const puppeteer = require('puppeteer');
 
 (async () => {
-    console.log('🚀 Launching Full Audit Bot (Final Version)...');
+    console.log('🚀 UNSTOPPABLE AUDIT: Initializing...');
     const browser = await puppeteer.launch({
         headless: "new",
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--window-size=1280,800']
     });
     const page = await browser.newPage();
+    await page.setViewport({ width: 1280, height: 800 });
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
 
-    const url = 'https://studio--seismic-vista-480710-q5.us-central1.hosted.app/signup';
-    console.log(`🌐 Navigating to: ${url}`);
+    const baseUrl = 'https://studio--seismic-vista-480710-q5.us-central1.hosted.app';
+    const email = `audit_final_${Date.now()}@test.com`;
+    const password = 'Password@123!';
 
     try {
-        await page.goto(url, { waitUntil: 'networkidle0', timeout: 60000 });
-        console.log('✅ Page loaded.');
+        // --- 1. SIGNUP ---
+        console.log(`\n🔹 STEP 1: SIGNUP (${email})`);
+        await page.goto(`${baseUrl}/signup`, { waitUntil: 'networkidle0', timeout: 60000 });
 
-        const textAreaSelector = 'textarea, input[name="message"]';
-        let loggedIn = false;
+        const emailIn = await page.$('input[name="email"], input[type="email"]');
+        if (emailIn) {
+            await emailIn.type(email);
+            const passIn = await page.$$('input[type="password"]');
+            for (const p of passIn) await p.type(password);
+            const nameIn = await page.$('input[name="name"]');
+            if (nameIn) await nameIn.type('AuditBot');
 
-        // Check if we are already in
-        if (await page.$(textAreaSelector)) {
-            console.log('✅ Already logged in!');
-            loggedIn = true;
+            await new Promise(r => setTimeout(r, 500));
+
+            const btn = await page.evaluateHandle(() => {
+                const bs = Array.from(document.querySelectorAll('button'));
+                return bs.find(b => b.type === 'submit') || bs.find(b => b.innerText.toLowerCase().includes('sign up'));
+            });
+            if (btn) {
+                await btn.click();
+                console.log('   Signup Clicked. Waiting for transition...');
+                await new Promise(r => setTimeout(r, 10000));
+            }
         } else {
-            console.log('🔒 Signup/Login Form detected. Attempting Auto-Registration...');
+            throw new Error("Signup inputs not found");
+        }
 
-            const inputs = await page.$$('input');
-            if (inputs.length > 0) {
-                const email = `audit_bot_${Date.now()}@test.com`;
-                const password = 'Password@123!';
-                console.log(`   Filling credentials: ${email} / ***`);
+        // --- 2. ENTER CHAT ---
+        console.log(`\n🔹 STEP 2: ENTERING CHAT`);
+        const chatUrl = `${baseUrl}/`;
 
-                // TYPE INTO FIELDS
-                const emailInput = await page.$('input[type="email"], input[name="email"]');
-                if (emailInput) await emailInput.type(email);
+        let chatFound = false;
+        const textAreaSelector = 'textarea, input[name="message"]';
 
-                const passInputs = await page.$$('input[type="password"]');
-                if (passInputs.length > 0) await passInputs[0].type(password);
+        if (await page.$(textAreaSelector)) chatFound = true;
 
-                if (passInputs.length > 1) {
-                    console.log('   Filling Confirm Password...');
-                    await passInputs[1].type(password);
-                }
+        if (!chatFound) {
+            console.log('   Looking for Agent Card...');
+            const clicked = await page.evaluate(() => {
+                const els = Array.from(document.querySelectorAll('div, h3, h4'));
+                const builder = els.find(e => e.innerText.includes('Builder'));
+                if (builder) { builder.click(); return true; }
+                return false;
+            });
+            if (clicked) {
+                console.log('   Clicked Agent. Waiting...');
+                await new Promise(r => setTimeout(r, 5000));
+                if (await page.$(textAreaSelector)) chatFound = true;
+            }
+        }
 
-                const nameInput = await page.$('input[name="name"], input[placeholder="Name"]');
-                if (nameInput) await nameInput.type('AuditBot');
+        if (!chatFound) {
+            console.log('   Force-navigating to /chat (guess)...');
+            await page.goto(`${baseUrl}/chat`, { waitUntil: 'networkidle0' }).catch(() => { });
+            if (await page.$(textAreaSelector)) chatFound = true;
+        }
 
-                await new Promise(r => setTimeout(r, 1000));
+        if (chatFound) {
+            console.log(`✅ CHAT READY. Sending Identity...`);
+            const input = await page.$(textAreaSelector);
+            await input.type('My name is Joven');
+            await page.keyboard.press('Enter');
+            console.log('   Message sent. Waiting for response...');
+            await new Promise(r => setTimeout(r, 10000));
 
-                // Submit
-                const submitBtn = await page.evaluateHandle(() => {
-                    const buttons = Array.from(document.querySelectorAll('button'));
-                    return buttons.find(b => b.type === 'submit') ||
-                        buttons.find(b => b.innerText.toLowerCase().match(/(sign up|create account|register|next)/));
+            let reply = await page.evaluate(() => {
+                const b = Array.from(document.querySelectorAll('.prose'));
+                return b.length ? b[b.length - 1].innerText : "No response found";
+            });
+            console.log(`   AI Reply: "${reply.slice(0, 100).replace(/\n/g, ' ')}..."`);
+        } else {
+            console.error('❌ COULD NOT ENTER CHAT.');
+            throw new Error("Chat Entry Failed");
+        }
+
+        // --- 3. LOGOUT ---
+        console.log(`\n🔹 STEP 3: LOGOUT`);
+        const client = await page.target().createCDPSession();
+        await client.send('Network.clearBrowserCookies');
+        await page.evaluate(() => localStorage.clear());
+        console.log('   Cleared Auth.');
+
+        // --- 4. LOGIN ---
+        console.log(`\n🔹 STEP 4: LOGIN`);
+        await page.goto(`${baseUrl}/login`, { waitUntil: 'networkidle0' });
+
+        console.log('   Checking Login UI...');
+        let loginInput;
+        try {
+            loginInput = await page.waitForSelector('input[type="email"]', { timeout: 20000 });
+        } catch (e) {
+            console.log('   Email input not found immediately. Dumping Body Text...');
+            const text = await page.evaluate(() => document.body.innerText.slice(0, 300));
+            console.log('   Body:', text);
+            if (text.includes('Sign Up')) {
+                const loginLink = await page.evaluateHandle(() => {
+                    const acts = Array.from(document.querySelectorAll('a, button'));
+                    return acts.find(a => a.innerText.toLowerCase().includes('log in'));
                 });
-
-                if (submitBtn) {
-                    console.log('👉 Clicking Sign Up...');
-                    await submitBtn.click();
-
-                    try {
-                        console.log('⏳ Waiting for Chat UI or Dashboard...');
-
-                        const dashboardSelector = 'text/Create your first thread';
-
-                        await page.waitForFunction(() => {
-                            return document.querySelector('textarea, input[name="message"]') ||
-                                document.body.innerText.includes("Create your first thread") ||
-                                document.body.innerText.includes("Welcome to Pandora");
-                        }, { timeout: 20000 });
-
-                        const isDashboard = await page.evaluate(() => document.body.innerText.includes("Create your first thread"));
-
-                        if (isDashboard) {
-                            console.log('✅ Dashboard reached. Searching for entry point...');
-
-                            // Click Strategy
-                            const clicked = await page.evaluate(() => {
-                                // Strategy 1: Find the main Builder Agent card
-                                const cards = Array.from(document.querySelectorAll('div'));
-                                const builderCard = cards.find(el => el.innerText.includes('Builder Agent') && el.className.includes('cursor-pointer'));
-                                if (builderCard) { builderCard.click(); return 'card'; }
-
-                                // Strategy 2: Click the H3 title
-                                const h3 = Array.from(document.querySelectorAll('h3')).find(h => h.innerText.includes('Builder'));
-                                if (h3) { h3.click(); return 'h3'; }
-
-                                return null;
-                            });
-
-                            if (clicked) {
-                                console.log(`   Clicked Agent via [${clicked}]. Waiting for Chat Input...`);
-                                try {
-                                    await page.waitForSelector(textAreaSelector, { timeout: 15000 });
-                                    console.log('✅ Chat UI reached.');
-                                    loggedIn = true;
-                                } catch (e) { console.warn('   Click seemingly failed to open chat.'); }
-                            } else {
-                                console.log('   ⚠️ Could not find specific card. Trying generic click...');
-                                const fallbackBtn = await page.evaluateHandle(() => {
-                                    const els = Array.from(document.querySelectorAll('*'));
-                                    return els.find(e => e.innerText === 'Builder Agent');
-                                });
-                                if (fallbackBtn) {
-                                    await fallbackBtn.click();
-                                    await page.waitForSelector(textAreaSelector, { timeout: 10000 });
-                                    loggedIn = true;
-                                }
-                            }
-                        } else {
-                            console.log('✅ Direct Chat UI reached.');
-                            loggedIn = true;
-                        }
-
-                    } catch (e) {
-                        console.error('❌ Failed to stabilize on Dashboard/Chat. Dumping Text:', await page.evaluate(() => document.body.innerText.substring(0, 200)));
-                    }
-                } else {
-                    console.error('❌ No Submit Button found.');
+                if (loginLink) {
+                    console.log('   Found Login Link. Clicking...');
+                    await loginLink.click();
+                    await new Promise(r => setTimeout(r, 2000));
+                    loginInput = await page.waitForSelector('input[type="email"]', { timeout: 10000 }).catch(() => null);
                 }
-            } else {
-                console.error('❌ No Inputs found on /signup.');
             }
         }
 
-        // 2. AUDIT INTELLIGENCE
-        if (loggedIn) {
-            const chatInput = await page.$(textAreaSelector);
-            const userName = "Joven";
+        if (loginInput) {
+            await loginInput.type(email);
+            const pLogin = await page.$('input[type="password"]');
+            await pLogin.type(password);
 
-            console.log(`\n🧪 TEST 1: Identity Acceptance ("My name is ${userName}")`);
-            await chatInput.type(`My name is ${userName}`);
-            await page.keyboard.press('Enter');
-
-            console.log('⏳ Waiting for response...');
-            await new Promise(r => setTimeout(r, 10000));
-
-            let response1 = await page.evaluate(() => {
-                const bubbles = Array.from(document.querySelectorAll('.prose, .markdown, .whitespace-pre-wrap'));
-                return bubbles.length ? bubbles[bubbles.length - 1].innerText : document.body.innerText.slice(-500);
+            const lBtn = await page.evaluateHandle(() => {
+                const bs = Array.from(document.querySelectorAll('button'));
+                return bs.find(b => b.innerText.toLowerCase().match(/(log in|sign in)/));
             });
-
-            console.log(`🤖 AI Response: "${response1.replace(/\n/g, ' ')}"`);
-
-            if (response1.toLowerCase().includes("pandora") && (response1.toLowerCase().includes("not my name") || response1.toLowerCase().includes("referred to"))) {
-                console.error('❌ FAIL: AI Refused Identity (Stupid Mode Check Failed).');
-            } else {
-                console.log('✅ PASS: AI accepted the name.');
+            if (lBtn) {
+                await lBtn.click();
+                console.log('   Login Clicked. Waiting...');
+                await new Promise(r => setTimeout(r, 15000));
             }
-
-            console.log(`\n🧪 TEST 2: Persistence (Refresh & Recall)`);
-            console.log('🔄 Refreshing Page...');
-            await page.reload({ waitUntil: 'networkidle0' });
-
-            await page.waitForSelector(textAreaSelector);
-            await page.type(textAreaSelector, 'Who am I?');
-            await page.keyboard.press('Enter');
-
-            console.log('⏳ Waiting for response...');
-            await new Promise(r => setTimeout(r, 10000));
-
-            let response2 = await page.evaluate(() => {
-                const bubbles = Array.from(document.querySelectorAll('.prose, .markdown, .whitespace-pre-wrap'));
-                return bubbles.length ? bubbles[bubbles.length - 1].innerText : document.body.innerText.slice(-500);
-            });
-
-            console.log(`🤖 AI Response: "${response2.replace(/\n/g, ' ')}"`);
-
-            if (response2.toLowerCase().includes(userName.toLowerCase())) {
-                console.log('✅ PASS: Memory Persisted!');
-            } else {
-                console.error('❌ FAIL: Memory Lost.');
-            }
+        } else {
+            console.error('❌ LOGIN FAILED: Inputs never appeared.');
         }
 
-    } catch (error) {
-        console.error('❌ Script Error:', error);
+        // --- 5. VERIFY ---
+        console.log(`\n🔹 STEP 5: VERIFY MEMORY`);
+        await page.goto(`${baseUrl}/memory`, { waitUntil: 'networkidle0' });
+        const text = await page.evaluate(() => document.body.innerText);
+        if (text.includes("Joven")) {
+            console.log(`✅✅✅ AUDIT PASSED: "Joven" survived the logout/login cycle.`);
+        } else {
+            console.log(`❌ AUDIT FAILED: Memory not found in UI.`);
+            console.log(`   Page Content: ${text.slice(0, 200)}...`);
+        }
+
+    } catch (e) {
+        console.error('💥 FATAL ERROR:', e);
     } finally {
         await browser.close();
-        console.log('👋 Audit complete.');
     }
 })();
