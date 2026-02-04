@@ -19,6 +19,8 @@ import { exploreTreeOfThoughts } from '@/lib/ai/tree-of-thoughts';
 import { generateCreativeArtifact, generateStoryOutline, writeChapter } from '@/lib/ai/creative';
 import { generateCode } from '@/lib/ai/codegen';
 import { generateDiagram } from '@/lib/ai/artifacts';
+import { collaborativeSolve } from '@/lib/ai/agent-collaboration';
+import { trackPerformance } from '@/lib/ai/agent-learning';
 import { v4 as uuidv4 } from 'uuid';
 import { handleOptions, corsHeaders } from '@/lib/cors';
 import { getDispatcher } from '@/modules/intelligence/router';
@@ -249,6 +251,22 @@ export async function POST(req: NextRequest) {
         if (message.toLowerCase().includes('diagram') && message.toLowerCase().includes('mermaid')) {
           const diagram = await generateDiagram(message, 'mermaid');
           context += `\n\n### 📊 GENERATED DIAGRAM:\n\`\`\`mermaid\n${diagram}\n\`\`\``;
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // PHASE 6: AGENT COLLABORATION & LEARNING
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        if (intent === 'SOLVE' || message.toLowerCase().includes('the team') || message.toLowerCase().includes('collaborate')) {
+          console.log(`[Phase 6] Multi-Agent Collaboration Triggered`);
+          const collaboration = await collaborativeSolve(message);
+
+          context += `\n\n### 🤝 MULTI-AGENT CONSENSUS:\n${collaboration.finalAnswer}\n\n**Agent Contributions:**\n${collaboration.agentContributions.map(c => `- [${c.agent}]: ${c.contribution.substring(0, 50)}...`).join('\n')}`;
+
+          // Track Success (Assumed success if we got here)
+          collaboration.agentContributions.forEach(async (c) => {
+            await trackPerformance(c.agent, true, 0.9);
+          });
         }
 
       } catch (e: any) { console.error(`[${requestId}] Intelligence Error:`, e.message); }

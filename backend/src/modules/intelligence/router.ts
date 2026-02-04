@@ -11,7 +11,7 @@
 
 import { GroqProvider, OllamaProvider, LLMProvider, LLMMessage } from './llm-provider';
 
-export type Intent = 'BUILD' | 'CHAT' | 'VOICE';
+export type Intent = 'BUILD' | 'CHAT' | 'VOICE' | 'SOLVE';
 
 export interface DispatcherConfig {
     universeUrl: string;
@@ -49,8 +49,9 @@ export class Dispatcher {
 1. BUILD: If the user wants to generate code, refactor, build a feature, or create an artifact.
 2. CHAT: If the user wants to talk, roleplay, ask about memories, or engage in philosophy.
 3. VOICE: If the prompt looks like an audio transcription artifact or voice command.
+4. SOLVE: If the request is complex, requires planning, or asks for "the team", "collaboration", or "detailed strategy".
 
-Respond with ONLY the word: BUILD, CHAT, or VOICE.`;
+Respond with ONLY the word: BUILD, CHAT, VOICE, or SOLVE.`;
 
         try {
             const model = this.hasGroq
@@ -72,6 +73,7 @@ Respond with ONLY the word: BUILD, CHAT, or VOICE.`;
             const intent = response.content.trim().toUpperCase();
             if (intent.includes('BUILD')) return 'BUILD';
             if (intent.includes('VOICE')) return 'VOICE';
+            if (intent.includes('SOLVE')) return 'SOLVE';
             return 'CHAT';
         } catch (error: any) {
             console.error('[Dispatcher] Intent classification failed:', error.message);
