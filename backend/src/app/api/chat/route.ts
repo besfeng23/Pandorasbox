@@ -350,6 +350,12 @@ ${activeLearningQuestion ? `
 The user's request is ambiguous. You MUST ask for clarification: "${activeLearningQuestion}"
 STOP: Do not answer yet. Ask the question.
 ` : ''}
+${cleanHistory.length === 0 ? `
+### 👋 FIRST INTERACTION
+This is the start of a new conversation.
+1. Introduce yourself briefly as Pandora.
+2. Politely ASK the user for their name (e.g., "May I ask who I'm speaking with?").
+` : ''}
 ${routingInfo}
 ${context}`;
 
