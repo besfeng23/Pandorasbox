@@ -25,6 +25,9 @@ import { v4 as uuidv4 } from 'uuid';
 import { handleOptions, corsHeaders } from '@/lib/cors';
 import { getDispatcher } from '@/modules/intelligence/router';
 import { summarizeThreadTitle } from '@/lib/ai/summarizer';
+import { verifyClaim, detectContradiction } from '@/lib/ai/fact-check';
+import { validateLogic, autoCorrect } from '@/lib/ai/self-correction';
+import { calculateConfidence } from '@/lib/ai/uncertainty';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -333,14 +336,30 @@ User ID: ${userId}${context}`;
         },
         onFinish: async ({ text: completion }) => {
           try {
-            // Perform Self-ReflectionFact-Check
-            const verification = await selfVerify(completion, context);
+            // PHASE 7: QUALITY & RELIABILITY (Sovereign Safety Net)
+            const confidenceCalc = await calculateConfidence(completion);
+            const logicCheck = await validateLogic(completion);
+            const factCheck = recalledSources.length > 0 ? await verifyClaim(completion, context) : { isSupported: true, confidence: 50 };
+
+            let finalContent = completion;
+            let wasCorrected = false;
+
+            // Auto-Correction Loop
+            if (!logicCheck.isValid) {
+              console.log(`[SafetyNet] Logic Flaw Detected: ${logicCheck.flaw}`);
+              finalContent = await autoCorrect(completion, logicCheck.flaw || 'Logical inconsistency');
+              wasCorrected = true;
+            } else if (!factCheck.isSupported && factCheck.confidence > 70) {
+              console.log(`[SafetyNet] Fact Contradiction: ${factCheck.correction}`);
+              finalContent = await autoCorrect(completion, `Contradicts context: ${factCheck.citation}`);
+              wasCorrected = true;
+            }
 
             // PHASE 8.3: Constitutional AI Check
             const principles = ["Privacy: Never leak internal paths.", "Sovereignty: Maintain data localism.", "Accuracy: Distinguish between facts and inference."];
-            const compliesWithPrinciples = principles.every(p => !completion.toLowerCase().includes(p.split(':')[0].toLowerCase()));
+            const compliesWithPrinciples = principles.every(p => !finalContent.toLowerCase().includes(p.split(':')[0].toLowerCase()));
 
-            console.log(`[Reflection] Result: ${verification.isAccurate ? 'PASS' : 'FAIL'} - ${verification.reasoning}`);
+            console.log(`[SafetyNet] Confidence: ${confidenceCalc.score}% | Valid: ${logicCheck.isValid} | Supported: ${factCheck.isSupported}`);
             console.log(`[Constitutional] Compliance: ${compliesWithPrinciples ? 'PASS' : 'RETRY'}`);
 
             const assistantMessageRef = db.collection(`users/${userId}/threads/${threadId}/messages`).doc();
@@ -383,13 +402,15 @@ User ID: ${userId}${context}`;
 
             await assistantMessageRef.set({
               role: 'assistant',
-              content: verification.isAccurate ? completion : (verification.correction || completion),
+              content: finalContent,
               workspaceId: workspaceId || null,
               createdAt: FieldValue.serverTimestamp(),
               toolUsages,
               metadata: {
-                verification: verification.reasoning,
-                wasCorrected: !verification.isAccurate,
+                confidence: confidenceCalc.score,
+                isSupported: factCheck.isSupported,
+                logicValid: logicCheck.isValid,
+                wasCorrected,
                 wasClarified: !!activeLearningQuestion
               }
             });
