@@ -13,7 +13,8 @@ import {
     Command as CommandIcon,
     Sparkles,
     ChevronUp,
-    Image as ImageIcon
+    Image as ImageIcon,
+    ArrowUp
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -49,7 +50,7 @@ export function FloatingComposer({
     onSubmit,
     disabled = false,
     isLoading = false,
-    placeholder = 'Type a message or "/" for commands...',
+    placeholder = 'Message Universe...',
     className
 }: FloatingComposerProps) {
     const [input, setInput] = useState('');
@@ -125,17 +126,12 @@ export function FloatingComposer({
         }
     };
 
-    const toggleRecording = () => {
-        setIsRecording(!isRecording);
-        // In production, trigger Web Speech API here
-    };
-
     return (
-        <div className={cn("fixed bottom-0 left-0 right-0 z-50 bg-black/85 backdrop-blur-xl border-t border-white/10 transition-all duration-300", className)}>
+        <div className={cn("fixed bottom-0 left-0 right-0 z-50 bg-black/95 backdrop-blur-xl border-t border-white/5 transition-all duration-300", className)}>
 
-            {/* Attachment Previews (Floating above the bar) */}
+            {/* Attachment Previews */}
             {attachments.length > 0 && (
-                <div className="absolute bottom-full left-0 right-0 p-4 bg-gradient-to-t from-black/50 to-transparent">
+                <div className="absolute bottom-full left-0 right-0 p-4 bg-gradient-to-t from-black/90 to-transparent">
                     <div className="flex flex-wrap gap-3 max-w-3xl mx-auto">
                         {attachments.map((attachment, i) => (
                             <div key={i} className="group relative h-16 w-16 rounded-xl overflow-hidden border border-white/10 shadow-lg bg-black/50">
@@ -153,27 +149,19 @@ export function FloatingComposer({
                 </div>
             )}
 
-            <div className="w-full md:max-w-3xl mx-auto p-1 md:p-4 safe-area-pb">
-                {/* Main Input Row */}
+            <div className="w-full md:max-w-3xl mx-auto p-2 safe-area-pb">
                 <div className="flex items-end gap-2">
-                    {/* Attach Button */}
-                    <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => fileInputRef.current?.click()}
-                                    disabled={disabled || isLoading}
-                                    className="h-10 w-10 shrink-0 text-muted-foreground hover:text-foreground hover:bg-white/10 rounded-full"
-                                >
-                                    <Paperclip className="h-5 w-5" />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent side="top">Attach files</TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
+                    {/* Attach Button - Minimalist Left-Side */}
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={disabled || isLoading}
+                        className="h-10 w-10 shrink-0 text-muted-foreground hover:text-foreground hover:bg-white/10 rounded-full mb-0.5"
+                    >
+                        <Paperclip className="h-5 w-5" />
+                    </Button>
 
                     <input
                         type="file"
@@ -184,10 +172,10 @@ export function FloatingComposer({
                         className="hidden"
                     />
 
-                    {/* Input Pill Container */}
+                    {/* Input Pill Container - The "Box" */}
                     <div className={cn(
-                        "flex-1 flex items-end min-h-[44px] bg-white/5 border border-white/10 rounded-[24px] px-2 py-1 transition-colors relative",
-                        "focus-within:bg-white/10 focus-within:border-white/20"
+                        "flex-1 flex items-center min-h-[44px] bg-white/10 border border-white/5 rounded-[26px] pl-4 pr-1.5 py-1 transition-colors relative",
+                        "focus-within:bg-white/15 focus-within:border-white/10"
                     )}>
                         <Textarea
                             ref={textareaRef}
@@ -198,13 +186,13 @@ export function FloatingComposer({
                             disabled={disabled || isLoading}
                             rows={1}
                             className={cn(
-                                'flex-1 bg-transparent border-none shadow-none focus-visible:ring-0 resize-none py-2.5 px-2 text-base leading-relaxed max-h-[200px]',
+                                'flex-1 bg-transparent border-none shadow-none focus-visible:ring-0 resize-none py-2 px-0 text-[16px] leading-normal max-h-[200px]',
                                 'text-foreground placeholder:text-muted-foreground/50'
                             )}
                         />
 
-                        {/* Right Actions (Inside Pill) */}
-                        <div className="flex items-center gap-1 pb-1 pr-1">
+                        {/* Right Actions (Dynamic Flip) */}
+                        <div className="flex items-center gap-1 pl-1 shrink-0 pb-0.5">
                             {!input.trim() && attachments.length === 0 ? (
                                 <VoiceInput
                                     userId={userId}
@@ -217,32 +205,19 @@ export function FloatingComposer({
                                     type="button"
                                     onClick={() => handleSubmit()}
                                     disabled={disabled || isLoading}
-                                    className="h-8 w-8 rounded-full bg-primary text-primary-foreground shadow-sm hover:opacity-90 transition-all p-0 flex items-center justify-center"
+                                    className={cn(
+                                        "h-8 w-8 rounded-full shadow-sm hover:opacity-90 transition-all p-0 flex items-center justify-center",
+                                        "bg-white text-black" // High Contrast Submit
+                                    )}
                                 >
                                     {isLoading ? (
-                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        <Loader2 className="h-4 w-4 animate-spin text-black" />
                                     ) : (
-                                        <Send className="h-4 w-4" />
+                                        <ArrowUp className="h-5 w-5 stroke-[3]" />
                                     )}
                                 </Button>
                             )}
                         </div>
-                    </div>
-                </div>
-
-                {/* Footer / Toolbar - Hidden on mobile if cramped, or simple text */}
-                <div className="hidden md:flex items-center justify-between mt-2 px-2 text-[10px] text-muted-foreground/60">
-                    <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="border-white/10 bg-transparent text-muted-foreground/60 text-[10px] h-5 px-1.5 font-normal">
-                            Sovereign Ingress
-                        </Badge>
-                        <span>•</span>
-                        <span className="flex items-center gap-1">
-                            <CommandIcon className="h-3 w-3" /> Commands
-                        </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <span>Enter to send, Shift+Enter to newline</span>
                     </div>
                 </div>
             </div>
