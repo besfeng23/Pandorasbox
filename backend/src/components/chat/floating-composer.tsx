@@ -149,7 +149,7 @@ export function FloatingComposer({
                 </div>
             )}
 
-            <div className="w-full md:max-w-3xl mx-auto p-2 safe-area-pb">
+            <div className="w-full md:max-w-3xl mx-auto px-2 pb-[env(safe-area-inset-bottom)] pt-2">
                 <div className="flex items-end gap-2">
                     {/* Attach Button - Minimalist Left-Side */}
                     <Button
@@ -186,9 +186,10 @@ export function FloatingComposer({
                             disabled={disabled || isLoading}
                             rows={1}
                             className={cn(
-                                'flex-1 bg-transparent border-none shadow-none focus-visible:ring-0 resize-none py-2 px-0 text-[16px] leading-normal max-h-[200px]',
+                                'flex-1 !bg-transparent border-none shadow-none focus-visible:ring-0 resize-none py-2 px-0 text-[16px] leading-normal max-h-[200px]',
                                 'text-foreground placeholder:text-muted-foreground/50'
                             )}
+                            style={{ backgroundColor: 'transparent' }}
                         />
 
                         {/* Right Actions (Dynamic Flip) */}

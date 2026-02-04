@@ -25,8 +25,7 @@ export function MessageList({
     return (
       <div className="flex h-full items-center justify-center animate-in-fade">
         <div className="text-center">
-          <Bot className="mx-auto h-12 w-12 text-primary/40 mb-4 animate-pulse-subtle" />
-          <p className="text-xl font-semibold bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text text-transparent">
+          <p className="text-xl font-medium text-foreground/80">
             Welcome to Pandora
           </p>
           <p className="text-sm text-muted-foreground mt-2 max-w-[250px] mx-auto">
