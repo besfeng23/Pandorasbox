@@ -1,5 +1,5 @@
 
-import 'server-only';
+// import 'server-only';
 
 export interface ServerConfig {
   inferenceBaseUrl: string;

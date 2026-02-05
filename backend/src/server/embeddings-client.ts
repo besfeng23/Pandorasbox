@@ -1,6 +1,4 @@
-'use server';
-
-import 'server-only';
+// import 'server-only';
 import { getServerConfig } from './config';
 
 let dimensionCache: number | null = null;

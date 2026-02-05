@@ -1,6 +1,4 @@
-'use server';
-
-import 'server-only';
+// import 'server-only';
 import { getServerConfig } from './config';
 import type { AgentId } from '@/lib/agent-types';
 
