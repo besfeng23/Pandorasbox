@@ -1,101 +1,45 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { verifySessionCookie } from '@/lib/auth/session';
 
-/**
- * Public routes that don't require authentication
- */
-const PUBLIC_ROUTES = ['/login', '/signup'];
+const PUBLIC_ROUTES = new Set(['/login', '/signup']);
+const PROTECTED_PAGE_PREFIXES = ['/chat', '/settings', '/memory', '/connectors', '/agents'];
 
-/**
- * Protected routes that require authentication
- */
-const PROTECTED_ROUTES = ['/', '/chat'];
-
-/**
- * Static file patterns that should be allowed
- */
-const STATIC_PATTERNS = [
-  /^\/_next\//,
-  /^\/api\/auth\//,
-  /\.(ico|png|jpg|jpeg|svg|gif|webp|css|js|woff|woff2|ttf|eot)$/,
-];
-
-/**
- * Check if a path is a public route
- */
 function isPublicRoute(pathname: string): boolean {
-  return PUBLIC_ROUTES.some((route) => pathname === route || pathname.startsWith(`${route}/`));
+  return PUBLIC_ROUTES.has(pathname);
 }
 
-/**
- * Check if a path is a protected route
- */
-function isProtectedRoute(pathname: string): boolean {
-  // Root path is protected
-  if (pathname === '/') {
-    return true;
-  }
-  // Check if pathname starts with any protected route
-  return PROTECTED_ROUTES.some((route) => pathname.startsWith(route));
+function isProtectedPage(pathname: string): boolean {
+  return pathname === '/' || PROTECTED_PAGE_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
-/**
- * Check if a path is a static asset
- */
-function isStaticAsset(pathname: string): boolean {
-  return STATIC_PATTERNS.some((pattern) => pattern.test(pathname));
+function hasSessionCookie(request: NextRequest): boolean {
+  return Boolean(request.cookies.get('__session')?.value || request.cookies.get('session')?.value);
 }
 
-export async function middleware(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Allow static assets and Next.js internals
-  if (isStaticAsset(pathname)) {
-    return NextResponse.next();
-  }
+  // Middleware only applies to pages by matcher below.
+  const isAuthenticated = hasSessionCookie(request);
 
-  // Verify session cookie
-  const decodedToken = await verifySessionCookie();
-  const isAuthenticated = decodedToken !== null;
-  const isPublic = isPublicRoute(pathname);
-  const isProtected = isProtectedRoute(pathname);
-
-  // If accessing a public route while authenticated, redirect to home
-  if (isPublic && isAuthenticated) {
+  if (isPublicRoute(pathname) && isAuthenticated) {
     const url = request.nextUrl.clone();
     url.pathname = '/';
     return NextResponse.redirect(url);
   }
 
-  // If accessing a protected route while not authenticated, redirect to login
-  if (isProtected && !isAuthenticated) {
+  if (isProtectedPage(pathname) && !isAuthenticated) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
-    // Add the original path as a query parameter for redirect after login
     if (pathname !== '/') {
       url.searchParams.set('redirect', pathname);
     }
     return NextResponse.redirect(url);
   }
 
-  // Allow the request to proceed
   return NextResponse.next();
 }
 
-/**
- * Configure which routes the middleware should run on
- */
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths except:
-     * - api routes (unless they need auth)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
-    '/((?!_next/static|_next/image|favicon.ico).*)',
-  ],
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
 };
-

@@ -1,35 +1,25 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { handleOptions, corsHeaders } from '@/lib/cors';
 
-// 1. FIX CORS: Handle the security check
-export async function OPTIONS() {
-  return new NextResponse(null, {
-    status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    },
-  });
+export async function OPTIONS(request: NextRequest) {
+  return handleOptions(request);
 }
 
-// 2. PROVIDE DATA: Return the list of agents
-export async function GET() {
+export async function GET(request: NextRequest) {
   const agents = [
     {
       name: 'search_knowledge_base',
-      description: 'Search the knowledge base using semantic search. Searches both conversation history and stored memories to find relevant information.',
+      description: 'Search the knowledge base using semantic search.',
     },
     {
       name: 'add_memory',
-      description: 'Add a new memory to the knowledge base. The memory will be stored with an embedding for future semantic search.',
+      description: 'Add a new memory to the knowledge base.',
     },
     {
       name: 'generate_artifact',
-      description: 'Create and save a code or markdown artifact. Artifacts can be code snippets, documentation, or other structured content.',
-    }
+      description: 'Create and save a code or markdown artifact.',
+    },
   ];
 
-  return NextResponse.json({ agents }, {
-    headers: { 'Access-Control-Allow-Origin': '*' },
-  });
+  return NextResponse.json({ agents }, { headers: corsHeaders(request) });
 }

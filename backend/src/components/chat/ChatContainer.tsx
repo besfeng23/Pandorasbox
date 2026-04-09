@@ -228,7 +228,7 @@ export function ChatContainer({ initialConversationId = null }: ChatContainerPro
 
   /**
    * Handle message submission
-   * Sends custom payload: { conversationId: string | null, userMessage: string }
+   * Sends canonical chat payload: { conversationId?: string, message: string }
    */
   const handleSubmit = useCallback(
     async (content: string) => {
@@ -262,7 +262,7 @@ export function ChatContainer({ initialConversationId = null }: ChatContainerPro
         // Determine if this is a new conversation
         const isNewConversation = conversationId === null;
 
-        // Call streaming API with custom payload format
+        // Call streaming API with canonical payload format
         const response = await fetch(`${API_URL}/api/chat`, {
           method: 'POST',
           headers: {
@@ -270,8 +270,8 @@ export function ChatContainer({ initialConversationId = null }: ChatContainerPro
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            conversationId: conversationId,
-            userMessage: content.trim(),
+            conversationId,
+            message: content.trim(),
           }),
           signal: abortController.signal,
         });
@@ -336,4 +336,3 @@ export function ChatContainer({ initialConversationId = null }: ChatContainerPro
     </div>
   );
 }
-

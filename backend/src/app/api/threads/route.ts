@@ -1,36 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { handleOptions, corsHeaders } from '@/lib/cors';
-import { getUserThreads, createThread } from '@/app/actions';
+import { requireUser, unauthorizedResponse } from '@/server/api-auth';
+import { createConversation, listConversations } from '@/server/repositories/conversations';
 
-export async function OPTIONS() {
-  return handleOptions();
+export async function OPTIONS(request: NextRequest) {
+  return handleOptions(request);
 }
 
 export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams;
-  const userId = searchParams.get('userId');
-  const agentId = searchParams.get('agentId') || 'builder';
-
-  if (!userId) return NextResponse.json({ error: 'Missing userId' }, { status: 400, headers: corsHeaders() });
-
   try {
-    const threads = await getUserThreads(userId, agentId);
-    return NextResponse.json({ threads }, { headers: corsHeaders() });
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'An unknown error occurred';
-    return NextResponse.json({ error: message }, { status: 500, headers: corsHeaders() });
+    const user = await requireUser(request);
+    const agentId = (request.nextUrl.searchParams.get('agentId') as 'builder' | 'universe' | null) ?? undefined;
+    const conversations = await listConversations(user.uid);
+    const filtered = agentId ? conversations.filter((c) => c.agentId === agentId) : conversations;
+    return NextResponse.json({
+      threads: filtered.map((c) => ({ id: c.id, name: c.name, agent: c.agentId, createdAt: c.createdAt, updatedAt: c.updatedAt })),
+    }, { headers: corsHeaders(request) });
+  } catch {
+    return unauthorizedResponse();
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId, agent } = await request.json();
-    if (!userId) return NextResponse.json({ error: 'Missing userId' }, { status: 400, headers: corsHeaders() });
-    
-    const result = await createThread(agent || 'builder', userId);
-    return NextResponse.json({ id: result.id }, { headers: corsHeaders() });
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'An unknown error occurred';
-    return NextResponse.json({ error: message }, { status: 500, headers: corsHeaders() });
+    const user = await requireUser(request);
+    const body = await request.json().catch(() => ({}));
+    const id = await createConversation(user.uid, {
+      name: body.name,
+      agentId: body.agent || body.agentId,
+      workspaceId: body.workspaceId,
+    });
+    return NextResponse.json({ id }, { status: 201, headers: corsHeaders(request) });
+  } catch {
+    return unauthorizedResponse();
   }
 }

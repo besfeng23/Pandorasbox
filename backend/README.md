@@ -50,3 +50,8 @@ npm run dev
 # Type checking
 npm run typecheck
 ```
+
+
+## Security & Data Model
+
+See `docs/PLATFORM_HARDENING.md` for the canonical auth guards, chat schema, API contract, and rollout notes.

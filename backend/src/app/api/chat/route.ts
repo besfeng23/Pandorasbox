@@ -1,146 +1,96 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { streamChatCompletion, type ChatMessage } from '@/lib/llm/llm-client';
+import { streamChatCompletion, type ChatMessage as LlmMessage } from '@/lib/llm/llm-client';
 import { handleOptions, corsHeaders } from '@/lib/cors';
+import { requireUser, unauthorizedResponse } from '@/server/api-auth';
+import {
+  appendMessage,
+  createConversation,
+  getRecentContext,
+} from '@/server/repositories/conversations';
+import type { ChatRequest } from '@/contracts/chat';
 
-/**
- * Handle OPTIONS requests for CORS preflight
- */
-export async function OPTIONS() {
-  return handleOptions();
+function parseTextDelta(line: string): string {
+  const colonIndex = line.indexOf(':');
+  if (colonIndex === -1 || line.slice(0, colonIndex) !== '0') return '';
+  const raw = line.slice(colonIndex + 1);
+  try {
+    const parsed = JSON.parse(raw);
+    if (typeof parsed === 'string') return parsed;
+    if (parsed && typeof parsed === 'object') return parsed.text || parsed.content || '';
+    return '';
+  } catch {
+    return raw.replace(/^"|"$/g, '');
+  }
 }
 
-/**
- * POST /api/chat
- * Streaming chat API route that proxies requests to the local LLM
- * 
- * Request body:
- * {
- *   prompt: string;           // Required: The user's message/prompt
- *   history?: ChatMessage[];  // Optional: Previous chat messages for context
- * }
- * 
- * Returns: Streaming response with Server-Sent Events (SSE) format
- */
+export async function OPTIONS(request: NextRequest) {
+  return handleOptions(request);
+}
+
 export async function POST(request: NextRequest) {
   try {
-    // 1. Ensure request method is POST (Next.js routes handle this, but we can verify)
-    if (request.method !== 'POST') {
-      return NextResponse.json(
-        { error: 'Method not allowed. Only POST is supported.' },
-        { status: 405, headers: corsHeaders() }
-      );
+    const user = await requireUser(request);
+    const body = (await request.json()) as ChatRequest;
+    const message = body.message?.trim();
+
+    if (!message) {
+      return NextResponse.json({ error: 'message is required' }, { status: 400, headers: corsHeaders(request) });
     }
 
-    // 2. Parse JSON request body
-    let body: { prompt?: string; history?: ChatMessage[] };
-    try {
-      body = await request.json();
-    } catch (error) {
-      return NextResponse.json(
-        { error: 'Invalid JSON in request body' },
-        { status: 400, headers: corsHeaders() }
-      );
-    }
+    const conversationId = body.conversationId || (await createConversation(user.uid, {
+      agentId: body.agentId,
+      workspaceId: body.workspaceId,
+    }));
 
-    // 3. Extract prompt and history from request body
-    const { prompt, history } = body;
+    await appendMessage(user.uid, conversationId, { role: 'user', content: message });
 
-    // Validate prompt
-    if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
-      return NextResponse.json(
-        { error: 'prompt is required and must be a non-empty string' },
-        { status: 400, headers: corsHeaders() }
-      );
-    }
+    const history = await getRecentContext(user.uid, conversationId);
+    const llmMessages: LlmMessage[] = history.map((entry) => ({ role: entry.role, content: entry.content }));
 
-    // Validate history if provided
-    if (history !== undefined) {
-      if (!Array.isArray(history)) {
-        return NextResponse.json(
-          { error: 'history must be an array of ChatMessage objects' },
-          { status: 400, headers: corsHeaders() }
-        );
-      }
-
-      // Validate each message in history
-      for (const msg of history) {
-        if (!msg || typeof msg !== 'object') {
-          return NextResponse.json(
-            { error: 'Each message in history must be a ChatMessage object' },
-            { status: 400, headers: corsHeaders() }
-          );
-        }
-        if (msg.role !== 'user' && msg.role !== 'assistant') {
-          return NextResponse.json(
-            { error: 'Message role must be either "user" or "assistant"' },
-            { status: 400, headers: corsHeaders() }
-          );
-        }
-        if (!msg.content || typeof msg.content !== 'string') {
-          return NextResponse.json(
-            { error: 'Message content must be a non-empty string' },
-            { status: 400, headers: corsHeaders() }
-          );
-        }
-      }
-    }
-
-    // 4. Build messages array from history and current prompt
-    const messages: ChatMessage[] = [
-      ...(history || []),
-      { role: 'user', content: prompt },
-    ];
-
-    // 5. Call streamChatCompletion to get the streaming response from LLM
-    const llmResponse = await streamChatCompletion(messages);
-
-    // 6. Verify the response has a readable body
+    const llmResponse = await streamChatCompletion(llmMessages);
     if (!llmResponse.body) {
-      console.error('[Chat API] LLM response does not have a readable stream body');
-      return NextResponse.json(
-        { error: 'LLM API returned a response without a streamable body' },
-        { status: 500, headers: corsHeaders() }
-      );
+      return NextResponse.json({ error: 'No stream returned by LLM' }, { status: 502, headers: corsHeaders(request) });
     }
 
-    // 7. Proxy the raw response body with SSE headers
-    return new Response(llmResponse.body, {
+    const [clientStream, tapStream] = llmResponse.body.tee();
+    let assistantContent = '';
+
+    (async () => {
+      const reader = tapStream.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+        for (const line of lines) {
+          assistantContent += parseTextDelta(line);
+        }
+      }
+      if (buffer) {
+        assistantContent += parseTextDelta(buffer);
+      }
+      if (assistantContent.trim()) {
+        await appendMessage(user.uid, conversationId, { role: 'assistant', content: assistantContent.trim() });
+      }
+    })().catch((error) => {
+      console.error('Failed to persist assistant message', error);
+    });
+
+    return new Response(clientStream, {
       status: 200,
       headers: {
-        ...corsHeaders(),
+        ...corsHeaders(request),
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-        // Preserve any additional headers from the LLM response if needed
-        ...(llmResponse.headers.get('X-Request-ID') && {
-          'X-Request-ID': llmResponse.headers.get('X-Request-ID')!,
-        }),
+        Connection: 'keep-alive',
+        'X-Conversation-Id': conversationId,
       },
     });
-  } catch (error: any) {
-    // 8. Error handling - return 500 status for LLM API connection failures
-    console.error('[Chat API] Error processing chat request:', error);
-
-    // Provide user-friendly error messages
-    let errorMessage = 'Failed to process chat request';
-    let statusCode = 500;
-
-    if (error instanceof Error) {
-      errorMessage = error.message;
-
-      // Check for specific error types
-      if (error.message.includes('LLM_API_URL') || error.message.includes('connect to LLM API')) {
-        errorMessage = 'LLM service is unavailable. Please check the service status.';
-        statusCode = 503; // Service Unavailable
-      } else if (error.message.includes('LLM API request failed')) {
-        errorMessage = 'LLM API request failed. Please try again.';
-        statusCode = 502; // Bad Gateway
-      }
-    }
-
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: statusCode, headers: corsHeaders() }
-    );
+  } catch (error) {
+    console.error('/api/chat failed', error);
+    return unauthorizedResponse();
   }
 }

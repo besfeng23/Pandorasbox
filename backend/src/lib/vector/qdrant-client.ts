@@ -8,6 +8,7 @@ import { QdrantClient } from '@qdrant/qdrant-js';
  * This collection stores conversation memories and knowledge embeddings
  */
 export const PANDORA_MEMORY_V1 = 'PANDORA_MEMORY_V1';
+export const MEMORY_COLLECTION_NAME = PANDORA_MEMORY_V1;
 
 /**
  * Global type declaration for Next.js hot-reload support
@@ -187,4 +188,11 @@ export async function ensureCollectionExists(): Promise<void> {
     
     throw new Error(`Failed to ensure collection '${PANDORA_MEMORY_V1}': ${errorMessage}`);
   }
+}
+
+export async function upsertVectors(
+  collection: string,
+  points: Array<{ id: string; vector: number[]; payload?: Record<string, unknown> }>
+) {
+  await qdrantClient.upsert(collection, { points });
 }

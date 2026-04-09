@@ -124,6 +124,10 @@ export const qdrantClient: QdrantClient = (() => {
   return initializeQdrantClient();
 })();
 
+export function getQdrantClient(): QdrantClient {
+  return qdrantClient;
+}
+
 /**
  * Search memory vectors in the Qdrant collection
  * Searches the MEMORY_COLLECTION using the provided embedding vector

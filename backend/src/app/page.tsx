@@ -20,7 +20,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ErrorBoundary } from '@/components/error-boundary';
 
 export default function DashboardPage() {
-  const { user, isLoading: userLoading } = useAuth();
+  const { user, loading: userLoading } = useAuth();
   const router = useRouter();
   const db = useFirestore();
   const { toast } = useToast();
