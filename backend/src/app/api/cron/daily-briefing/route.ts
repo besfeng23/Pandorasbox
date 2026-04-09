@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getFirestoreAdmin } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { chatCompletion } from '@/server/inference-client';
-import { requireCron } from '@/server/api-auth';
+import { handleApiError, requireCron } from '@/server/api-auth';
 
 /**
  * API route for daily briefing generation.
@@ -91,14 +91,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('Error during daily briefing:', error);
-    return NextResponse.json(
-      { error: 'Daily briefing failed', details: error.message },
-      { status: 500 }
-    );
+    return handleApiError(error, request);
   }
 }
 
-// Also support GET for manual testing
-export async function GET(request: NextRequest) {
-  return NextResponse.json({ error: 'Method not allowed' }, { status: 405 });
-}

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { runDeepResearchBatch } from '@/ai/agents/deep-research';
-import { requireCron } from '@/server/api-auth';
+import { handleApiError, requireCron } from '@/server/api-auth';
 
 /**
  * API route for the Deep Research Agent.
@@ -25,15 +25,8 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('[DeepResearch] Fatal error in cron route:', error);
-    return NextResponse.json(
-      { error: 'Deep research failed', details: error.message },
-      { status: 500 }
-    );
+    return handleApiError(error, request);
   }
 }
 
-// Also support GET for manual testing
-export async function GET(request: NextRequest) {
-  return NextResponse.json({ error: 'Method not allowed' }, { status: 405 });
-}
 

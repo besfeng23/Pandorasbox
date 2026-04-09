@@ -12,7 +12,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const user = await requireUser(request);
     const { id } = await params;
     const messages = await listMessages(user.uid, id);
-    return NextResponse.json({ messages }, { headers: corsHeaders(request) });
+    return NextResponse.json({ messages }, { headers: { ...corsHeaders(request), 'Deprecation': 'true', 'Link': '</api/conversations>; rel="successor-version"' } });
   } catch (error) {
     return handleApiError(error, request, '/api/threads/[id]/messages GET failed');
   }

@@ -3,7 +3,7 @@ import { getFirestoreAdmin } from '@/lib/firebase-admin';
 import { runReflectionFlow } from '@/ai/agents/nightly-reflection';
 import { saveInsightMemory, saveQuestionMemory } from '@/lib/memory-utils';
 import { FieldValue } from 'firebase-admin/firestore';
-import { requireCron } from '@/server/api-auth';
+import { handleApiError, requireCron } from '@/server/api-auth';
 
 /**
  * API route for nightly reflection agent.
@@ -126,14 +126,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('[NightlyReflection] Fatal error:', error);
-    return NextResponse.json(
-      { error: 'Nightly reflection failed', details: error.message },
-      { status: 500 }
-    );
+    return handleApiError(error, request);
   }
 }
 
-// Also support GET for manual testing
-export async function GET(request: NextRequest) {
-  return NextResponse.json({ error: 'Method not allowed' }, { status: 405 });
-}

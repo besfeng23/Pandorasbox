@@ -17,6 +17,11 @@ test('userFromClaims maps admin claims', () => {
   assert.equal(user.isAdmin, true);
 });
 
+test('userFromClaims rejects non-admin users', () => {
+  const user = userFromClaims({ uid: 'u2', email: 'x@y.com', admin: false } as any);
+  assert.equal(user.isAdmin, false);
+});
+
 test('requireCron validates scheduler bearer secret', () => {
   process.env.CRON_SECRET = 'super-secret';
   const req = {
@@ -33,4 +38,13 @@ test('requireCron rejects invalid secret', () => {
   } as any;
 
   assert.throws(() => requireCron(req), /Unauthorized/);
+});
+
+test('requireCron rejects when secret is missing', () => {
+  delete process.env.CRON_SECRET;
+  const req = {
+    headers: new Headers({ authorization: 'Bearer anything' }),
+  } as any;
+
+  assert.throws(() => requireCron(req), /Cron secret not configured/);
 });

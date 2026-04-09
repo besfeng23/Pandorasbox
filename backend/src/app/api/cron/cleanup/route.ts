@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirestoreAdmin } from '@/lib/firebase-admin';
 import admin from 'firebase-admin';
-import { requireCron } from '@/server/api-auth';
+import { handleApiError, requireCron } from '@/server/api-auth';
 
 // Prevent this route from being statically generated
 export const dynamic = 'force-dynamic';
@@ -90,14 +90,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('Error during cleanup:', error);
-    return NextResponse.json(
-      { error: 'Cleanup failed', details: error.message },
-      { status: 500 }
-    );
+    return handleApiError(error, request);
   }
 }
 
-// Also support GET for manual testing
-export async function GET(request: NextRequest) {
-  return NextResponse.json({ error: 'Method not allowed' }, { status: 405 });
-}

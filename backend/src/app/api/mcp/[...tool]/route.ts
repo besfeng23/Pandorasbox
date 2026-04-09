@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { corsHeaders, handleOptions } from '@/lib/cors';
 import { handleSearchKnowledgeBase } from '@/mcp/tools/search-knowledge';
 import { handleAddMemory } from '@/mcp/tools/add-memory';
 import { handleGenerateArtifact } from '@/mcp/tools/generate-artifact';
@@ -21,18 +22,8 @@ export const runtime = 'nodejs';
  *   POST /api/mcp/generate_artifact
  */
 
-// CORS headers helper
-function corsHeaders() {
-  return {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-API-Key',
-  };
-}
-
-// Handle OPTIONS request for CORS preflight
-export async function OPTIONS() {
-  return NextResponse.json({}, { headers: corsHeaders() });
+export async function OPTIONS(request: NextRequest) {
+  return handleOptions(request);
 }
 
 // Validate API key
@@ -63,7 +54,7 @@ export async function POST(
     if (!(await validateApiKey(request))) {
       return NextResponse.json(
         { error: 'Unauthorized. Invalid API key.' },
-        { status: 401, headers: corsHeaders() }
+        { status: 401, headers: corsHeaders(request) }
       );
     }
 
@@ -76,7 +67,7 @@ export async function POST(
     if (!toolName) {
       return NextResponse.json(
         { error: 'Tool name is required in the URL path' },
-        { status: 400, headers: corsHeaders() }
+        { status: 400, headers: corsHeaders(request) }
       );
     }
 
@@ -91,7 +82,7 @@ export async function POST(
         if (!body.query || !body.user_email) {
           return NextResponse.json(
             { error: 'Missing required parameters: query, user_email' },
-            { status: 400, headers: corsHeaders() }
+            { status: 400, headers: corsHeaders(request) }
           );
         }
         result = await handleSearchKnowledgeBase({
@@ -106,7 +97,7 @@ export async function POST(
         if (!body.memory || !body.user_email) {
           return NextResponse.json(
             { error: 'Missing required parameters: memory, user_email' },
-            { status: 400, headers: corsHeaders() }
+            { status: 400, headers: corsHeaders(request) }
           );
         }
         result = await handleAddMemory({
@@ -120,7 +111,7 @@ export async function POST(
         if (!body.title || !body.type || !body.content || !body.user_email) {
           return NextResponse.json(
             { error: 'Missing required parameters: title, type, content, user_email' },
-            { status: 400, headers: corsHeaders() }
+            { status: 400, headers: corsHeaders(request) }
           );
         }
         result = await handleGenerateArtifact({
@@ -135,7 +126,7 @@ export async function POST(
       default:
         return NextResponse.json(
           { error: `Unknown tool: ${toolName}` },
-          { status: 404, headers: corsHeaders() }
+          { status: 404, headers: corsHeaders(request) }
         );
     }
 
@@ -144,7 +135,7 @@ export async function POST(
         success: true,
         result: result,
       },
-      { headers: corsHeaders() }
+      { headers: corsHeaders(request) }
     );
 
   } catch (error: any) {
@@ -158,7 +149,7 @@ export async function POST(
           success: false,
           error: error.message,
         },
-        { status: 400, headers: corsHeaders() }
+        { status: 400, headers: corsHeaders(request) }
       );
     }
 
@@ -168,65 +159,8 @@ export async function POST(
         error: 'Internal server error',
         details: process.env.NODE_ENV === 'development' ? error.message : undefined,
       },
-      { status: 500, headers: corsHeaders() }
+      { status: 500, headers: corsHeaders(request) }
     );
   }
 }
 
-// Support GET for tool information
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ tool: string[] }> }
-) {
-  // Await params (Next.js 15+)
-  const { tool } = await params;
-  const toolName = tool?.[0];
-
-  if (!toolName) {
-    return NextResponse.json(
-      {
-        message: 'Pandora\'s Box MCP HTTP Bridge',
-        available_tools: [
-          'search_knowledge_base',
-          'add_memory',
-          'generate_artifact',
-        ],
-        usage: 'POST /api/mcp/{tool_name} with Authorization: Bearer {API_KEY}',
-      },
-      { headers: corsHeaders() }
-    );
-  }
-
-  // Return tool-specific information
-  const toolInfo: Record<string, any> = {
-    search_knowledge_base: {
-      name: 'search_knowledge_base',
-      description: 'Search the knowledge base using semantic search',
-      method: 'POST',
-      required_params: ['query', 'user_email'],
-      optional_params: ['limit'],
-    },
-    add_memory: {
-      name: 'add_memory',
-      description: 'Add a new memory to the knowledge base',
-      method: 'POST',
-      required_params: ['memory', 'user_email'],
-    },
-    generate_artifact: {
-      name: 'generate_artifact',
-      description: 'Create and save a code or markdown artifact',
-      method: 'POST',
-      required_params: ['title', 'type', 'content', 'user_email'],
-    },
-  };
-
-  const info = toolInfo[toolName];
-  if (!info) {
-    return NextResponse.json(
-      { error: `Unknown tool: ${toolName}` },
-      { status: 404, headers: corsHeaders() }
-    );
-  }
-
-  return NextResponse.json(info, { headers: corsHeaders() });
-}

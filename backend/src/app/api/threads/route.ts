@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     const filtered = agentId ? conversations.filter((c) => c.agentId === agentId) : conversations;
     return NextResponse.json({
       threads: filtered.map((c) => ({ id: c.id, name: c.name, agent: c.agentId, createdAt: c.createdAt, updatedAt: c.updatedAt })),
-    }, { headers: corsHeaders(request) });
+    }, { headers: { ...corsHeaders(request), 'Deprecation': 'true', 'Link': '</api/conversations>; rel="successor-version"' } });
   } catch (error) {
     return handleApiError(error, request, '/api/threads GET failed');
   }
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
       agentId: body.agent || body.agentId,
       workspaceId: body.workspaceId,
     });
-    return NextResponse.json({ id }, { status: 201, headers: corsHeaders(request) });
+    return NextResponse.json({ id }, { status: 201, headers: { ...corsHeaders(request), 'Deprecation': 'true', 'Link': '</api/conversations>; rel="successor-version"' } });
   } catch (error) {
     return handleApiError(error, request, '/api/threads POST failed');
   }

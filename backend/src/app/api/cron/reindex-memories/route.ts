@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getFirestoreAdmin } from '@/lib/firebase-admin';
 import { generateEmbedding } from '@/lib/vector';
 import { FieldValue } from 'firebase-admin/firestore';
-import { requireCron } from '@/server/api-auth';
+import { handleApiError, requireCron } from '@/server/api-auth';
 
 /**
  * Cron endpoint to reindex all memories missing embeddings.
@@ -137,19 +137,7 @@ export async function POST(request: NextRequest) {
     
   } catch (error: any) {
     console.error('[ReindexMemories] Fatal error:', error);
-    return NextResponse.json(
-      { 
-        success: false,
-        error: 'Reindex failed', 
-        details: error.message,
-        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-      },
-      { status: 500 }
-    );
+    return handleApiError(error, request);
   }
 }
 
-// Also support GET for manual testing
-export async function GET(request: NextRequest) {
-  return NextResponse.json({ error: 'Method not allowed' }, { status: 405 });
-}
