@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { handleOptions, corsHeaders } from '@/lib/cors';
-import { requireUser, unauthorizedResponse } from '@/server/api-auth';
+import { handleApiError, requireUser } from '@/server/api-auth';
 import {
   deleteConversation,
   getConversation,
@@ -23,8 +23,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     const messages = await listMessages(user.uid, id);
     return NextResponse.json({ conversation, messages }, { headers: corsHeaders(request) });
-  } catch {
-    return unauthorizedResponse();
+  } catch (error) {
+    return handleApiError(error, request, '/api/conversations/[id] GET failed');
   }
 }
 
@@ -41,8 +41,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     await renameConversation(user.uid, id, name);
     const conversation = await getConversation(user.uid, id);
     return NextResponse.json({ conversation }, { headers: corsHeaders(request) });
-  } catch {
-    return unauthorizedResponse();
+  } catch (error) {
+    return handleApiError(error, request, '/api/conversations/[id] PATCH failed');
   }
 }
 
@@ -52,7 +52,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const { id } = await params;
     await deleteConversation(user.uid, id);
     return new NextResponse(null, { status: 204, headers: corsHeaders(request) });
-  } catch {
-    return unauthorizedResponse();
+  } catch (error) {
+    return handleApiError(error, request, '/api/conversations/[id] DELETE failed');
   }
 }

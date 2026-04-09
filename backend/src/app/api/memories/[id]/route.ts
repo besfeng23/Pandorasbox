@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { deleteMemoryFromMemories, updateMemoryInMemories } from '@/app/actions';
 import { handleOptions, corsHeaders } from '@/lib/cors';
-import { requireUser, unauthorizedResponse } from '@/server/api-auth';
+import { handleApiError, requireUser } from '@/server/api-auth';
 
 export async function OPTIONS(request: NextRequest) {
   return handleOptions(request);
@@ -14,8 +14,8 @@ export async function DELETE(request: NextRequest, props: { params: Promise<{ id
     const agentId = request.nextUrl.searchParams.get('agentId') || 'builder';
     const result = await deleteMemoryFromMemories(params.id, user.uid, agentId);
     return NextResponse.json(result, { headers: corsHeaders(request) });
-  } catch {
-    return unauthorizedResponse();
+  } catch (error) {
+    return handleApiError(error, request, '/api/memories/[id] DELETE failed');
   }
 }
 
@@ -27,7 +27,7 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
     const { content } = await request.json();
     const result = await updateMemoryInMemories(params.id, content, user.uid, agentId);
     return NextResponse.json(result, { headers: corsHeaders(request) });
-  } catch {
-    return unauthorizedResponse();
+  } catch (error) {
+    return handleApiError(error, request, '/api/memories/[id] PATCH failed');
   }
 }

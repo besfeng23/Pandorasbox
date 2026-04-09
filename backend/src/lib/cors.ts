@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+const LOCALHOST_ORIGINS = new Set([
+  'http://localhost:3000',
+  'http://localhost:9002',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:9002',
+]);
+
 function getAllowedOrigins(): string[] {
   const configured = process.env.CORS_ALLOWED_ORIGINS?.split(',').map((value) => value.trim()).filter(Boolean) ?? [];
   const appUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
@@ -9,16 +16,21 @@ function getAllowedOrigins(): string[] {
 function resolveOrigin(request?: NextRequest): string {
   const origin = request?.headers.get('origin');
   const allowedOrigins = getAllowedOrigins();
+  const isProduction = process.env.NODE_ENV === 'production';
 
   if (!origin) {
-    return allowedOrigins[0] || 'http://localhost:9002';
+    return allowedOrigins[0] || process.env.NEXT_PUBLIC_API_URL?.trim() || 'http://localhost:9002';
   }
 
-  if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+  if (allowedOrigins.includes(origin)) {
     return origin;
   }
 
-  return allowedOrigins[0] || origin;
+  if (!isProduction && LOCALHOST_ORIGINS.has(origin)) {
+    return origin;
+  }
+
+  return allowedOrigins[0] || 'null';
 }
 
 export function corsHeaders(request?: NextRequest) {

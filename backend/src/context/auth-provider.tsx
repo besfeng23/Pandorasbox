@@ -2,7 +2,6 @@
 
 import React, {
   createContext,
-  useContext,
   useEffect,
   useState,
   type ReactNode,
@@ -78,4 +77,3 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
-

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { handleOptions, corsHeaders } from '@/lib/cors';
-import { requireUser, unauthorizedResponse } from '@/server/api-auth';
+import { handleApiError, requireUser } from '@/server/api-auth';
 import { deleteConversation, getConversation, renameConversation } from '@/server/repositories/conversations';
 
 export async function OPTIONS(request: NextRequest) {
@@ -16,8 +16,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'Thread not found' }, { status: 404, headers: corsHeaders(request) });
     }
     return NextResponse.json({ thread: { id: conversation.id, name: conversation.name, agent: conversation.agentId, createdAt: conversation.createdAt, updatedAt: conversation.updatedAt } }, { headers: corsHeaders(request) });
-  } catch {
-    return unauthorizedResponse();
+  } catch (error) {
+    return handleApiError(error, request, '/api/threads/[id] GET failed');
   }
 }
 
@@ -32,8 +32,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
     await renameConversation(user.uid, id, name);
     return NextResponse.json({ success: true }, { headers: corsHeaders(request) });
-  } catch {
-    return unauthorizedResponse();
+  } catch (error) {
+    return handleApiError(error, request, '/api/threads/[id] PATCH failed');
   }
 }
 
@@ -43,7 +43,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const { id } = await params;
     await deleteConversation(user.uid, id);
     return NextResponse.json({ success: true }, { headers: corsHeaders(request) });
-  } catch {
-    return unauthorizedResponse();
+  } catch (error) {
+    return handleApiError(error, request, '/api/threads/[id] DELETE failed');
   }
 }

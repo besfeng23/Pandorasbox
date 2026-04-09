@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { handleOptions, corsHeaders } from '@/lib/cors';
-import { requireUser, unauthorizedResponse } from '@/server/api-auth';
+import { handleApiError, requireUser } from '@/server/api-auth';
 import { listMessages } from '@/server/repositories/conversations';
 
 export async function OPTIONS(request: NextRequest) {
@@ -13,7 +13,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const { id } = await params;
     const messages = await listMessages(user.uid, id);
     return NextResponse.json({ messages }, { headers: corsHeaders(request) });
-  } catch {
-    return unauthorizedResponse();
+  } catch (error) {
+    return handleApiError(error, request, '/api/threads/[id]/messages GET failed');
   }
 }

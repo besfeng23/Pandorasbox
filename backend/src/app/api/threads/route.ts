@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { handleOptions, corsHeaders } from '@/lib/cors';
-import { requireUser, unauthorizedResponse } from '@/server/api-auth';
+import { handleApiError, requireUser } from '@/server/api-auth';
 import { createConversation, listConversations } from '@/server/repositories/conversations';
 
 export async function OPTIONS(request: NextRequest) {
@@ -16,8 +16,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       threads: filtered.map((c) => ({ id: c.id, name: c.name, agent: c.agentId, createdAt: c.createdAt, updatedAt: c.updatedAt })),
     }, { headers: corsHeaders(request) });
-  } catch {
-    return unauthorizedResponse();
+  } catch (error) {
+    return handleApiError(error, request, '/api/threads GET failed');
   }
 }
 
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
       workspaceId: body.workspaceId,
     });
     return NextResponse.json({ id }, { status: 201, headers: corsHeaders(request) });
-  } catch {
-    return unauthorizedResponse();
+  } catch (error) {
+    return handleApiError(error, request, '/api/threads POST failed');
   }
 }
