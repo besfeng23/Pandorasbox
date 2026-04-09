@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect } from 'react';
-import { Button } from '@/components/ui/button';
 import { AlertCircle } from 'lucide-react';
+import { StateBlock } from '@/components/ui/state-block';
 
 export default function Error({
   error,
@@ -16,18 +16,14 @@ export default function Error({
   }, [error]);
 
   return (
-    <div className="flex h-screen w-full flex-col items-center justify-center gap-4 bg-background p-4">
-      <div className="flex items-center gap-2 text-destructive">
-        <AlertCircle className="h-6 w-6" />
-        <h2 className="text-lg font-semibold">Something went wrong!</h2>
-      </div>
-      <p className="text-sm text-muted-foreground max-w-md text-center">
-        {error.message || 'An unexpected error occurred.'}
-      </p>
-      <Button variant="outline" onClick={() => reset()}>
-        Try again
-      </Button>
+    <div className="flex h-screen w-full items-center justify-center bg-background p-4">
+      <StateBlock
+        icon={<AlertCircle className="h-8 w-8 text-destructive" />}
+        title="Something went wrong"
+        description={error.message || 'An unexpected error occurred.'}
+        action={{ label: 'Try again', onClick: reset }}
+        className="w-full max-w-xl"
+      />
     </div>
   );
 }
-
