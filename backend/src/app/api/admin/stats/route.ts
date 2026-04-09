@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirestoreAdmin } from '@/lib/firebase-admin';
-import { requireAdmin, forbiddenResponse, unauthorizedResponse } from '@/server/api-auth';
+import { handleApiError, requireAdmin } from '@/server/api-auth';
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,9 +19,6 @@ export async function GET(request: NextRequest) {
       memories: memoryCount.data().count,
     });
   } catch (error) {
-    if (error instanceof Error && error.message === 'Forbidden') {
-      return forbiddenResponse();
-    }
-    return unauthorizedResponse();
+    return handleApiError(error, request, '/api/admin/stats GET failed');
   }
 }

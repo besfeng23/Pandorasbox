@@ -1,57 +1,88 @@
-# Pandora's Box
+# Pandora's Box (Release Candidate)
 
-An AI-powered chat application with persistent long-term memory and MCP (Model Context Protocol) server capabilities.
+Pandora's Box is a Next.js 15 + React 19 + Firebase application with authenticated chat, canonical conversation/message persistence, memory ingestion/search, and protected admin + cron operations.
 
-## Features
+## Architecture summary
 
-- **AI Chat Interface**: ChatGPT-like interface with persistent memory
-- **Vector Search**: Semantic search across conversation history and memories
-- **Memory Management**: Store and retrieve long-term memories with embeddings
-- **Artifact Creation**: Generate and save code/markdown artifacts
-- **Sovereign Architecture**: Completely self-hosted with no external dependencies
+- **Frontend/App Router**: `src/app/**` pages and API routes.
+- **Auth & guards**: centralized in `src/server/api-auth.ts`.
+- **Canonical chat data model**:
+  - `users/{uid}/conversations/{conversationId}`
+  - `users/{uid}/conversations/{conversationId}/messages/{messageId}`
+- **Repositories**: conversation and message persistence in `src/server/repositories/conversations.ts`.
+- **Memory pipeline**: ingestion/search flows under `src/lib/memory*`, `src/app/api/ingest/*`, `src/app/api/memories/*`.
+- **Operational routes**:
+  - Admin: `src/app/api/admin/*`
+  - Cron: `src/app/api/cron/*`
 
-## Environment Variables
+See `ARCHITECTURE.md` and `docs/PLATFORM_HARDENING.md` for deeper design notes.
 
-### Required
+## Auth model
 
-- None (Local vLLM)
-- `INFERENCE_URL`: URL to your vLLM instance (e.g., `http://localhost:8000/v1`)
-- `QDRANT_URL`: URL to your Qdrant instance (e.g., `http://localhost:6333`)
-- `EMBEDDINGS_BASE_URL`: URL to your local embeddings service
-- Firebase service account credentials (via `service-account.json` or Application Default Credentials)
+- `requireUser(request)`: required for authenticated user APIs.
+- `requireAdmin(request)`: requires an authenticated user with admin claims.
+- `requireCron(request)`: requires `Authorization: Bearer $CRON_SECRET`.
+- API authorization decisions **must not** trust `userId` from body/query params.
 
-### Local Infrastructure
+## Critical environment variables
 
-When running locally with the bundled inference, embeddings, and Qdrant services:
+Minimum production configuration:
+
+- `CRON_SECRET` — required for all `/api/cron/*` routes.
+- `CORS_ALLOWED_ORIGINS` — comma-separated origin allowlist for cross-origin API access.
+- `NEXT_PUBLIC_API_URL` — canonical app URL (also used for CORS fallback behavior).
+- `FIREBASE_SERVICE_ACCOUNT_KEY` (or ADC/service account JSON) — server-side Firebase auth + Firestore access.
+- LLM/vector settings (deployment-dependent), for example:
+  - `INFERENCE_URL`
+  - `INFERENCE_MODEL`
+  - `EMBEDDINGS_BASE_URL`
+  - `QDRANT_URL`
+
+Reference defaults: repository root `.env.example`.
+
+## Local setup
+
+From repository root:
 
 ```bash
-INFERENCE_URL=http://localhost:8000/v1
-INFERENCE_MODEL=mistralai/Mistral-7B-Instruct-v0.3
-EMBEDDINGS_BASE_URL=http://localhost:8080
-QDRANT_URL=http://localhost:6333
-```
-
-## Development
-
-```bash
-# Install dependencies
 npm install
-
-# Start local infrastructure (or: docker-compose up -d)
-npm run infra:up
-
-# Verify services
-curl http://localhost:6333/collections  # Qdrant
-curl http://localhost:8080/health        # Embeddings
-
-# Run Next.js development server
-npm run dev
-
-# Type checking
-npm run typecheck
+cd backend
+pnpm install
 ```
 
+Run development server:
 
-## Security & Data Model
+```bash
+cd backend
+pnpm dev
+```
 
-See `docs/PLATFORM_HARDENING.md` for the canonical auth guards, chat schema, API contract, and rollout notes.
+## Validation commands (release gate)
+
+Run from `backend/`:
+
+```bash
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
+```
+
+## Deployment notes
+
+- Build output uses Next.js standalone mode plus `scripts/post-build-fix.js` for Firebase App Hosting route manifest placement.
+- Ensure Firebase admin credentials are present in deployed runtime.
+- Configure cron scheduler to send `Authorization: Bearer $CRON_SECRET`.
+
+## Admin and cron security setup
+
+- Admin APIs require Firebase custom claims (`admin: true` or role equivalent) enforced in `requireAdmin`.
+- Cron APIs are protected by `requireCron`; never expose cron secrets client-side.
+
+## Release checklist
+
+Use `docs/RELEASE_CHECKLIST.md` for the full pre-release and smoke-test checklist.
+
+## Known limitations
+
+- ESLint currently reports a large number of legacy warnings (primarily `any` usage and unused symbols) outside core release-critical paths. Current release gate is **zero lint errors**, not zero warnings.

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { handleOptions, corsHeaders } from '@/lib/cors';
-import { requireUser, unauthorizedResponse } from '@/server/api-auth';
+import { handleApiError, requireUser } from '@/server/api-auth';
 import { createConversation, listConversations } from '@/server/repositories/conversations';
 
 export async function OPTIONS(request: NextRequest) {
@@ -12,8 +12,8 @@ export async function GET(request: NextRequest) {
     const user = await requireUser(request);
     const conversations = await listConversations(user.uid);
     return NextResponse.json({ conversations }, { headers: corsHeaders(request) });
-  } catch {
-    return unauthorizedResponse();
+  } catch (error) {
+    return handleApiError(error, request, '/api/conversations GET failed');
   }
 }
 
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({ id }, { status: 201, headers: corsHeaders(request) });
-  } catch {
-    return unauthorizedResponse();
+  } catch (error) {
+    return handleApiError(error, request, '/api/conversations POST failed');
   }
 }

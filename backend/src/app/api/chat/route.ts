@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { streamChatCompletion, type ChatMessage as LlmMessage } from '@/lib/llm/llm-client';
 import { handleOptions, corsHeaders } from '@/lib/cors';
-import { requireUser, unauthorizedResponse } from '@/server/api-auth';
+import { handleApiError, requireUser } from '@/server/api-auth';
 import {
   appendMessage,
   createConversation,
@@ -90,7 +90,6 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('/api/chat failed', error);
-    return unauthorizedResponse();
+    return handleApiError(error, request, '/api/chat failed');
   }
 }
