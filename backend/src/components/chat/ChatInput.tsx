@@ -13,81 +13,63 @@ interface ChatInputProps {
   placeholder?: string;
 }
 
-/**
- * Chat input component with textarea and submit button
- */
 export function ChatInput({
   onSubmit,
   disabled = false,
   isLoading = false,
-  placeholder = 'Type your message...',
+  placeholder = 'Message Pandora…',
 }: ChatInputProps) {
   const [input, setInput] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Auto-resize textarea
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 220)}px`;
     }
   }, [input]);
 
+  const submit = () => {
+    if (!input.trim() || disabled || isLoading) return;
+    onSubmit(input.trim());
+    setInput('');
+    if (textareaRef.current) textareaRef.current.style.height = 'auto';
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!input.trim() || disabled || isLoading) {
-      return;
-    }
-
-    onSubmit(input);
-    setInput('');
-
-    // Reset textarea height
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-    }
+    submit();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Submit on Enter (without Shift)
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSubmit(e);
+      submit();
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex items-end gap-2">
-      <div className="relative flex-1">
-        <Textarea
-          ref={textareaRef}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder}
-          disabled={disabled || isLoading}
-          rows={1}
-          className={cn(
-            'min-h-[44px] max-h-[200px] resize-none pr-12',
-            'focus-visible:ring-2 focus-visible:ring-ring'
-          )}
-        />
+    <form onSubmit={handleSubmit} className="mx-auto w-full max-w-content-reading px-3 pb-3 pt-2 md:px-6 md:pb-5">
+      <div className="rounded-xl border border-border/80 bg-card p-2 shadow-sm">
+        <div className="flex items-end gap-2">
+          <Textarea
+            ref={textareaRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={placeholder}
+            disabled={disabled || isLoading}
+            rows={1}
+            aria-label="Message composer"
+            className={cn('max-h-[220px] min-h-[44px] resize-none border-0 bg-transparent pr-2 shadow-none focus-visible:ring-0')}
+          />
+          <Button type="submit" size="icon" disabled={!input.trim() || disabled || isLoading} className="h-11 w-11 shrink-0 rounded-lg">
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            <span className="sr-only">Send message</span>
+          </Button>
+        </div>
+        <p className="px-1 pb-1 text-[11px] text-muted-foreground">Press Enter to send • Shift+Enter for new line</p>
       </div>
-      <Button
-        type="submit"
-        size="icon"
-        disabled={!input.trim() || disabled || isLoading}
-        className="h-[44px] w-[44px] shrink-0"
-      >
-        {isLoading ? (
-          <Loader2 className="h-5 w-5 animate-spin" />
-        ) : (
-          <Send className="h-5 w-5" />
-        )}
-        <span className="sr-only">Send message</span>
-      </Button>
     </form>
   );
 }
-
