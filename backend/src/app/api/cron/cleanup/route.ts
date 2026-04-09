@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirestoreAdmin } from '@/lib/firebase-admin';
 import admin from 'firebase-admin';
+import { requireCron } from '@/server/api-auth';
 
 // Prevent this route from being statically generated
 export const dynamic = 'force-dynamic';
@@ -20,12 +21,7 @@ export const runtime = 'nodejs';
  */
 export async function POST(request: NextRequest) {
   try {
-    // Optional: Verify the request is from Cloud Scheduler
-    // Uncomment and set CRON_SECRET in your environment variables
-    // const authHeader = request.headers.get('authorization');
-    // if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    // }
+    requireCron(request);
 
     const retentionDays = 90; // Keep data for 90 days
     const cutoffDate = new Date();
@@ -103,6 +99,5 @@ export async function POST(request: NextRequest) {
 
 // Also support GET for manual testing
 export async function GET(request: NextRequest) {
-  return POST(request);
+  return NextResponse.json({ error: 'Method not allowed' }, { status: 405 });
 }
-

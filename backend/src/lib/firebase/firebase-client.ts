@@ -31,9 +31,10 @@ function validateFirebaseConfig(): void {
 
   for (const { key, value } of required) {
     if (!value) {
-      throw new Error(
-        `${key} environment variable is required. Please set it in your .env.local file.`
-      );
+      if (process.env.NODE_ENV === 'production' && typeof window === 'undefined') {
+        return;
+      }
+      throw new Error(`${key} environment variable is required. Please set it in your .env.local file.`);
     }
   }
 }
@@ -52,6 +53,15 @@ function initializeFirebaseClient(): FirebaseApp {
 
   // Validate required configuration
   validateFirebaseConfig();
+
+  if (!firebaseConfig.apiKey || !firebaseConfig.authDomain || !firebaseConfig.projectId) {
+    return initializeApp({
+      apiKey: 'build-mock',
+      authDomain: 'build-mock.firebaseapp.com',
+      projectId: 'build-mock',
+      appId: 'build-mock',
+    });
+  }
 
   // Initialize Firebase app
   const app = initializeApp(firebaseConfig);
@@ -92,3 +102,5 @@ export const app: FirebaseApp = initializeFirebaseClient();
  * ```
  */
 export const auth: Auth = getAuth(app);
+export const firebaseAuth: Auth = auth;
+export { getAuth };

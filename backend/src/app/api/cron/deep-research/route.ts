@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { runDeepResearchBatch } from '@/ai/agents/deep-research';
+import { requireCron } from '@/server/api-auth';
 
 /**
  * API route for the Deep Research Agent.
@@ -13,11 +14,7 @@ import { runDeepResearchBatch } from '@/ai/agents/deep-research';
  */
 export async function POST(request: NextRequest) {
   try {
-    // Optional: Verify the request is from Cloud Scheduler
-    // const authHeader = request.headers.get('authorization');
-    // if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    // }
+    requireCron(request);
 
     const result = await runDeepResearchBatch();
 
@@ -37,7 +34,6 @@ export async function POST(request: NextRequest) {
 
 // Also support GET for manual testing
 export async function GET(request: NextRequest) {
-  return POST(request);
+  return NextResponse.json({ error: 'Method not allowed' }, { status: 405 });
 }
-
 

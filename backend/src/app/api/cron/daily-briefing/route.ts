@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getFirestoreAdmin } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { chatCompletion } from '@/server/inference-client';
+import { requireCron } from '@/server/api-auth';
 
 /**
  * API route for daily briefing generation.
@@ -15,6 +16,7 @@ import { chatCompletion } from '@/server/inference-client';
  */
 export async function POST(request: NextRequest) {
   try {
+    requireCron(request);
     const firestoreAdmin = getFirestoreAdmin();
     const usersSnapshot = await firestoreAdmin.collection("users").get();
     
@@ -98,5 +100,5 @@ export async function POST(request: NextRequest) {
 
 // Also support GET for manual testing
 export async function GET(request: NextRequest) {
-  return POST(request);
+  return NextResponse.json({ error: 'Method not allowed' }, { status: 405 });
 }

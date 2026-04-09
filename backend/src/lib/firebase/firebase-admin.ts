@@ -108,3 +108,12 @@ export function getAdminApp(): admin.app.App {
 
   return initializeAdminApp();
 }
+
+export const adminAuth = getAdminApp().auth();
+export function getAuthAdmin() {
+  return getAdminApp().auth();
+}
+
+export function getFirestoreAdmin() {
+  return getAdminApp().firestore();
+}

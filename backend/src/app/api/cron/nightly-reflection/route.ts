@@ -3,6 +3,7 @@ import { getFirestoreAdmin } from '@/lib/firebase-admin';
 import { runReflectionFlow } from '@/ai/agents/nightly-reflection';
 import { saveInsightMemory, saveQuestionMemory } from '@/lib/memory-utils';
 import { FieldValue } from 'firebase-admin/firestore';
+import { requireCron } from '@/server/api-auth';
 
 /**
  * API route for nightly reflection agent.
@@ -16,11 +17,7 @@ import { FieldValue } from 'firebase-admin/firestore';
  */
 export async function POST(request: NextRequest) {
   try {
-    // Optional: Verify the request is from Cloud Scheduler
-    // const authHeader = request.headers.get('authorization');
-    // if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    // }
+    requireCron(request);
 
     const firestoreAdmin = getFirestoreAdmin();
     
@@ -138,6 +135,5 @@ export async function POST(request: NextRequest) {
 
 // Also support GET for manual testing
 export async function GET(request: NextRequest) {
-  return POST(request);
+  return NextResponse.json({ error: 'Method not allowed' }, { status: 405 });
 }
-

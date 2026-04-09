@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getFirestoreAdmin } from '@/lib/firebase-admin';
 import { generateEmbedding } from '@/lib/vector';
 import { FieldValue } from 'firebase-admin/firestore';
+import { requireCron } from '@/server/api-auth';
 
 /**
  * Cron endpoint to reindex all memories missing embeddings.
@@ -26,6 +27,7 @@ import { FieldValue } from 'firebase-admin/firestore';
  */
 export async function POST(request: NextRequest) {
   try {
+    requireCron(request);
     const firestoreAdmin = getFirestoreAdmin();
     
     console.log('[ReindexMemories] Starting global reindex of all memories...');
@@ -149,6 +151,5 @@ export async function POST(request: NextRequest) {
 
 // Also support GET for manual testing
 export async function GET(request: NextRequest) {
-  return POST(request);
+  return NextResponse.json({ error: 'Method not allowed' }, { status: 405 });
 }
-

@@ -93,7 +93,7 @@ export async function getUserThreads(userId: string, agent?: string): Promise<Th
         }
         
         const db = getFirestoreAdmin();
-        let query = db.collection(`users/${userId}/threads`).orderBy('updatedAt', 'desc');
+        let query = db.collection(`users/${userId}/conversations`).orderBy('updatedAt', 'desc');
         
         if (agent) {
             query = query.where('agent', '==', agent);
@@ -102,7 +102,11 @@ export async function getUserThreads(userId: string, agent?: string): Promise<Th
         const snapshot = await query.limit(20).get();
         return snapshot.docs.map(doc => ({
             id: doc.id,
-            ...doc.data(),
+            name: doc.data().name,
+            title: doc.data().name,
+            agent: doc.data().agentId || 'universe',
+            userId,
+            version: 1,
             createdAt: (doc.data().createdAt as Timestamp),
             updatedAt: (doc.data().updatedAt as Timestamp)
         })) as Thread[];
@@ -119,9 +123,19 @@ export async function getUserThreads(userId: string, agent?: string): Promise<Th
 export async function getThread(threadId: string, userId: string): Promise<Thread | null> {
     try {
         const db = getFirestoreAdmin();
-        const doc = await db.doc(`users/${userId}/threads/${threadId}`).get();
+        const doc = await db.doc(`users/${userId}/conversations/${threadId}`).get();
         if (!doc.exists) return null;
-        return { id: doc.id, ...doc.data() } as Thread;
+        const data = doc.data()!;
+        return {
+          id: doc.id,
+          name: data.name,
+          title: data.name,
+          agent: data.agentId || 'universe',
+          userId,
+          version: 1,
+          createdAt: data.createdAt,
+          updatedAt: data.updatedAt,
+        } as Thread;
     } catch (error) {
         console.error('Get Thread Error:', error);
         return null;
@@ -131,13 +145,8 @@ export async function getThread(threadId: string, userId: string): Promise<Threa
 export async function getMessages(threadId: string, userId: string): Promise<Message[]> {
     try {
         const db = getFirestoreAdmin();
-        const thread = await getThread(threadId, userId);
-        if (!thread) return [];
-        const agentId = thread.agent;
-
-        const historyRef = db.collection(`users/${userId}/agents/${agentId}/history`);
-        const snapshot = await historyRef
-            .where('threadId', '==', threadId)
+        const snapshot = await db
+            .collection(`users/${userId}/conversations/${threadId}/messages`)
             .orderBy('createdAt', 'asc')
             .get();
             
@@ -162,19 +171,11 @@ export async function createThread(agent: 'builder' | 'universe', userId: string
         const db = getFirestoreAdmin();
         console.log('[createThread] Firestore Admin obtained successfully');
         
-        // 1. Get current user - Assuming userId is already passed from the frontend
-        // For actual auth, replace with Firebase Admin SDK's auth().verifyIdToken(...) or similar
-        const actualUserId = userId; 
-
-        // 2. Create the thread WITHOUT AI generation first (Safe Mode)
-        console.log('[createThread] Creating thread for user:', actualUserId, 'agent:', agent);
-        const threadRef = await db.collection(`users/${actualUserId}/threads`).add({
-            userId: actualUserId,
-            agent,
-            name: "New Thread", // Don't use AI to generate this yet
+        const threadRef = await db.collection(`users/${userId}/conversations`).add({
+            agentId: agent,
+            name: "New Chat",
             createdAt: FieldValue.serverTimestamp(),
             updatedAt: FieldValue.serverTimestamp(),
-            messages: [] // Initialize with an empty messages array
         });
 
         console.log('[createThread] Thread created successfully:', threadRef.id);
@@ -213,7 +214,12 @@ export async function createThread(agent: 'builder' | 'universe', userId: string
 export async function deleteThread(threadId: string, userId: string, agentId?: string) {
     try {
         const db = getFirestoreAdmin();
-        await db.doc(`users/${userId}/threads/${threadId}`).delete();
+        const ref = db.doc(`users/${userId}/conversations/${threadId}`);
+        const messagesSnapshot = await ref.collection('messages').get();
+        const batch = db.batch();
+        messagesSnapshot.docs.forEach((doc) => batch.delete(doc.ref));
+        batch.delete(ref);
+        await batch.commit();
         revalidatePath('/');
         return { success: true };
     } catch (error) {
@@ -224,11 +230,8 @@ export async function deleteThread(threadId: string, userId: string, agentId?: s
 
 export async function deleteMessage(threadId: string, messageId: string, userId: string) {
     try {
-        const thread = await getThread(threadId, userId);
-        if (!thread) return { success: false, message: 'Thread not found' };
         const db = getFirestoreAdmin();
-        const historyRef = db.collection(`users/${userId}/agents/${thread.agent}/history`);
-        await historyRef.doc(messageId).delete();
+        await db.doc(`users/${userId}/conversations/${threadId}/messages/${messageId}`).delete();
         revalidatePath(`/chat/${threadId}`);
         return { success: true };
     } catch (error) {
@@ -250,8 +253,11 @@ export async function transcribeAndProcessMessage(formData: FormData) {
 export async function updateThread(threadId: string, userId: string, agentId: string, data: any) {
     try {
         const db = getFirestoreAdmin();
-        await db.doc(`users/${userId}/threads/${threadId}`).update({
-            ...data,
+        const name = data.title || data.name;
+        await db.doc(`users/${userId}/conversations/${threadId}`).update({
+            ...(name ? { name } : {}),
+            ...(data.archived !== undefined ? { archived: data.archived } : {}),
+            ...(data.pinned !== undefined ? { pinned: data.pinned } : {}),
             updatedAt: FieldValue.serverTimestamp()
         });
         revalidatePath('/');
@@ -310,7 +316,7 @@ export async function getUserConnectors(userId: string): Promise<UserConnector[]
 
 export async function renameThread(threadId: string, newName: string, userId: string) {
     const db = getFirestoreAdmin();
-    await db.doc(`users/${userId}/threads/${threadId}`).update({ 
+    await db.doc(`users/${userId}/conversations/${threadId}`).update({ 
         name: newName,
         updatedAt: FieldValue.serverTimestamp() 
     });

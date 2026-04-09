@@ -274,3 +274,17 @@ export async function getEmbeddings(texts: string[]): Promise<number[][]> {
     throw new Error(`LLM API embeddings request failed: ${error?.message || 'Unknown error'}`);
   }
 }
+
+export async function getEmbedding(text: string): Promise<number[]> {
+  const [embedding] = await getEmbeddings([text]);
+  return embedding;
+}
+
+export async function callLLM(
+  messages: ChatMessage[],
+  _options?: Record<string, unknown>
+): Promise<string> {
+  const response = await streamChatCompletion(messages);
+  const text = await response.text();
+  return text;
+}
