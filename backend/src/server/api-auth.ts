@@ -30,7 +30,7 @@ export function userFromClaims(decoded: DecodedIdToken): AuthUser {
   return {
     uid: decoded.uid,
     email: decoded.email,
-    isAdmin: decoded.admin === true || decoded.role === 'admin' || decoded.roles?.includes?.('admin') === true,
+    isAdmin: decoded.admin === true || decoded.role === 'admin' || decoded.roles?.includes?.('admin') === true || decoded.platformRole === 'superadmin' || decoded.platformRole === 'support',
   };
 }
 
@@ -59,7 +59,9 @@ export function requireCron(request: NextRequest): void {
   }
 
   const authHeader = request.headers.get('authorization');
-  const provided = authHeader?.startsWith('Bearer ') ? authHeader.slice(7).trim() : null;
+  const bearer = authHeader?.startsWith('Bearer ') ? authHeader.slice(7).trim() : null;
+  const headerSecret = request.headers.get('x-cron-secret')?.trim() || null;
+  const provided = bearer || headerSecret;
   if (!provided || provided !== expected) {
     throw new AuthError('Unauthorized', 401);
   }

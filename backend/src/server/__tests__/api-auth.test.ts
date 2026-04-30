@@ -17,6 +17,11 @@ test('userFromClaims maps admin claims', () => {
   assert.equal(user.isAdmin, true);
 });
 
+test('userFromClaims maps platform admin claims', () => {
+  const user = userFromClaims({ uid: 'u3', email: 'x@y.com', platformRole: 'superadmin' } as any);
+  assert.equal(user.isAdmin, true);
+});
+
 test('userFromClaims rejects non-admin users', () => {
   const user = userFromClaims({ uid: 'u2', email: 'x@y.com', admin: false } as any);
   assert.equal(user.isAdmin, false);
@@ -26,6 +31,15 @@ test('requireCron validates scheduler bearer secret', () => {
   process.env.CRON_SECRET = 'super-secret';
   const req = {
     headers: new Headers({ authorization: 'Bearer super-secret' }),
+  } as any;
+
+  assert.doesNotThrow(() => requireCron(req));
+});
+
+test('requireCron validates x-cron-secret header', () => {
+  process.env.CRON_SECRET = 'super-secret';
+  const req = {
+    headers: new Headers({ 'x-cron-secret': 'super-secret' }),
   } as any;
 
   assert.doesNotThrow(() => requireCron(req));
