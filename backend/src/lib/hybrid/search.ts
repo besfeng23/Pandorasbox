@@ -51,11 +51,11 @@ export async function hybridSearch(query: string, userId: string, agentId: strin
         console.log(`[HybridSearch] Keywords extracted from \"${query}\":`, keywords);
 
         // 3. Build Qdrant filter
-        const collectionName = agentId === 'universe' ? 'memories' : `memories__${agentId}`;
+        const collectionName = 'memories';
 
         const filter: any = {
             must: [
-                { key: 'uid', match: { value: userId } }
+                { key: 'userId', match: { value: userId } }
             ]
         };
 
