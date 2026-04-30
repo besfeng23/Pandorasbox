@@ -4,6 +4,13 @@ import { startMemoryPipeline } from '@/lib/pipelines/memoryPipeline';
 import { getAuthAdmin } from '@/lib/firebase-admin';
 import { handleOptions, corsHeaders } from '@/lib/cors';
 
+const DEFAULT_MAX_INGEST_FILE_BYTES = 10 * 1024 * 1024;
+
+function getMaxIngestFileBytes(): number {
+  const configured = Number(process.env.MAX_INGEST_FILE_BYTES);
+  return Number.isFinite(configured) && configured > 0 ? configured : DEFAULT_MAX_INGEST_FILE_BYTES;
+}
+
 export async function OPTIONS() {
   return handleOptions();
 }
@@ -42,6 +49,10 @@ export async function POST(request: NextRequest) {
     }
 
     const filename = file.name;
+    const maxBytes = getMaxIngestFileBytes();
+    if (file.size > maxBytes) {
+      return NextResponse.json({ error: `File too large. Max allowed is ${maxBytes} bytes.` }, { status: 413, headers: corsHeaders() });
+    }
 
     // 3. Read File Content
     let content = '';
