@@ -4,8 +4,8 @@ import { startMemoryPipeline } from '@/lib/pipelines/memoryPipeline';
 import { getAuthAdmin } from '@/lib/firebase-admin';
 import { handleOptions, corsHeaders } from '@/lib/cors';
 
-export async function OPTIONS() {
-  return handleOptions();
+export async function OPTIONS(request: NextRequest) {
+  return handleOptions(request);
 }
 
 /**
@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     // 1. Authentication/Authorization
     const authHeader = request.headers.get('Authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders() });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders(request) });
     }
 
     const token = authHeader.split(' ')[1];
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     } catch (error: any) {
       return NextResponse.json(
         { error: error.message || 'Unauthorized' },
-        { status: 401, headers: corsHeaders() }
+        { status: 401, headers: corsHeaders(request) }
       );
     }
 
@@ -39,10 +39,14 @@ export async function POST(request: NextRequest) {
     const workspaceId = formData.get('workspaceId') as string | null;
 
     if (!file) {
-      return NextResponse.json({ error: 'No file provided' }, { status: 400, headers: corsHeaders() });
+      return NextResponse.json({ error: 'No file provided' }, { status: 400, headers: corsHeaders(request) });
     }
 
     const filename = file.name;
+    const maxBytes = Number(process.env.MAX_INGEST_FILE_BYTES || 10 * 1024 * 1024);
+    if (file.size > maxBytes) {
+      return NextResponse.json({ error: `File too large. Max ${maxBytes} bytes` }, { status: 413, headers: corsHeaders(request) });
+    }
 
     // 3. Read File Content
     let content = '';
@@ -55,7 +59,7 @@ export async function POST(request: NextRequest) {
       } catch (pdfError: any) {
         return NextResponse.json(
           { error: `Failed to parse PDF: ${pdfError.message}` },
-          { status: 400, headers: corsHeaders() }
+          { status: 400, headers: corsHeaders(request) }
         );
       }
     } else if (
@@ -68,12 +72,12 @@ export async function POST(request: NextRequest) {
     } else {
       return NextResponse.json(
         { error: 'Unsupported file type. Supported: PDF, TXT, MD' },
-        { status: 400, headers: corsHeaders() }
+        { status: 400, headers: corsHeaders(request) }
       );
     }
 
     if (!content.trim()) {
-      return NextResponse.json({ error: 'File is empty or could not be parsed' }, { status: 400, headers: corsHeaders() });
+      return NextResponse.json({ error: 'File is empty or could not be parsed' }, { status: 400, headers: corsHeaders(request) });
     }
 
     // 4. Start Pipeline Asynchronously
@@ -86,13 +90,13 @@ export async function POST(request: NextRequest) {
         status: job.status,
         totalChunks: job.totalChunks,
       },
-      { status: 202, headers: corsHeaders() }
+      { status: 202, headers: corsHeaders(request) }
     ); // 202 Accepted, processing is happening
   } catch (error: any) {
     console.error('Ingestion API Error:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to start ingestion process.' },
-      { status: 500, headers: corsHeaders() }
+      { status: 500, headers: corsHeaders(request) }
     );
   }
 }
