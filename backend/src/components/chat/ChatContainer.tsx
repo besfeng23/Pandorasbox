@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { useArtifactStore } from '@/store/artifacts';
 import { consumeChatStream } from './stream-utils';
+import type { ChatMessageMetadata } from '@/contracts/chat';
 
 export interface ChatToolUsage {
   toolName: string;
@@ -24,6 +25,7 @@ export interface ChatMessage {
   id?: string;
   reasoning?: string;
   toolUsages?: ChatToolUsage[];
+  metadata?: ChatMessageMetadata;
 }
 
 interface ChatContainerProps {
@@ -36,6 +38,7 @@ type ApiChatMessage = {
   id?: string;
   reasoning?: string;
   toolUsages?: ChatToolUsage[];
+  metadata?: ChatMessageMetadata;
 };
 
 function isApiChatMessage(message: unknown): message is ApiChatMessage {
@@ -131,13 +134,17 @@ export function ChatContainer({ initialConversationId = null }: ChatContainerPro
         }
 
         const data: { messages?: unknown[] } = await response.json();
-        const loadedMessages: ChatMessage[] = (data.messages || []).filter(isApiChatMessage).map((msg, index) => ({
-          role: msg.role,
-          content: msg.content,
-          id: msg.id || `${msg.role}-loaded-${index}`,
-          reasoning: typeof msg.reasoning === 'string' ? msg.reasoning : undefined,
-          toolUsages: Array.isArray(msg.toolUsages) ? msg.toolUsages : undefined,
-        }));
+        const loadedMessages: ChatMessage[] = (data.messages || []).filter(isApiChatMessage).map((msg, index) => {
+          const metadata = isRecord(msg.metadata) ? (msg.metadata as ChatMessageMetadata) : undefined;
+          return {
+            role: msg.role,
+            content: msg.content,
+            id: msg.id || `${msg.role}-loaded-${index}`,
+            reasoning: typeof msg.reasoning === 'string' ? msg.reasoning : typeof metadata?.reasoning === 'string' ? metadata.reasoning : undefined,
+            toolUsages: Array.isArray(msg.toolUsages) ? msg.toolUsages : Array.isArray(metadata?.toolUsages) ? metadata.toolUsages : undefined,
+            metadata,
+          };
+        });
 
         setMessages(loadedMessages);
       } catch (error: unknown) {

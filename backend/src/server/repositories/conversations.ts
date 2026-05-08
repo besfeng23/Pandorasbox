@@ -1,9 +1,14 @@
 import 'server-only';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { getFirestoreAdmin } from '@/lib/firebase-admin';
-import type { ChatMessage, Conversation } from '@/contracts/chat';
+import type { ChatMessage, ChatMessageMetadata, ChatToolUsage, Conversation } from '@/contracts/chat';
 
 const MAX_CONTEXT_MESSAGES = 20;
+const MAX_METADATA_STRING_LENGTH = 8_000;
+const MAX_METADATA_ARRAY_ITEMS = 25;
+const MAX_METADATA_OBJECT_KEYS = 50;
+const MAX_METADATA_DEPTH = 6;
+const TRUNCATED_SUFFIX = '\n…[truncated]';
 
 function conversationsCollection(uid: string) {
   return getFirestoreAdmin().collection(`users/${uid}/conversations`);
@@ -16,6 +21,65 @@ function messagesCollection(uid: string, conversationId: string) {
 function asMillis(value: unknown): number {
   if (value instanceof Timestamp) return value.toMillis();
   return Date.now();
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function truncateString(value: string, maxLength = MAX_METADATA_STRING_LENGTH) {
+  return value.length > maxLength ? `${value.slice(0, maxLength)}${TRUNCATED_SUFFIX}` : value;
+}
+
+function sanitizeMetadataValue(value: unknown, depth = 0): unknown {
+  if (value === null || typeof value === 'boolean' || typeof value === 'number') return value;
+  if (typeof value === 'string') return truncateString(value);
+  if (value === undefined || typeof value === 'function' || typeof value === 'symbol' || typeof value === 'bigint') return undefined;
+  if (depth >= MAX_METADATA_DEPTH) return '[truncated: max depth]';
+
+  if (Array.isArray(value)) {
+    return value
+      .slice(0, MAX_METADATA_ARRAY_ITEMS)
+      .map((item) => sanitizeMetadataValue(item, depth + 1))
+      .filter((item) => item !== undefined);
+  }
+
+  if (!isRecord(value)) return String(value);
+
+  const sanitized: Record<string, unknown> = {};
+  for (const [key, nestedValue] of Object.entries(value).slice(0, MAX_METADATA_OBJECT_KEYS)) {
+    const sanitizedValue = sanitizeMetadataValue(nestedValue, depth + 1);
+    if (sanitizedValue !== undefined) sanitized[key] = sanitizedValue;
+  }
+  return sanitized;
+}
+
+function normalizeToolUsage(value: unknown): ChatToolUsage | null {
+  if (!isRecord(value)) return null;
+  const rawName = value.toolName || value.name || value.tool || value.type;
+  if (typeof rawName !== 'string' || !rawName.trim()) return null;
+
+  const tool: ChatToolUsage = { toolName: truncateString(rawName.trim(), 256) };
+  const input = sanitizeMetadataValue(value.input ?? value.args ?? value.arguments);
+  const output = sanitizeMetadataValue(value.output ?? value.result ?? value.data);
+  if (input !== undefined) tool.input = input;
+  if (output !== undefined) tool.output = output;
+  if (typeof value.citation === 'string' && value.citation.trim()) tool.citation = truncateString(value.citation.trim(), 2_000);
+  return tool;
+}
+
+function normalizeMetadata(value: unknown): ChatMessageMetadata | undefined {
+  if (!isRecord(value)) return undefined;
+
+  const metadata: ChatMessageMetadata = {};
+  if (typeof value.reasoning === 'string' && value.reasoning.trim()) metadata.reasoning = truncateString(value.reasoning);
+
+  if (Array.isArray(value.toolUsages)) {
+    const toolUsages = value.toolUsages.map(normalizeToolUsage).filter((tool): tool is ChatToolUsage => Boolean(tool));
+    if (toolUsages.length > 0) metadata.toolUsages = toolUsages;
+  }
+
+  return metadata.reasoning || metadata.toolUsages?.length ? metadata : undefined;
 }
 
 export async function listConversations(uid: string): Promise<Conversation[]> {
@@ -64,20 +128,31 @@ export async function listMessages(uid: string, conversationId: string): Promise
   const snapshot = await messagesCollection(uid, conversationId).orderBy('createdAt', 'asc').get();
   return snapshot.docs.map((doc) => {
     const data = doc.data();
-    return {
+    const metadata = normalizeMetadata(data.metadata ?? { reasoning: data.reasoning, toolUsages: data.toolUsages });
+    const message: ChatMessage = {
       id: doc.id,
       role: data.role,
       content: data.content,
       createdAt: asMillis(data.createdAt),
-    } as ChatMessage;
+    };
+    if (metadata) message.metadata = metadata;
+    return message;
   });
 }
 
-export async function appendMessage(uid: string, conversationId: string, message: { role: 'user' | 'assistant'; content: string; }) {
+export async function appendMessage(uid: string, conversationId: string, message: { role: 'user' | 'assistant'; content: string; metadata?: ChatMessageMetadata; }) {
   const conversationRef = conversationsCollection(uid).doc(conversationId);
   const messageRef = messagesCollection(uid, conversationId).doc();
   const createdAt = FieldValue.serverTimestamp();
-  await messageRef.set({ role: message.role, content: message.content, createdAt });
+  const storedMessage: { role: 'user' | 'assistant'; content: string; createdAt: FieldValue; metadata?: ChatMessageMetadata } = {
+    role: message.role,
+    content: message.content,
+    createdAt,
+  };
+  const metadata = normalizeMetadata(message.metadata);
+  if (metadata) storedMessage.metadata = metadata;
+
+  await messageRef.set(storedMessage);
   await conversationRef.set({ updatedAt: createdAt }, { merge: true });
   return messageRef.id;
 }
