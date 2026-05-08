@@ -54,7 +54,7 @@ export default function DashboardPage() {
     if (result?.id) router.push(`/chat/${result.id}`);
   };
 
-  const formatTimestamp = (timestamp: any) => {
+  const formatTimestamp = (timestamp: Timestamp | Date | string | number | null | undefined) => {
     if (!timestamp) return 'N/A';
     if (timestamp instanceof Timestamp) return formatDistanceToNow(timestamp.toDate(), { addSuffix: true });
     const date = new Date(timestamp);
@@ -96,15 +96,15 @@ export default function DashboardPage() {
           ) : (
             <div className="space-y-6">
               <PageHeader
-                title={`Welcome back, ${user.displayName || 'Explorer'}`}
-                description="Continue your recent work or start a new thread."
+                title={`Welcome back${user.displayName ? `, ${user.displayName}` : ''}`}
+                description="Continue a chat or start fresh."
                 actions={
                   <>
-                    <Button onClick={() => handleCreateThread('builder')}>
-                      <Bot className="mr-2 h-4 w-4" /> New Builder Thread
+                    <Button onClick={() => handleCreateThread('universe')}>
+                      <BrainCircuit className="mr-2 h-4 w-4" /> Ask
                     </Button>
-                    <Button variant="secondary" onClick={() => handleCreateThread('universe')}>
-                      <BrainCircuit className="mr-2 h-4 w-4" /> New Universe Thread
+                    <Button variant="secondary" onClick={() => handleCreateThread('builder')}>
+                      <Bot className="mr-2 h-4 w-4" /> Build
                     </Button>
                   </>
                 }
@@ -113,9 +113,9 @@ export default function DashboardPage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-xl">
-                    <History className="h-5 w-5" /> Recent Threads
+                    <History className="h-5 w-5" /> Recent threads
                   </CardTitle>
-                  <CardDescription>Jump back into one of your recent conversations.</CardDescription>
+                  <CardDescription>Pick up where you left off.</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2">

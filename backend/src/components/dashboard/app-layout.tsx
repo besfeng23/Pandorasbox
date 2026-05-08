@@ -57,6 +57,7 @@ import {
   Loader2,
   Plug,
   BrainCircuit,
+  Home,
   MoreHorizontal,
   Edit,
   Trash2,
@@ -64,7 +65,6 @@ import {
 } from 'lucide-react';
 import { PandoraBoxIcon } from '@/components/icons';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { createThread, renameThread, deleteThread, getRecentThreads } from '@/app/actions';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -75,13 +75,16 @@ import { ArtifactPanel } from '@/components/chat/artifact-panel';
 import { useArtifactStore } from '@/store/artifacts';
 import { StateBlock } from '@/components/ui/state-block';
 
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
+
 function SidebarContentInternal({ threadId }: { threadId?: string }) {
   const { user } = useUser();
   const { logout } = useAuthActions();
   const pathname = usePathname();
   const router = useRouter();
   const { isMobile, setOpenMobile } = useSidebar();
-  const [agent, setAgent] = useState<'builder' | 'universe'>('builder');
   const [threads, setThreads] = useState<Thread[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
@@ -95,7 +98,7 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
       await renameThread(currentThread.id, newThreadName.trim(), user.uid);
       toast({ title: 'Thread renamed' });
       setRenameDialogOpen(false);
-      const fetchedThreads = await getRecentThreads(user.uid, agent);
+      const fetchedThreads = await getRecentThreads(user.uid);
       setThreads(fetchedThreads);
     }
   };
@@ -110,7 +113,7 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
     const fetchThreads = async () => {
       setIsLoading(true);
       try {
-        const fetchedThreads = await getRecentThreads(user.uid, agent);
+        const fetchedThreads = await getRecentThreads(user.uid);
         setThreads(fetchedThreads);
       } catch (error) {
         console.error('Error fetching threads:', error);
@@ -120,7 +123,7 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
     };
 
     fetchThreads();
-  }, [user, agent]);
+  }, [user]);
 
   const handleNavClick = () => {
     if (isMobile) {
@@ -131,16 +134,16 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
   const handleCreateThread = async () => {
     if (user) {
       try {
-        const result = await createThread(agent, user.uid);
+        const result = await createThread('universe', user.uid);
         if (result?.id) {
           handleNavClick();
           router.push(`/chat/${result.id}`);
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         toast({
           variant: 'destructive',
           title: 'Error',
-          description: error.message || 'Failed to create thread',
+          description: getErrorMessage(error, 'Failed to create thread'),
         });
       }
     }
@@ -153,53 +156,74 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
           <PandoraBoxIcon className="h-8 w-8 text-primary" />
           <div className="flex flex-col">
             <span className="text-headline font-semibold text-foreground">Pandora&apos;s Box</span>
-            <span className="text-xs text-sidebar-foreground/70">AI workspace</span>
+            <span className="text-xs text-sidebar-foreground/70">Chat and memory</span>
           </div>
         </Link>
       </SidebarHeader>
 
       <SidebarContent className="p-3">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <Link href="/memory" className="w-full" onClick={handleNavClick}>
-              <SidebarMenuButton isActive={pathname.startsWith('/memory')} className="w-full justify-start">
-                <BrainCircuit />
-                <span>Memory</span>
-              </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <Link href="/connectors" className="w-full" onClick={handleNavClick}>
-              <SidebarMenuButton isActive={pathname.startsWith('/connectors')} className="w-full justify-start">
-                <Plug />
-                <span>Data Connectors</span>
-              </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <Link href="/agents" className="w-full" onClick={handleNavClick}>
-              <SidebarMenuButton isActive={pathname.startsWith('/agents')} className="w-full justify-start">
-                <Bot />
-                <span>Agents</span>
-              </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        <div className="space-y-4">
+          <div>
+            <p className="mb-2 px-2 text-xs font-medium uppercase tracking-[0.18em] text-sidebar-foreground/45">Main</p>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <Link href="/chat" className="w-full" onClick={handleNavClick}>
+                  <SidebarMenuButton isActive={pathname === '/chat' || pathname.startsWith('/chat/')} className="w-full justify-start">
+                    <Home />
+                    <span>Chat</span>
+                  </SidebarMenuButton>
+                </Link>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <Link href="/memory" className="w-full" onClick={handleNavClick}>
+                  <SidebarMenuButton isActive={pathname.startsWith('/memory')} className="w-full justify-start">
+                    <BrainCircuit />
+                    <span>Memory</span>
+                  </SidebarMenuButton>
+                </Link>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </div>
 
-        <SidebarSeparator className="my-3" />
+          <div>
+            <p className="mb-2 px-2 text-xs font-medium uppercase tracking-[0.18em] text-sidebar-foreground/45">Tools</p>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <Link href="/connectors" className="w-full" onClick={handleNavClick}>
+                  <SidebarMenuButton isActive={pathname.startsWith('/connectors')} className="w-full justify-start">
+                    <Plug />
+                    <span>Connectors</span>
+                  </SidebarMenuButton>
+                </Link>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <Link href="/agents" className="w-full" onClick={handleNavClick}>
+                  <SidebarMenuButton isActive={pathname.startsWith('/agents')} className="w-full justify-start">
+                    <Bot />
+                    <span>Agents</span>
+                  </SidebarMenuButton>
+                </Link>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <Link href="/settings" className="w-full" onClick={handleNavClick}>
+                  <SidebarMenuButton isActive={pathname.startsWith('/settings')} className="w-full justify-start">
+                    <Settings />
+                    <span>Settings</span>
+                  </SidebarMenuButton>
+                </Link>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </div>
+        </div>
 
-        <Tabs value={agent} onValueChange={(value) => setAgent(value as 'builder' | 'universe')} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="builder">Builder</TabsTrigger>
-            <TabsTrigger value="universe">Universe</TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <SidebarSeparator className="my-4" />
 
-        <Button variant="outline" className="mt-3 w-full" onClick={handleCreateThread}>
-          <PlusCircle className="mr-2 h-4 w-4" /> New Thread
+        <Button variant="outline" className="w-full" onClick={handleCreateThread}>
+          <PlusCircle className="mr-2 h-4 w-4" /> New chat
         </Button>
 
-        <SidebarGroup className="mt-2 min-h-0 flex-1 p-0">
+        <SidebarGroup className="mt-4 min-h-0 flex-1 p-0">
+          <p className="mb-2 px-2 text-xs font-medium uppercase tracking-[0.18em] text-sidebar-foreground/45">Recent</p>
           {isLoading ? (
             <div className="flex justify-center p-4">
               <Loader2 className="h-5 w-5 animate-spin" />
@@ -207,8 +231,8 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
           ) : threads.length === 0 ? (
             <StateBlock
               className="min-h-[140px] border-0 bg-transparent px-2 py-6"
-              title="No threads yet"
-              description="Start a new thread to begin working with your assistant."
+              title="No recent threads"
+              description="Start a new chat and it will appear here."
             />
           ) : (
             <SidebarMenu>
@@ -216,8 +240,8 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
                 <SidebarMenuItem key={thread.id}>
                   <Link href={`/chat/${thread.id}`} className="w-full" onClick={handleNavClick}>
                     <SidebarMenuButton isActive={threadId === thread.id} className="w-full justify-start">
-                      <MessageSquare />
-                      <span>{thread.name}</span>
+                      <MessageSquare className="shrink-0" />
+                      <span className="truncate">{thread.name}</span>
                     </SidebarMenuButton>
                   </Link>
                   <DropdownMenu>
@@ -262,7 +286,7 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
                                 if (user) {
                                   await deleteThread(thread.id, user.uid);
                                   toast({ title: `Thread "${thread.name}" deleted.` });
-                                  const fetchedThreads = await getRecentThreads(user.uid, agent);
+                                  const fetchedThreads = await getRecentThreads(user.uid);
                                   setThreads(fetchedThreads);
                                 }
                               }}
@@ -298,7 +322,7 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent side="top" align="start" className="w-56">
-            <DropdownMenuLabel>My Account</DropdownMenuLabel>
+            <DropdownMenuLabel>Account</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onSelect={() => {
@@ -325,7 +349,7 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
       <Dialog open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Rename Thread</DialogTitle>
+            <DialogTitle>Rename thread</DialogTitle>
           </DialogHeader>
           <form onSubmit={(e) => { e.preventDefault(); handleRenameSubmit(); }}>
             <div className="grid gap-4 py-4">
@@ -346,7 +370,7 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
               <Button variant="outline" onClick={() => setRenameDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit">Save Changes</Button>
+              <Button type="submit">Save</Button>
             </DialogFooter>
           </form>
         </DialogContent>
