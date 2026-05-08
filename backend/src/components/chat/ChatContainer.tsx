@@ -217,7 +217,7 @@ export function ChatContainer({ initialConversationId = null }: ChatContainerPro
   if (isLoadingMessages) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
+        <div className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-3 text-sm text-muted-foreground shadow-sm">
           <Loader2 className="h-4 w-4 animate-spin text-primary" />
           Loading conversation
         </div>
@@ -226,12 +226,12 @@ export function ChatContainer({ initialConversationId = null }: ChatContainerPro
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="border-b border-border/70 bg-background/70 px-3 py-2 backdrop-blur md:px-6">
-        <div className="mx-auto flex w-full max-w-content-reading items-center justify-between">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+    <div className="flex h-full min-h-0 flex-col bg-background text-foreground">
+      <div className="shrink-0 border-b border-border bg-background px-3 py-3 md:px-6">
+        <div className="mx-auto flex w-full max-w-content-reading items-center justify-between gap-3">
+          <div className="min-w-0 flex items-center gap-2 text-sm text-muted-foreground">
             <Sparkles className="h-4 w-4 text-primary" />
-            <span>{conversationId ? 'Chat' : 'New chat'}</span>
+            <span className="truncate font-medium text-foreground">{conversationId ? 'Chat' : 'New chat'}</span>
           </div>
           <div className="flex items-center gap-2">
             {isStreaming && <span className="hidden text-xs text-muted-foreground sm:inline">Streaming…</span>}
@@ -243,7 +243,7 @@ export function ChatContainer({ initialConversationId = null }: ChatContainerPro
               aria-label="Sources and context"
               disabled={!activeArtifact}
               onClick={() => setIsOpen(true)}
-              className="gap-1.5 text-muted-foreground hover:text-foreground"
+              className="gap-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
             >
               <FileText className="h-4 w-4" />
               <span className="hidden sm:inline">Sources</span>
@@ -252,12 +252,12 @@ export function ChatContainer({ initialConversationId = null }: ChatContainerPro
         </div>
       </div>
 
-      <div className="app-scroll flex-1 overflow-y-auto">
+      <div className="app-scroll flex-1 overflow-y-auto bg-background">
         <MessageList messages={messages} onExampleSelect={handleSubmit} examplesDisabled={isStreaming} />
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/70">
+      <div className="sticky bottom-0 shrink-0 border-t border-border bg-background">
         <ChatInput onSubmit={handleSubmit} disabled={isStreaming} isLoading={isStreaming} />
       </div>
     </div>
