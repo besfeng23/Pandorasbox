@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useUser, useAuthActions } from '@/firebase';
-import type { Thread } from '@/lib/types';
+import type { ChatListResponse, Conversation } from '@/contracts/chat';
 import {
   Sidebar,
   SidebarHeader,
@@ -65,7 +65,6 @@ import {
 } from 'lucide-react';
 import { PandoraBoxIcon } from '@/components/icons';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { createThread, renameThread, deleteThread, getRecentThreads } from '@/app/actions';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
@@ -79,51 +78,111 @@ function getErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
 }
 
-function SidebarContentInternal({ threadId }: { threadId?: string }) {
+type AuthenticatedUser = {
+  getIdToken: () => Promise<string>;
+};
+
+function getConversationsUrl(conversationId?: string) {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || window.location.origin;
+  return `${apiUrl}/api/conversations${conversationId ? `/${conversationId}` : ''}`;
+}
+
+async function getAuthHeaders(user: AuthenticatedUser) {
+  const token = await user.getIdToken();
+  return { Authorization: `Bearer ${token}` };
+}
+
+function SidebarContentInternal({ conversationId }: { conversationId?: string }) {
   const { user } = useUser();
   const { logout } = useAuthActions();
   const pathname = usePathname();
   const router = useRouter();
   const { isMobile, setOpenMobile } = useSidebar();
-  const [threads, setThreads] = useState<Thread[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
-  const [currentThread, setCurrentThread] = useState<Thread | null>(null);
-  const [newThreadName, setNewThreadName] = useState('');
+  const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null);
+  const [newConversationName, setNewConversationName] = useState('');
+
+  const refreshConversations = useCallback(async () => {
+    if (!user) {
+      setConversations([]);
+      return [];
+    }
+
+    const response = await fetch(getConversationsUrl(), {
+      headers: await getAuthHeaders(user),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to load conversations');
+    }
+
+    const data = (await response.json()) as ChatListResponse;
+    setConversations(data.conversations);
+    return data.conversations;
+  }, [user]);
 
   const handleRenameSubmit = async () => {
-    if (currentThread && user && newThreadName.trim()) {
-      await renameThread(currentThread.id, newThreadName.trim(), user.uid);
-      toast({ title: 'Thread renamed' });
+    const name = newConversationName.trim();
+    if (!currentConversation || !user || !name) return;
+
+    try {
+      const response = await fetch(getConversationsUrl(currentConversation.id), {
+        method: 'PATCH',
+        headers: {
+          ...(await getAuthHeaders(user)),
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to rename conversation');
+      }
+
+      toast({ title: 'Conversation renamed' });
       setRenameDialogOpen(false);
-      const fetchedThreads = await getRecentThreads(user.uid);
-      setThreads(fetchedThreads);
+      await refreshConversations();
+      router.refresh();
+    } catch (error: unknown) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: getErrorMessage(error, 'Failed to rename conversation'),
+      });
     }
   };
 
   useEffect(() => {
     if (!user) {
       setIsLoading(false);
-      setThreads([]);
+      setConversations([]);
       return;
     }
 
-    const fetchThreads = async () => {
+    let ignore = false;
+
+    const fetchConversations = async () => {
       setIsLoading(true);
       try {
-        const fetchedThreads = await getRecentThreads(user.uid);
-        setThreads(fetchedThreads);
+        const fetchedConversations = await refreshConversations();
+        if (!ignore) setConversations(fetchedConversations);
       } catch (error) {
-        console.error('Error fetching threads:', error);
+        console.error('Error fetching conversations:', error);
       } finally {
-        setIsLoading(false);
+        if (!ignore) setIsLoading(false);
       }
     };
 
-    fetchThreads();
-  }, [user]);
+    fetchConversations();
+
+    return () => {
+      ignore = true;
+    };
+  }, [refreshConversations, user]);
 
   const handleNavClick = () => {
     if (isMobile) {
@@ -131,21 +190,65 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
     }
   };
 
-  const handleCreateThread = async () => {
-    if (user) {
-      try {
-        const result = await createThread('universe', user.uid);
-        if (result?.id) {
-          handleNavClick();
-          router.push(`/chat/${result.id}`);
-        }
-      } catch (error: unknown) {
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: getErrorMessage(error, 'Failed to create thread'),
-        });
+  const handleCreateConversation = async () => {
+    if (!user) return;
+
+    try {
+      const response = await fetch(getConversationsUrl(), {
+        method: 'POST',
+        headers: {
+          ...(await getAuthHeaders(user)),
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ agentId: 'universe' }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create conversation');
       }
+
+      const result = (await response.json()) as { id?: string };
+      if (result.id) {
+        await refreshConversations();
+        handleNavClick();
+        router.push(`/chat/${result.id}`);
+        router.refresh();
+      }
+    } catch (error: unknown) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: getErrorMessage(error, 'Failed to create conversation'),
+      });
+    }
+  };
+
+  const handleDeleteConversation = async (conversation: Conversation) => {
+    if (!user) return;
+
+    try {
+      const response = await fetch(getConversationsUrl(conversation.id), {
+        method: 'DELETE',
+        headers: await getAuthHeaders(user),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete conversation');
+      }
+
+      toast({ title: `Conversation "${conversation.name}" deleted.` });
+      await refreshConversations();
+      if (conversationId === conversation.id) {
+        handleNavClick();
+        router.push('/chat');
+      }
+      router.refresh();
+    } catch (error: unknown) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: getErrorMessage(error, 'Failed to delete conversation'),
+      });
     }
   };
 
@@ -218,7 +321,7 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
 
         <SidebarSeparator className="my-4" />
 
-        <Button variant="outline" className="w-full" onClick={handleCreateThread}>
+        <Button variant="outline" className="w-full" onClick={handleCreateConversation}>
           <PlusCircle className="mr-2 h-4 w-4" /> New chat
         </Button>
 
@@ -228,20 +331,20 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
             <div className="flex justify-center p-4">
               <Loader2 className="h-5 w-5 animate-spin" />
             </div>
-          ) : threads.length === 0 ? (
+          ) : conversations.length === 0 ? (
             <StateBlock
               className="min-h-[140px] border-0 bg-transparent px-2 py-6"
-              title="No recent threads"
+              title="No recent conversations"
               description="Start a new chat and it will appear here."
             />
           ) : (
             <SidebarMenu>
-              {threads.map((thread) => (
-                <SidebarMenuItem key={thread.id}>
-                  <Link href={`/chat/${thread.id}`} className="w-full" onClick={handleNavClick}>
-                    <SidebarMenuButton isActive={threadId === thread.id} className="w-full justify-start">
+              {conversations.map((conversation) => (
+                <SidebarMenuItem key={conversation.id}>
+                  <Link href={`/chat/${conversation.id}`} className="w-full" onClick={handleNavClick}>
+                    <SidebarMenuButton isActive={conversationId === conversation.id} className="w-full justify-start">
                       <MessageSquare className="shrink-0" />
-                      <span className="truncate">{thread.name}</span>
+                      <span className="truncate">{conversation.name}</span>
                     </SidebarMenuButton>
                   </Link>
                   <DropdownMenu>
@@ -253,8 +356,8 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
                     <DropdownMenuContent side="right" align="start">
                       <DropdownMenuItem
                         onSelect={() => {
-                          setCurrentThread(thread);
-                          setNewThreadName(thread.name);
+                          setCurrentConversation(conversation);
+                          setNewConversationName(conversation.name);
                           setRenameDialogOpen(true);
                         }}
                       >
@@ -273,23 +376,16 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Delete thread?</AlertDialogTitle>
+                            <AlertDialogTitle>Delete conversation?</AlertDialogTitle>
                             <AlertDialogDescription>
-                              This will permanently delete “{thread.name}” and all messages.
+                              This will permanently delete “{conversation.name}” and all messages.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
                             <AlertDialogAction
                               className={buttonVariants({ variant: 'destructive' })}
-                              onClick={async () => {
-                                if (user) {
-                                  await deleteThread(thread.id, user.uid);
-                                  toast({ title: `Thread "${thread.name}" deleted.` });
-                                  const fetchedThreads = await getRecentThreads(user.uid);
-                                  setThreads(fetchedThreads);
-                                }
-                              }}
+                              onClick={() => handleDeleteConversation(conversation)}
                             >
                               Delete
                             </AlertDialogAction>
@@ -349,7 +445,7 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
       <Dialog open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Rename thread</DialogTitle>
+            <DialogTitle>Rename conversation</DialogTitle>
           </DialogHeader>
           <form onSubmit={(e) => { e.preventDefault(); handleRenameSubmit(); }}>
             <div className="grid gap-4 py-4">
@@ -359,8 +455,8 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
                 </Label>
                 <Input
                   id="name"
-                  value={newThreadName}
-                  onChange={(e) => setNewThreadName(e.target.value)}
+                  value={newConversationName}
+                  onChange={(e) => setNewConversationName(e.target.value)}
                   className="col-span-3"
                   autoFocus
                 />
@@ -379,13 +475,13 @@ function SidebarContentInternal({ threadId }: { threadId?: string }) {
   );
 }
 
-export function AppLayout({ children, threadId }: { children: React.ReactNode; threadId?: string }) {
+export function AppLayout({ children, conversationId }: { children: React.ReactNode; conversationId?: string }) {
   const { isOpen } = useArtifactStore();
 
   return (
     <div className="flex min-h-screen w-full overflow-hidden bg-background">
       <Sidebar>
-        <SidebarContentInternal threadId={threadId} />
+        <SidebarContentInternal conversationId={conversationId} />
       </Sidebar>
 
       <SidebarInset className="flex flex-row overflow-hidden p-0">
