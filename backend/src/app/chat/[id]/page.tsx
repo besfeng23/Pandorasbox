@@ -10,7 +10,7 @@ export default function ChatConversationPage({ params }: { params: Promise<{ id:
   const { id } = use(params);
 
   return (
-    <AppLayout threadId={id}>
+    <AppLayout conversationId={id}>
       <div className="flex h-full flex-col">
         <ChatContainer initialConversationId={id} />
       </div>
