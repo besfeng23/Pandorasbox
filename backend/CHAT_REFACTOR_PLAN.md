@@ -56,3 +56,32 @@ npm run build
 - Prior to Phase 4.5, only assistant `content` was appended to Firestore; streamed reasoning/tool/artifact details were visible during the live stream but were not persisted, so a conversation reload could not restore them.
 - Phase 4.5 adds an optional `metadata` field to saved chat messages. `/api/chat` now taps type `2` stream-data events, extracts the same reasoning/tool usage shape used by the client, truncates large structured metadata values, and stores the metadata with the assistant message when present.
 - `/api/conversations/[id]` continues returning `listMessages`; loaded messages now include optional `metadata` when it exists. `ChatContainer` maps that metadata back into the existing `reasoning`/`toolUsages` render shape, so old messages without metadata still render normally and reloaded messages with metadata show the same details accordion as live streamed messages.
+
+## Phase 6 stale duplicate chat cleanup
+
+### Usage inventory performed
+
+Checked the repository for path and symbol references to each likely stale chat file before removal:
+
+- `backend/src/components/chat/ChatWindow.tsx` / `ChatWindow`
+- `backend/src/components/chat/chat-panel.tsx` / `ChatPanel`
+- `backend/src/components/chat/chat-input.tsx` / legacy `ChatInput`
+- `backend/src/components/chat/message.tsx` / legacy `Message`
+- `backend/src/lib/streaming-chat.ts` / `streaming-chat`
+
+### Files removed
+
+- `backend/src/components/chat/ChatWindow.tsx` was removed because no imports or external references remained.
+- `backend/src/components/chat/chat-panel.tsx` was removed because no imports or external references remained.
+- `backend/src/components/chat/message.tsx` was removed because its only remaining import was from the unused legacy `chat-panel.tsx`.
+- `backend/src/lib/streaming-chat.ts` was removed because no imports or external references remained.
+
+### Files retained and why
+
+- `backend/src/components/chat/chat-input.tsx` was retained because `backend/src/components/canvas/ChatCanvas.tsx` still imports its legacy `ChatInput` for the canvas chat composer.
+
+### Remaining legacy references
+
+- `backend/src/components/canvas/ChatCanvas.tsx` still imports `ChatInput` from `../chat/chat-input`.
+- `backend/docs/ui/video-delta.md` still mentions `src/components/chat/chat-input.tsx` as a reference implementation.
+- `backend/lint_output.txt` contains historical lint output that mentions deleted legacy chat files; it was not updated because Phase 6 is deletion-focused and avoids repo hygiene cleanup.
