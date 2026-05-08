@@ -3,10 +3,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Send, Loader2 } from 'lucide-react';
+import { Send, Loader2, Square } from 'lucide-react';
 
 interface ChatInputProps {
   onSubmit: (message: string) => void;
+  onStop?: () => void;
   disabled?: boolean;
   isLoading?: boolean;
   placeholder?: string;
@@ -14,6 +15,7 @@ interface ChatInputProps {
 
 export function ChatInput({
   onSubmit,
+  onStop,
   disabled = false,
   isLoading = false,
   placeholder = 'Message Pandora…',
@@ -22,6 +24,7 @@ export function ChatInput({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isComposerDisabled = disabled || isLoading;
   const canSend = Boolean(input.trim()) && !isComposerDisabled;
+  const showStop = Boolean(isLoading && onStop);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -67,15 +70,28 @@ export function ChatInput({
             aria-label="Message composer"
             className="max-h-[220px] min-h-11 resize-none border-0 bg-transparent px-2 py-3 text-sm leading-6 shadow-none placeholder:text-muted-foreground focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-60"
           />
-          <Button
-            type="submit"
-            size="icon"
-            disabled={!canSend}
-            aria-label={isLoading ? 'Sending message' : 'Send message'}
-            className="h-11 w-11 shrink-0 rounded-xl"
-          >
-            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-          </Button>
+          {showStop ? (
+            <Button
+              type="button"
+              size="icon"
+              variant="destructive"
+              onClick={onStop}
+              aria-label="Stop generation"
+              className="h-11 w-11 shrink-0 rounded-xl"
+            >
+              <Square className="h-4 w-4 fill-current" />
+            </Button>
+          ) : (
+            <Button
+              type="submit"
+              size="icon"
+              disabled={!canSend}
+              aria-label={isLoading ? 'Sending message' : 'Send message'}
+              className="h-11 w-11 shrink-0 rounded-xl"
+            >
+              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            </Button>
+          )}
         </div>
         <p className="px-2 pb-1 pt-1 text-[11px] text-muted-foreground">Press Enter to send • Shift+Enter for a new line</p>
       </div>

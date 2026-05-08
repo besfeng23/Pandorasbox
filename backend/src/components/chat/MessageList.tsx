@@ -3,16 +3,19 @@
 import { type ChatMessage } from './ChatContainer';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Bot, Sparkles } from 'lucide-react';
+import { Bot, RefreshCw, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { StateBlock } from '@/components/ui/state-block';
+import { MessageDetails } from './MessageDetails';
 
 interface MessageListProps {
   messages: ChatMessage[];
   onExampleSelect?: (prompt: string) => void;
   examplesDisabled?: boolean;
+  onRegenerate?: () => void;
+  isRegenerating?: boolean;
 }
 
 const examplePrompts = [
@@ -21,7 +24,7 @@ const examplePrompts = [
   'Compare these options and recommend one.',
 ];
 
-export function MessageList({ messages, onExampleSelect, examplesDisabled = false }: MessageListProps) {
+export function MessageList({ messages, onExampleSelect, examplesDisabled = false, onRegenerate, isRegenerating = false }: MessageListProps) {
   if (messages.length === 0) {
     return (
       <div className="mx-auto flex h-full w-full max-w-content-reading items-center px-4 py-8">
@@ -56,10 +59,11 @@ export function MessageList({ messages, onExampleSelect, examplesDisabled = fals
       {messages.map((message, index) => {
         const isUser = message.role === 'user';
         const isStreamingPlaceholder = !isUser && !message.content?.trim();
-        const messageKey = message.id ?? `${message.role}-${index}`;
+        const messageKey = message.id ?? `${message.role}-${index}-${message.content.slice(0, 24)}`;
+        const isLastAssistantMessage = !isUser && index === messages.map((msg) => msg.role).lastIndexOf('assistant');
 
         return (
-          <article key={messageKey} className={cn('flex gap-3', isUser ? 'justify-end' : 'justify-start')}>
+          <article key={messageKey} className={cn('group/message flex gap-3', isUser ? 'justify-end' : 'justify-start')}>
             {!isUser && (
               <Avatar className="mt-1 h-7 w-7 shrink-0 border border-border bg-card">
                 <AvatarFallback className="bg-muted text-muted-foreground">
@@ -87,11 +91,22 @@ export function MessageList({ messages, onExampleSelect, examplesDisabled = fals
                     <span className="sr-only">Assistant is responding</span>
                   </div>
                 ) : (
-                  <div className="prose prose-sm max-w-none text-foreground dark:prose-invert prose-headings:mb-2 prose-headings:mt-5 prose-p:my-3 prose-p:leading-7 prose-a:text-primary prose-strong:text-foreground prose-ul:my-3 prose-ol:my-3 prose-li:my-1 prose-blockquote:border-border prose-blockquote:text-muted-foreground prose-code:rounded prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:text-foreground prose-pre:my-4 prose-pre:overflow-x-auto prose-pre:rounded-xl prose-pre:border prose-pre:border-border prose-pre:bg-muted prose-pre:p-4 prose-pre:text-foreground">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
-                  </div>
+                  <>
+                    <div className="prose prose-sm max-w-none text-foreground dark:prose-invert prose-headings:mb-2 prose-headings:mt-5 prose-p:my-3 prose-p:leading-7 prose-a:text-primary prose-strong:text-foreground prose-ul:my-3 prose-ol:my-3 prose-li:my-1 prose-blockquote:border-border prose-blockquote:text-muted-foreground prose-code:rounded prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:text-foreground prose-pre:my-4 prose-pre:overflow-x-auto prose-pre:rounded-xl prose-pre:border prose-pre:border-border prose-pre:bg-muted prose-pre:p-4 prose-pre:text-foreground">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+                    </div>
+                    <MessageDetails message={message} />
+                  </>
                 )}
               </div>
+              {isLastAssistantMessage && onRegenerate && !isStreamingPlaceholder && (
+                <div className={cn('mt-2 flex transition-opacity group-hover/message:opacity-100', isRegenerating ? 'opacity-100' : 'opacity-0')}>
+                  <Button type="button" variant="outline" size="sm" onClick={onRegenerate} disabled={isRegenerating} className="gap-1.5">
+                    <RefreshCw className={cn('h-3.5 w-3.5', isRegenerating && 'animate-spin')} />
+                    Regenerate
+                  </Button>
+                </div>
+              )}
             </div>
           </article>
         );
