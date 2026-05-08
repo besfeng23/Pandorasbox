@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { useArtifactStore } from '@/store/artifacts';
+import { consumeChatStream } from './stream-utils';
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
@@ -109,9 +110,6 @@ export function ChatContainer({ initialConversationId = null }: ChatContainerPro
         }
       }
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
       let assistantMessage: ChatMessage = {
         role: 'assistant',
         content: '',
@@ -121,50 +119,22 @@ export function ChatContainer({ initialConversationId = null }: ChatContainerPro
       setMessages((prev) => [...prev, assistantMessage]);
 
       try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
+        await consumeChatStream(response, {
+          onTextDelta: (textContent) => {
+            if (!textContent) return;
 
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          buffer = lines.pop() || '';
-
-          for (const line of lines) {
-            if (!line.trim()) continue;
-            const colonIndex = line.indexOf(':');
-            if (colonIndex === -1) continue;
-
-            const type = line.substring(0, colonIndex);
-            const content = line.substring(colonIndex + 1);
-
-            try {
-              if (type === '0') {
-                let textContent = '';
-
-                try {
-                  const parsed = JSON.parse(content);
-                  if (typeof parsed === 'string') textContent = parsed;
-                  else if (parsed && typeof parsed === 'object') textContent = parsed.text || parsed.content || '';
-                  else textContent = String(parsed);
-                } catch {
-                  textContent = content.replace(/^"|"$/g, '');
-                }
-
-                if (textContent) {
-                  assistantMessage.content += textContent;
-                  setMessages((prev) => {
-                    const updated = [...prev];
-                    const lastIndex = updated.length - 1;
-                    if (lastIndex >= 0 && updated[lastIndex].role === 'assistant') updated[lastIndex] = { ...assistantMessage };
-                    return updated;
-                  });
-                }
-              }
-            } catch (parseError) {
-              console.warn('Failed to parse stream line:', parseError, line);
-            }
-          }
-        }
+            assistantMessage.content += textContent;
+            setMessages((prev) => {
+              const updated = [...prev];
+              const lastIndex = updated.length - 1;
+              if (lastIndex >= 0 && updated[lastIndex].role === 'assistant') updated[lastIndex] = { ...assistantMessage };
+              return updated;
+            });
+          },
+          onParseError: (parseError, line) => {
+            console.warn('Failed to parse stream line:', parseError, line);
+          },
+        });
 
         setMessages((prev) => {
           const updated = [...prev];
