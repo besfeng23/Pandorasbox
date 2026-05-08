@@ -43,3 +43,9 @@ npm run lint
 npm run test
 npm run build
 ```
+
+## Phase 4 deferred notes
+
+- Image attachments remain deferred in the canonical chat path because `/api/chat` currently accepts JSON text messages and does not expose the legacy `image_data` / `image_file` form-data handling needed to submit previews safely.
+- Voice input remains deferred because the legacy path is coupled to form-data server actions and `VoiceInput`; it should only be reintroduced after the canonical `/api/chat` contract supports it cleanly.
+- Follow-up suggestion chips remain deferred because the legacy implementation is coupled to `useSuggestions(userId)`, animated pin/dismiss controls, and the old form-data submission path; port it after validating the hook output and keeping the integration small.

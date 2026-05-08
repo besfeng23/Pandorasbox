@@ -4,17 +4,26 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
-import { FileText, Loader2, Sparkles } from 'lucide-react';
+import { FileText, Loader2, Sparkles, Square, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { useArtifactStore } from '@/store/artifacts';
 import { consumeChatStream } from './stream-utils';
 
+export interface ChatToolUsage {
+  toolName: string;
+  input?: unknown;
+  output?: unknown;
+  citation?: string;
+}
+
 export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   id?: string;
+  reasoning?: string;
+  toolUsages?: ChatToolUsage[];
 }
 
 interface ChatContainerProps {
@@ -25,6 +34,8 @@ type ApiChatMessage = {
   role: ChatMessage['role'];
   content: string;
   id?: string;
+  reasoning?: string;
+  toolUsages?: ChatToolUsage[];
 };
 
 function isApiChatMessage(message: unknown): message is ApiChatMessage {
@@ -35,6 +46,49 @@ function isApiChatMessage(message: unknown): message is ApiChatMessage {
 
 function getErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function normalizeToolUsage(value: unknown): ChatToolUsage | null {
+  if (!isRecord(value)) return null;
+  const rawName = value.toolName || value.name || value.tool || value.type;
+  if (typeof rawName !== 'string' || !rawName.trim()) return null;
+  return {
+    toolName: rawName,
+    input: value.input ?? value.args ?? value.arguments,
+    output: value.output ?? value.result ?? value.data,
+    citation: typeof value.citation === 'string' ? value.citation : undefined,
+  };
+}
+
+function extractStreamDetails(payload: unknown): Pick<ChatMessage, 'reasoning' | 'toolUsages'> {
+  const records = Array.isArray(payload) ? payload.filter(isRecord) : isRecord(payload) ? [payload] : [];
+  const toolUsages: ChatToolUsage[] = [];
+  const reasoningParts: string[] = [];
+
+  for (const record of records) {
+    const reasoning = record.reasoning ?? record.thought ?? record.thinking;
+    if (typeof reasoning === 'string' && reasoning.trim()) reasoningParts.push(reasoning.trim());
+
+    const directTool = normalizeToolUsage(record);
+    if (directTool) toolUsages.push(directTool);
+
+    const nestedTools = record.toolUsages ?? record.tools ?? record.tool_calls ?? record.toolCalls;
+    if (Array.isArray(nestedTools)) {
+      for (const nestedTool of nestedTools) {
+        const normalized = normalizeToolUsage(nestedTool);
+        if (normalized) toolUsages.push(normalized);
+      }
+    }
+  }
+
+  return {
+    reasoning: reasoningParts.join('\n\n') || undefined,
+    toolUsages: toolUsages.length > 0 ? toolUsages : undefined,
+  };
 }
 
 export function ChatContainer({ initialConversationId = null }: ChatContainerProps = {}) {
@@ -48,6 +102,8 @@ export function ChatContainer({ initialConversationId = null }: ChatContainerPro
   const [conversationId, setConversationId] = useState<string | null>(initialConversationId);
   const abortControllerRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messageSequenceRef = useRef(0);
+  const userStoppedRef = useRef(false);
 
   useEffect(() => {
     if (conversationId && user) {
@@ -75,10 +131,12 @@ export function ChatContainer({ initialConversationId = null }: ChatContainerPro
         }
 
         const data: { messages?: unknown[] } = await response.json();
-        const loadedMessages: ChatMessage[] = (data.messages || []).filter(isApiChatMessage).map((msg) => ({
+        const loadedMessages: ChatMessage[] = (data.messages || []).filter(isApiChatMessage).map((msg, index) => ({
           role: msg.role,
           content: msg.content,
-          id: msg.id,
+          id: msg.id || `${msg.role}-loaded-${index}`,
+          reasoning: typeof msg.reasoning === 'string' ? msg.reasoning : undefined,
+          toolUsages: Array.isArray(msg.toolUsages) ? msg.toolUsages : undefined,
         }));
 
         setMessages(loadedMessages);
@@ -110,10 +168,11 @@ export function ChatContainer({ initialConversationId = null }: ChatContainerPro
         }
       }
 
+      const assistantId = `assistant-${Date.now()}-${messageSequenceRef.current++}`;
       let assistantMessage: ChatMessage = {
         role: 'assistant',
         content: '',
-        id: `assistant-${Date.now()}`,
+        id: assistantId,
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
@@ -126,10 +185,21 @@ export function ChatContainer({ initialConversationId = null }: ChatContainerPro
             assistantMessage.content += textContent;
             setMessages((prev) => {
               const updated = [...prev];
-              const lastIndex = updated.length - 1;
-              if (lastIndex >= 0 && updated[lastIndex].role === 'assistant') updated[lastIndex] = { ...assistantMessage };
+              const messageIndex = updated.findIndex((msg) => msg.id === assistantId);
+              if (messageIndex >= 0) updated[messageIndex] = { ...assistantMessage };
               return updated;
             });
+          },
+          onData: (payload) => {
+            const details = extractStreamDetails(payload);
+            if (!details.reasoning && !details.toolUsages?.length) return;
+
+            assistantMessage = {
+              ...assistantMessage,
+              reasoning: [assistantMessage.reasoning, details.reasoning].filter(Boolean).join('\n\n') || undefined,
+              toolUsages: [...(assistantMessage.toolUsages || []), ...(details.toolUsages || [])],
+            };
+            setMessages((prev) => prev.map((msg) => (msg.id === assistantId ? { ...assistantMessage } : msg)));
           },
           onParseError: (parseError, line) => {
             console.warn('Failed to parse stream line:', parseError, line);
@@ -138,8 +208,8 @@ export function ChatContainer({ initialConversationId = null }: ChatContainerPro
 
         setMessages((prev) => {
           const updated = [...prev];
-          const lastIndex = updated.length - 1;
-          if (lastIndex >= 0 && updated[lastIndex].role === 'assistant') updated[lastIndex] = { ...assistantMessage };
+          const messageIndex = updated.findIndex((msg) => msg.id === assistantId);
+          if (messageIndex >= 0) updated[messageIndex] = { ...assistantMessage };
           return updated;
         });
       } catch (streamError: unknown) {
@@ -149,22 +219,29 @@ export function ChatContainer({ initialConversationId = null }: ChatContainerPro
         }
       } finally {
         setIsStreaming(false);
+        abortControllerRef.current = null;
+        userStoppedRef.current = false;
       }
     },
     [router, toast]
   );
 
   const handleSubmit = useCallback(
-    async (content: string) => {
+    async (content: string, options: { appendUserMessage?: boolean; replaceLastAssistant?: boolean } = {}) => {
       if (!user || !content.trim() || isStreaming) return;
 
-      const userMessage: ChatMessage = { role: 'user', content: content.trim(), id: `user-${Date.now()}` };
+      const shouldAppendUserMessage = options.appendUserMessage !== false;
+      const userMessage: ChatMessage = { role: 'user', content: content.trim(), id: `user-${Date.now()}-${messageSequenceRef.current++}` };
 
-      setMessages((prev) => [...prev, userMessage]);
+      setMessages((prev) => {
+        const next = options.replaceLastAssistant && prev[prev.length - 1]?.role === 'assistant' ? prev.slice(0, -1) : prev;
+        return shouldAppendUserMessage ? [...next, userMessage] : next;
+      });
       setIsStreaming(true);
 
       if (abortControllerRef.current) abortControllerRef.current.abort();
 
+      userStoppedRef.current = false;
       const abortController = new AbortController();
       abortControllerRef.current = abortController;
 
@@ -201,18 +278,35 @@ export function ChatContainer({ initialConversationId = null }: ChatContainerPro
         await processStream(response, isNewConversation);
       } catch (error: unknown) {
         if (error instanceof DOMException && error.name === 'AbortError') {
-          setMessages((prev) => prev.filter((msg) => msg.id !== userMessage.id));
+          if (shouldAppendUserMessage && !userStoppedRef.current) setMessages((prev) => prev.filter((msg) => msg.id !== userMessage.id));
+          userStoppedRef.current = false;
+          setIsStreaming(false);
+          abortControllerRef.current = null;
           return;
         }
 
         console.error('Chat error:', error);
         toast({ variant: 'destructive', title: 'Error', description: getErrorMessage(error, 'Failed to send message. Please try again.') });
-        setMessages((prev) => prev.filter((msg) => msg.id !== userMessage.id));
+        if (shouldAppendUserMessage) setMessages((prev) => prev.filter((msg) => msg.id !== userMessage.id));
         setIsStreaming(false);
       }
     },
     [user, conversationId, isStreaming, processStream, toast]
   );
+
+  const handleStop = useCallback(() => {
+    userStoppedRef.current = true;
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = null;
+    setIsStreaming(false);
+  }, []);
+
+  const handleRegenerate = useCallback(() => {
+    if (isStreaming) return;
+    const lastUserMessage = [...messages].reverse().find((message) => message.role === 'user');
+    if (!lastUserMessage?.content.trim()) return;
+    void handleSubmit(lastUserMessage.content, { appendUserMessage: false, replaceLastAssistant: true });
+  }, [handleSubmit, isStreaming, messages]);
 
   if (isLoadingMessages) {
     return (
@@ -237,6 +331,23 @@ export function ChatContainer({ initialConversationId = null }: ChatContainerPro
             {isStreaming && <span className="hidden text-xs text-muted-foreground sm:inline">Streaming…</span>}
             <Button
               type="button"
+              variant="outline"
+              size="sm"
+              disabled={isStreaming || !messages.some((message) => message.role === 'user')}
+              onClick={handleRegenerate}
+              className="gap-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+            >
+              <RefreshCw className="h-4 w-4" />
+              <span className="hidden sm:inline">Regenerate</span>
+            </Button>
+            {isStreaming && (
+              <Button type="button" variant="destructive" size="sm" onClick={handleStop} className="gap-1.5">
+                <Square className="h-3.5 w-3.5 fill-current" />
+                <span>Stop</span>
+              </Button>
+            )}
+            <Button
+              type="button"
               variant="ghost"
               size="sm"
               title="Sources and context"
@@ -253,12 +364,12 @@ export function ChatContainer({ initialConversationId = null }: ChatContainerPro
       </div>
 
       <div className="app-scroll flex-1 overflow-y-auto bg-background">
-        <MessageList messages={messages} onExampleSelect={handleSubmit} examplesDisabled={isStreaming} />
+        <MessageList messages={messages} onExampleSelect={(prompt) => handleSubmit(prompt)} examplesDisabled={isStreaming} onRegenerate={handleRegenerate} isRegenerating={isStreaming} />
         <div ref={messagesEndRef} />
       </div>
 
       <div className="sticky bottom-0 shrink-0 border-t border-border bg-background">
-        <ChatInput onSubmit={handleSubmit} disabled={isStreaming} isLoading={isStreaming} />
+        <ChatInput onSubmit={(message) => handleSubmit(message)} onStop={handleStop} disabled={isStreaming} isLoading={isStreaming} />
       </div>
     </div>
   );
