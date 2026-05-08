@@ -2,6 +2,7 @@
 
 import { type ChatMessage } from '@/lib/llm/llm-client';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
 import { User, Bot, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
@@ -10,18 +11,42 @@ import { StateBlock } from '@/components/ui/state-block';
 
 interface MessageListProps {
   messages: ChatMessage[];
+  onExampleSelect?: (prompt: string) => void;
+  examplesDisabled?: boolean;
 }
 
-export function MessageList({ messages }: MessageListProps) {
+const examplePrompts = [
+  'Summarize what we decided last time.',
+  'Help me turn this idea into a launch plan.',
+  'Compare these options and recommend one.',
+];
+
+export function MessageList({ messages, onExampleSelect, examplesDisabled = false }: MessageListProps) {
   if (messages.length === 0) {
     return (
       <div className="mx-auto flex h-full w-full max-w-content-reading items-center px-4 py-8">
         <StateBlock
           icon={<Sparkles className="h-8 w-8" />}
-          title="Start a conversation"
-          description="Ask a question, brainstorm ideas, or request a plan. Pandora will respond with streaming answers as you type."
+          title="Start with a task."
+          description="Ask a question, build a plan, or pull from memory."
           className="w-full"
-        />
+        >
+          <div className="mt-5 flex flex-wrap justify-center gap-2">
+            {examplePrompts.map((prompt) => (
+              <Button
+                key={prompt}
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={!onExampleSelect || examplesDisabled}
+                onClick={() => onExampleSelect?.(prompt)}
+                className="h-auto max-w-full rounded-full px-3 py-2 text-left text-xs text-muted-foreground hover:text-foreground"
+              >
+                {prompt}
+              </Button>
+            ))}
+          </div>
+        </StateBlock>
       </div>
     );
   }

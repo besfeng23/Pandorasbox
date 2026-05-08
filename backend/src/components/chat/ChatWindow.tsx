@@ -18,6 +18,10 @@ interface ChatWindowProps {
   agentId?: 'builder' | 'universe';
 }
 
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
+
 /**
  * Main ChatWindow component that orchestrates the entire chat experience
  */
@@ -212,8 +216,8 @@ export function ChatWindow({ threadId, agentId = 'universe' }: ChatWindowProps) 
 
       // Process the streaming response
       await processStream(response);
-    } catch (error: any) {
-      if (error.name === 'AbortError') {
+    } catch (error: unknown) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
         // User cancelled - remove the assistant message placeholder
         setMessages((prev) => prev.filter((msg) => msg.id !== `assistant-${Date.now()}`));
         return;
@@ -233,7 +237,7 @@ export function ChatWindow({ threadId, agentId = 'universe' }: ChatWindowProps) 
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: error.message || 'Failed to send message. Please try again.',
+        description: getErrorMessage(error, 'Failed to send message. Please try again.'),
       });
     } finally {
       setIsStreaming(false);
@@ -254,7 +258,7 @@ export function ChatWindow({ threadId, agentId = 'universe' }: ChatWindowProps) 
     <div className="flex h-full flex-col">
       {/* Message List */}
       <div className="flex-1 overflow-y-auto">
-        <MessageList messages={messages} />
+        <MessageList messages={messages} onExampleSelect={handleSubmit} examplesDisabled={isStreaming} />
         <div ref={messagesEndRef} />
       </div>
 

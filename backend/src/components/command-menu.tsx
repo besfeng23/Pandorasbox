@@ -4,7 +4,7 @@ import React, { useState, useEffect, useTransition } from 'react';
 import { Command } from 'cmdk';
 import { searchMemoryAction } from '@/app/actions';
 import { useUser } from '@/firebase';
-import { Database, Loader2, Home, Settings, GitGraph, Building2, Library, Boxes } from 'lucide-react';
+import { Bot, BrainCircuit, Database, Home, Loader2, Plug, Settings } from 'lucide-react';
 import { SearchResult } from '@/lib/types';
 import { useDebounce } from '@/hooks/use-debounce';
 import { formatDistanceToNow } from 'date-fns';
@@ -20,12 +20,10 @@ export function CommandMenu() {
   const debouncedQuery = useDebounce(query, 300);
 
   const navigationItems = [
-    { id: 'home', label: 'Chat', icon: Home, path: '/' },
-    { id: 'workspaces', label: 'Workspaces', icon: Building2, path: '/workspaces' },
-    { id: 'knowledge', label: 'Knowledge', icon: Library, path: '/knowledge' },
-    { id: 'memories', label: 'Memories', icon: Database, path: '/memories' },
-    { id: 'artifacts', label: 'Artifacts', icon: Boxes, path: '/artifacts' },
-    { id: 'graph', label: 'Graph', icon: GitGraph, path: '/graph' },
+    { id: 'chat', label: 'Chat', icon: Home, path: '/chat' },
+    { id: 'memory', label: 'Memory', icon: BrainCircuit, path: '/memory' },
+    { id: 'connectors', label: 'Connectors', icon: Plug, path: '/connectors' },
+    { id: 'agents', label: 'Agents', icon: Bot, path: '/agents' },
     { id: 'settings', label: 'Settings', icon: Settings, path: '/settings' },
   ];
 
@@ -77,14 +75,14 @@ export function CommandMenu() {
       <Command.Input
         value={query}
         onValueChange={setQuery}
-        placeholder="Search memories, navigate, or type a command..."
+        placeholder="Search memories or go to a page…"
         className="glass-panel border border-primary/20 focus:border-primary/40 focus:ring-2 focus:ring-primary/20"
       />
       <Command.List>
         {isSearching && query && <div className="p-4 flex justify-center"><Loader2 className="animate-spin text-primary" /></div>}
         
         {!query && (
-          <Command.Group heading="Navigation">
+          <Command.Group heading="Go to">
             {navigationItems.map(item => {
               const Icon = item.icon;
               return (
@@ -105,7 +103,7 @@ export function CommandMenu() {
         )}
 
         {query && filteredNavItems.length > 0 && (
-          <Command.Group heading="Navigation">
+          <Command.Group heading="Go to">
             {filteredNavItems.map(item => {
               const Icon = item.icon;
               return (

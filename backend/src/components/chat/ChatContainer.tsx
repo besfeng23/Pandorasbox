@@ -4,9 +4,11 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
-import { Loader2, Sparkles } from 'lucide-react';
+import { FileText, Loader2, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { useArtifactStore } from '@/store/artifacts';
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
@@ -18,10 +20,27 @@ interface ChatContainerProps {
   initialConversationId?: string | null;
 }
 
+type ApiChatMessage = {
+  role: ChatMessage['role'];
+  content: string;
+  id?: string;
+};
+
+function isApiChatMessage(message: unknown): message is ApiChatMessage {
+  if (!message || typeof message !== 'object') return false;
+  const candidate = message as Partial<ApiChatMessage>;
+  return (candidate.role === 'user' || candidate.role === 'assistant') && typeof candidate.content === 'string';
+}
+
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
+
 export function ChatContainer({ initialConversationId = null }: ChatContainerProps = {}) {
   const { user } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
+  const { activeArtifact, setIsOpen } = useArtifactStore();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
@@ -54,15 +73,15 @@ export function ChatContainer({ initialConversationId = null }: ChatContainerPro
           throw new Error('Failed to load conversation');
         }
 
-        const data = await response.json();
-        const loadedMessages: ChatMessage[] = (data.messages || []).map((msg: any) => ({
+        const data: { messages?: unknown[] } = await response.json();
+        const loadedMessages: ChatMessage[] = (data.messages || []).filter(isApiChatMessage).map((msg) => ({
           role: msg.role,
           content: msg.content,
           id: msg.id,
         }));
 
         setMessages(loadedMessages);
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Error loading messages:', error);
         toast({ variant: 'destructive', title: 'Error', description: 'Failed to load conversation messages.' });
       } finally {
@@ -153,8 +172,8 @@ export function ChatContainer({ initialConversationId = null }: ChatContainerPro
           if (lastIndex >= 0 && updated[lastIndex].role === 'assistant') updated[lastIndex] = { ...assistantMessage };
           return updated;
         });
-      } catch (streamError: any) {
-        if (streamError.name !== 'AbortError') {
+      } catch (streamError: unknown) {
+        if (!(streamError instanceof DOMException && streamError.name === 'AbortError')) {
           console.error('Stream processing error:', streamError);
           toast({ variant: 'destructive', title: 'Stream Error', description: 'Failed to process streaming response.' });
         }
@@ -210,14 +229,14 @@ export function ChatContainer({ initialConversationId = null }: ChatContainerPro
         }
 
         await processStream(response, isNewConversation);
-      } catch (error: any) {
-        if (error.name === 'AbortError') {
+      } catch (error: unknown) {
+        if (error instanceof DOMException && error.name === 'AbortError') {
           setMessages((prev) => prev.filter((msg) => msg.id !== userMessage.id));
           return;
         }
 
         console.error('Chat error:', error);
-        toast({ variant: 'destructive', title: 'Error', description: error.message || 'Failed to send message. Please try again.' });
+        toast({ variant: 'destructive', title: 'Error', description: getErrorMessage(error, 'Failed to send message. Please try again.') });
         setMessages((prev) => prev.filter((msg) => msg.id !== userMessage.id));
         setIsStreaming(false);
       }
@@ -242,14 +261,29 @@ export function ChatContainer({ initialConversationId = null }: ChatContainerPro
         <div className="mx-auto flex w-full max-w-content-reading items-center justify-between">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Sparkles className="h-4 w-4 text-primary" />
-            <span>{conversationId ? 'Conversation' : 'New conversation'}</span>
+            <span>{conversationId ? 'Chat' : 'New chat'}</span>
           </div>
-          {isStreaming && <span className="text-xs text-muted-foreground">Streaming response…</span>}
+          <div className="flex items-center gap-2">
+            {isStreaming && <span className="hidden text-xs text-muted-foreground sm:inline">Streaming…</span>}
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              title="Sources and context"
+              aria-label="Sources and context"
+              disabled={!activeArtifact}
+              onClick={() => setIsOpen(true)}
+              className="gap-1.5 text-muted-foreground hover:text-foreground"
+            >
+              <FileText className="h-4 w-4" />
+              <span className="hidden sm:inline">Sources</span>
+            </Button>
+          </div>
         </div>
       </div>
 
       <div className="app-scroll flex-1 overflow-y-auto">
-        <MessageList messages={messages} />
+        <MessageList messages={messages} onExampleSelect={handleSubmit} examplesDisabled={isStreaming} />
         <div ref={messagesEndRef} />
       </div>
 

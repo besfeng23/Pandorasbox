@@ -9,10 +9,11 @@ interface StateBlockProps {
     label: string;
     onClick: () => void;
   };
+  children?: React.ReactNode;
   className?: string;
 }
 
-export function StateBlock({ icon, title, description, action, className }: StateBlockProps) {
+export function StateBlock({ icon, title, description, action, children, className }: StateBlockProps) {
   return (
     <div
       className={cn(
@@ -28,6 +29,7 @@ export function StateBlock({ icon, title, description, action, className }: Stat
           {action.label}
         </Button>
       ) : null}
+      {children}
     </div>
   );
 }
