@@ -59,6 +59,10 @@ src/base44/logs/*.log
 jest-full.log
 jest-run.log
 
+# lint output
+lint_output.txt
+*lint_output*.txt
+
 # firebase build artifacts
 .firebase/
 
