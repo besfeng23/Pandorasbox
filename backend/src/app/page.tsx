@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
-import { AppLayout } from '@/components/dashboard/app-layout';
+import { OperatingAppLayout } from '@/components/operating-app-layout';
 import { OperatingCommandCenter } from '@/components/operating-command-center';
 import { useAuth } from '@/hooks/use-auth';
 
@@ -26,8 +26,8 @@ export default function DashboardPage() {
   }
 
   return (
-    <AppLayout>
+    <OperatingAppLayout>
       <OperatingCommandCenter mode="command-center" />
-    </AppLayout>
+    </OperatingAppLayout>
   );
 }
