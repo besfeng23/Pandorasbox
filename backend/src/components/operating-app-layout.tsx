@@ -45,6 +45,7 @@ import { createThread } from '@/app/actions';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { CommandMenu } from '@/components/command-menu';
+import { OperatingKeyboardShortcuts } from '@/components/operating-keyboard-shortcuts';
 
 type NavItem = { label: string; href: string; icon: LucideIcon; badge?: string };
 type NavSection = { title: string; items: NavItem[] };
@@ -166,6 +167,7 @@ export function OperatingAppLayout({ children }: { children: React.ReactNode }) 
   return (
     <div className="flex min-h-[100dvh] w-full overflow-hidden bg-slate-50 text-slate-950">
       <CommandMenu />
+      <OperatingKeyboardShortcuts />
       <aside className={cn('fixed inset-y-0 left-0 z-40 w-72 border-r border-slate-200 bg-white transition-transform lg:static lg:translate-x-0', mobileOpen ? 'translate-x-0' : '-translate-x-full')}>
         <div className="flex h-full flex-col">
           <div className="flex items-center justify-between border-b border-slate-200 p-4">
