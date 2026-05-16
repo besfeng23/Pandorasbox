@@ -1,4 +1,4 @@
-import { OperatingAppLayout } from '@/components/operating-app-layout';
+import { OperatingAppLayoutV2 } from '@/components/operating-app-layout-v2';
 import { OperatingCommandCenter, isOperatingMode } from '@/components/operating-command-center';
 
 export default async function OperatingModulePage({
@@ -10,8 +10,8 @@ export default async function OperatingModulePage({
   const safeMode = isOperatingMode(mode) && mode !== 'command-center' ? mode : 'command-center';
 
   return (
-    <OperatingAppLayout>
+    <OperatingAppLayoutV2>
       <OperatingCommandCenter mode={safeMode} />
-    </OperatingAppLayout>
+    </OperatingAppLayoutV2>
   );
 }
